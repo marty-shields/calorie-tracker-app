@@ -19,5 +19,11 @@ public class CoreEventTests
             [CoreEvent.SchemaVersion] = 1001,
             [CoreEvent.DatabaseCreated] = 1002,
             [CoreEvent.SchemaStepApplied] = 1003,
+            [CoreEvent.FoodStoreBlock] = 1100,
+            [CoreEvent.FoodInserted] = 1101,
+            [CoreEvent.FoodUpdated] = 1102,
+            [CoreEvent.OpenFoodFactsAdapterBlock] = 1200,
+            [CoreEvent.StoredLookupBlock] = 1300,
+            [CoreEvent.SeedLoaderBlock] = 1400,
         }));
 }

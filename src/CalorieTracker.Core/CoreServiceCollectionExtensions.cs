@@ -24,6 +24,7 @@ public static class CoreServiceCollectionExtensions
         var connection = new SQLiteAsyncConnection(databasePath);
         return services
             .AddSingleton<DatabaseGate>()
+            .AddSingleton(provider => ActivatorUtilities.CreateInstance<FoodStore>(provider, connection))
             .AddDecoratedSingleton<IDatabaseInitializer, GatedDatabaseInitializer>(provider =>
                 ActivatorUtilities.CreateInstance<DatabaseInitializer>(provider, connection));
     }
