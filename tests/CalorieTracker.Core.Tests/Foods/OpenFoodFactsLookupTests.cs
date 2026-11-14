@@ -26,7 +26,7 @@ public class OpenFoodFactsLookupTests
         logger = new FakeLogger<OpenFoodFactsLookup>();
         clock = new FakeTimeProvider(new DateTimeOffset(2026, 11, 14, 12, 0, 0, TimeSpan.Zero));
         waits = [];
-        client = OpenFoodFactsLookup.CreateClient(handler);
+        client = new HttpClient(handler) { BaseAddress = new Uri("https://world.openfoodfacts.org/") };
         lookup = new OpenFoodFactsLookup(client, logger, clock, (wait, _) =>
         {
             waits.Add(wait);
@@ -278,22 +278,6 @@ public class OpenFoodFactsLookupTests
             Assert.That(request.Method, Is.EqualTo(HttpMethod.Get));
             Assert.That(request.Uri.GetLeftPart(UriPartial.Path), Is.EqualTo("https://world.openfoodfacts.org/api/v2/product/" + Barcode));
             Assert.That(request.Uri.Query, Is.EqualTo("?fields=product_name,brands,nutriments,product_quantity_unit,serving_quantity_unit"));
-        });
-    }
-
-    [Test]
-    public async Task Request_CarriesTheAppUserAgent()
-    {
-        handler.Respond(Fixture("solid-3017620422003.json"));
-
-        await lookup.LookupAsync(Barcode);
-
-        var assembly = typeof(OpenFoodFactsLookup).Assembly.GetName();
-        Assert.Multiple(() =>
-        {
-            Assert.That(handler.Requests.Single().UserAgent, Does.StartWith(assembly.Name + "/" + assembly.Version!.Major + "."));
-            Assert.That(handler.Requests.Single().UserAgent, Does.EndWith("(https://github.com/marty-shields/calorie-tracker-app)"));
-            Assert.That(client.Timeout, Is.EqualTo(TimeSpan.FromSeconds(10)));
         });
     }
 

@@ -11,13 +11,12 @@ namespace CalorieTracker.Core.Foods;
 /// Looks a barcode up on Open Food Facts. Network, timeout and malformed-response failures come back as a status;
 /// only the caller's own cancellation throws.
 /// </summary>
+/// <remarks>The client must have its <c>BaseAddress</c> set; the request path is relative.</remarks>
 internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
 {
     private const string Fields = "product_name,brands,nutriments,product_quantity_unit,serving_quantity_unit";
     private const int MaxAttempts = 3;
     private const double KcalPerKj = 1 / 4.184;
-
-    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(10);
 
     /// <summary>The wait before a retry when the response names none, or names one over <see cref="MaxRetryAfter"/>.</summary>
     internal static readonly TimeSpan DefaultRetryWait = TimeSpan.FromSeconds(2);
@@ -40,18 +39,9 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
     /// <summary>The User-Agent Open Food Facts asks for: app name and version, then a contact URL. Name and version come from the Core assembly.</summary>
     internal static string UserAgent { get; } = BuildUserAgent();
 
-    /// <summary>A client with the User-Agent and a 10 s timeout. Share one: a new client per lookup exhausts sockets.</summary>
-    internal static HttpClient CreateClient(HttpMessageHandler? handler = null)
-    {
-        var client = handler is null ? new HttpClient() : new HttpClient(handler);
-        client.Timeout = RequestTimeout;
-        client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
-        return client;
-    }
-
     public async Task<BarcodeLookupResult> LookupAsync(string barcode, CancellationToken ct = default)
     {
-        var url = $"https://world.openfoodfacts.org/api/v2/product/{Uri.EscapeDataString(barcode)}?fields={Fields}";
+        var url = $"api/v2/product/{Uri.EscapeDataString(barcode)}?fields={Fields}";
         for (var attempt = 1; ; attempt++)
         {
             Log.Attempted(logger, attempt);
