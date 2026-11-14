@@ -19,17 +19,9 @@
     gap: var(--space-6);
 }
 
-.version,
-.credit {
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
-}
-
 .version {
     margin: auto 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
     text-align: center;
-}
-
-.credit {
-    margin: 0;
 }

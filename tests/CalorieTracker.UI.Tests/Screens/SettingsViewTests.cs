@@ -14,19 +14,6 @@ public class SettingsViewTests : ComponentTestBase
     }
 
     [Test]
-    public void Credits_NameBothDatasetsAndTheirLicences()
-    {
-        var cut = Render();
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(cut.FindAll("h2.heading").Select(h => h.TextContent), Does.Contain("Data sources"));
-            Assert.That(cut.Find("[data-testid=credit-cofid]").TextContent, Does.Contain("CoFID").And.Contain("Open Government Licence v3.0"));
-            Assert.That(cut.Find("[data-testid=credit-openfoodfacts]").TextContent, Does.Contain("Open Food Facts").And.Contain("Open Database Licence"));
-        });
-    }
-
-    [Test]
     public void Version_WhenSet_ShowsIt()
     {
         var cut = Context.Render<SettingsView>(p => p.Add(x => x.Version, "1.4.2").Add(x => x.OnBack, () => { }));

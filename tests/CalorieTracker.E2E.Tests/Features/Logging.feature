@@ -1,5 +1,5 @@
 Feature: Logging
-  The log records what happened, never what I typed.
+  The log records what happened, never my personal information.
 
   Scenario: Startup is logged
     Then the log shows "started on Android API "

@@ -22,7 +22,7 @@ Personal Android app (.NET 11 MAUI Blazor Hybrid). Setup: [docs/dev-setup-build.
 - Every database call goes through `DatabaseGate` (`DatabaseGateTests`).
 - Event ids: `CoreEvent` 1000s, `UiEvent` 2000s, `AppEvent` 5000s. `CoreEventTests` and `EventIdTests` fix the values and ranges.
 - Styling: tokens only, no literal colours or sizes (`TokensOnlyCssTests`).
-- Logs never hold what the user typed: log ids, counts and events only (`Logging.feature`). Add a test that a new feature's log lines carry no content.
+- Logs hold no PII: ids, counts, events and non-personal data such as a scanned barcode are fine, personal data never is (obfuscate when needed) (`Logging.feature`). Add a test that a new feature's log lines carry no PII.
 - Docs: `ReadmeDocsTests` checks the README's screenshot table and Project layout.
 - Upgrade check: `Upgrade.feature` and `UpgradeSeed.feature` save and check what the last release stored (just the theme so far); the upgrade jobs skip until a `v*` tag exists.
 - Skeleton: the app has no features yet. A new screen needs a `*Page`, a `*View`, a story per state, a docs page under `Stories/Screens/`, an entry in `ScreenStates` and its E2E scenarios.
