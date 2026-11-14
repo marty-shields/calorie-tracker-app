@@ -221,6 +221,107 @@ public class FoodSearchTests
         Assert.That(async () => await found, Throws.InstanceOf<OperationCanceledException>());
         holding.SetResult();
         await busy;
+        await gate.RunAsync(() => Task.FromResult(0));
+    }
+
+    [Test]
+    public async Task Store_CancelledTokenAfterTheGateIsFree_DoesNotRunTheQuery()
+    {
+        await Add("Potato", "potato");
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+        var store = new FoodStore(connection, gate, new FakeLogger<FoodStore>());
+
+        Assert.That(async () => await store.SearchAsync(["potato"], 10, cts.Token), Throws.InstanceOf<OperationCanceledException>());
+    }
+
+    [Test]
+    public async Task Search_TabAndNewlineInTheStoredText_SeparateWords()
+    {
+        await Add("Tabbed", "alpha\tbeta\ngamma\rdelta");
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That(await Names("beta"), Is.EqualTo(new[] { "Tabbed" }));
+            Assert.That(await Names("gamma"), Is.EqualTo(new[] { "Tabbed" }));
+            Assert.That(await Names("delta"), Is.EqualTo(new[] { "Tabbed" }));
+        });
+    }
+
+    [Test]
+    public async Task Search_ManyWords_UsesTheFirstTenOnly()
+    {
+        await Add("Words", "w0 w1 w2 w3 w4 w5 w6 w7 w8 w9");
+        var query = string.Join(' ', Enumerable.Range(0, 40).Select(i => $"w{i}"));
+
+        var result = await search.SearchAsync(query);
+
+        Assert.That(result.Status, Is.EqualTo(FoodSearchStatus.Found));
+        Assert.That(result.Foods.Select(f => f.Name), Is.EqualTo(new[] { "Words" }));
+        Assert.That(logger.Collector.GetSnapshot()[0].Message, Is.EqualTo("Food search with 10 terms found 1 foods"));
+    }
+
+    [Test]
+    public async Task Search_RepeatedWord_CountsOneTerm()
+    {
+        await Add("Potato", "potato");
+
+        await search.SearchAsync("potato potato");
+
+        Assert.That(logger.Collector.GetSnapshot()[0].Message, Is.EqualTo("Food search with 1 terms found 1 foods"));
+    }
+
+    [Test]
+    public async Task Search_NamesOrderIgnoringCase()
+    {
+        await Add("banana", "fruit banana");
+        await Add("Apple", "fruit apple");
+        await Add("cherry", "fruit cherry");
+
+        Assert.That(await Names("fruit"), Is.EqualTo(new[] { "Apple", "banana", "cherry" }));
+    }
+
+    [Test]
+    public async Task Search_NoSpaceAfterPunctuation_StillSeparatesWords()
+    {
+        await Add("Milk", "milk,whole");
+        await Add("Beef", "beef (raw)");
+        await Add("Rawhide", "rawhide");
+        await Add("Pork", "pork/lamb");
+        await Add("Semi", "semi-skimmed");
+        await Add("Paren", "(open)close");
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That(await Names("whole"), Is.EqualTo(new[] { "Milk" }));
+            Assert.That(await Names("raw"), Is.EqualTo(new[] { "Beef", "Rawhide" }));
+            Assert.That(await Names("raw)"), Is.EqualTo(new[] { "Beef", "Rawhide" }));
+            Assert.That(await Names("close"), Is.EqualTo(new[] { "Paren" }));
+            Assert.That(await Names("open"), Is.EqualTo(new[] { "Paren" }));
+            Assert.That(await Names("lamb"), Is.EqualTo(new[] { "Pork" }));
+            Assert.That(await Names("skimmed"), Is.EqualTo(new[] { "Semi" }));
+        });
+    }
+
+    [Test]
+    public async Task Search_BackslashInTheStoredText_IsLiteral()
+    {
+        await Add("Backslash", "a\\b");
+        await Add("Other", "abc");
+
+        Assert.That(await Names("a\\b"), Is.EqualTo(new[] { "Backslash" }));
+        Assert.That(await Names("\\"), Is.Empty);
+    }
+
+    [Test]
+    public async Task Search_LimitAboveTheMaximum_ReturnsTheMaximum()
+    {
+        for (var i = 0; i < 250; i++)
+        {
+            await Add($"Potato {i:000}", $"potato {i:000}");
+        }
+
+        Assert.That((await search.SearchAsync("potato", 1000)).Foods, Has.Count.EqualTo(IFoodSearch.MaxLimit));
     }
 
     [Test]

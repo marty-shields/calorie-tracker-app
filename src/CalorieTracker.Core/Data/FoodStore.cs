@@ -12,14 +12,20 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
         gate.RunAsync<Food?>(async () =>
             await connection.Table<Food>().Where(f => f.Barcode == barcode).OrderBy(f => f.Id).FirstOrDefaultAsync());
 
+    /// <summary>The characters that split <see cref="Food.SearchText"/> and typed queries into words.</summary>
+    internal static readonly char[] Separators = [' ', '\t', '\r', '\n', ',', '(', ')', '/', '-'];
+
+    private static readonly string Haystack = BuildHaystack();
+
     /// <summary>
-    /// Finds foods where every term starts a word of <see cref="Food.SearchText"/>; words are split on spaces and <c>, ( ) / -</c>. Terms must be lowercase.
+    /// Finds foods where every term starts a word of <see cref="Food.SearchText"/>, split on <see cref="Separators"/>. Terms must be lowercase.
     /// Foods where every term is a whole word come first, then by name. Scans the table, which is fine at the seed's size.
     /// </summary>
-    public Task<List<Food>> SearchAsync(IReadOnlyList<string> terms, int limit) =>
+    public Task<List<Food>> SearchAsync(IReadOnlyList<string> terms, int limit, CancellationToken ct = default) =>
         gate.RunAsync(async () =>
         {
-            const string haystack = "(' ' || replace(replace(replace(replace(replace(SearchText, ',', ' '), '(', ' '), ')', ' '), '/', ' '), '-', ' ') || ' ')";
+            ct.ThrowIfCancellationRequested();
+            var haystack = Haystack;
             var escaped = terms.Select(t => t.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_")).ToList();
             var prefix = string.Join(" AND ", escaped.Select(_ => $"{haystack} LIKE ? ESCAPE '\\'"));
             var args = new List<object>();
@@ -27,9 +33,20 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             args.AddRange(escaped.Select(t => "% " + t + " %"));
             args.Add(limit);
             return await connection.QueryAsync<Food>(
-                $"SELECT * FROM Food WHERE {prefix} ORDER BY CASE WHEN {prefix} THEN 0 ELSE 1 END, Name, Id LIMIT ?",
+                $"SELECT * FROM Food WHERE {prefix} ORDER BY CASE WHEN {prefix} THEN 0 ELSE 1 END, Name COLLATE NOCASE, Id LIMIT ?",
                 args.ToArray());
         });
+
+    private static string BuildHaystack()
+    {
+        var text = "SearchText";
+        foreach (var c in Separators.Where(c => c != ' '))
+        {
+            text = $"replace({text}, char({(int)c}), ' ')";
+        }
+
+        return $"(' ' || {text} || ' ')";
+    }
 
     /// <summary>Inserts the food, or updates the row with the same source and source id. Returns the stored food with its id.</summary>
     public Task<Food> UpsertAsync(Food food) =>

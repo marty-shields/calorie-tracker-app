@@ -7,17 +7,15 @@ namespace CalorieTracker.Core.Foods;
 /// <summary>Splits the typed text into lowercase words and searches the food table. A failing store gives <see cref="FoodSearchStatus.Failed"/>, never an exception.</summary>
 internal sealed partial class FoodSearch(FoodStore store, ILogger<FoodSearch> logger) : IFoodSearch
 {
-    public const int DefaultLimit = 50;
-    public const int MaxLimit = 200;
+    private const int MaxTerms = 10;
 
-    private static readonly char[] Separators = [' ', '\t', '\r', '\n', ',', '(', ')', '/', '-'];
-
-    public async Task<FoodSearchResult> SearchAsync(string query, int limit = DefaultLimit, CancellationToken ct = default)
+    public async Task<FoodSearchResult> SearchAsync(string query, int limit = IFoodSearch.DefaultLimit, CancellationToken ct = default)
     {
         var terms = (query ?? "")
             .ToLowerInvariant()
-            .Split(Separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Split(FoodStore.Separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Distinct()
+            .Take(MaxTerms)
             .ToList();
         if (terms.Count == 0)
         {
@@ -26,7 +24,7 @@ internal sealed partial class FoodSearch(FoodStore store, ILogger<FoodSearch> lo
 
         try
         {
-            var foods = await store.SearchAsync(terms, Math.Clamp(limit, 1, MaxLimit)).WaitAsync(ct);
+            var foods = await store.SearchAsync(terms, Math.Clamp(limit, 1, IFoodSearch.MaxLimit), ct).WaitAsync(ct);
             Log.Searched(logger, terms.Count, foods.Count);
             return FoodSearchResult.Found(foods);
         }

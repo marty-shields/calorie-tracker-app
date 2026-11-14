@@ -4,12 +4,15 @@ namespace CalorieTracker.Core.Foods;
 
 public interface IFoodSearch
 {
+    public const int DefaultLimit = 50;
+    public const int MaxLimit = 200;
+
     /// <summary>
-    /// Finds foods whose words start with every word typed, in any order and either case. Whole-word matches come before prefix matches, then by name.
+    /// Finds foods whose words start with every word typed, in any order and either case. Whole-word matches come before prefix matches, then by name (ignoring case). Only the first 10 distinct words are used.
     /// A blank query finds nothing.
     /// </summary>
-    /// <param name="limit">Most foods to return; kept between 1 and <see cref="FoodSearch.MaxLimit"/>.</param>
-    Task<FoodSearchResult> SearchAsync(string query, int limit = FoodSearch.DefaultLimit, CancellationToken ct = default);
+    /// <param name="limit">Most foods to return; kept between 1 and <see cref="MaxLimit"/>.</param>
+    Task<FoodSearchResult> SearchAsync(string query, int limit = DefaultLimit, CancellationToken ct = default);
 }
 
 public enum FoodSearchStatus
