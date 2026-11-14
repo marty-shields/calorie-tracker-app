@@ -245,6 +245,26 @@ public class OpenFoodFactsLookupTests
     }
 
     [Test]
+    public async Task ResponseCodeDifferingFromTheBarcode_IsTheSourceId()
+    {
+        handler.Respond(Body("Oats", null, AllRequired()).Replace("\"code\":\"1\"", "\"code\":\"9780000000002\""));
+
+        var food = (await lookup.LookupAsync(Barcode)).Food!;
+
+        Assert.That(food.SourceId, Is.EqualTo("9780000000002"));
+    }
+
+    [Test]
+    public async Task ResponseWithoutCode_UsesTheScannedBarcodeAsSourceId()
+    {
+        handler.Respond(Body("Oats", null, AllRequired()).Replace("\"code\":\"1\",", ""));
+
+        var food = (await lookup.LookupAsync(Barcode)).Food!;
+
+        Assert.That(food.SourceId, Is.EqualTo(Barcode));
+    }
+
+    [Test]
     public async Task OptionalValuesAbsent_AreNull()
     {
         handler.Respond(Body("  Oats ", null, AllRequired()));
