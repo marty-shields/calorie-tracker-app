@@ -1,13 +1,16 @@
+using BarcodeScanning;
 using CalorieTracker.App.Diagnostics;
 using CalorieTracker.App.Info;
 using CalorieTracker.App.Keyboard;
 using CalorieTracker.App.Logging;
 using CalorieTracker.App.Navigation;
+using CalorieTracker.App.Scanning;
 using CalorieTracker.Core;
 using CalorieTracker.Core.Logging;
 using CalorieTracker.Core.Services;
 using CalorieTracker.UI;
 using CalorieTracker.UI.Lifecycle;
+using CalorieTracker.UI.Scanning;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.LifecycleEvents;
@@ -19,12 +22,13 @@ public static class MauiProgram
     public static MauiApp CreateMauiApp()
     {
         var builder = MauiApp.CreateBuilder();
-        builder.UseMauiApp<App>();
+        builder.UseMauiApp<App>().UseBarcodeScanning();
 
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddCore(Path.Combine(FileSystem.AppDataDirectory, "calorietracker.db3"));
         builder.Services.AddUi();
         builder.Services.AddSingleton<IAppEnvironment, MauiAppEnvironment>();
+        builder.Services.AddSingleton<IBarcodeScanner, CameraBarcodeScanner>();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
