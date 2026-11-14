@@ -5,7 +5,7 @@ Reads sheets "1.3 Proximates" and "1.4 Inorganics", joined on (food code, food n
 of each sheet, never by position; the food code is column A, the name B and the group D. Uses only the standard library.
 Writes {"seedVersion", "source", "foods"} with one food per line, sorted by sourceId, so a rerun is byte-identical.
 A food with no value (N or blank) for energy, protein, carbohydrate or fat is dropped; the other values become null.
-Prints kept/dropped counts and any repeated food code to stderr. Exits 1 on a missing sheet, tag or column, or a value it
+Prints kept/dropped counts, any repeated food code and any kept food with no row in 1.4 to stderr. Exits 1 on a missing sheet, tag or column, or a value it
 cannot read."""
 import decimal
 import json
@@ -141,11 +141,12 @@ def food_rows(rows, sheet):
         yield number, code, name, cells
 
 
-def check_headers(rows):
+def check_headers(rows, sheet, expected):
+    """expected is (column, allowed titles) pairs; 1.4 leaves the A title blank, so "" is allowed there."""
     head = rows.get(1, {})
-    for column, title in (("A", "Food Code"), ("B", "Food Name"), ("D", "Group")):
-        if head.get(column, "").strip() != title:
-            fail(f"'{PROXIMATES}' column {column} is '{head.get(column, '')}', expected '{title}'")
+    for column, titles in expected:
+        if head.get(column, "").strip() not in titles:
+            fail(f"'{sheet}' column {column} is '{head.get(column, '').strip()}', expected '{titles[-1]}'")
 
 
 def sodium_by_food(rows):
@@ -167,7 +168,8 @@ def build(path):
         strings = shared_strings(book)
         proximates = read_sheet(book, strings, PROXIMATES)
         inorganics = read_sheet(book, strings, INORGANICS)
-    check_headers(proximates)
+    check_headers(proximates, PROXIMATES, (("A", ("Food Code",)), ("B", ("Food Name",)), ("D", ("Group",))))
+    check_headers(inorganics, INORGANICS, (("A", ("", "Food Code")), ("B", ("Food Name",))))
     columns = tag_columns(proximates, PROXIMATES, PROXIMATE_TAGS)
     sodium = sodium_by_food(inorganics)
 
@@ -190,6 +192,8 @@ def build(path):
             values[key] = value
         if dropped:
             continue
+        if (code, name) not in sodium:
+            print(f"warning: food {code} '{name}' (row {number}) has no row in '{INORGANICS}'; its saltG is null", file=sys.stderr)
         na = sodium.get((code, name))
         salt = None if na is None else na.quantize(NOISE, rounding=decimal.ROUND_HALF_UP) * Decimal("2.5") / 1000
         values["saltG"] = salt

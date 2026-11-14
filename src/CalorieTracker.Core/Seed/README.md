@@ -10,7 +10,7 @@ McCance and Widdowson's Composition of Foods Integrated Dataset 2021, Public Hea
 
 1. Download the CoFID workbook (`.xlsx`) from the source page into a folder outside the repo. `*.xlsx` is git-ignored, so it is never committed.
 2. Run `python3 -I .github/scripts/build-food-seed.py <path to cofid.xlsx> src/CalorieTracker.Core/Seed/cofid-foods.json` (`py -I` on Windows). It needs only Python 3.
-3. The run prints `kept 2853 of 2887 foods` (the 2021 workbook) and a warning for each repeated food code. A rerun on the same workbook is byte-identical.
+3. The run prints `kept 2853 of 2887 foods` (the 2021 workbook) and a warning for each repeated food code. Every kept food has a row in the Inorganics sheet (no "has no row" warning on the 2021 workbook), so the 41 foods with `saltG` `null` are all `N` or blank sodium; a warning appears if a later workbook breaks that. A rerun on the same workbook is byte-identical.
 
 Regenerating overwrites hand-edited names, so redo the everyday-names edit (or merge the diff) afterwards.
 
@@ -35,4 +35,4 @@ Values are rounded half up to 2 decimal places; `Tr` (trace) is 0; `N` or blank 
 
 ## Repeated food codes
 
-CoFID reuses code `13-669` for two foods ("Aubergine, flesh and skin, roasted in rapeseed oil" and "Watercress, raw"). Both are kept and joined to the Inorganics sheet by code and name. The first in sheet order keeps the plain code; each later one gets `#2`, `#3` and so on (`13-669#2` is the watercress), so `(source, sourceId)` stays unique.
+CoFID reuses code `13-669` for two foods ("Aubergine, flesh and skin, roasted in rapeseed oil" and "Watercress, raw"). Both are kept and joined to the Inorganics sheet by code and name. Numbering follows sheet order across every row of the sheet, dropped foods included, so ids do not shift when a food is dropped: the first in sheet order keeps the plain code even if it is dropped (then no food has the plain code), and each later one gets `#2`, `#3` and so on (`13-669#2` is the watercress), so `(source, sourceId)` stays unique.
