@@ -20,6 +20,26 @@ public partial class ReadmeDocsTests
     }
 
     [Test]
+    public void YourData_SaysABarcodeLeavesThePhone()
+    {
+        var start = Readme.IndexOf("## Your data", StringComparison.Ordinal);
+        var end = Readme.IndexOf("\n## ", start + 1, StringComparison.Ordinal);
+        var section = Readme[start..end];
+
+        Assert.That(section, Does.Contain("barcode").And.Contain("Open Food Facts").And.Contain("none of your food log or other data").And.Contain("Google ML Kit").And.Contain("usage metrics")
+            .And.Not.Contain("Nothing is sent to a server"));
+    }
+
+    [Test]
+    public void Notice_CreditsBothDatasets()
+    {
+        var notice = RepoFiles.Read("NOTICE");
+
+        Assert.That(notice, Does.Contain("Composition of Foods Integrated Dataset").And.Contain("Open Government Licence v3.0")
+            .And.Contain("Open Food Facts").And.Contain("Open Database Licence"));
+    }
+
+    [Test]
     public void SourceProjects_AreAllInTheProjectLayout()
     {
         var layout = LayoutEntry().Matches(Readme).Select(m => m.Groups[1].Value);
