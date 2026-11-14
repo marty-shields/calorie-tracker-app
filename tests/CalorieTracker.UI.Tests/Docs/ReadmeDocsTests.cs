@@ -26,7 +26,7 @@ public partial class ReadmeDocsTests
         var end = Readme.IndexOf("\n## ", start + 1, StringComparison.Ordinal);
         var section = Readme[start..end];
 
-        Assert.That(section, Does.Contain("barcode").And.Contain("Open Food Facts").And.Contain("the app sends nothing else to a server")
+        Assert.That(section, Does.Contain("barcode").And.Contain("Open Food Facts").And.Contain("none of your food log or other data").And.Contain("Google ML Kit").And.Contain("usage metrics")
             .And.Not.Contain("Nothing is sent to a server"));
     }
 
