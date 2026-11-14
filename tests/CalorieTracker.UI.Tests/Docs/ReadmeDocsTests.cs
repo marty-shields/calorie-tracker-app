@@ -20,6 +20,21 @@ public partial class ReadmeDocsTests
     }
 
     [Test]
+    public void YourData_SaysABarcodeLeavesThePhone()
+    {
+        Assert.That(Readme, Does.Contain("sends that barcode to an external product database (Open Food Facts)"));
+    }
+
+    [Test]
+    public void Notice_CreditsBothDatasets()
+    {
+        var notice = RepoFiles.Read("NOTICE");
+
+        Assert.That(notice, Does.Contain("Composition of Foods Integrated Dataset").And.Contain("Open Government Licence v3.0")
+            .And.Contain("Open Food Facts").And.Contain("Open Database Licence"));
+    }
+
+    [Test]
     public void SourceProjects_AreAllInTheProjectLayout()
     {
         var layout = LayoutEntry().Matches(Readme).Select(m => m.Groups[1].Value);

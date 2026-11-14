@@ -17,10 +17,11 @@ The stories need only the .NET SDK.
 `dotnet run --project src/CalorieTracker.UI.Stories`, then open http://localhost:5056. Story files are `*.stories.razor` in `src/CalorieTracker.UI.Stories/Stories/`. `main` is published at https://marty-shields.github.io/calorie-tracker-app/.
 
 ### README screenshots
-Today `README.md` shows no screenshots and the table below is empty: the skeleton has no screens worth showing yet (`icon.svg` is the only file in `docs/images/readme/`, and it is not a story screenshot). Once a row exists, the README shows that screen story, light and dark, from `docs/images/readme/`. Run the stories, then `node .github/scripts/readme-screenshots.mjs http://localhost:5056 <chrome>` retakes every row of the table below (none yet): it opens `iframe.html?id=<story id>` in each colour scheme and saves the `.phone` element to `<file>-light.png` and `<file>-dark.png`. With `--check` it writes nothing and fails when a committed screenshot differs from its story by more than 0.2% of its pixels (allowing for anti-aliasing). CI runs the check in `story-layout`; when it fails, the job's `readme-screenshots` artifact holds the retaken images. A screen that changes look retakes its screenshots in the same PR. To add a screenshot, add a row here and to the README; the script reads this table.
+`README.md` shows the Settings screen (`icon.svg` in `docs/images/readme/` is not a story screenshot). The README shows that screen story, light and dark, from `docs/images/readme/`. Run the stories, then `node .github/scripts/readme-screenshots.mjs http://localhost:5056 <chrome>` retakes every row of the table below: it opens `iframe.html?id=<story id>` in each colour scheme and saves the `.phone` element to `<file>-light.png` and `<file>-dark.png`. With `--check` it writes nothing and fails when a committed screenshot differs from its story by more than 0.2% of its pixels (allowing for anti-aliasing). CI runs the check in `story-layout`; when it fails, the job's `readme-screenshots` artifact holds the retaken images. A screen that changes look retakes its screenshots in the same PR. To add a screenshot, add a row here and to the README; the script reads this table.
 
 | File | Story id |
 |---|---|
+| `settings` | `screens-settings--default` |
 
 `icon.svg` is the Ember flame on the icon's flat teal background with rounded corners. `node .github/scripts/app-icon.mjs` generates it, with the rest of the icon and splash art, from one flame outline ([App icon](../src/CalorieTracker.UI.Stories/Stories/Foundations/AppIcon.md)).
 

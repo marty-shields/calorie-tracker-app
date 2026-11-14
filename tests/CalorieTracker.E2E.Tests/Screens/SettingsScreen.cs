@@ -25,5 +25,12 @@ public sealed class SettingsScreen(WebView web)
         return web.Text("app-version");
     }
 
+    /// <summary>The CoFID and Open Food Facts credit lines, once Settings has opened.</summary>
+    public (string CoFid, string OpenFoodFacts) Credits()
+    {
+        web.WaitUntil(() => web.Exists("credit-cofid") && web.Exists("credit-openfoodfacts"), "Settings didn't show the data credits");
+        return (web.Text("credit-cofid"), web.Text("credit-openfoodfacts"));
+    }
+
     public void Back() => web.Tap("back");
 }

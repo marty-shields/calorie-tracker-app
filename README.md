@@ -25,7 +25,12 @@
 This is the skeleton of the app: the architecture, design system, tests and CI, with no tracking features yet. It starts and shows two screens:
 
 - **Dashboard**: an empty home screen with the navigation bar and the Settings gear.
-- **Settings**: the theme (System, Light or Dark) and the app version.
+- **Settings**: the theme (System, Light or Dark), the credits for the food data and the app version.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/readme/settings-dark.png">
+  <img src="docs/images/readme/settings-light.png" alt="The Settings screen" width="300">
+</picture>
 
 Everything else is for you to add. [AGENTS.md](AGENTS.md) lists the rules the code follows, and the [design system](https://marty-shields.github.io/calorie-tracker-app/) shows the tokens, components and screens.
 
@@ -41,7 +46,7 @@ Cutting the first release needs the keystore and the `CERT_SHA256` pin: see [Rel
 
 ## Your data
 
-- Data lives in a SQLite database on the phone. Nothing is sent to a server.
+- Data lives in a SQLite database on the phone. Scanning a barcode the app hasn't seen sends that barcode to an external product database (Open Food Facts), and nothing else leaves the phone.
 - Android Auto Backup copies that database, and only that, to your Google account, and a phone-to-phone transfer carries it too. The Dev build is never backed up.
 - Logs are in `Android/data/<package id>/files/logs`, readable over USB or `adb pull`. They hold events, ids and counts, never what you typed ([`Logging.feature`](tests/CalorieTracker.E2E.Tests/Features/Logging.feature) checks the start-up lines).
 
