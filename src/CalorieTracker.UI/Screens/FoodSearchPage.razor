@@ -1,0 +1,44 @@
+@implements IDisposable
+@using CalorieTracker.Core.Data
+@using CalorieTracker.Core.Foods
+@inject IFoodSearch Search
+
+<FoodSearchView Query="query" Results="results" Selected="selected" Failed="failed"
+                OnQueryChanged="SearchAsync" OnSelect="Select" OnClearSelection="ClearSelection" OnRetry="Retry" OnBack="OnBack" />
+
+@code {
+    private string query = "";
+    private IReadOnlyList<Food> results = [];
+    private Food? selected;
+    private bool failed;
+    private CancellationTokenSource? running;
+
+    /// <summary>Raised by the back arrow and the Android back button.</summary>
+    [Parameter]
+    public EventCallback OnBack { get; set; }
+
+    /// <summary>Searches as the user types; a newer keystroke cancels the search still running.</summary>
+    private async Task SearchAsync(string text)
+    {
+        query = text;
+        running?.Cancel();
+        running = new CancellationTokenSource();
+        try
+        {
+            var result = await Search.SearchAsync(text, ct: running.Token);
+            failed = result.Status == FoodSearchStatus.Failed;
+            results = result.Foods;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void Select(Food food) => selected = food;
+
+    private void ClearSelection() => selected = null;
+
+    private Task Retry() => SearchAsync(query);
+
+    public void Dispose() => running?.Cancel();
+}

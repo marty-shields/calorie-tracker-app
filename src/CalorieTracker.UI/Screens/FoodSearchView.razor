@@ -1,0 +1,124 @@
+@using System.Globalization
+@using CalorieTracker.Core.Data
+@using CalorieTracker.UI.Components.Feedback
+<AppScreen Title="Search foods" OnBack="OnBack">
+    <Toolbar>
+        <label class="search">
+            <Icon Name="IconName.Search" Tone="IconTone.Muted" />
+            <input type="search" class="box" placeholder="Search foods" aria-label="Search foods" autocomplete="off"
+                   value="@Query" @oninput="OnInput" data-testid="food-search-input" />
+        </label>
+    </Toolbar>
+    <ChildContent>
+        @if (Selected is { } food)
+        {
+            <section class="detail" data-testid="food-detail">
+                <h2 class="detail-name" data-testid="food-detail-name">@food.Name</h2>
+                @if (food.Brand is not null)
+                {
+                    <p class="brand" data-testid="food-detail-brand">@food.Brand</p>
+                }
+                <p class="per" data-testid="food-detail-per">Per 100 @UnitText(food)</p>
+                <dl class="values">
+                    <div class="row"><dt>Energy</dt><dd data-testid="food-detail-kcal">@Number(food.Kcal) kcal</dd></div>
+                    <div class="row"><dt>Protein</dt><dd data-testid="food-detail-protein">@Number(food.ProteinG) g</dd></div>
+                    <div class="row"><dt>Carbs</dt><dd data-testid="food-detail-carbs">@Number(food.CarbsG) g</dd></div>
+                    <div class="row"><dt>Fat</dt><dd data-testid="food-detail-fat">@Number(food.FatG) g</dd></div>
+                    @if (food.FibreG is { } fibre)
+                    {
+                        <div class="row"><dt>Fibre</dt><dd data-testid="food-detail-fibre">@Number(fibre) g</dd></div>
+                    }
+                    @if (food.SugarsG is { } sugars)
+                    {
+                        <div class="row"><dt>Sugars</dt><dd data-testid="food-detail-sugars">@Number(sugars) g</dd></div>
+                    }
+                    @if (food.SaturatesG is { } saturates)
+                    {
+                        <div class="row"><dt>Saturates</dt><dd data-testid="food-detail-saturates">@Number(saturates) g</dd></div>
+                    }
+                    @if (food.SaltG is { } salt)
+                    {
+                        <div class="row"><dt>Salt</dt><dd data-testid="food-detail-salt">@Number(salt) g</dd></div>
+                    }
+                </dl>
+                <AppButton Variant="ButtonVariant.Secondary" FullWidth TestId="food-detail-close" OnClick="OnClearSelection">Back to results</AppButton>
+            </section>
+        }
+        else if (Failed)
+        {
+            <LoadFailed Message="Couldn't search foods" TestId="food-search" OnRetry="OnRetry" />
+        }
+        else if (string.IsNullOrWhiteSpace(Query))
+        {
+            <EmptyState Message="Search for a food" Hint="Type a name, like oats or cheddar." TestId="food-search-idle" />
+        }
+        else if (Results.Count == 0)
+        {
+            <EmptyState Message="No foods found" Hint="Check the spelling or try fewer words." TestId="food-search-empty" />
+        }
+        else
+        {
+            <ul class="results" data-testid="food-results">
+                @foreach (var item in Results)
+                {
+                    <li>
+                        <button type="button" class="result" data-testid="@($"food-result-{item.Id}")" @onclick="() => OnSelect.InvokeAsync(item)">
+                            <span class="text">
+                                <span class="name">@item.Name</span>
+                                @if (item.Brand is not null)
+                                {
+                                    <span class="brand">@item.Brand</span>
+                                }
+                            </span>
+                            <span class="kcal">@Number(item.Kcal) kcal<span class="unit">/ 100 @UnitText(item)</span></span>
+                        </button>
+                    </li>
+                }
+            </ul>
+        }
+    </ChildContent>
+</AppScreen>
+
+@code {
+    /// <summary>The text in the search box.</summary>
+    [Parameter]
+    public string Query { get; set; } = "";
+
+    /// <summary>Foods matching <see cref="Query"/>, best match first. Empty shows "No foods found" once something is typed.</summary>
+    [Parameter]
+    public IReadOnlyList<Food> Results { get; set; } = [];
+
+    /// <summary>The food whose values show in place of the list. Null shows the list.</summary>
+    [Parameter]
+    public Food? Selected { get; set; }
+
+    /// <summary>Shows a load error with Try again instead of the results.</summary>
+    [Parameter]
+    public bool Failed { get; set; }
+
+    /// <summary>Raised with the whole text on every keystroke.</summary>
+    [Parameter]
+    public EventCallback<string> OnQueryChanged { get; set; }
+
+    /// <summary>Raised with the food tapped in the results.</summary>
+    [Parameter]
+    public EventCallback<Food> OnSelect { get; set; }
+
+    /// <summary>Raised by Back to results on a food's values.</summary>
+    [Parameter]
+    public EventCallback OnClearSelection { get; set; }
+
+    /// <summary>Raised by Try again.</summary>
+    [Parameter]
+    public EventCallback OnRetry { get; set; }
+
+    /// <summary>Raised by the back arrow and the Android back button.</summary>
+    [Parameter]
+    public EventCallback OnBack { get; set; }
+
+    private Task OnInput(ChangeEventArgs args) => OnQueryChanged.InvokeAsync(args.Value?.ToString() ?? "");
+
+    private static string UnitText(Food food) => food.Unit == FoodUnit.Millilitre ? "ml" : "g";
+
+    private static string Number(double value) => value.ToString("0.#", CultureInfo.InvariantCulture);
+}

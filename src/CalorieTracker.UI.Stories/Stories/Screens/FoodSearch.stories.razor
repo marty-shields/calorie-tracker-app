@@ -1,0 +1,36 @@
+@using CalorieTracker.Core.Data
+@attribute [Stories("Screens/FoodSearch")]
+
+<Stories TComponent="FoodSearchView" Layout="typeof(PhoneLayout)">
+
+    <Story Name="Nothing typed">
+        <Template>
+            <FoodSearchView OnQueryChanged="(string _) => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Results">
+        <Template>
+            <FoodSearchView Query="oat" Results="FoodSearchSamples.Results" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="No results">
+        <Template>
+            <FoodSearchView Query="zzz" OnQueryChanged="(string _) => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Food selected">
+        <Template>
+            <FoodSearchView Query="oat" Results="FoodSearchSamples.Results" Selected="FoodSearchSamples.Results[0]" OnQueryChanged="(string _) => { }" OnClearSelection="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Search failed">
+        <Template>
+            <FoodSearchView Query="oat" Failed OnQueryChanged="(string _) => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+</Stories>
