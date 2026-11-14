@@ -2,7 +2,7 @@ using OpenQA.Selenium;
 
 namespace CalorieTracker.E2E.Tests.Screens;
 
-/// <summary>Settings: a back arrow and title, the theme and the version.</summary>
+/// <summary>Settings: a back arrow and title, the theme, the version and the data credits.</summary>
 public sealed class SettingsScreen(WebView web)
 {
     public const string Title = "Settings";

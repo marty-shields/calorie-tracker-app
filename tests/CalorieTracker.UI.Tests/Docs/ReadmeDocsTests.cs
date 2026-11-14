@@ -22,7 +22,12 @@ public partial class ReadmeDocsTests
     [Test]
     public void YourData_SaysABarcodeLeavesThePhone()
     {
-        Assert.That(Readme, Does.Contain("sends that barcode to an external product database (Open Food Facts)"));
+        var start = Readme.IndexOf("## Your data", StringComparison.Ordinal);
+        var end = Readme.IndexOf("\n## ", start + 1, StringComparison.Ordinal);
+        var section = Readme[start..end];
+
+        Assert.That(section, Does.Contain("barcode").And.Contain("Open Food Facts").And.Contain("the app sends nothing else to a server")
+            .And.Not.Contain("Nothing is sent to a server"));
     }
 
     [Test]

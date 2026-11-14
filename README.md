@@ -46,7 +46,7 @@ Cutting the first release needs the keystore and the `CERT_SHA256` pin: see [Rel
 
 ## Your data
 
-- Data lives in a SQLite database on the phone. Scanning a barcode the app hasn't seen sends that barcode to an external product database (Open Food Facts), and nothing else leaves the phone.
+- Data lives in a SQLite database on the phone. Scanning a barcode the app hasn't seen sends that barcode to an external product database (Open Food Facts), and the app sends nothing else to a server.
 - Android Auto Backup copies that database, and only that, to your Google account, and a phone-to-phone transfer carries it too. The Dev build is never backed up.
 - Logs are in `Android/data/<package id>/files/logs`, readable over USB or `adb pull`. They hold events, ids and counts, never what you typed ([`Logging.feature`](tests/CalorieTracker.E2E.Tests/Features/Logging.feature) checks the start-up lines).
 
