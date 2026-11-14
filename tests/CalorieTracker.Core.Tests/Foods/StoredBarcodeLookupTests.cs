@@ -10,6 +10,7 @@ namespace CalorieTracker.Core.Tests.Foods;
 public class StoredBarcodeLookupTests
 {
     private const string Barcode = "5000000000017";
+    private static readonly TimeSpan Bound = TimeSpan.FromSeconds(5);
 
     private string databasePath = "";
     private SQLiteAsyncConnection connection = null!;
@@ -149,22 +150,30 @@ public class StoredBarcodeLookupTests
         inner.Enqueue(BarcodeLookupResult.Found(NewFood("1")));
 
         var calls = Enumerable.Range(0, 5).Select(_ => lookup.LookupAsync(Barcode)).ToArray();
-        await inner.FirstCallArrived;
+        await inner.FirstCallArrived.WaitAsync(Bound);
         release.SetResult();
-        var results = await Task.WhenAll(calls);
+        var results = await Task.WhenAll(calls).WaitAsync(Bound);
 
         Assert.That(results.Select(r => r.Food!.Id).Distinct().Count(), Is.EqualTo(1));
         Assert.That(inner.Calls, Is.EqualTo(1));
+        Assert.That(inner.Tokens.Select(t => t.CanBeCanceled), Is.All.False);
         Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(1));
     }
 
     [Test]
     public async Task Lookup_ConcurrentCallsDifferentBarcodes_EachCallInner()
     {
+        var release = inner.BlockNextCall();
         inner.Enqueue(BarcodeLookupResult.Found(NewFood("1")));
         inner.Enqueue(BarcodeLookupResult.Found(NewFood("2")));
 
-        var results = await Task.WhenAll(lookup.LookupAsync(Barcode), lookup.LookupAsync("5000000000024"));
+        var first = lookup.LookupAsync(Barcode);
+        await inner.FirstCallArrived.WaitAsync(Bound);
+        var second = await lookup.LookupAsync("5000000000024").WaitAsync(Bound);
+
+        Assert.That(first.IsCompleted, Is.False);
+        release.SetResult();
+        var results = new[] { await first.WaitAsync(Bound), second };
 
         Assert.That(results.Select(r => r.Status), Is.All.EqualTo(BarcodeLookupStatus.Found));
         Assert.That(inner.Calls, Is.EqualTo(2));
@@ -179,9 +188,9 @@ public class StoredBarcodeLookupTests
         inner.Enqueue(BarcodeLookupResult.Found(NewFood("1")));
 
         var pending = lookup.LookupAsync(Barcode);
-        await inner.FirstCallArrived;
+        await inner.FirstCallArrived.WaitAsync(Bound);
         release.SetResult();
-        Assert.That((await pending).Status, Is.EqualTo(BarcodeLookupStatus.Offline));
+        Assert.That((await pending.WaitAsync(Bound)).Status, Is.EqualTo(BarcodeLookupStatus.Offline));
 
         var next = await lookup.LookupAsync(Barcode);
 
@@ -197,13 +206,14 @@ public class StoredBarcodeLookupTests
 
         var cancelled = lookup.LookupAsync(Barcode, cts.Token);
         var other = lookup.LookupAsync(Barcode);
-        await inner.FirstCallArrived;
+        await inner.FirstCallArrived.WaitAsync(Bound);
         await cts.CancelAsync();
-        await Assert.ThrowsAsync<TaskCanceledException>(async () => await cancelled);
+        await Assert.ThrowsAsync<TaskCanceledException>(async () => await cancelled.WaitAsync(Bound));
         release.SetResult();
 
-        Assert.That((await other).Status, Is.EqualTo(BarcodeLookupStatus.Found));
+        Assert.That((await other.WaitAsync(Bound)).Status, Is.EqualTo(BarcodeLookupStatus.Found));
         Assert.That(inner.Calls, Is.EqualTo(1));
+        Assert.That(inner.Tokens.Select(t => t.CanBeCanceled), Is.All.False);
     }
 
     [Test]
@@ -299,6 +309,8 @@ public class StoredBarcodeLookupTests
 
         public List<string> Barcodes { get; } = [];
 
+        public List<CancellationToken> Tokens { get; } = [];
+
         public Task FirstCallArrived => firstCallArrived.Task;
 
         public void Enqueue(BarcodeLookupResult result)
@@ -317,6 +329,7 @@ public class StoredBarcodeLookupTests
             lock (Barcodes)
             {
                 Barcodes.Add(barcode);
+                Tokens.Add(ct);
             }
 
             firstCallArrived.TrySetResult();

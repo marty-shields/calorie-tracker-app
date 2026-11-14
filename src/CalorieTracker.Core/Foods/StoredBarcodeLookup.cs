@@ -23,16 +23,26 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
             return Task.FromResult(BarcodeLookupResult.NotFound());
         }
 
-        var shared = inFlight.GetOrAdd(
-            barcode,
-            key => new Lazy<Task<BarcodeLookupResult>>(() => Task.Run(() => FetchAsync(key)), LazyThreadSafetyMode.ExecutionAndPublication));
+        Lazy<Task<BarcodeLookupResult>>? created = null;
+        // Task.Run: the fetch's finally must not run before GetOrAdd has returned, or it could remove nothing and leave the entry behind.
+        created = new Lazy<Task<BarcodeLookupResult>>(
+            () => Task.Run(() => FetchAsync(barcode, created!)),
+            LazyThreadSafetyMode.ExecutionAndPublication);
+        var shared = inFlight.GetOrAdd(barcode, created);
         return shared.Value.WaitAsync(ct);
     }
 
-    private async Task<BarcodeLookupResult> FetchAsync(string barcode)
+    private async Task<BarcodeLookupResult> FetchAsync(string barcode, Lazy<Task<BarcodeLookupResult>> self)
     {
         try
         {
+            // Another fetch may have remembered the barcode between the caller's check and this entry being added.
+            if (notFound.ContainsKey(barcode))
+            {
+                Log.NotFoundHit(logger);
+                return BarcodeLookupResult.NotFound();
+            }
+
             var stored = await store.FindByBarcodeAsync(barcode);
             if (stored is not null)
             {
@@ -47,6 +57,7 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
                     var food = result.Food!;
                     food.Barcode = barcode;
                     var saved = await store.UpsertAsync(food);
+                    notFound.TryRemove(barcode, out _);
                     Log.Fetched(logger, result.Status, saved.Id);
                     return BarcodeLookupResult.Found(saved);
                 case BarcodeLookupStatus.NotFound:
@@ -61,7 +72,7 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
         }
         finally
         {
-            inFlight.TryRemove(barcode, out _);
+            inFlight.TryRemove(KeyValuePair.Create(barcode, self));
         }
     }
 
