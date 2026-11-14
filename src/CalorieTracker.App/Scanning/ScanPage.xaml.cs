@@ -34,6 +34,12 @@ public partial class ScanPage : ContentPage
         return true;
     }
 
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        Camera.CameraEnabled = true;
+    }
+
     protected override void OnDisappearing()
     {
         Camera.CameraEnabled = false;
@@ -49,10 +55,12 @@ public partial class ScanPage : ContentPage
             return;
         }
 
-        Camera.CameraEnabled = false;
         if (Navigation.ModalStack.Contains(this))
         {
             await Navigation.PopModalAsync();
         }
+
+        // The pop has finished and OnDisappearing has switched the camera off; now release the native camera.
+        Camera.Handler?.DisconnectHandler();
     }
 }

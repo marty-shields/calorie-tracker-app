@@ -68,4 +68,7 @@ internal enum AppEvent
 
     /// <summary>The scanner closed; records only the status, never the barcode.</summary>
     ScanFinished = 5073,
+
+    /// <summary>The scanner failed to open; records only the exception type name, never its message.</summary>
+    ScanFailed = 5074,
 }

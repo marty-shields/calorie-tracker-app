@@ -80,6 +80,7 @@ public partial class EventIdTests
             ["ScanPermissionDenied"] = 5071,
             ["ScanNoWindow"] = 5072,
             ["ScanFinished"] = 5073,
+            ["ScanFailed"] = 5074,
         }));
 
     [TestCaseSource(nameof(SourceFiles))]

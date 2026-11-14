@@ -8,6 +8,8 @@ public sealed record ScanResult(ScanStatus Status, string? Digits = null)
     public static ScanResult Cancelled { get; } = new(ScanStatus.Cancelled);
 
     public static ScanResult PermissionDenied { get; } = new(ScanStatus.PermissionDenied);
+
+    public static ScanResult Unavailable { get; } = new(ScanStatus.Unavailable);
 }
 
 public enum ScanStatus
@@ -15,4 +17,7 @@ public enum ScanStatus
     Scanned,
     Cancelled,
     PermissionDenied,
+
+    /// <summary>The scanner could not open: no window, or an error opening it.</summary>
+    Unavailable,
 }

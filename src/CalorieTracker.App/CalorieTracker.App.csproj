@@ -16,7 +16,7 @@
     <ApplicationId>uk.martinshields.calorietracker</ApplicationId>
     <AndroidManifestPlaceholders>allowBackup=true;dataExtractionRules=backup_rules</AndroidManifestPlaceholders>
 
-    <!-- Several of BarcodeScanning.Native.Maui's ML Kit and CameraX libraries ship the same native .so files (byte-identical, checked by hash); packaging keeps the first copy. -->
+    <!-- Checked for BarcodeScanning.Native.Maui 3.1.0: several of its ML Kit and CameraX libraries ship the same native .so files, byte-identical by hash; packaging keeps the first copy. Re-hash the duplicates on every version bump before keeping this. -->
     <NoWarn>$(NoWarn);XA4301</NoWarn>
   </PropertyGroup>
 

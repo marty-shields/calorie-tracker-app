@@ -1,5 +1,4 @@
 @page "/"
-@using Microsoft.AspNetCore.Components.Web
 @using CalorieTracker.UI.Scanning
 @using CalorieTracker.UI.Screens
 @inject NavigationManager Navigation
@@ -26,6 +25,7 @@
         {
             ScanStatus.Scanned => $"Scanned: {result.Digits}",
             ScanStatus.PermissionDenied => "Camera permission denied. Allow it in the phone's settings to scan.",
+            ScanStatus.Unavailable => "The scanner could not open. Try again.",
             _ => "Scan cancelled",
         };
     }

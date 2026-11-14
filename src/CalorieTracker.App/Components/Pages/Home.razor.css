@@ -8,6 +8,11 @@
     flex-direction: column-reverse;
     align-items: flex-end;
     gap: var(--space-2);
+    pointer-events: none;
+}
+
+.scan-trial > * {
+    pointer-events: auto;
 }
 
 .scan-trial p {

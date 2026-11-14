@@ -10,9 +10,15 @@ public class ScanResultTests
 
     [TestCase(ScanStatus.Cancelled)]
     [TestCase(ScanStatus.PermissionDenied)]
+    [TestCase(ScanStatus.Unavailable)]
     public void OtherStatuses_CarryNoDigits(ScanStatus status)
     {
-        var result = status == ScanStatus.Cancelled ? ScanResult.Cancelled : ScanResult.PermissionDenied;
+        var result = status switch
+        {
+            ScanStatus.Cancelled => ScanResult.Cancelled,
+            ScanStatus.PermissionDenied => ScanResult.PermissionDenied,
+            _ => ScanResult.Unavailable,
+        };
 
         Assert.Multiple(() =>
         {
