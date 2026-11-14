@@ -17,7 +17,7 @@ Everything is optional except the food. Raw is the default: a food with no cooki
 - Food last, cooking first, as people say it: `Boiled potatoes`, `Grilled cod`, `Wholemeal bread`. Never CoFID's comma inversion (`Potatoes, old, boiled`).
 - Type and variety words go before the food in everyday order: `Red lentils`, `Basmati rice`, `Victoria plums`, `Cheddar cheese`. Cuts and parts stay after the animal: `Lamb best end neck cutlets`.
 - Prefix is one word: the cooking method (`Boiled`, `Fried`, `Stir-fried`, `Grilled`, `Roasted`, `Baked`, `Steamed`, `Stewed`, `Braised`, `Poached`, `Barbecued`, `Casseroled`) or, when there is none, the state (`Dried`, `Canned`, `Frozen`, `Smoked`, `Uncooked`, `Cooked`, `Reheated`; CoFID's `re-heated` is spelled `Reheated`). A cooking method beats a state: `Beans, aduki, whole, dried, boiled` is `Boiled aduki beans` (add `(dried)` only if needed to tell names apart). Cooked-then-frozen or similar goes in a qualifier.
-- Dishes keep their own name and drop the comma list: `Chilli, vegetable, homemade` is `Vegetable chilli`; `Pie, beef, ... retail` is `Beef pie (retail)`; `Curry, chick pea dhal` is `Chick pea dhal curry`.
+- Dishes keep their own name and drop the comma list: `Chilli, vegetable, homemade` is `Vegetable chilli`; `Pie, beef, ... retail` is `Beef pie (retail)`; `Curry, chick pea dhal, homemade` is `Chick pea dhal curry`.
 - `with` or `in` is part of the food when it joins two foods or names the dish, and then stays in the name: `Tomatoes stuffed with rice`, `Chilli con carne with rice`, `Fried cod in batter`, `Faggots in gravy`. It is a qualifier (in the bracket) when it names how the food was cooked or packed: `with butter`, `in syrup`, `made with whole milk`.
 - Keep CoFID's singular or plural when it reads naturally (`Potatoes`, `Aubergine`, `Bhaji`); do not respell.
 
@@ -51,7 +51,7 @@ British: yoghurt (CoFID writes `Yogurt`: change it), courgette, aubergine, grey,
 - Sentence case: first letter capital, the rest lower case. Proper names keep a capital (`Cheddar`, `Victoria`, `Basmati`, `Lancashire hotpot`).
 - No commas anywhere. Join with `and`, not `&`. Remove the CoFID stray quotes and backticks (`'with added fibre'` becomes `with added fibre`).
 - No trailing full stop. Brackets only for qualifiers, one pair per name, items separated by `; `. `/` stays only inside a food that has alternatives in CoFID (`Pakora/bhajia`).
-- At most 80 characters. CoFID's longest is 91 and 106 CoFID names are over 64, but 13 are over 80 and the name drops words; shorten by dropping a table word, never a fact (the longest example, `Grilled lamb best end neck cutlets (lean and fat; weighed with bone)`, is 68). 94% of CoFID names are already under 60.
+- At most 80 characters. CoFID's longest is 91. 106 CoFID names are over 64 characters and 13 are over 80; shorten those by dropping a table word, never a fact (the longest example, `Grilled lamb best end neck cutlets (lean and fat; weighed with bone)`, is 68). 94% of CoFID names are already under 60.
 - No duplicate names anywhere in the seed, compared case-insensitively.
 
 ## 5. Telling near-duplicates apart: the qualifier order
@@ -107,4 +107,4 @@ Group codes and sizes are from the seed; names are what the contents show.
 
 **Other groups worth a note.** BL (45, cheese): `Cheese, Cheddar, English` is `English Cheddar cheese`, `Cheese, Cheddar type, half fat` is `Half fat Cheddar-type cheese`, keep a CoFID quoted claim such as `'30% less fat'` as `30% less fat` in the bracket; GA (47, nuts): `Barcelona nuts, Kernel only` is `Barcelona nuts (kernel only)`, because the shell-weighed twin needs it; AM (42, biscuits), AN (41, cakes), AP (38, pastries), AS (48, puddings and pies): same rules as DR; Q groups (alcoholic drinks) keep the unit `Millilitre` and need no change.
 
-After editing names, bump `seedVersion` in `build-food-seed.py` (see the Seed README), or installed apps keep the old names.
+`SEED_VERSION` (the constant in `.github/scripts/build-food-seed.py`) is bumped once, in the final PR after the last group merges, not on each group's PR; until then installed apps keep the old names.
