@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageVersion Include="Appium.WebDriver" Version="9.0.0" />
+    <PackageVersion Include="BarcodeScanning.Native.Maui" Version="3.1.0" />
     <PackageVersion Include="BlazingStory" Version="1.0.0-preview.97" />
     <PackageVersion Include="bunit" Version="2.15.2" />
     <PackageVersion Include="MD2RazorGenerator" Version="1.2.4" />

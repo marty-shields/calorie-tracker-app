@@ -154,3 +154,6 @@ jobs:
 
       - name: Check the arm64 Release APK holds arm64 only
         run: .github/scripts/check-abi.sh "$RUNNER_TEMP/arm64/uk.martinshields.calorietracker-Signed.apk"
+
+      - name: Check duplicate native libraries are identical
+        run: .github/scripts/check-native-dupes.sh src/CalorieTracker.App/obj
