@@ -41,6 +41,13 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
 
     public async Task<BarcodeLookupResult> LookupAsync(string barcode, CancellationToken ct = default)
     {
+        // Normalised barcodes are 8 or 13 digits; anything outside 8-14 ASCII digits never reaches the network.
+        if (!IsAsciiDigits(barcode, 8, 14))
+        {
+            Log.NotFound(logger);
+            return BarcodeLookupResult.NotFound();
+        }
+
         var url = $"api/v2/product/{Uri.EscapeDataString(barcode)}?fields={Fields}";
         for (var attempt = 1; ; attempt++)
         {
@@ -135,7 +142,8 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
             Food? food;
             try
             {
-                food = Map(product, barcode);
+                var code = ReadString(root, "code");
+                food = Map(product, code is not null && IsAsciiDigits(code, 1, int.MaxValue) ? code : barcode);
             }
             catch (InvalidOperationException)
             {
@@ -155,8 +163,11 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
         }
     }
 
-    /// <summary>Null when the name or any of kcal, protein, carbs and fat is missing.</summary>
-    private static Food? Map(JsonElement product, string barcode)
+    /// <summary>
+    /// Null when the name or any of kcal, protein, carbs and fat is missing.
+    /// <paramref name="sourceId"/> is the product's own code, so several barcodes of one product map to one food.
+    /// </summary>
+    private static Food? Map(JsonElement product, string sourceId)
     {
         var name = ReadString(product, "product_name");
         if (name is null)
@@ -183,8 +194,7 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
         return new Food
         {
             Source = FoodSource.OpenFoodFacts,
-            SourceId = barcode,
-            Barcode = barcode,
+            SourceId = sourceId,
             Name = name,
             Brand = brand,
             Unit = millilitre ? FoodUnit.Millilitre : FoodUnit.Gram,
@@ -199,6 +209,9 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
             SearchText = SearchFolding.Fold($"{name} {brand}".Trim()),
         };
     }
+
+    private static bool IsAsciiDigits(string text, int minLength, int maxLength) =>
+        text.Length >= minLength && text.Length <= maxLength && text.All(char.IsAsciiDigit);
 
     private static bool IsMillilitre(JsonElement product, string key) =>
         string.Equals(ReadString(product, key), "ml", StringComparison.OrdinalIgnoreCase);

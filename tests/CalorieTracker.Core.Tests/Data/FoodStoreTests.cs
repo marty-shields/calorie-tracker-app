@@ -19,6 +19,7 @@ public class FoodStoreTests
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
+        await connection.CreateTableAsync<FoodBarcode>();
         await connection.CreateTableAsync<SeedVersion>();
         gate = new DatabaseGate();
         logger = new FakeLogger<FoodStore>();
@@ -35,7 +36,7 @@ public class FoodStoreTests
     [Test]
     public async Task FindByBarcodeAsync_StoredBarcode_ReturnsTheFood()
     {
-        var saved = await store.UpsertAsync(NewFood("1", barcode: "5000000000017"));
+        var saved = await store.UpsertAsync(NewFood("1"), "5000000000017");
 
         var found = await store.FindByBarcodeAsync("5000000000017");
 
@@ -45,7 +46,7 @@ public class FoodStoreTests
     [Test]
     public async Task FindByBarcodeAsync_UnknownBarcode_ReturnsNull()
     {
-        await store.UpsertAsync(NewFood("1", barcode: "5000000000017"));
+        await store.UpsertAsync(NewFood("1"), "5000000000017");
 
         Assert.That(await store.FindByBarcodeAsync("0000000000000"), Is.Null);
     }
@@ -91,7 +92,6 @@ public class FoodStoreTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(row.Barcode, Is.Null);
             Assert.That(row.Brand, Is.Null);
             Assert.That(row.FibreG, Is.Null);
             Assert.That(row.SugarsG, Is.Null);
@@ -103,7 +103,7 @@ public class FoodStoreTests
     [Test]
     public async Task UpsertAsync_OptionalFieldsSet_RoundTrip()
     {
-        var food = NewFood("1", barcode: "12345670");
+        var food = NewFood("1");
         food.Brand = "Acme";
         food.FibreG = 1.5;
         food.SaltG = 0.25;
@@ -122,14 +122,47 @@ public class FoodStoreTests
     }
 
     [Test]
-    public async Task FindByBarcodeAsync_TwoRowsShareABarcode_ReturnsTheLowestId()
+    public async Task UpsertAsync_BarcodeLinkedToAnotherFood_KeepsTheFirstOwner()
     {
-        var first = await store.UpsertAsync(NewFood("1", barcode: "12345670"));
-        await store.UpsertAsync(NewFood("2", FoodSource.OpenFoodFacts, barcode: "12345670"));
+        var first = await store.UpsertAsync(NewFood("1"), "12345670");
+        var second = await store.UpsertAsync(NewFood("2", FoodSource.OpenFoodFacts), "12345670");
 
         var found = await store.FindByBarcodeAsync("12345670");
 
+        Assert.That(second.Id, Is.Not.EqualTo(first.Id));
         Assert.That(found?.Id, Is.EqualTo(first.Id));
+        Assert.That(await connection.Table<FoodBarcode>().CountAsync(), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task UpsertAsync_SameFoodWithSeveralBarcodes_FindsItByEach()
+    {
+        var first = await store.UpsertAsync(NewFood("1"), "12345670");
+        var again = await store.UpsertAsync(NewFood("1", kcal: 250), "5000000000017");
+
+        Assert.That(again.Id, Is.EqualTo(first.Id));
+        Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(1));
+        Assert.That((await store.FindByBarcodeAsync("12345670"))?.Id, Is.EqualTo(first.Id));
+        var byNew = await store.FindByBarcodeAsync("5000000000017");
+        Assert.That((byNew?.Id, byNew?.Kcal), Is.EqualTo((first.Id, (double?)250)));
+    }
+
+    [Test]
+    public async Task UpsertAsync_LinkFails_SavesNeitherTheFoodNorTheLink()
+    {
+        await connection.ExecuteAsync("DROP TABLE FoodBarcode");
+
+        Assert.That(() => store.UpsertAsync(NewFood("1"), "12345670"), Throws.Exception);
+
+        Assert.That(await connection.Table<Food>().CountAsync(), Is.Zero);
+    }
+
+    [Test]
+    public async Task UpsertAsync_WithoutABarcode_LinksNothing()
+    {
+        await store.UpsertAsync(NewFood("1"));
+
+        Assert.That(await connection.Table<FoodBarcode>().CountAsync(), Is.Zero);
     }
 
     [Test]
@@ -139,7 +172,9 @@ public class FoodStoreTests
         var busy = gate.RunAsync(async () =>
         {
             await holding.Task;
-            await connection.InsertAsync(NewFood("1", barcode: "12345670"));
+            var inserted = NewFood("1");
+            await connection.InsertAsync(inserted);
+            await connection.InsertAsync(new FoodBarcode { Barcode = "12345670", FoodId = inserted.Id });
         });
 
         var find = store.FindByBarcodeAsync("12345670");
@@ -173,12 +208,12 @@ public class FoodStoreTests
     [Test]
     public async Task Logging_UpsertAndFind_LogsIdsOnlyNeverNameOrBarcode()
     {
-        var food = NewFood("SRC-SECRET", barcode: "9876543210987");
+        var food = NewFood("SRC-SECRET");
         food.Name = "Distinctive Name";
         food.Brand = "Distinctive Brand";
 
-        await store.UpsertAsync(food);
-        await store.UpsertAsync(food);
+        await store.UpsertAsync(food, "9876543210987");
+        await store.UpsertAsync(food, "9876543210987");
         await store.FindByBarcodeAsync("9876543210987");
 
         var records = logger.Collector.GetSnapshot();
@@ -261,12 +296,11 @@ public class FoodStoreTests
         Assert.That(await store.GetSeedVersionAsync(FoodSource.OpenFoodFacts), Is.Null);
     }
 
-    private static Food NewFood(string sourceId, FoodSource source = FoodSource.CoFID, string? barcode = null, double kcal = 100) => new()
+    private static Food NewFood(string sourceId, FoodSource source = FoodSource.CoFID, double kcal = 100) => new()
     {
         Source = source,
         SourceId = sourceId,
         Name = "Oats",
-        Barcode = barcode,
         Unit = FoodUnit.Gram,
         Kcal = kcal,
         ProteinG = 1,

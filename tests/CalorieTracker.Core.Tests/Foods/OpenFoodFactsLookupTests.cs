@@ -54,7 +54,6 @@ public class OpenFoodFactsLookupTests
         {
             Assert.That(food.Source, Is.EqualTo(FoodSource.OpenFoodFacts));
             Assert.That(food.SourceId, Is.EqualTo(Barcode));
-            Assert.That(food.Barcode, Is.EqualTo(Barcode));
             Assert.That(food.Name, Is.EqualTo("Nutella"));
             Assert.That(food.Brand, Is.EqualTo("Ferrero"));
             Assert.That(food.Unit, Is.EqualTo(FoodUnit.Gram));
@@ -243,6 +242,84 @@ public class OpenFoodFactsLookupTests
             Assert.That(empty.Brand, Is.Null);
             Assert.That(empty.SearchText, Is.EqualTo("oats"));
         });
+    }
+
+    [Test]
+    public async Task ResponseCodeDifferingFromTheBarcode_IsTheSourceId()
+    {
+        handler.Respond(Body("Oats", null, AllRequired()).Replace("\"code\":\"1\"", "\"code\":\"9780000000002\""));
+
+        var food = (await lookup.LookupAsync(Barcode)).Food!;
+
+        Assert.That(food.SourceId, Is.EqualTo("9780000000002"));
+    }
+
+    [TestCase("abc123")]
+    [TestCase("../../evil")]
+    [TestCase("97800000000٠2")]
+    [TestCase("12 34")]
+    public async Task ResponseCodeWithNonDigits_FallsBackToTheScannedBarcode(string code)
+    {
+        handler.Respond(Body("Oats", null, AllRequired()).Replace("\"code\":\"1\"", $"\"code\":\"{code}\""));
+
+        var food = (await lookup.LookupAsync(Barcode)).Food!;
+
+        Assert.That(food.SourceId, Is.EqualTo(Barcode));
+    }
+
+    [TestCase("1234567")]
+    [TestCase("123456789012345")]
+    [TestCase("abcdefgh")]
+    [TestCase("1234567a90123")]
+    [TestCase("")]
+    [TestCase("١٢٣٤٥٦٧٨")]
+    public async Task InvalidBarcode_IsNotFoundWithoutAnHttpCall(string barcode)
+    {
+        handler.Respond(Body("Oats", null, AllRequired()));
+
+        var result = await lookup.LookupAsync(barcode);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(BarcodeLookupStatus.NotFound));
+            Assert.That(result.Food, Is.Null);
+            Assert.That(handler.Requests, Is.Empty);
+        });
+    }
+
+    [TestCase("12345678")]
+    [TestCase("3017620422003")]
+    [TestCase("12345678901234")]
+    public async Task BarcodeOf8To14Digits_IsLookedUp(string barcode)
+    {
+        handler.Respond(Body("Oats", null, AllRequired()));
+
+        var result = await lookup.LookupAsync(barcode);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(BarcodeLookupStatus.Found));
+            Assert.That(handler.Requests, Has.Count.EqualTo(1));
+        });
+    }
+
+    [TestCase("036000291452")]
+    public async Task NormalisedUpcA_IsLookedUp(string upcA)
+    {
+        Assert.That(BarcodeNormaliser.TryNormalise(upcA, out var barcode), Is.True);
+        handler.Respond(Body("Oats", null, AllRequired()));
+
+        Assert.That((await lookup.LookupAsync(barcode)).Status, Is.EqualTo(BarcodeLookupStatus.Found));
+    }
+
+    [Test]
+    public async Task ResponseWithoutCode_UsesTheScannedBarcodeAsSourceId()
+    {
+        handler.Respond(Body("Oats", null, AllRequired()).Replace("\"code\":\"1\",", ""));
+
+        var food = (await lookup.LookupAsync(Barcode)).Food!;
+
+        Assert.That(food.SourceId, Is.EqualTo(Barcode));
     }
 
     [Test]
