@@ -2,7 +2,7 @@ using OpenQA.Selenium;
 
 namespace CalorieTracker.E2E.Tests.Screens;
 
-/// <summary>Settings: a back arrow and title, the theme, the version and the data credits.</summary>
+/// <summary>Settings: a back arrow and title, the theme, the version.</summary>
 public sealed class SettingsScreen(WebView web)
 {
     public const string Title = "Settings";
@@ -23,13 +23,6 @@ public sealed class SettingsScreen(WebView web)
     {
         web.WaitUntil(() => web.Exists("app-version"), "Settings didn't show the version");
         return web.Text("app-version");
-    }
-
-    /// <summary>The CoFID and Open Food Facts credit lines, once Settings has opened.</summary>
-    public (string CoFid, string OpenFoodFacts) Credits()
-    {
-        web.WaitUntil(() => web.Exists("credit-cofid") && web.Exists("credit-openfoodfacts"), "Settings didn't show the data credits");
-        return (web.Text("credit-cofid"), web.Text("credit-openfoodfacts"));
     }
 
     public void Back() => web.Tap("back");

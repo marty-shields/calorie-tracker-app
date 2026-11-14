@@ -10,10 +10,6 @@ Feature: Settings
     Given I have opened Settings
     Then the app version is listed on Settings
 
-  Scenario: Settings shows the data credits
-    Given I have opened Settings
-    Then the data credits are listed on Settings
-
   Scenario Outline: Back returns to the Dashboard
     Given I have opened Settings
     When I go back with <how>

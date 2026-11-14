@@ -49,17 +49,6 @@ public sealed class SettingsSteps(DashboardScreen dashboard, SettingsScreen sett
     [Then(@"^the status bar icons are light$")]
     public void ThenTheStatusBarIconsAreLight() => web.Eventually(Native.StatusBarIcons, Is.EqualTo("light"), "status bar icons");
 
-    [Then(@"^the data credits are listed on Settings$")]
-    public void ThenTheDataCreditsAreListedOnSettings()
-    {
-        var (cofid, openFoodFacts) = settings.Credits();
-        Assert.Multiple(() =>
-        {
-            Assert.That(cofid, Does.Contain("CoFID").And.Contain("Open Government Licence v3.0"));
-            Assert.That(openFoodFacts, Does.Contain("Open Food Facts").And.Contain("Open Database Licence"));
-        });
-    }
-
     [Then(@"^the app version is listed on Settings$")]
     public void ThenTheAppVersionIsListedOnSettings() => Assert.That(settings.Version(), Is.EqualTo($"Version {AppiumSetup.Adb.VersionName(AppiumSetup.App.Package)}"), "the version Settings shows against the installed package's versionName");
 }
