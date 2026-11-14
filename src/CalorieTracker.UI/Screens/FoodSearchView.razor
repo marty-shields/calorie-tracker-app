@@ -1,14 +1,8 @@
 @using System.Globalization
 @using CalorieTracker.Core.Data
 @using CalorieTracker.UI.Components.Feedback
-<AppScreen Title="Search foods" OnBack="OnBack">
-    <Toolbar>
-        <label class="search">
-            <Icon Name="IconName.Search" Tone="IconTone.Muted" />
-            <input type="search" class="box" placeholder="Search foods" aria-label="Search foods" autocomplete="off"
-                   value="@Query" @oninput="OnInput" data-testid="food-search-input" />
-        </label>
-    </Toolbar>
+@using CalorieTracker.UI.Components.Lists
+<AppScreen Title="Search foods" OnBack="OnBack" Toolbar="@(Selected is null && !Failed ? Tools : null)">
     <ChildContent>
         @if (Selected is { } food)
         {
@@ -54,24 +48,16 @@
         }
         else if (Results.Count == 0)
         {
-            <EmptyState Message="No foods found" Hint="Check the spelling or try fewer words." TestId="food-search-empty" />
+            <p class="none" data-testid="food-search-none">No foods match</p>
         }
         else
         {
-            <ul class="results" data-testid="food-results">
+            <ul class="rows" data-testid="food-results">
                 @foreach (var item in Results)
                 {
                     <li>
-                        <button type="button" class="result" data-testid="@($"food-result-{item.Id}")" @onclick="() => OnSelect.InvokeAsync(item)">
-                            <span class="text">
-                                <span class="name">@item.Name</span>
-                                @if (item.Brand is not null)
-                                {
-                                    <span class="brand">@item.Brand</span>
-                                }
-                            </span>
-                            <span class="kcal">@Number(item.Kcal) kcal<span class="unit">/ 100 @UnitText(item)</span></span>
-                        </button>
+                        <ListRow Text="@item.Name" Detail="@item.Brand" Aside="@($"{Number(item.Kcal)} kcal / 100 {UnitText(item)}")"
+                                 OnClick="@(() => OnSelect.InvokeAsync(item))" TestId="@($"food-result-{item.Id}")" />
                     </li>
                 }
             </ul>
@@ -115,6 +101,15 @@
     /// <summary>Raised by the back arrow and the Android back button.</summary>
     [Parameter]
     public EventCallback OnBack { get; set; }
+
+    private RenderFragment Tools =>
+        @<div class="tools">
+            <div class="search">
+                <span class="search-icon"><Icon Name="IconName.Search" Tone="IconTone.Muted" /></span>
+                <input type="search" class="search-input" placeholder="Search foods" aria-label="Search foods" autocomplete="off"
+                       value="@Query" data-testid="food-search-input" @oninput="OnInput" />
+            </div>
+        </div>;
 
     private Task OnInput(ChangeEventArgs args) => OnQueryChanged.InvokeAsync(args.Value?.ToString() ?? "");
 
