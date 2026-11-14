@@ -168,6 +168,25 @@ public class SeedLoaderTests
     }
 
     [Test]
+    public async Task LoadAsync_LaterChunkFails_StoresNoVersionAndTheNextGoodRunLoads()
+    {
+        seedJson = Wrap(1, Enumerable.Range(0, (SeedLoader.ChunkSize * 2) + 200).Select(i => Row($"9-{i:D4}", $"Food {i}", 100)));
+        await connection.ExecuteAsync("CREATE TRIGGER FailChunkTwo BEFORE INSERT ON Food WHEN NEW.SourceId = '9-0700' BEGIN SELECT RAISE(ABORT, 'boom'); END");
+
+        var failed = await Loader().LoadAsync();
+
+        Assert.That(failed.Status, Is.EqualTo(SeedLoadStatus.Failed));
+        Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(SeedLoader.ChunkSize));
+        Assert.That(await store.GetSeedVersionAsync(FoodSource.CoFID), Is.Null);
+
+        await connection.ExecuteAsync("DROP TRIGGER FailChunkTwo");
+        var result = await Loader().LoadAsync();
+
+        Assert.That(result, Is.EqualTo(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 700, SeedLoader.ChunkSize)));
+        Assert.That(await store.GetSeedVersionAsync(FoodSource.CoFID), Is.EqualTo(1));
+    }
+
+    [Test]
     public async Task LoadAsync_LogsCountsAndNoFoodNames()
     {
         await Loader().LoadAsync();
@@ -183,6 +202,26 @@ public class SeedLoaderTests
             var text = record.Message + string.Join(" ", record.StructuredState!.Select(p => $"{p.Key}={p.Value}")) + record.Exception;
             Assert.That(text, Does.Not.Contain("Arrowroot").And.Not.Contain("Barley").And.Not.Contain("11-00").IgnoreCase);
         }
+    }
+
+    private static IEnumerable<TestCaseData> BadSeeds()
+    {
+        yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, unit: "Litre")])).SetName("unit Litre");
+        yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, unit: "1")])).SetName("numeric unit");
+        yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, unit: "99")])).SetName("undefined numeric unit");
+        yield return new TestCaseData(Wrap(1, ["""{"source":"CoFID","sourceId":"1","name":"A","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}"""])).SetName("missing unit");
+        yield return new TestCaseData(Wrap(1, [Row("1", "   ", 1)])).SetName("whitespace name");
+        yield return new TestCaseData(Wrap(0, [Row("1", "A", 1)])).SetName("seedVersion 0");
+        yield return new TestCaseData("""{"foods":[]}""").SetName("missing seedVersion");
+        yield return new TestCaseData(Wrap(1, [Row("1", "A", 1), Row("1", "B", 1)])).SetName("duplicate source id");
+    }
+
+    [TestCaseSource(nameof(BadSeeds))]
+    public void SeedFile_BadSeed_ThrowsFormatException(string json)
+    {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+
+        Assert.Throws<FormatException>(() => SeedFile.Parse(stream));
     }
 
     [Test]
@@ -206,7 +245,7 @@ public class SeedLoaderTests
 
     private async Task<List<string>> Snapshot(FoodSource source) =>
         (await connection.Table<Food>().Where(f => f.Source == source).OrderBy(f => f.Id).ToListAsync())
-            .Select(f => $"{f.Id}|{f.SourceId}|{f.Name}|{f.Barcode}|{f.Kcal}|{f.SearchText}").ToList();
+            .Select(f => $"{f.Id}|{f.Source}|{f.SourceId}|{f.Name}|{f.Brand}|{f.Barcode}|{f.Unit}|{f.Kcal}|{f.ProteinG}|{f.CarbsG}|{f.FatG}|{f.FibreG}|{f.SugarsG}|{f.SaturatesG}|{f.SaltG}|{f.SearchText}").ToList();
 
     private static string Sample(int version, double changedKcal = 355, bool extra = false)
     {

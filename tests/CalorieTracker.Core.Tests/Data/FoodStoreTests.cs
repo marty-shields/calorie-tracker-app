@@ -236,6 +236,14 @@ public class FoodStoreTests
     }
 
     [Test]
+    public async Task UpsertManyAsync_MixedSources_ThrowsAndWritesNothing()
+    {
+        Assert.That(() => store.UpsertManyAsync([NewFood("1"), NewFood("2", FoodSource.OpenFoodFacts)]), Throws.ArgumentException);
+
+        Assert.That(await connection.Table<Food>().CountAsync(), Is.Zero);
+    }
+
+    [Test]
     public async Task UpsertManyAsync_NoFoods_ChangesNothing()
     {
         Assert.That(await store.UpsertManyAsync([]), Is.EqualTo(new UpsertManyResult(0, 0)));

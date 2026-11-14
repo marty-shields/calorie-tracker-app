@@ -55,7 +55,7 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
 
     /// <summary>
     /// Inserts or updates the foods in one transaction, matching rows by source and source id.
-    /// Every food must have the same <see cref="Food.Source"/> and a distinct source id; rows of other sources are not touched.
+    /// Every food must have the same <see cref="Food.Source"/> (otherwise throws <see cref="ArgumentException"/>) and a distinct source id; rows of other sources are not touched.
     /// </summary>
     public Task<UpsertManyResult> UpsertManyAsync(IReadOnlyList<Food> foods) =>
         gate.RunAsync(async () =>
@@ -67,9 +67,14 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             }
 
             var source = foods[0].Source;
+            if (foods.Any(f => f.Source != source))
+            {
+                throw new ArgumentException("Every food must have the same source", nameof(foods));
+            }
+
             await connection.RunInTransactionAsync(db =>
             {
-                var ids = db.Table<Food>().Where(f => f.Source == source).ToList().ToDictionary(f => f.SourceId, f => f.Id);
+                var ids = db.Query<IdRow>("SELECT Id, SourceId FROM Food WHERE Source = ?", (int)source).ToDictionary(r => r.SourceId, r => r.Id);
                 var toInsert = new List<Food>();
                 var toUpdate = new List<Food>();
                 foreach (var food in foods)
@@ -101,6 +106,13 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
         [LoggerMessage((int)CoreEvent.FoodUpdated, LogLevel.Debug, "Food {FoodId} updated")]
         public static partial void Updated(ILogger logger, int foodId);
     }
+}
+
+internal sealed class IdRow
+{
+    public int Id { get; set; }
+
+    public string SourceId { get; set; } = "";
 }
 
 /// <summary>How many foods <see cref="FoodStore.UpsertManyAsync"/> inserted and updated.</summary>

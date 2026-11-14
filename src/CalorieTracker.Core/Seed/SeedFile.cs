@@ -45,7 +45,8 @@ internal static class SeedFile
             || dto.Source != nameof(FoodSource.CoFID)
             || string.IsNullOrWhiteSpace(dto.SourceId)
             || string.IsNullOrWhiteSpace(dto.Name)
-            || !Enum.TryParse<FoodUnit>(dto.Unit, out var unit)
+            || dto.Unit is null
+            || !Enum.GetNames<FoodUnit>().Contains(dto.Unit)
             || dto.EnergyKcal is null
             || dto.ProteinG is null
             || dto.CarbsG is null
@@ -60,7 +61,7 @@ internal static class SeedFile
             Source = FoodSource.CoFID,
             SourceId = dto.SourceId,
             Name = name,
-            Unit = unit,
+            Unit = Enum.Parse<FoodUnit>(dto.Unit),
             Kcal = dto.EnergyKcal.Value,
             ProteinG = dto.ProteinG.Value,
             CarbsG = dto.CarbsG.Value,
