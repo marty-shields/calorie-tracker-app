@@ -54,6 +54,7 @@ internal sealed partial class DatabaseInitializer : IDatabaseInitializer
         if (stored == 0)
         {
             // Create the tables of a new database here.
+            await connection.CreateTableAsync<Food>();
             await connection.ExecuteAsync($"PRAGMA user_version = {currentVersion}");
             Log.DatabaseCreated(logger, currentVersion);
         }
@@ -70,6 +71,7 @@ internal sealed partial class DatabaseInitializer : IDatabaseInitializer
             }
 
             // Create any table or column an existing database lacks here.
+            await connection.CreateTableAsync<Food>();
         }
     }
 
