@@ -28,7 +28,7 @@ public static class MauiProgram
         builder.Services.AddCore(Path.Combine(FileSystem.AppDataDirectory, "calorietracker.db3"));
         builder.Services.AddUi();
         builder.Services.AddSingleton<IAppEnvironment, MauiAppEnvironment>();
-        builder.Services.AddSingleton<IBarcodeScanner, MauiBarcodeScanner>();
+        builder.Services.AddSingleton<IBarcodeScanner, CameraBarcodeScanner>();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();

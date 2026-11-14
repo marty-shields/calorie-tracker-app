@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CalorieTracker.App.Scanning;
 
-internal sealed partial class MauiBarcodeScanner(ILogger<MauiBarcodeScanner> logger) : IBarcodeScanner
+internal sealed partial class CameraBarcodeScanner(ILogger<CameraBarcodeScanner> logger) : IBarcodeScanner
 {
     // Only touched on the main thread, so a second tap while a scan is open joins it instead of pushing another page.
     private Task<ScanResult>? pending;

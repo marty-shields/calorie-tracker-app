@@ -5,7 +5,7 @@ namespace CalorieTracker.UI.Tests.Scanning;
 /// <summary>The App can't be referenced, so its scanner source is read: a log method takes a status or an exception type name, never the barcode.</summary>
 public partial class ScannerLoggingTests
 {
-    private static readonly string[] Files = ["MauiBarcodeScanner.cs", "ScanPage.xaml.cs"];
+    private static readonly string[] Files = ["CameraBarcodeScanner.cs", "ScanPage.xaml.cs"];
 
     private static readonly string[] AllowedParameters = ["ScanStatus status", "string exceptionType"];
 
@@ -22,7 +22,7 @@ public partial class ScannerLoggingTests
     [Test]
     public void LogMethods_TakeOnlyTheLoggerAndAStatusOrExceptionType()
     {
-        var source = RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "MauiBarcodeScanner.cs");
+        var source = RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "CameraBarcodeScanner.cs");
 
         var declarations = Declaration().Matches(source).ToList();
 
@@ -38,7 +38,7 @@ public partial class ScannerLoggingTests
     [Test]
     public void LogCalls_PassOnlyTheStatusOrTheExceptionTypeName()
     {
-        var source = RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "MauiBarcodeScanner.cs");
+        var source = RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "CameraBarcodeScanner.cs");
 
         var calls = Call().Matches(source).ToList();
 
