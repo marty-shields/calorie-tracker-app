@@ -3,7 +3,7 @@
 (defaults: the repo's src/CalorieTracker.Core/Seed/cofid-foods.json and its names/ folder)
 
 Checks the everyday food names (naming-guide.md): the seed's `name` of each food, and the names/<foodGroup>.json overlays that
-build-food-seed.py applies. A food is named when an overlay has an entry for it (a name equal to originalName is fine).
+build-food-seed.py applies. A food is named when an overlay has an entry for it (any entry counts, including one equal to originalName).
 Prints one finding per line and exits 1 on:
   - a food with no overlay entry (not with --allow-missing), or a seed name that differs from its overlay entry or, with no
     entry, from originalName;

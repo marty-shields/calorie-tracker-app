@@ -79,6 +79,9 @@ $(food 10-002 "Milk" "Milk, whole" AA)" '{"10-001":"White bread"}'
 check "a hand-edited seed name with no overlay entry fails" "10-002: seed name \"Milk\" has no overlay entry (edit names/, then regenerate)
 exit=1" "$(run --allow-missing)"
 
+setup "$(food 10-001 "Arrowroot" "Arrowroot" AA)" '{"10-001":"Arrowroot"}'
+check "an overlay equal to originalName counts as named in strict mode" "exit=0" "$(run)"
+
 setup "$(food 10-001 "Bread, white" "Bread, white" AA)" '{"10-001":"Bread, white"}'
 check "a comma fails" "10-001: \"Bread, white\" has a comma
 exit=1" "$(run)"
