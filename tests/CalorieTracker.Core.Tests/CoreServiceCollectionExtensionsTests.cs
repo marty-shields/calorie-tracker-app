@@ -1,4 +1,5 @@
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Foods;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -19,7 +20,19 @@ public class CoreServiceCollectionExtensionsTests
             (typeof(FoodStore), (Type?)null, ServiceLifetime.Singleton),
             (typeof(IDatabaseInitializer), (Type?)null, ServiceLifetime.Singleton),
             (typeof(TimeProvider), (Type?)null, ServiceLifetime.Singleton),
+            (typeof(IBarcodeLookup), (Type?)null, ServiceLifetime.Singleton),
         }));
+    }
+
+    [Test]
+    public void AddCore_WithLogging_ResolvesTheOpenFoodFactsLookup()
+    {
+        using var provider = new ServiceCollection()
+            .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
+            .AddCore(TempDatabase.NewPath())
+            .BuildServiceProvider();
+
+        Assert.That(provider.GetRequiredService<IBarcodeLookup>(), Is.InstanceOf<OpenFoodFactsLookup>());
     }
 
     [Test]
