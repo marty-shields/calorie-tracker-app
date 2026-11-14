@@ -22,9 +22,9 @@ MAX_LENGTH = 80
 AMERICAN = {
     'yogurt': 'yoghurt', 'eggplant': 'aubergine', 'zucchini': 'courgette', 'gray': 'grey', 'flavor': 'flavour',
     'flavored': 'flavoured', 'color': 'colour', 'colored': 'coloured', 'fiber': 'fibre', 'savory': 'savoury',
-    'cilantro': 'coriander', 'arugula': 'rocket', 'rutabaga': 'swede', 'molasses': 'treacle', 'donut': 'doughnut',
-    'candy': 'sweets', 'cookie': 'biscuit', 'cookies': 'biscuits', 'chili': 'chilli', 'pasteurized': 'pasteurised',
-    'sulfur': 'sulphur', 'oatmeal': 'porridge', 'broiled': 'grilled',
+    'cilantro': 'coriander', 'arugula': 'rocket', 'rutabaga': 'swede', 'donut': 'doughnut',
+    'chili': 'chilli', 'pasteurized': 'pasteurised',
+    'sulfur': 'sulphur',
 }
 AMERICAN_WORD = re.compile(r'\b(' + '|'.join(AMERICAN) + r')\b', re.IGNORECASE)
 

@@ -67,6 +67,10 @@ setup "$(food 10-001 "Yogurt" "Yoghurt" AA)" '{"10-001":"Yogurt"}'
 check "an American spelling fails" "10-001: \"Yogurt\" uses American spelling \"yogurt\" (British: yoghurt)
 exit=1" "$(run)"
 
+setup "$(food 10-001 "Molasses" "Molasses" AA),
+$(food 10-002 "Chocolate chip cookies" "Chocolate chip cookies" AA)" '{"10-001":"Molasses","10-002":"Chocolate chip cookies"}'
+check "valid British foods such as molasses and cookies pass" "exit=0" "$(run)"
+
 long=$(printf 'a%.0s' {1..81})
 setup "$(food 10-001 "$long" "Bread" AA)" "{\"10-001\":\"$long\"}"
 check "a name over 80 characters fails" "10-001: \"$long\" is 81 characters (at most 80)
