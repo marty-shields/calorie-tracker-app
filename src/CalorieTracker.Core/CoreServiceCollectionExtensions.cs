@@ -1,5 +1,6 @@
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
+using CalorieTracker.Core.Seed;
 using Microsoft.Extensions.DependencyInjection;
 using SQLite;
 
@@ -38,6 +39,8 @@ public static class CoreServiceCollectionExtensions
     {
         services
             .AddSingleton(TimeProvider.System)
+            .AddSingleton<ISeedLoader>(provider =>
+                ActivatorUtilities.CreateInstance<SeedLoader>(provider, (Func<Stream>)SeedLoader.OpenBundledSeed))
             .AddHttpClient<OpenFoodFactsLookup>(client =>
             {
                 client.BaseAddress = new Uri("https://world.openfoodfacts.org/");

@@ -39,5 +39,8 @@ public class CoreEventTests
             [CoreEvent.StoredLookupReadFailed] = 1305,
             [CoreEvent.StoredLookupSaveFailed] = 1306,
             [CoreEvent.SeedLoaderBlock] = 1400,
+            [CoreEvent.SeedLoaded] = 1401,
+            [CoreEvent.SeedUpToDate] = 1402,
+            [CoreEvent.SeedLoadFailed] = 1403,
         }));
 }
