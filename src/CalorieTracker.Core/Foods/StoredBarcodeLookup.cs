@@ -64,10 +64,9 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
             {
                 case BarcodeLookupStatus.Found:
                     var food = result.Food!;
-                    food.Barcode = barcode;
                     try
                     {
-                        var saved = await store.UpsertAsync(food);
+                        var saved = await store.UpsertAsync(food, barcode);
                         Log.Fetched(logger, result.Status, saved.Id);
                         return BarcodeLookupResult.Found(saved);
                     }

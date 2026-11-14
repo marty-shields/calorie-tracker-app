@@ -33,10 +33,6 @@ public class Food
 
     public string? Brand { get; set; }
 
-    /// <summary>EAN-8 or EAN-13 digits; null when the food has none.</summary>
-    [Indexed]
-    public string? Barcode { get; set; }
-
     [NotNull]
     public FoodUnit Unit { get; set; }
 

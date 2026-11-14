@@ -15,9 +15,9 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # The release signing cert's SHA-256, as 32 colon-separated hex bytes. TODO: placeholder until the CalorieTracker release
-  # keystore exists (docs/release.md); the "Release cert pinned" step fails the release while it is not a real digest.
-  CERT_SHA256: 'UNSET-release-keystore-not-yet-configured'
+  # The release signing cert's SHA-256, as 32 colon-separated hex bytes (docs/release.md, "Keystore handling"); the
+  # "Release cert pinned" step fails the release if it is not a real digest.
+  CERT_SHA256: '07:02:25:A2:56:98:2B:94:CE:AC:8A:2C:C5:5F:A0:5F:BB:80:36:0B:A2:92:58:AC:5D:CF:8A:92:33:3E:A6:46'
 
 jobs:
   version:
@@ -40,7 +40,7 @@ jobs:
       - name: Release cert pinned
         run: |
           if ! grep -Eqx '([0-9A-F]{2}:){31}[0-9A-F]{2}' <<<"$CERT_SHA256"; then
-            echo "::error title=Release::release signing keystore not yet configured - see the tracking issue. CERT_SHA256 in release.yml is a placeholder; set it to the release cert's SHA-256 (docs/release.md)."
+            echo "::error title=Release::CERT_SHA256 in release.yml is not a SHA-256 digest (32 uppercase hex bytes separated by colons); set it to the release cert's SHA-256 (docs/release.md)."
             exit 1
           fi
 
