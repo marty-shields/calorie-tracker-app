@@ -8,4 +8,14 @@ public class ScanPageMarkupTests
     [TestCase("Upca")]
     public void ScanPage_ListsTheSymbology(string symbology) =>
         Assert.That(RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "ScanPage.xaml"), Does.Match(@"BarcodeSymbologies=""[^""]*\b" + symbology + @"\b"));
+
+    [Test]
+    public void Manifest_DeclaresTheCameraPermission() =>
+        Assert.That(Manifest(), Does.Match(@"<uses-permission\s+android:name=""android\.permission\.CAMERA"""));
+
+    [Test]
+    public void Manifest_DeclaresTheCameraAsOptional() =>
+        Assert.That(Manifest(), Does.Match(@"<uses-feature\s+android:name=""android\.hardware\.camera""\s+android:required=""false"""));
+
+    private static string Manifest() => RepoFiles.Read("src", "CalorieTracker.App", "Platforms", "Android", "AndroidManifest.xml");
 }

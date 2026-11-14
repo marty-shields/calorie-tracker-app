@@ -18,10 +18,10 @@ public partial class ScanPage : ContentPage
 
     private async void OnDetectionFinished(object? sender, OnDetectionFinishedEventArg e)
     {
-        var digits = e.BarcodeResults.Select(b => b.RawValue).FirstOrDefault(v => !string.IsNullOrEmpty(v));
-        if (digits is not null)
+        var result = ScanResult.FromRawValues(e.BarcodeResults.Select(b => b.RawValue));
+        if (result is not null)
         {
-            await CloseAsync(ScanResult.Scanned(digits));
+            await CloseAsync(result);
         }
     }
 

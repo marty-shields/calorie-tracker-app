@@ -26,4 +26,17 @@ public class ScanResultTests
             Assert.That(result.Digits, Is.Null);
         });
     }
+
+    [Test]
+    public void FromRawValues_TakesTheFirstNonEmpty() =>
+        Assert.That(ScanResult.FromRawValues([null, "", "12345670", "5000112637922"]), Is.EqualTo(ScanResult.Scanned("12345670")));
+
+    [TestCase]
+    [TestCase(null, "")]
+    public void FromRawValues_WithNoValue_GivesNoResult(params string?[] values) =>
+        Assert.That(ScanResult.FromRawValues(values), Is.Null);
+
+    [Test]
+    public void FromRawValues_KeepsLeadingZeros() =>
+        Assert.That(ScanResult.FromRawValues(["0012345678905"])!.Digits, Is.EqualTo("0012345678905"));
 }
