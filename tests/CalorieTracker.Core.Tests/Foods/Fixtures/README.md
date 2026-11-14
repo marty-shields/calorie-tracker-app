@@ -8,4 +8,4 @@ Saved responses of `GET https://world.openfoodfacts.org/api/v2/product/{barcode}
 | drink-5449000000996.json | 5449000000996 | Coca-Cola can: `serving_quantity_unit` is `ml` |
 | missing-0000000000017.json | 0000000000017 | HTTP 200, `status` 0 (no such product) |
 | not-food-8410757001090.json | 8410757001090 | HTTP 404, `status` 0 (a product of another type) |
-| missing-values-3017620422003-trimmed.json | 3017620422003 | Hand-edited: the solid response with the `proteins*` keys removed (no real response with missing values was found within the request budget) |
+| missing-values-6111246651261.json | 6111246651261 | HTTP 200, `status` 1 (product found) but `product` is empty: no name or nutriments (captured 2026-11-14) |

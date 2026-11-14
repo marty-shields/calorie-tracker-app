@@ -105,9 +105,9 @@ public class OpenFoodFactsLookupTests
     [Test]
     public async Task MissingRequiredValue_IsNotFound()
     {
-        handler.Respond(Fixture("missing-values-3017620422003-trimmed.json"));
+        handler.Respond(Fixture("missing-values-6111246651261.json"));
 
-        Assert.That((await lookup.LookupAsync(Barcode)).Status, Is.EqualTo(BarcodeLookupStatus.NotFound));
+        Assert.That((await lookup.LookupAsync("6111246651261")).Status, Is.EqualTo(BarcodeLookupStatus.NotFound));
     }
 
     [TestCase("energy-kcal_100g")]
