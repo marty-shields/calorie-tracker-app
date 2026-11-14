@@ -1,4 +1,5 @@
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Foods;
 using Microsoft.Extensions.DependencyInjection;
 using SQLite;
 
@@ -7,7 +8,7 @@ namespace CalorieTracker.Core;
 public static class CoreServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers Core's services as singletons. The initializer is registered only as a gated decorator
+    /// Registers Core's services as singletons, except the barcode lookup, a typed HTTP client that holds no state. The initializer is registered only as a gated decorator
     /// that runs each call through one <see cref="DatabaseGate"/>; the connection is not registered.
     /// The host must register logging.
     /// </summary>
@@ -32,7 +33,16 @@ public static class CoreServiceCollectionExtensions
     /// <summary>Registers each numbered schema upgrade step, one for each version after 1.</summary>
     private static IServiceCollection AddSchemaUpgrades(this IServiceCollection services) => services;
 
-    private static IServiceCollection AddServices(this IServiceCollection services) =>
+    private static IServiceCollection AddServices(this IServiceCollection services)
+    {
         services
-            .AddSingleton(TimeProvider.System);
+            .AddSingleton(TimeProvider.System)
+            .AddHttpClient<IBarcodeLookup, OpenFoodFactsLookup>(client =>
+            {
+                client.BaseAddress = new Uri("https://world.openfoodfacts.org/");
+                client.Timeout = TimeSpan.FromSeconds(10);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd(OpenFoodFactsLookup.UserAgent);
+            });
+        return services;
+    }
 }

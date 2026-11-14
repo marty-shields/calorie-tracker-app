@@ -7,6 +7,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Foods\Fixtures\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\CalorieTracker.Core\CalorieTracker.Core.csproj" />
   </ItemGroup>
 
