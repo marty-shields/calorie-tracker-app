@@ -37,6 +37,11 @@ jobs:
       - name: Check the docs
         run: python3 -I .github/scripts/check-docs.py
 
+      # Fails on a food name that breaks the naming guide, a duplicate name, or an overlay that doesn't match the seed. --allow-missing
+      # lets foods without an everyday name yet pass; the final everyday-names PR drops the flag so every food needs one.
+      - name: Check the food names
+        run: python3 -I .github/scripts/check-food-names.py --allow-missing
+
       - uses: ./.github/actions/setup-maui
 
       - name: Build

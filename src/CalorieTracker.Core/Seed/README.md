@@ -1,6 +1,6 @@
 # Food seed
 
-`cofid-foods.json` is the generic-food seed: the foods of the UK Composition of Foods Integrated Dataset (CoFID) 2021, one food per line. It is generated, then edited by hand for everyday names (the `name` field only). The seed loader bundles it with the app. Names follow the [naming guide](naming-guide.md).
+`cofid-foods.json` is the generic-food seed: the foods of the UK Composition of Foods Integrated Dataset (CoFID) 2021, one food per line. It is generated from the workbook plus the everyday names in [`names/`](#everyday-names). The seed loader bundles it with the app. Names follow the [naming guide](naming-guide.md).
 
 ## Source and licence
 
@@ -12,7 +12,22 @@ McCance and Widdowson's Composition of Foods Integrated Dataset 2021, Public Hea
 2. Run `python3 -I .github/scripts/build-food-seed.py <path to cofid.xlsx> src/CalorieTracker.Core/Seed/cofid-foods.json` (`py -I` on Windows). It needs only Python 3.
 3. The run prints `kept 2853 of 2887 foods` (the 2021 workbook) and a warning for each repeated food code. Every kept food has a row in the Inorganics sheet (no "has no row" warning on the 2021 workbook), so the 41 foods with `saltG` `null` are all `N` or blank sodium; a warning appears if a later workbook breaks that. A rerun on the same workbook is byte-identical.
 
-Regenerating overwrites hand-edited names, so redo the everyday-names edit (or merge the diff) afterwards.
+Regenerating keeps the everyday names: the script reads `names/*.json` (next to the output file, or `--names <folder>`) and applies them. With no `names/` folder the output is the plain workbook names.
+
+## Everyday names
+
+Names live in `names/<foodGroup>.json`, one file per CoFID group code (`names/AA.json`). Each is an object of `sourceId` to everyday name, one entry per line, sorted by `sourceId` (repeated codes use the `#2` form):
+
+```json
+{
+"11-001":"Arrowroot",
+"11-002":"Pearl barley"
+}
+```
+
+The generator sets `name` from the entry and leaves `originalName` and `sourceId` alone. It fails on a `sourceId` that is not in the workbook output, an entry in the file of another group, or an empty name. Edit `names/`, then regenerate the seed; never edit `name` in `cofid-foods.json` by hand. Names follow the [naming guide](naming-guide.md).
+
+`python3 -I .github/scripts/check-food-names.py` checks the seed against `names/` and the guide: every food has an overlay entry, no two names match (case-insensitive), the seed `name` equals its entry, and each name has no comma, no American spelling and at most 80 characters. A bare name means no fat or water is stated. `--allow-missing` lets foods with no entry pass; CI uses it until the final everyday-names PR, which drops the flag. `--seed` and `--names` point it at other files.
 
 ## Format
 
@@ -22,7 +37,7 @@ Regenerating overwrites hand-edited names, so redo the everyday-names edit (or m
 | --- | --- |
 | `source` | `CoFID` |
 | `sourceId` | CoFID food code, such as `11-001` (see the repeated-code rule below) |
-| `name` | Display name; starts equal to `originalName` and is the field edited for everyday names |
+| `name` | Display name; equals `originalName` until an entry in `names/` sets it |
 | `originalName` | CoFID food name, never edited |
 | `foodGroup` | CoFID group code, such as `AA` |
 | `unit` | `Millilitre` when the group code starts with `Q` (alcoholic drinks, alcohol-free lager included), else `Gram` |
@@ -46,4 +61,4 @@ The file is an embedded resource of `CalorieTracker.Core` (`cofid-foods.json`). 
 - Foods match on `source` and `sourceId`; an existing row keeps its `Id`. Rows of other sources are never read or written.
 - Foods missing from a newer seed are left in place, never deleted.
 - `originalName` and `foodGroup` are not stored (the Food table has no columns for them).
-- Bump `seedVersion` in `build-food-seed.py` whenever the content or names change, including the everyday-names edit, or installed apps will not pick the change up.
+- Bump `seedVersion` in `build-food-seed.py` whenever the content or names change, or installed apps will not pick the change up. For the everyday names it is bumped once, in the final PR.

@@ -168,6 +168,31 @@ seed ok > /dev/null
 check "a second run gives identical bytes" "same" "$(cmp -s "$work/first.json" "$work/out.json" && echo same || echo differs)"
 check "lines end with LF only" "0" "$(grep -c $'\r' "$work/out.json")"
 
+# Everyday names: names/<foodGroup>.json beside the output file sets `name` only.
+mkdir "$work/names"
+printf '{\n"10-001":"White bread",\n"10-006":"Plain food"\n}\n' > "$work/names/AA.json"
+printf '{\n"13-669#2":"Watercress"\n}\n' > "$work/names/DG.json"
+seed ok > /dev/null
+check "names from the overlays are applied; originalName and sourceId stay" '"sourceId":"10-001","name":"White bread","originalName":"Bread, white"
+"sourceId":"10-006","name":"Plain food","originalName":"Nothing optional"
+"sourceId":"13-669","name":"Aubergine, roasted","originalName":"Aubergine, roasted"
+"sourceId":"13-669#2","name":"Watercress","originalName":"Watercress, raw"' "$(grep -oE '"sourceId":"(10-001|10-006|13-669|13-669#2)","name":"[^"]*","originalName":"[^"]*"' "$work/out.json")"
+cp "$work/out.json" "$work/named.json"
+seed ok > /dev/null
+check "regenerating keeps the names and is byte-identical" "same" "$(cmp -s "$work/named.json" "$work/out.json" && echo same || echo differs)"
+check "--names reads another folder" "same" "$(python3 -I "$script" "$work/book.xlsx" "$work/other.json" --names "$work/names" 2> /dev/null; cmp -s "$work/named.json" "$work/other.json" && echo same || echo differs)"
+
+overlay() { rm -f "$work"/names/*.json; printf '%s\n' "$2" > "$work/names/$1.json"; seed ok | tail -2; }
+check "a code that is not in the workbook output fails" "build-food-seed: $work/names/AA.json: 10-999 is not a food in the workbook output
+exit=1" "$(overlay AA '{"10-999":"Nothing"}')"
+check "a food that was dropped for a missing value fails" "build-food-seed: $work/names/AA.json: 10-002 is not a food in the workbook output
+exit=1" "$(overlay AA '{"10-002":"Nothing"}')"
+check "an entry in another group's file fails" "build-food-seed: $work/names/DG.json: 10-001 is in group AA, not DG
+exit=1" "$(overlay DG '{"10-001":"White bread"}')"
+check "an empty name fails" "build-food-seed: $work/names/AA.json: 10-001 has an empty name
+exit=1" "$(overlay AA '{"10-001":" "}')"
+rm -rf "$work/names"
+
 check "a missing sheet fails" "build-food-seed: sheet '1.4 Inorganics' is not in the workbook
 exit=1" "$(seed nosheet)"
 check "a missing tag fails" "build-food-seed: tag AOACFIB is not in row 2 of '1.3 Proximates'
