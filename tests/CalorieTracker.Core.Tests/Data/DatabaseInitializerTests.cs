@@ -181,6 +181,33 @@ public class DatabaseInitializerTests
         Assert.That(calls, Is.EqualTo(new[] { "step 2", "step 3" }));
     }
 
+    [Test]
+    public async Task InitializeAsync_NewDatabase_CreatesTheFoodTableAndIndexes()
+    {
+        await Initializer(DatabaseInitializer.CurrentVersion).InitializeAsync();
+
+        await AssertFoodTableAndIndexes();
+    }
+
+    [Test]
+    public async Task InitializeAsync_ExistingDatabaseWithoutFood_CreatesTheFoodTableAndIndexes()
+    {
+        await SetVersion(1);
+
+        await Initializer(DatabaseInitializer.CurrentVersion).InitializeAsync();
+
+        await AssertFoodTableAndIndexes();
+    }
+
+    private async Task AssertFoodTableAndIndexes()
+    {
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'Food'"), Is.EqualTo(1));
+        var unique = await connection.QueryScalarsAsync<string>("SELECT name FROM pragma_index_list('Food') WHERE \"unique\" = 1");
+        var all = await connection.QueryScalarsAsync<string>("SELECT name FROM pragma_index_list('Food')");
+        Assert.That(unique, Does.Contain("UX_Food_Source_SourceId"));
+        Assert.That(all, Does.Contain("Food_Barcode"));
+    }
+
     private DatabaseInitializer Initializer(int currentVersion, params ISchemaUpgrade[] steps) =>
         new(connection, steps, logger, currentVersion);
 

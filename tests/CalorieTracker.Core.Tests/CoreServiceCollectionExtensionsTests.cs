@@ -16,6 +16,7 @@ public class CoreServiceCollectionExtensionsTests
         Assert.That(services.Select(s => (s.ServiceType, s.ImplementationType, s.Lifetime)), Is.EquivalentTo(new[]
         {
             (typeof(DatabaseGate), typeof(DatabaseGate), ServiceLifetime.Singleton),
+            (typeof(FoodStore), (Type?)null, ServiceLifetime.Singleton),
             (typeof(IDatabaseInitializer), (Type?)null, ServiceLifetime.Singleton),
             (typeof(TimeProvider), (Type?)null, ServiceLifetime.Singleton),
         }));
@@ -30,6 +31,20 @@ public class CoreServiceCollectionExtensionsTests
             .BuildServiceProvider();
 
         Assert.That(provider.GetRequiredService<IDatabaseInitializer>(), Is.InstanceOf<GatedDatabaseInitializer>());
+    }
+
+    [Test]
+    public void AddCore_WithLogging_ResolvesOneFoodStore()
+    {
+        using var provider = new ServiceCollection()
+            .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
+            .AddCore(TempDatabase.NewPath())
+            .BuildServiceProvider();
+
+        var first = provider.GetRequiredService<FoodStore>();
+        var second = provider.GetRequiredService<FoodStore>();
+
+        Assert.That(second, Is.SameAs(first));
     }
 
     [Test]

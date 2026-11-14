@@ -63,7 +63,7 @@ src/
   CalorieTracker.App/          MAUI Blazor Hybrid host (Android): startup, DI, routing
   CalorieTracker.UI/           Razor class library: screens, components, design tokens
   CalorieTracker.UI.Stories/   BlazingStory stories site for the UI
-  CalorieTracker.Core/         Data, schema upgrades, services, logging
+  CalorieTracker.Core/         Data, schema upgrades, food lookup contracts (Foods), services, logging
 tests/
   CalorieTracker.Core.Tests/   NUnit tests for Core
   CalorieTracker.UI.Tests/     bUnit tests for components and screens
