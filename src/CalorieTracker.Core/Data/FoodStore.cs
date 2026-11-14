@@ -10,8 +10,8 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
     /// <summary>Finds the food a barcode is linked to, or null when it is linked to none.</summary>
     public Task<Food?> FindByBarcodeAsync(string barcode) =>
         gate.RunAsync<Food?>(async () =>
-            (await connection.QueryAsync<Food>(
-                "SELECT f.* FROM Food f JOIN FoodBarcode b ON b.FoodId = f.Id WHERE b.Barcode = ?", barcode)).FirstOrDefault());
+            await connection.FindWithQueryAsync<Food>(
+                "SELECT f.* FROM Food f JOIN FoodBarcode b ON b.FoodId = f.Id WHERE b.Barcode = ?", barcode));
 
     /// <summary>The characters that split <see cref="Food.SearchText"/> and typed queries into words.</summary>
     internal static readonly char[] Separators = [' ', '\t', '\r', '\n', ',', '(', ')', '/', '-'];
@@ -49,16 +49,11 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
         return $"(' ' || {text} || ' ')";
     }
 
-    /// <summary>Inserts the food, or updates the row with the same source and source id. Returns the stored food with its id.</summary>
-    public Task<Food> UpsertAsync(Food food) => UpsertAndLinkAsync(food, null);
-
     /// <summary>
-    /// Upserts the food like <see cref="UpsertAsync(Food)"/> and links <paramref name="barcode"/> to it, in one transaction.
-    /// A barcode already linked to another food stays with that food.
+    /// Inserts the food, or updates the row with the same source and source id, and returns the stored food with its id.
+    /// With <paramref name="barcode"/>, links it to the food in the same transaction; a barcode already linked to another food stays with that food.
     /// </summary>
-    public Task<Food> UpsertAsync(Food food, string barcode) => UpsertAndLinkAsync(food, barcode);
-
-    private Task<Food> UpsertAndLinkAsync(Food food, string? barcode) =>
+    public Task<Food> UpsertAsync(Food food, string? barcode = null) =>
         gate.RunAsync(async () =>
         {
             var inserted = false;

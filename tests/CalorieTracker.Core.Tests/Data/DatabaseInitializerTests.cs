@@ -247,6 +247,34 @@ public class DatabaseInitializerTests
     }
 
     [Test]
+    public async Task InitializeAsync_VersionOneDatabase_GetsTheSameFoodBarcodeSchemaAsANewDatabase()
+    {
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade()).InitializeAsync();
+        var created = await FoodBarcodeSchema();
+        await connection.CloseAsync();
+        File.Delete(databasePath);
+
+        databasePath = TempDatabase.NewPath();
+        connection = new SQLiteAsyncConnection(databasePath);
+        await connection.ExecuteAsync(
+            "CREATE TABLE Food (Id integer primary key autoincrement not null, Source integer not null, SourceId varchar not null, Name varchar not null, Brand varchar, Barcode varchar, Unit integer not null, Kcal float, ProteinG float, CarbsG float, FatG float, FibreG float, SugarsG float, SaturatesG float, SaltG float, SearchText varchar not null)");
+        await connection.ExecuteAsync("CREATE UNIQUE INDEX UX_Food_Source_SourceId ON Food(Source, SourceId)");
+        await SetVersion(1);
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade()).InitializeAsync();
+
+        Assert.That(await FoodBarcodeSchema(), Is.EqualTo(created));
+    }
+
+    private async Task<List<string>> FoodBarcodeSchema()
+    {
+        var columns = await connection.QueryScalarsAsync<string>(
+            "SELECT name || ':' || type || ':' || \"notnull\" || ':' || pk FROM pragma_table_info('FoodBarcode') ORDER BY cid");
+        var indexes = await connection.QueryScalarsAsync<string>(
+            "SELECT i.name || ':' || i.\"unique\" || ':' || (SELECT group_concat(c.name) FROM pragma_index_info(i.name) c) FROM pragma_index_list('FoodBarcode') i WHERE i.origin = 'c' ORDER BY i.name");
+        return [.. columns, .. indexes];
+    }
+
+    [Test]
     public async Task Sqlite_BundledVersion_SupportsDropColumn()
     {
         var version = await connection.ExecuteScalarAsync<string>("SELECT sqlite_version()");

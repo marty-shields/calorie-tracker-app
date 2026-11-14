@@ -135,7 +135,7 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
             Food? food;
             try
             {
-                food = Map(product, barcode);
+                food = Map(product, ReadString(root, "code") ?? barcode);
             }
             catch (InvalidOperationException)
             {
@@ -155,8 +155,11 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
         }
     }
 
-    /// <summary>Null when the name or any of kcal, protein, carbs and fat is missing.</summary>
-    private static Food? Map(JsonElement product, string barcode)
+    /// <summary>
+    /// Null when the name or any of kcal, protein, carbs and fat is missing.
+    /// <paramref name="sourceId"/> is the product's own code, so several barcodes of one product map to one food.
+    /// </summary>
+    private static Food? Map(JsonElement product, string sourceId)
     {
         var name = ReadString(product, "product_name");
         if (name is null)
@@ -183,7 +186,7 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
         return new Food
         {
             Source = FoodSource.OpenFoodFacts,
-            SourceId = barcode,
+            SourceId = sourceId,
             Name = name,
             Brand = brand,
             Unit = millilitre ? FoodUnit.Millilitre : FoodUnit.Gram,

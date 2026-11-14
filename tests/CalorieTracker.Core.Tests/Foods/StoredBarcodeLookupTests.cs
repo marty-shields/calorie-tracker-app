@@ -67,6 +67,33 @@ public class StoredBarcodeLookupTests
     }
 
     [Test]
+    public async Task Lookup_TwoBarcodesOfOneOpenFoodFactsProduct_StoreOneFoodWithTwoLinks()
+    {
+        const string product = "{\"code\":\"5000000000017\",\"status\":1,\"product\":{\"product_name\":\"Oats\",\"nutriments\":{\"energy-kcal_100g\":370,\"proteins_100g\":11,\"carbohydrates_100g\":60,\"fat_100g\":7}}}";
+        using var http = new HttpClient(new JsonHandler(product)) { BaseAddress = new Uri("https://world.openfoodfacts.org/") };
+        var real = new StoredBarcodeLookup(
+            new OpenFoodFactsLookup(http, new FakeLogger<OpenFoodFactsLookup>(), TimeProvider.System),
+            store,
+            logger);
+
+        var first = await real.LookupAsync("5000000000017");
+        var second = await real.LookupAsync("5000000000024");
+
+        Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(1));
+        Assert.That(await connection.Table<FoodBarcode>().CountAsync(), Is.EqualTo(2));
+        Assert.That(second.Food!.Id, Is.EqualTo(first.Food!.Id));
+    }
+
+    private sealed class JsonHandler(string body) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json"),
+            });
+    }
+
+    [Test]
     public async Task Lookup_InnerFound_LinksTheBarcodeToTheStoredFood()
     {
         inner.Enqueue(BarcodeLookupResult.Found(NewFood("1")));
