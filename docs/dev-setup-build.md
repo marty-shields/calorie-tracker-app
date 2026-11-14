@@ -22,7 +22,7 @@ Today `README.md` shows no screenshots and the table below is empty: the skeleto
 | File | Story id |
 |---|---|
 
-`icon.svg` is the app icon's foreground on its background with rounded corners. `node .github/scripts/app-icon.mjs` writes it with the rest of the icon and splash art ([App icon](../src/CalorieTracker.UI.Stories/Stories/Foundations/AppIcon.md)).
+`icon.svg` is the Ember flame on the icon's flat teal background with rounded corners. `node .github/scripts/app-icon.mjs` generates it, with the rest of the icon and splash art, from one flame outline ([App icon](../src/CalorieTracker.UI.Stories/Stories/Foundations/AppIcon.md)).
 
 ## Phone setup (Android 16)
 1. Settings → About phone → tap **Build number** 7 times to enable Developer options.
