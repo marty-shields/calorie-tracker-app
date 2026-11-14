@@ -42,3 +42,9 @@ node_modules/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Downloaded CoFID workbook (see src/CalorieTracker.Core/Seed/README.md)
+*.xlsx
+
+# Python bytecode
+__pycache__/
