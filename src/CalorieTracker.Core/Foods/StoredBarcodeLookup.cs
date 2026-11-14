@@ -8,7 +8,7 @@ namespace CalorieTracker.Core.Foods;
 /// <summary>
 /// Serves barcodes from the food table, and otherwise from the inner lookup, saving what it finds.
 /// Concurrent calls for one barcode share a single store read, inner call and save, which ignore the callers' cancellation.
-/// A database failure propagates to the callers.
+/// A failing store never reaches the callers: a failed read falls through to the inner lookup, a failed save returns the unsaved food.
 /// </summary>
 internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStore store, ILogger<StoredBarcodeLookup> logger) : IBarcodeLookup
 {
@@ -43,7 +43,16 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
                 return BarcodeLookupResult.NotFound();
             }
 
-            var stored = await store.FindByBarcodeAsync(barcode);
+            Food? stored = null;
+            try
+            {
+                stored = await store.FindByBarcodeAsync(barcode);
+            }
+            catch (Exception)
+            {
+                Log.ReadFailed(logger);
+            }
+
             if (stored is not null)
             {
                 Log.StoreHit(logger, stored.Id);
@@ -56,9 +65,17 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
                 case BarcodeLookupStatus.Found:
                     var food = result.Food!;
                     food.Barcode = barcode;
-                    var saved = await store.UpsertAsync(food);
-                    Log.Fetched(logger, result.Status, saved.Id);
-                    return BarcodeLookupResult.Found(saved);
+                    try
+                    {
+                        var saved = await store.UpsertAsync(food);
+                        Log.Fetched(logger, result.Status, saved.Id);
+                        return BarcodeLookupResult.Found(saved);
+                    }
+                    catch (Exception)
+                    {
+                        Log.SaveFailed(logger);
+                        return BarcodeLookupResult.Found(food);
+                    }
                 case BarcodeLookupStatus.NotFound:
                     notFound.TryAdd(barcode, 0);
                     Log.Fetched(logger, result.Status, null);
@@ -88,5 +105,11 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
 
         [LoggerMessage((int)CoreEvent.StoredLookupNotFoundHit, LogLevel.Debug, "Barcode answered from remembered not-found")]
         public static partial void NotFoundHit(ILogger logger);
+
+        [LoggerMessage((int)CoreEvent.StoredLookupReadFailed, LogLevel.Warning, "Food table read failed, falling back to the inner lookup")]
+        public static partial void ReadFailed(ILogger logger);
+
+        [LoggerMessage((int)CoreEvent.StoredLookupSaveFailed, LogLevel.Warning, "Saving the looked-up food failed, returning it unsaved")]
+        public static partial void SaveFailed(ILogger logger);
     }
 }

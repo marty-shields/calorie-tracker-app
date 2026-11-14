@@ -28,6 +28,8 @@ public class CoreEventTests
             [CoreEvent.StoredLookupFetched] = 1302,
             [CoreEvent.StoredLookupNotFoundRemembered] = 1303,
             [CoreEvent.StoredLookupNotFoundHit] = 1304,
+            [CoreEvent.StoredLookupReadFailed] = 1305,
+            [CoreEvent.StoredLookupSaveFailed] = 1306,
             [CoreEvent.SeedLoaderBlock] = 1400,
         }));
 }

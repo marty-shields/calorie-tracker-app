@@ -43,6 +43,12 @@ internal enum CoreEvent
     /// <summary><see cref="Foods.StoredBarcodeLookup"/>: a remembered not-found barcode was answered without a lookup.</summary>
     StoredLookupNotFoundHit = 1304,
 
+    /// <summary><see cref="Foods.StoredBarcodeLookup"/>: reading the food table failed; the inner lookup answered instead.</summary>
+    StoredLookupReadFailed = 1305,
+
+    /// <summary><see cref="Foods.StoredBarcodeLookup"/>: saving the inner lookup's food failed; the unsaved food was returned.</summary>
+    StoredLookupSaveFailed = 1306,
+
     /// <summary>Start of the block reserved for the CoFID seed loader.</summary>
     SeedLoaderBlock = 1400,
 }

@@ -217,16 +217,38 @@ public class StoredBarcodeLookupTests
     }
 
     [Test]
-    public async Task Lookup_StoreThrows_InFlightEntryIsCleared()
+    public async Task Lookup_StoreReadFails_FallsThroughToInnerAndReturnsItsResult()
     {
         await connection.DropTableAsync<Food>();
-        await Assert.ThrowsAsync<SQLiteException>(async () => await lookup.LookupAsync(Barcode));
+        inner.Enqueue(BarcodeLookupResult.Offline());
 
-        await connection.CreateTableAsync<Food>();
-        inner.Enqueue(BarcodeLookupResult.Found(NewFood("1")));
         var result = await lookup.LookupAsync(Barcode);
 
-        Assert.That(result.Status, Is.EqualTo(BarcodeLookupStatus.Found));
+        Assert.That(result.Status, Is.EqualTo(BarcodeLookupStatus.Offline));
+        Assert.That(inner.Calls, Is.EqualTo(1));
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Contain(CoreEvent.StoredLookupReadFailed));
+    }
+
+    [Test]
+    public async Task Lookup_StoreSaveFails_ReturnsFoundUnsavedAndNextCallRetries()
+    {
+        await FailInserts();
+        inner.Enqueue(BarcodeLookupResult.Found(NewFood("1")));
+
+        var first = await lookup.LookupAsync(Barcode);
+
+        Assert.That(first.Status, Is.EqualTo(BarcodeLookupStatus.Found));
+        Assert.That(first.Food!.Id, Is.Zero);
+        Assert.That(first.Food.Barcode, Is.EqualTo(Barcode));
+        Assert.That(await connection.Table<Food>().CountAsync(), Is.Zero);
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Contain(CoreEvent.StoredLookupSaveFailed));
+
+        await connection.ExecuteAsync("DROP TRIGGER FailInserts");
+        inner.Enqueue(BarcodeLookupResult.Found(NewFood("1")));
+        var second = await lookup.LookupAsync(Barcode);
+
+        Assert.That(second.Food!.Id, Is.GreaterThan(0));
+        Assert.That(inner.Calls, Is.EqualTo(2));
     }
 
     [Test]
@@ -276,11 +298,50 @@ public class StoredBarcodeLookupTests
             CoreEvent.StoredLookupNotFoundHit,
             CoreEvent.StoredLookupFetched,
         }));
+        AssertNoContentLogged(secretBarcode, missBarcode, offlineBarcode);
+    }
+
+    [Test]
+    public async Task Logging_StoreFailures_LogEventsOnlyNeverBarcodeNameOrExceptionText()
+    {
+        const string readBarcode = "9876543212004";
+        const string saveBarcode = "9876543212011";
+        var readFood = NewFood("SRC-SECRET", null);
+        readFood.Name = "Distinctive Name";
+        var saveFood = NewFood("SRC-SECRET-2", null);
+        saveFood.Name = "Distinctive Name";
+        inner.Enqueue(BarcodeLookupResult.Found(saveFood));
+        inner.Enqueue(BarcodeLookupResult.Found(readFood));
+
+        await FailInserts();
+        await lookup.LookupAsync(saveBarcode);
+        await connection.ExecuteAsync("DROP TRIGGER FailInserts");
+        await connection.DropTableAsync<Food>();
+        await lookup.LookupAsync(readBarcode);
+
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[]
+        {
+            CoreEvent.StoredLookupSaveFailed,
+            CoreEvent.StoredLookupReadFailed,
+            CoreEvent.StoredLookupSaveFailed,
+        }));
+        AssertNoContentLogged(readBarcode, saveBarcode, "SQLite", "FailInserts", "no such table");
+    }
+
+    private Task<int> FailInserts() => connection.ExecuteAsync(
+        "CREATE TRIGGER FailInserts BEFORE INSERT ON Food BEGIN SELECT RAISE(ABORT, 'FailInserts'); END");
+
+    private void AssertNoContentLogged(params string[] forbidden)
+    {
         foreach (var record in logger.Collector.GetSnapshot())
         {
             var text = record.Message + string.Join(" ", record.StructuredState!.Select(p => $"{p.Key}={p.Value}"));
-            Assert.That(text, Does.Not.Contain("Distinctive").And.Not.Contain("SRC-SECRET")
-                .And.Not.Contain(secretBarcode).And.Not.Contain(missBarcode).And.Not.Contain(offlineBarcode));
+            Assert.That(record.Exception, Is.Null);
+            Assert.That(text, Does.Not.Contain("Distinctive").And.Not.Contain("SRC-SECRET"));
+            foreach (var value in forbidden)
+            {
+                Assert.That(text, Does.Not.Contain(value));
+            }
         }
     }
 
