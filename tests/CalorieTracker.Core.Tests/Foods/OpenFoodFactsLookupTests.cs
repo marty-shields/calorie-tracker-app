@@ -446,6 +446,27 @@ public class OpenFoodFactsLookupTests
     }
 
     [Test]
+    public async Task LoneSurrogateInName_IsOfflineWithoutThrowing()
+    {
+        handler.Respond(Body("Bad\\ud800Name", null, AllRequired()));
+
+        Assert.That((await lookup.LookupAsync(Barcode)).Status, Is.EqualTo(BarcodeLookupStatus.Offline));
+    }
+
+    [Test]
+    public async Task InvalidUtf8InBody_IsOfflineWithoutThrowing()
+    {
+        var json = Encoding.UTF8.GetBytes(Body("BadXX", null, AllRequired()));
+        var index = Array.IndexOf(json, (byte)'X');
+        json[index] = 0xC3;
+        json[index + 1] = 0x28;
+        var bytes = json;
+        handler.RespondBytes(bytes);
+
+        Assert.That((await lookup.LookupAsync(Barcode)).Status, Is.EqualTo(BarcodeLookupStatus.Offline));
+    }
+
+    [Test]
     public async Task Logging_AllPaths_LogStatusesOnlyNeverBarcodeNameBrandOrBody()
     {
         const string secretBarcode = "7351234500019";
@@ -513,6 +534,14 @@ public class OpenFoodFactsLookupTests
                 }
 
                 return response;
+            });
+
+        public void RespondBytes(byte[] body) =>
+            queue.Enqueue(() =>
+            {
+                var content = new ByteArrayContent(body);
+                content.Headers.ContentType = new("application/json");
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
             });
 
         public void Throw(Exception exception) => queue.Enqueue(() => throw exception);

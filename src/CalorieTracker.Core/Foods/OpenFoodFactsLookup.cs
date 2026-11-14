@@ -142,7 +142,18 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
                 return BarcodeLookupResult.Offline();
             }
 
-            var food = Map(product, barcode);
+            Food? food;
+            try
+            {
+                food = Map(product, barcode);
+            }
+            catch (InvalidOperationException)
+            {
+                // GetString throws on a lone surrogate escape or invalid UTF-8, which parsing accepts.
+                Log.Malformed(logger);
+                return BarcodeLookupResult.Offline();
+            }
+
             if (food is null)
             {
                 Log.NotFound(logger);
