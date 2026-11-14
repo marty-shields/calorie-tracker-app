@@ -16,7 +16,7 @@ Top-level screen, reached from the **Foods** item of the navigation bar (route `
 | Rows | One `ListRow` per food, best match first: its name, the brand muted under it when there is one, "N kcal / 100 g" (or "100 ml") muted at the right, and a chevron. Tapping a row shows that food. |
 | No results | "No foods match" under the toolbar. |
 | Search failed | "Couldn't search foods" and Try again, which repeats the search. |
-| Food selected | Tapping a result replaces the list with the food's name, brand, "Per 100 g" (or "100 ml"), energy, protein, carbs and fat, plus fibre, sugars, saturates and salt when known. **Back to results**, the back arrow and Android back return to the list with the search kept. |
+| Food selected | Tapping a result replaces the list with the `FoodValues` block: the food's name, brand, "Per 100 g" (or "100 ml"), energy, protein, carbs and fat, plus fibre, sugars, saturates and salt when known. **Back to results**, the back arrow and Android back return to the list with the search kept. |
 
 Back: from a food's values, the list; from the list, the Dashboard.
 

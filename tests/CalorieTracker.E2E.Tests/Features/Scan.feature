@@ -11,7 +11,7 @@ Feature: Scan
     When I open Scan from the navigation bar
     And I refuse the camera permission
     Then Scan says the camera is unavailable
-    And Scan again is offered
+    And Try again is offered on Scan
 
   Scenario: Android back leaves Scan
     Given I am on the Dashboard

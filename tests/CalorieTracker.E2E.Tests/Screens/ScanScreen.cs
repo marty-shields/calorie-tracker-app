@@ -5,15 +5,16 @@ public sealed class ScanScreen(WebView web)
 {
     public const string Title = "Scan barcode";
 
-    /// <summary>Whether the camera-unavailable message shows.</summary>
-    public bool ShowsCameraUnavailable() => web.Exists("scan-camera-unavailable");
+    /// <summary>Whether the camera-unavailable error shows.</summary>
+    public bool ShowsCameraUnavailable() => web.Exists("scan-camera-unavailable-error");
 
-    /// <summary>The camera-unavailable message, once it shows.</summary>
+    /// <summary>The camera-unavailable error, once it shows.</summary>
     public string CameraUnavailableText()
     {
         web.WaitUntil(ShowsCameraUnavailable, "Scan didn't show the camera-unavailable message");
-        return web.Text("scan-camera-unavailable");
+        return web.Text("scan-camera-unavailable-error");
     }
 
-    public bool HasScanAgain() => web.Exists("scan-again");
+    /// <summary>Whether Try again shows on the camera-unavailable error.</summary>
+    public bool HasTryAgain() => web.Exists("scan-camera-unavailable-retry");
 }

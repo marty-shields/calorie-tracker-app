@@ -23,8 +23,13 @@ public class ScanViewTests : ComponentTestBase
     {
         var cut = Context.Render<ScanView>(p => p.Add(x => x.State, ScanState.NotFound));
 
-        Assert.That(cut.Find("[data-testid=scan-not-found]").TextContent, Is.EqualTo("Unable to find this product"));
-        Assert.That(cut.FindAll("[data-testid=scan-again]"), Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=scan-not-found]").TextContent, Is.EqualTo("Unable to find this product"));
+            Assert.That(cut.Find("[data-testid=scan-not-found-message]").TextContent, Is.EqualTo("Unable to find this product"));
+            Assert.That(cut.FindAll("[data-testid=scan-not-found-hint]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=scan-again]"), Has.Count.EqualTo(1));
+        });
     }
 
     [Test]
@@ -53,16 +58,44 @@ public class ScanViewTests : ComponentTestBase
     }
 
     [Test]
-    public void CameraUnavailable_ShowsItsMessageAndScanAgain()
+    public void CameraUnavailable_ShowsLoadFailedWithTryAgainAndNoScanAgain()
     {
-        var cut = Context.Render<ScanView>(p => p.Add(x => x.State, ScanState.CameraUnavailable));
+        var tries = 0;
+        var cut = Context.Render<ScanView>(p => p.Add(x => x.State, ScanState.CameraUnavailable).Add(x => x.OnScanAgain, () => tries++));
 
         Assert.Multiple(() =>
         {
-            Assert.That(cut.Find("[data-testid=scan-camera-unavailable]").TextContent, Does.StartWith("Camera unavailable"));
+            Assert.That(cut.Find("[data-testid=scan-camera-unavailable-error]").TextContent, Is.EqualTo("Couldn't open the camera"));
             Assert.That(cut.FindAll("[data-testid=scan-not-found]"), Is.Empty);
-            Assert.That(cut.FindAll("[data-testid=scan-again]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=scan-again]"), Is.Empty);
         });
+
+        cut.Find("[data-testid=scan-camera-unavailable-retry]").Click();
+
+        Assert.That(tries, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void Found_WithExtraNutrients_ShowsTheirRows()
+    {
+        var cut = Context.Render<ScanView>(p => p.Add(x => x.State, ScanState.Found)
+            .Add(x => x.Product, Consistent with { Fibre = 7, Sugars = 1.1m, Saturates = 1.4m, Salt = 0.3m }));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=scan-fibre]").TextContent, Is.EqualTo("7 g"));
+            Assert.That(cut.Find("[data-testid=scan-sugars]").TextContent, Is.EqualTo("1.1 g"));
+            Assert.That(cut.Find("[data-testid=scan-saturates]").TextContent, Is.EqualTo("1.4 g"));
+            Assert.That(cut.Find("[data-testid=scan-salt]").TextContent, Is.EqualTo("0.3 g"));
+        });
+    }
+
+    [Test]
+    public void Found_WithoutExtraNutrients_ShowsOnlyTheFourRows()
+    {
+        var cut = Context.Render<ScanView>(p => p.Add(x => x.State, ScanState.Found).Add(x => x.Product, Consistent));
+
+        Assert.That(cut.FindAll("dt").Select(e => e.TextContent), Is.EqualTo(new[] { "Energy", "Protein", "Carbs", "Fat" }));
     }
 
     [Test]

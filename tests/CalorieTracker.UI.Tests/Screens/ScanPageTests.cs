@@ -180,9 +180,10 @@ public class ScanPageTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
         {
-            Assert.That(cut.FindAll("[data-testid=scan-camera-unavailable]"), Has.Count.EqualTo(1));
+            Assert.That(cut.Find("[data-testid=scan-camera-unavailable-error]").TextContent, Is.EqualTo("Couldn't open the camera"));
+            Assert.That(cut.FindAll("[data-testid=scan-camera-unavailable-retry]"), Has.Count.EqualTo(1));
             Assert.That(cut.FindAll("[data-testid=scan-not-found]"), Is.Empty);
-            Assert.That(cut.FindAll("[data-testid=scan-again]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=scan-again]"), Is.Empty);
         });
         Assert.Multiple(() =>
         {
@@ -271,6 +272,58 @@ public class ScanPageTests : ComponentTestBase
             Assert.That(cut.FindAll("[data-testid=scan-camera]"), Has.Count.EqualTo(1));
             Assert.That(cut.FindAll("[data-testid=scan-product]"), Is.Empty);
             Assert.That(cut.FindAll("[data-testid=scan-not-found]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task TryAgainAfterCameraRefused_StartsANewScan()
+    {
+        var cut = Context.Render<ScanPage>();
+        scanner.Complete(ScanResult.PermissionDenied);
+        await WaitForRendererAsync();
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-camera-unavailable-retry]"), Has.Count.EqualTo(1)));
+
+        cut.Find("[data-testid=scan-camera-unavailable-retry]").Click();
+        await WaitForRendererAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(scanner.Scans, Has.Count.EqualTo(2));
+            Assert.That(cut.FindAll("[data-testid=scan-camera]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=scan-camera-unavailable-error]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task Found_WithExtraNutrients_ShowsTheirRows()
+    {
+        var food = Product("Porridge oats", null, FoodUnit.Gram, 372, 11, 60, 8);
+        (food.FibreG, food.SugarsG, food.SaturatesG, food.SaltG) = (9, 1.1, 1.4, 0.3);
+        lookup.Result = BarcodeLookupResult.Found(food);
+        var cut = await ScannedAsync();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.That(cut.Find("[data-testid=scan-fibre]").TextContent, Is.EqualTo("9 g"));
+            Assert.That(cut.Find("[data-testid=scan-sugars]").TextContent, Is.EqualTo("1.1 g"));
+            Assert.That(cut.Find("[data-testid=scan-saturates]").TextContent, Is.EqualTo("1.4 g"));
+            Assert.That(cut.Find("[data-testid=scan-salt]").TextContent, Is.EqualTo("0.3 g"));
+        });
+    }
+
+    [Test]
+    public async Task Found_WithAnExtraNutrientThatCannotBeShown_ShowsTheProductWithoutThatRow()
+    {
+        var food = Product("Porridge oats", null, FoodUnit.Gram, 372, 11, 60, 8);
+        (food.FibreG, food.SugarsG) = (double.MaxValue, 2);
+        lookup.Result = BarcodeLookupResult.Found(food);
+        var cut = await ScannedAsync();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=scan-product]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=scan-fibre]"), Is.Empty);
+            Assert.That(cut.Find("[data-testid=scan-sugars]").TextContent, Is.EqualTo("2 g"));
         });
     }
 

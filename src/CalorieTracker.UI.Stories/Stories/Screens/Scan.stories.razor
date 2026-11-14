@@ -27,6 +27,12 @@
         </Template>
     </Story>
 
+    <Story Name="Found with extra nutrients">
+        <Template>
+            <ScanView State="ScanState.Found" Product="@(new("Porridge oats", "Morning Mill", 372, 11, 60, 8, Fibre: 9, Sugars: 1.1m, Saturates: 1.4m, Salt: 0.01m))" OnNavigate="_ => { }" OnScanAgain="() => { }" />
+        </Template>
+    </Story>
+
     <Story Name="Found with warning">
         <Template>
             <ScanView State="ScanState.Found" Product="@(new("Chocolate spread", "Nutty Co", 250, 6, 55, 31))" OnNavigate="_ => { }" OnScanAgain="() => { }" />

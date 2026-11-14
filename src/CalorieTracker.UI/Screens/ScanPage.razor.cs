@@ -97,6 +97,10 @@ public partial class ScanPage : IDisposable
         return false;
     }
 
+    /// <summary>Null when the source has no value or it is not a real one: the row is left out rather than losing the product.</summary>
+    private static decimal? ToOptionalDecimal(double? value) =>
+        value is { } number && TryToDecimal(number, out var result) ? result : null;
+
     private async Task LookUpAsync(string barcode, CancellationToken token)
     {
         state = ScanState.LookingUp;
@@ -126,7 +130,8 @@ public partial class ScanPage : IDisposable
             && TryToDecimal(food.CarbsG, out var carbs)
             && TryToDecimal(food.FatG, out var fat))
         {
-            product = new ScannedProduct(food.Name, food.Brand, kcal, protein, carbs, fat, food.Unit == FoodUnit.Millilitre);
+            product = new ScannedProduct(food.Name, food.Brand, kcal, protein, carbs, fat, food.Unit == FoodUnit.Millilitre,
+                ToOptionalDecimal(food.FibreG), ToOptionalDecimal(food.SugarsG), ToOptionalDecimal(food.SaturatesG), ToOptionalDecimal(food.SaltG));
             state = ScanState.Found;
         }
         else

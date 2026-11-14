@@ -18,8 +18,8 @@ public sealed class ScanSteps(ScanScreen scan, Journeys journeys, Native native,
 
     [Then(@"^Scan says the camera is unavailable$")]
     public void ThenScanSaysTheCameraIsUnavailable() =>
-        web.Eventually(scan.CameraUnavailableText, Does.StartWith("Camera unavailable"), "camera-unavailable message");
+        web.Eventually(scan.CameraUnavailableText, Is.EqualTo("Couldn't open the camera"), "camera-unavailable message");
 
-    [Then(@"^Scan again is offered$")]
-    public void ThenScanAgainIsOffered() => Assert.That(scan.HasScanAgain(), Is.True, "Scan again");
+    [Then(@"^Try again is offered on Scan$")]
+    public void ThenTryAgainIsOffered() => Assert.That(scan.HasTryAgain(), Is.True, "Try again");
 }

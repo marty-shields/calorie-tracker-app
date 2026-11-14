@@ -1,4 +1,5 @@
 @using CalorieTracker.UI.Components.Feedback
+@using CalorieTracker.UI.Components.Lists
 @using CalorieTracker.UI.Models.Scan
 <AppScreen Title="Scan barcode" Destination="NavDestination.Scan" OnNavigate="OnNavigate">
     <ChildContent>
@@ -16,39 +17,27 @@
                 </div>
                 break;
             case ScanState.Found when Product is { } product:
-                <div class="product" data-testid="scan-product">
-                    <h2 class="name" data-testid="scan-name" data-wrap-ok>@product.Name</h2>
-                    @if (product.Brand is not null)
-                    {
-                        <p class="brand" data-testid="scan-brand" data-wrap-ok>@product.Brand</p>
-                    }
-                    <p class="per" data-testid="scan-per">Per 100 @(product.IsLiquid ? "ml" : "g")</p>
-                    <dl class="values">
-                        <div class="row"><dt>Energy</dt><dd data-testid="scan-kcal">@product.Kcal.ToString("0.#") kcal</dd></div>
-                        <div class="row"><dt>Protein</dt><dd data-testid="scan-protein">@product.Protein.ToString("0.#") g</dd></div>
-                        <div class="row"><dt>Carbs</dt><dd data-testid="scan-carbs">@product.Carbs.ToString("0.#") g</dd></div>
-                        <div class="row"><dt>Fat</dt><dd data-testid="scan-fat">@product.Fat.ToString("0.#") g</dd></div>
-                    </dl>
-                    @if (product.KcalMismatch)
-                    {
-                        <p class="warning" role="alert" data-testid="scan-warning" data-wrap-ok>These values don't add up. Check the label before relying on them.</p>
-                    }
+                <div data-testid="scan-product">
+                    <FoodValues Name="@product.Name" Brand="@product.Brand" IsLiquid="product.IsLiquid" Kcal="(double)product.Kcal" Protein="(double)product.Protein"
+                                Carbs="(double)product.Carbs" Fat="(double)product.Fat" Fibre="(double?)product.Fibre" Sugars="(double?)product.Sugars"
+                                Saturates="(double?)product.Saturates" Salt="(double?)product.Salt" TestId="scan">
+                        @if (product.KcalMismatch)
+                        {
+                            <p class="warning" role="alert" data-testid="scan-warning" data-wrap-ok>These values don't add up. Check the label before relying on them.</p>
+                        }
+                    </FoodValues>
                 </div>
                 break;
             case ScanState.CameraUnavailable:
-                <div class="centre">
-                    <p class="message" role="alert" data-testid="scan-camera-unavailable" data-wrap-ok>Camera unavailable. Check camera access in your phone's settings, then try again.</p>
-                </div>
+                <LoadFailed Message="Couldn't open the camera" TestId="scan-camera-unavailable" OnRetry="OnScanAgain" />
                 break;
             default:
-                <div class="centre">
-                    <p class="message" role="alert" data-testid="scan-not-found">Unable to find this product</p>
-                </div>
+                <EmptyState Message="Unable to find this product" TestId="scan-not-found" />
                 break;
         }
     </ChildContent>
     <BottomBar>
-        @if (State is ScanState.Found or ScanState.NotFound or ScanState.CameraUnavailable)
+        @if (State is ScanState.Found or ScanState.NotFound)
         {
             <AppButton FullWidth TestId="scan-again" OnClick="OnScanAgain">Scan again</AppButton>
         }
@@ -64,7 +53,7 @@
     [Parameter]
     public ScannedProduct? Product { get; set; }
 
-    /// <summary>Raised by Scan again.</summary>
+    /// <summary>Raised by Scan again, and by Try again when the camera could not open.</summary>
     [Parameter]
     public EventCallback OnScanAgain { get; set; }
 
