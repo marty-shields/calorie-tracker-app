@@ -65,6 +65,17 @@ public class SeedLoaderTests
     }
 
     [Test]
+    public async Task LoadAsync_AccentedName_StoresFoldedSearchText()
+    {
+        seedJson = Wrap(1, [Row("11-001", "Crème fraîche", 100)]);
+
+        await Loader().LoadAsync();
+
+        var food = await connection.Table<Food>().FirstAsync();
+        Assert.That((food.Name, food.SearchText), Is.EqualTo(("Crème fraîche", "creme fraiche")));
+    }
+
+    [Test]
     public async Task LoadAsync_SameVersionAgain_IsUpToDateAndWritesNothing()
     {
         await Loader().LoadAsync();

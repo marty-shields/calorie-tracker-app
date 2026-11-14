@@ -30,6 +30,7 @@ public class CoreServiceCollectionExtensionsTests
                 (typeof(IBarcodeLookup), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(OpenFoodFactsLookup), (Type?)null, ServiceLifetime.Transient),
                 (typeof(ISeedLoader), (Type?)null, ServiceLifetime.Singleton),
+                (typeof(IFoodSearch), typeof(FoodSearch), ServiceLifetime.Singleton),
             }));
     }
 
@@ -151,6 +152,19 @@ public class CoreServiceCollectionExtensionsTests
             Assert.That(result.Inserted, Is.EqualTo(2853));
         });
         File.Delete(path);
+    }
+
+    [Test]
+    public void AddCore_WithLogging_ResolvesOneFoodSearch()
+    {
+        using var provider = new ServiceCollection()
+            .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
+            .AddCore(TempDatabase.NewPath())
+            .BuildServiceProvider();
+
+        var first = provider.GetRequiredService<IFoodSearch>();
+
+        Assert.That(first, Is.InstanceOf<FoodSearch>().And.SameAs(provider.GetRequiredService<IFoodSearch>()));
     }
 
     [Test]
