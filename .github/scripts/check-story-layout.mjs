@@ -12,7 +12,9 @@ if (!baseUrl || !chromePath) {
   process.exit(64);
 }
 
-// The story preview adds 96px around the card, so 424 shows a 328px card: a 360dp phone less 16px side padding.
+// ThemeLayout shows a story in a padded preview card: at 424 the card is 360px wide with 16px of padding, which leaves
+// 328px of content, a 360dp phone less 16px side padding. PhoneLayout stories sit in a fixed 412px phone mock that is
+// wider than the window, so they are measured against that phone's screen, not the window.
 const WIDTH = 424;
 const CARD_WIDTH = 328;
 // Exploration knob (Android font size scales rem); not run in CI.
@@ -48,8 +50,9 @@ function inspect() {
     return `${el.tagName.toLowerCase()}${el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/)[0] : ''}${id ? `[${id}]` : ''}`;
   };
   const app = document.querySelector('#app');
-  const viewport = document.documentElement.clientWidth;
-  if (document.documentElement.scrollWidth > viewport) {
+  const phone = document.querySelector('[data-testid=phone]');
+  const viewport = phone ? Math.round(phone.getBoundingClientRect().left + phone.clientLeft + phone.clientWidth) : document.documentElement.clientWidth;
+  if (!phone && document.documentElement.scrollWidth > viewport) {
     findings.push(`page scrolls sideways (${document.documentElement.scrollWidth}px > ${viewport}px)`);
   }
   for (const el of app.querySelectorAll('*')) {
@@ -77,7 +80,7 @@ function inspect() {
       const room = el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
       if (needed > room + 0.5) findings.push(`${label(el)} placeholder is cut off (${Math.round(needed)}px in ${Math.round(room)}px)`);
     }
-    if (box.right > viewport + 1) {
+    if (box.right > viewport + 1 && (!phone || (phone !== el && phone.contains(el)))) {
       findings.push(`${label(el)} runs past the screen edge (${Math.round(box.right)}px > ${viewport}px)`);
     }
     if (el.childElementCount === 0 && el.textContent.trim() && !el.closest(PROSE) && style.whiteSpace !== 'nowrap') {
@@ -162,7 +165,12 @@ async function check(story) {
     }
     const { result, exceptionDetails } = await run('Runtime.evaluate', { expression: `(${inspect})()`, returnByValue: true });
     if (exceptionDetails) return { findings: [`checker failed: ${exceptionDetails.text}`] };
-    const cardWidth = (await run('Runtime.evaluate', { expression: `document.querySelector('.card')?.getBoundingClientRect().width`, returnByValue: true })).result.value;
+    const cardWidth = (await run('Runtime.evaluate', { expression: `(() => {
+      const card = document.querySelector('[data-testid=preview]');
+      if (!card) return undefined;
+      const style = getComputedStyle(card);
+      return card.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    })()`, returnByValue: true })).result.value;
     return { findings: result.value, cardWidth };
   } finally {
     await send('Target.closeTarget', { targetId }).catch(() => {});
