@@ -147,6 +147,40 @@ public class AppScreenTests : ComponentTestBase
     }
 
     [Test]
+    public async Task Foods_AndroidBack_GoesToTheStart()
+    {
+        var navigated = new List<NavDestination>();
+        Context.Render<AppScreen>(p => p
+            .Add(x => x.Title, "Search foods")
+            .Add(x => x.Destination, NavDestination.Foods)
+            .Add(x => x.OnNavigate, navigated.Add));
+
+        await BackButton.HandleAsync();
+
+        Assert.That(navigated, Is.EqualTo(new[] { NavDestinations.Start }));
+    }
+
+    [Test]
+    public async Task TopLevelScreenWithOnBack_AndroidBackRaisesOnBackNotNavigate()
+    {
+        var navigated = new List<NavDestination>();
+        var back = 0;
+        Context.Render<AppScreen>(p => p
+            .Add(x => x.Title, "Search foods")
+            .Add(x => x.Destination, NavDestination.Foods)
+            .Add(x => x.OnNavigate, navigated.Add)
+            .Add(x => x.OnBack, () => back++));
+
+        await BackButton.HandleAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(back, Is.EqualTo(1));
+            Assert.That(navigated, Is.Empty);
+        });
+    }
+
+    [Test]
     public void Status_SitsInAPoliteLiveRegionAboveTheBottomBar()
     {
         var cut = Context.Render<AppScreen>(p => p

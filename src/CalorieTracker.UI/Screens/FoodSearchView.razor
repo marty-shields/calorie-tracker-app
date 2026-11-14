@@ -2,7 +2,8 @@
 @using CalorieTracker.Core.Data
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Components.Lists
-<AppScreen Title="Search foods" OnBack="OnBack" Toolbar="@(Selected is null && !Failed ? Tools : null)">
+<AppScreen Title="Search foods" Destination="NavDestination.Foods" OnNavigate="OnNavigate" OnBack="@(Selected is null ? default : OnClearSelection)"
+           Toolbar="@(Selected is null && !Failed ? Tools : null)">
     <ChildContent>
         @if (Selected is { } food)
         {
@@ -37,6 +38,12 @@
                 </dl>
                 <AppButton Variant="ButtonVariant.Secondary" FullWidth TestId="food-detail-close" OnClick="OnClearSelection">Back to results</AppButton>
             </section>
+        }
+        else if (Loading)
+        {
+            <div class="loading">
+                <Spinner Label="Loading foods…" TestId="food-search-loading" />
+            </div>
         }
         else if (Failed)
         {
@@ -78,6 +85,10 @@
     [Parameter]
     public Food? Selected { get; set; }
 
+    /// <summary>Shows a spinner while the food list is loaded for the first time, instead of the results.</summary>
+    [Parameter]
+    public bool Loading { get; set; }
+
     /// <summary>Shows a load error with Try again instead of the results.</summary>
     [Parameter]
     public bool Failed { get; set; }
@@ -90,7 +101,7 @@
     [Parameter]
     public EventCallback<Food> OnSelect { get; set; }
 
-    /// <summary>Raised by Back to results on a food's values.</summary>
+    /// <summary>Raised by Back to results on a food's values, the back arrow and Android back.</summary>
     [Parameter]
     public EventCallback OnClearSelection { get; set; }
 
@@ -98,9 +109,9 @@
     [Parameter]
     public EventCallback OnRetry { get; set; }
 
-    /// <summary>Raised by the back arrow and the Android back button.</summary>
+    /// <summary>Raised with the destination tapped in the bottom navigation bar, or with the start screen on Android back.</summary>
     [Parameter]
-    public EventCallback OnBack { get; set; }
+    public EventCallback<NavDestination> OnNavigate { get; set; }
 
     private RenderFragment Tools =>
         @<div class="tools">

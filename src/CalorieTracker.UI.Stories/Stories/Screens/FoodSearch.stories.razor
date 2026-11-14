@@ -3,33 +3,39 @@
 
 <Stories TComponent="FoodSearchView" Layout="typeof(PhoneLayout)">
 
+    <Story Name="Loading">
+        <Template>
+            <FoodSearchView Query="oat" Loading OnQueryChanged="(string _) => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
     <Story Name="Nothing typed">
         <Template>
-            <FoodSearchView OnQueryChanged="(string _) => { }" OnBack="() => { }" />
+            <FoodSearchView OnQueryChanged="(string _) => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Results">
         <Template>
-            <FoodSearchView Query="oat" Results="FoodSearchSamples.Results" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnBack="() => { }" />
+            <FoodSearchView Query="oat" Results="FoodSearchSamples.Results" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="No results">
         <Template>
-            <FoodSearchView Query="zzz" OnQueryChanged="(string _) => { }" OnBack="() => { }" />
+            <FoodSearchView Query="zzz" OnQueryChanged="(string _) => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Food selected">
         <Template>
-            <FoodSearchView Query="oat" Results="FoodSearchSamples.Results" Selected="FoodSearchSamples.Results[0]" OnQueryChanged="(string _) => { }" OnClearSelection="() => { }" OnBack="() => { }" />
+            <FoodSearchView Query="oat" Results="FoodSearchSamples.Results" Selected="FoodSearchSamples.Results[0]" OnQueryChanged="(string _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Search failed">
         <Template>
-            <FoodSearchView Query="oat" Failed OnQueryChanged="(string _) => { }" OnRetry="() => { }" OnBack="() => { }" />
+            <FoodSearchView Query="oat" Failed OnQueryChanged="(string _) => { }" OnRetry="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 

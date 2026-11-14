@@ -18,7 +18,7 @@ public sealed class BackSteps(WebView web, Native native, Journeys journeys)
     [When(@"^I press Android back$")]
     public void WhenIPressAndroidBack() => native.BackKey();
 
-    [Then(@"^I am ((?:still )?)on (the Dashboard|Settings)$")]
+    [Then(@"^I am ((?:still )?)on (the Dashboard|Settings|Foods)$")]
     public void ThenIAmOn(string still, string screen)
     {
         if (still.Length > 0)
@@ -26,6 +26,11 @@ public sealed class BackSteps(WebView web, Native native, Journeys journeys)
             web.Settle();
         }
 
-        journeys.WaitFor(screen == "Settings" ? Journeys.Screen.Settings : Journeys.Screen.Dashboard);
+        journeys.WaitFor(screen switch
+        {
+            "Settings" => Journeys.Screen.Settings,
+            "Foods" => Journeys.Screen.Foods,
+            _ => Journeys.Screen.Dashboard,
+        });
     }
 }

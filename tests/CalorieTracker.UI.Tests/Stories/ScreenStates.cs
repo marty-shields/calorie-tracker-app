@@ -38,6 +38,7 @@ public static class ScreenStates
         new("Screens/Settings", "Dark chosen", c => Settings(c, version: "1.0.0", theme: ThemePreference.Dark)),
         new("Screens/Settings", "No version", c => Settings(c)),
 
+        new("Screens/FoodSearch", "Loading", c => FoodSearch(c, query: "oat", loading: true)),
         new("Screens/FoodSearch", "Nothing typed", c => FoodSearch(c)),
         new("Screens/FoodSearch", "Results", c => FoodSearch(c, query: "oat", results: SampleFoods)),
         new("Screens/FoodSearch", "No results", c => FoodSearch(c, query: "zzz")),
@@ -47,17 +48,18 @@ public static class ScreenStates
         new("Screens/Error", "Error", c => c.Render<ErrorView>(p => p.Add(x => x.OnRestart, () => { })).FindAll("*")),
     ];
 
-    private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", IReadOnlyList<Food>? results = null, Food? selected = null, bool failed = false) =>
+    private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", IReadOnlyList<Food>? results = null, Food? selected = null, bool loading = false, bool failed = false) =>
         context.Render<FoodSearchView>(p => p
             .Add(x => x.Query, query)
             .Add(x => x.Results, results ?? [])
             .Add(x => x.Selected, selected)
+            .Add(x => x.Loading, loading)
             .Add(x => x.Failed, failed)
             .Add(x => x.OnQueryChanged, (string _) => { })
             .Add(x => x.OnSelect, (Food _) => { })
             .Add(x => x.OnClearSelection, () => { })
             .Add(x => x.OnRetry, () => { })
-            .Add(x => x.OnBack, () => { }))
+            .Add(x => x.OnNavigate, (NavDestination _) => { }))
             .FindAll("*");
 
     private static IReadOnlyList<IElement> Settings(BunitContext context, string? version = null, ThemePreference theme = ThemePreference.System) =>

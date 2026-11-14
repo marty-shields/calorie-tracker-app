@@ -36,6 +36,9 @@ public partial class EventIdTests
             [UiEvent.ThemeLoadFailed] = 3403,
             [UiEvent.ThemeSaveFailed] = 3404,
             [UiEvent.ThemeNotSaved] = 3405,
+            [UiEvent.FoodSeedWaited] = 3501,
+            [UiEvent.FoodSearchFailed] = 3502,
+            [UiEvent.FoodSeedRetried] = 3503,
             [UiEvent.PullRefreshFailed] = 4001,
         }));
 

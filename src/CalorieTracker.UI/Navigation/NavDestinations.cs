@@ -11,6 +11,7 @@ public static class NavDestinations
     public static IReadOnlyList<NavItem> All { get; } =
     [
         new(NavDestination.Dashboard, "Dashboard", IconName.Home, "dashboard-link", ""),
+        new(NavDestination.Foods, "Foods", IconName.Search, "foods-link", "foods"),
     ];
 
     public static NavItem Of(NavDestination destination) => All.Single(item => item.Destination == destination);

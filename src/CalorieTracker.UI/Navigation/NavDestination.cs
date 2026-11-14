@@ -4,4 +4,5 @@ namespace CalorieTracker.UI.Navigation;
 public enum NavDestination
 {
     Dashboard,
+    Foods,
 }

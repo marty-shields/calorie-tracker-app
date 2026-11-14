@@ -80,3 +80,9 @@ dd {
     margin: 0;
     font-weight: var(--font-weight-bold);
 }
+
+.loading {
+    display: grid;
+    place-items: center;
+    padding: var(--space-6) 0;
+}

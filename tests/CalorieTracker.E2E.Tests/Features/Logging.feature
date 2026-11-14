@@ -6,6 +6,12 @@ Feature: Logging
     And the log shows "Startup finished in"
     And the log shows "Activity created"
 
+  Scenario: What I search for is never logged
+    Given I have opened Foods
+    When I search for "zqxjvkw"
+    Then Foods shows "No foods match"
+    And the log doesn't show "zqxjvkw"
+
   Scenario: The seed loads without holding up the Dashboard
     Then I am on the Dashboard titled "Calorie Tracker"
     And the log shows "Seed version "
