@@ -16,6 +16,7 @@ public class CoreServiceCollectionExtensionsTests
         Assert.That(services.Select(s => (s.ServiceType, s.ImplementationType, s.Lifetime)), Is.EquivalentTo(new[]
         {
             (typeof(DatabaseGate), typeof(DatabaseGate), ServiceLifetime.Singleton),
+            (typeof(FoodStore), (Type?)null, ServiceLifetime.Singleton),
             (typeof(IDatabaseInitializer), (Type?)null, ServiceLifetime.Singleton),
             (typeof(TimeProvider), (Type?)null, ServiceLifetime.Singleton),
         }));

@@ -14,4 +14,22 @@ internal enum CoreEvent
 
     /// <summary><see cref="Data.DatabaseInitializer"/>: a schema upgrade step ran.</summary>
     SchemaStepApplied = 1003,
+
+    /// <summary>Start of the block reserved for <see cref="Data.FoodStore"/>.</summary>
+    FoodStoreBlock = 1100,
+
+    /// <summary><see cref="Data.FoodStore"/>: a food was inserted.</summary>
+    FoodInserted = 1101,
+
+    /// <summary><see cref="Data.FoodStore"/>: a food was updated.</summary>
+    FoodUpdated = 1102,
+
+    /// <summary>Start of the block reserved for the Open Food Facts adapter.</summary>
+    OpenFoodFactsAdapterBlock = 1200,
+
+    /// <summary>Start of the block reserved for the stored barcode lookup.</summary>
+    StoredLookupBlock = 1300,
+
+    /// <summary>Start of the block reserved for the CoFID seed loader.</summary>
+    SeedLoaderBlock = 1400,
 }
