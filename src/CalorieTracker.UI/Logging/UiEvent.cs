@@ -42,8 +42,7 @@ internal enum UiEvent
     /// <summary><see cref="Screens.FoodSearchPage"/>: the search waited for the food seed, with how it ended.</summary>
     FoodSeedWaited = 3501,
 
-    /// <summary><see cref="Screens.FoodSearchPage"/>: a food search failed.</summary>
-    FoodSearchFailed = 3502,
+    // 3502 is retired: the search failure is logged by Core (CoreEvent.FoodSearchFailed).
 
     /// <summary><see cref="Screens.FoodSearchPage"/>: Try again restarted the food seed load.</summary>
     FoodSeedRetried = 3503,

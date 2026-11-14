@@ -9,32 +9,28 @@ public class SeedProgressTests
     private static readonly SeedLoadResult Failed = new(SeedLoadStatus.Failed, 0, 0, 0);
 
     [Test]
-    public void BeforeStart_NothingIsLoading()
+    public void BeforeStart_ThereIsNoLoad()
     {
         var progress = new SeedProgress(new FakeLoader());
 
         Assert.Multiple(() =>
         {
-            Assert.That(progress.IsLoading, Is.False);
             Assert.That(progress.Current, Is.Null);
         });
     }
 
     [Test]
-    public async Task Start_IsLoadingUntilTheLoadCompletes()
+    public async Task Start_CompletesWithTheLoadersResult()
     {
         var loader = new FakeLoader();
         var progress = new SeedProgress(loader);
 
         var task = progress.Start();
-        var duringLoad = progress.IsLoading;
         loader.Complete(Loaded);
         var result = await task;
 
         Assert.Multiple(() =>
         {
-            Assert.That(duringLoad, Is.True);
-            Assert.That(progress.IsLoading, Is.False);
             Assert.That(result, Is.EqualTo(Loaded));
             Assert.That(progress.Current, Is.SameAs(task));
         });
@@ -60,14 +56,15 @@ public class SeedProgressTests
 
         var first = progress.Start();
         var second = progress.Start();
-        loader.Complete(Loaded);
-        await first;
 
         Assert.Multiple(() =>
         {
             Assert.That(second, Is.SameAs(first));
             Assert.That(loader.Calls, Is.EqualTo(1));
         });
+
+        loader.Complete(Loaded);
+        await first;
     }
 
     [Test]

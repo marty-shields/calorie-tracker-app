@@ -61,26 +61,40 @@
     private async Task SearchAsync(string text)
     {
         query = text;
-        running?.Cancel();
+        CancelRunning();
         if (loading)
         {
             return;
         }
 
-        running = new CancellationTokenSource();
+        var source = running = new CancellationTokenSource();
+        var token = source.Token;
         try
         {
-            var result = await Search.SearchAsync(text, ct: running.Token);
+            var result = await Search.SearchAsync(text, ct: token);
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+
             failed = seedFailed || result.Status == FoodSearchStatus.Failed;
             results = result.Foods;
-            if (result.Status == FoodSearchStatus.Failed)
-            {
-                Log.SearchFailed(Logger);
-            }
         }
         catch (OperationCanceledException)
         {
         }
+    }
+
+    private void CancelRunning()
+    {
+        if (running is null)
+        {
+            return;
+        }
+
+        running.Cancel();
+        running.Dispose();
+        running = null;
     }
 
     private void Select(Food food) => selected = food;
@@ -102,6 +116,6 @@
     public void Dispose()
     {
         disposed = true;
-        running?.Cancel();
+        CancelRunning();
     }
 }

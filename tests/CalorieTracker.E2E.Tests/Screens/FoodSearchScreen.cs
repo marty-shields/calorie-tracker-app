@@ -3,6 +3,8 @@ namespace CalorieTracker.E2E.Tests.Screens;
 /// <summary>Food search: the search box, the results, and one food's values.</summary>
 public sealed class FoodSearchScreen(WebView web)
 {
+    private string? lastSearch;
+
     public const string Title = "Search foods";
 
     /// <summary>The first launch loads the food list in the background; give it longer than a screen change.</summary>
@@ -16,6 +18,7 @@ public sealed class FoodSearchScreen(WebView web)
     public void Search(string text)
     {
         WaitUntilLoaded();
+        lastSearch = text;
         web.Type("food-search-input", text);
     }
 
@@ -30,11 +33,19 @@ public sealed class FoodSearchScreen(WebView web)
         return web.FindAll("[data-testid^=\"food-result-\"]").Select(row => row.Text.Trim()).ToList();
     }
 
-    public void OpenFirstResult()
-    {
-        web.WaitUntil(() => web.Exists("food-results"), "no results showed");
-        web.FindAll("[data-testid^=\"food-result-\"]").First().Click();
-    }
+    /// <summary>Clicks the first row once the box holds what was typed; a row replaced by a newer search is found and clicked again.</summary>
+    public void OpenFirstResult() =>
+        web.WaitUntil(() =>
+        {
+            if (lastSearch is not null && Typed() != lastSearch)
+            {
+                return false;
+            }
+
+            var first = web.FindAll("[data-testid^=\"food-result-\"]").FirstOrDefault();
+            first?.Click();
+            return first is not null;
+        }, "no result to open");
 
     public bool ShowsDetail() => web.Exists("food-detail");
 

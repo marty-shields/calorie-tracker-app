@@ -102,6 +102,55 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task SeedAlreadyLoaded_DoesNotLogAWait()
+    {
+        var load = seed.Start();
+        loader.Complete(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0));
+        await load;
+
+        Context.Render<FoodSearchPage>();
+
+        Assert.That(LoggedEvents.Of(logger), Is.Empty);
+    }
+
+    [Test]
+    public async Task OlderSearchFinishingLate_DoesNotOverwriteTheNewerResults()
+    {
+        var older = new TaskCompletionSource<FoodSearchResult>();
+        search.Held["oa"] = older;
+        var cut = Context.Render<FoodSearchPage>();
+        var input = cut.Find("[data-testid=food-search-input]");
+        var olderTyped = input.InputAsync("oa");
+        search.Results = [Oats];
+        await input.InputAsync("oat");
+
+        older.SetResult(FoodSearchResult.Failed());
+        await olderTyped;
+        await WaitForRendererAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=food-search-error]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=food-result-1]"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task Disposed_WhileTheSeedLoads_NeverSearches()
+    {
+        var load = seed.Start();
+        var cut = Context.Render<FoodSearchPage>();
+        await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
+
+        await Context.DisposeComponentsAsync();
+        loader.Complete(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0));
+        await load;
+        await WaitForRendererAsync();
+
+        Assert.That(search.Queries, Is.Empty);
+    }
+
+    [Test]
     public async Task SeedFailed_ShowsTheErrorAndTryAgainLoadsAgain()
     {
         search.Results = [Oats];
@@ -126,6 +175,8 @@ public class FoodSearchPageTests : ComponentTestBase
             Assert.That(loader.Calls, Is.EqualTo(2));
             Assert.That(cut.FindAll("[data-testid=food-search-error]"), Is.Empty);
             Assert.That(cut.FindAll("[data-testid=food-search-idle]"), Has.Count.EqualTo(1));
+            Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { UiEvent.FoodSeedWaited, UiEvent.FoodSeedRetried, UiEvent.FoodSeedWaited }));
+            Assert.That(logger.Collector.GetSnapshot().Select(r => r.Message), Has.Some.Contain("Loaded"));
         });
     }
 
@@ -239,7 +290,7 @@ public class FoodSearchPageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { UiEvent.FoodSeedWaited, UiEvent.FoodSearchFailed }));
+            Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { UiEvent.FoodSeedWaited }));
             Assert.That(records.Select(r => r.Message), Has.None.Contain(Typed));
             Assert.That(records.SelectMany(r => r.StructuredState ?? []).Select(p => p.Value), Has.None.Contain(Typed));
         });
@@ -253,9 +304,16 @@ public class FoodSearchPageTests : ComponentTestBase
 
         public bool Failing { get; set; }
 
+        public Dictionary<string, TaskCompletionSource<FoodSearchResult>> Held { get; } = [];
+
         public Task<FoodSearchResult> SearchAsync(string query, int limit = IFoodSearch.DefaultLimit, CancellationToken ct = default)
         {
             Queries.Add(query);
+            if (Held.TryGetValue(query, out var held))
+            {
+                return held.Task;
+            }
+
             return Task.FromResult(Failing ? FoodSearchResult.Failed() : FoodSearchResult.Found(Results));
         }
     }

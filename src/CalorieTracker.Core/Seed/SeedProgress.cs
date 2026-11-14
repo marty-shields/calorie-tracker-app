@@ -18,8 +18,6 @@ public sealed class SeedProgress(ISeedLoader loader)
         }
     }
 
-    public bool IsLoading => Current is { IsCompleted: false };
-
     /// <summary>
     /// Starts a load and returns at once. A load still running is returned instead of starting a second; a finished one, such as a failed one, is replaced
     /// so Try again retries.

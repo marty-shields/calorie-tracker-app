@@ -45,7 +45,7 @@ public sealed class FoodSearchSteps(FoodSearchScreen foods, NavigationBar naviga
     [Then(@"^the food's name and its energy are shown$")]
     public void ThenTheFoodsValuesAreShown()
     {
-        Assert.That(foods.ShowsDetail(), Is.True, "food values");
+        web.Eventually(foods.ShowsDetail, Is.True, "food values");
         Assert.Multiple(() =>
         {
             Assert.That(foods.DetailName(), Is.Not.Empty);

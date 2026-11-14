@@ -77,7 +77,7 @@
     [Parameter]
     public string Query { get; set; } = "";
 
-    /// <summary>Foods matching <see cref="Query"/>, best match first. Empty shows "No foods found" once something is typed.</summary>
+    /// <summary>Foods matching <see cref="Query"/>, best match first. Empty shows "No foods match" once something is typed.</summary>
     [Parameter]
     public IReadOnlyList<Food> Results { get; set; } = [];
 
