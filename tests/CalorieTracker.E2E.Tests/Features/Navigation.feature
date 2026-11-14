@@ -8,6 +8,7 @@ Feature: Back navigation
     Examples:
       | screen        | result                       |
       | Settings      | I am on the Dashboard        |
+      | Foods         | I am on the Dashboard        |
       | the Dashboard | the app is in the background |
 
   Scenario: Leaving with back and coming back shows the Dashboard

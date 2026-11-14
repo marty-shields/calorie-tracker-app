@@ -3,7 +3,7 @@
 @using CalorieTracker.Core.Seed
 @using CalorieTracker.UI.Components.Layout
 @inject IDatabaseInitializer DatabaseInitializer
-@inject ISeedLoader SeedLoader
+@inject SeedProgress Seed
 @inject NavigationManager Navigation
 
 <SystemBarInsets />
@@ -22,7 +22,7 @@
     {
         await DatabaseInitializer.InitializeAsync();
 
-        // Not awaited, so the first screen does not wait for the seed. LoadAsync never throws.
-        _ = SeedLoader.LoadAsync();
+        // Not awaited, so the first screen does not wait for the seed; the food search screen waits on it. The load never throws.
+        _ = Seed.Start();
     }
 }

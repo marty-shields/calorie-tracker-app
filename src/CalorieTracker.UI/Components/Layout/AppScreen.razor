@@ -73,7 +73,7 @@
     [Parameter]
     public string? Subtitle { get; set; }
 
-    /// <summary>Raised by the back arrow and the Android back button. No arrow shows when unset, and Android back leaves the app. Unset on a top-level screen.</summary>
+    /// <summary>Raised by the back arrow and the Android back button. No arrow shows when unset, and Android back leaves the app. Unset on a top-level screen, unless a view layered over it needs its own back; set, it takes Android back instead of <see cref="OnNavigate"/>.</summary>
     [Parameter]
     public EventCallback OnBack { get; set; }
 
@@ -179,7 +179,7 @@
     }
 
     private EventCallback Back =>
-        Destination is { } current && current != NavDestinations.Start
-            ? EventCallback.Factory.Create(this, () => OnNavigate.InvokeAsync(NavDestinations.Start))
-            : OnBack;
+        OnBack.HasDelegate || Destination is not { } current || current == NavDestinations.Start
+            ? OnBack
+            : EventCallback.Factory.Create(this, () => OnNavigate.InvokeAsync(NavDestinations.Start));
 }

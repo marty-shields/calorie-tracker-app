@@ -39,6 +39,14 @@ internal enum UiEvent
     /// <summary><see cref="Screens.SettingsPage"/>: storage refused the chosen theme, so it is lost at the next start.</summary>
     ThemeNotSaved = 3405,
 
+    /// <summary><see cref="Screens.FoodSearchPage"/>: the search waited for the food seed, with how it ended.</summary>
+    FoodSeedWaited = 3501,
+
+    // 3502 is retired: the search failure is logged by Core (CoreEvent.FoodSearchFailed).
+
+    /// <summary><see cref="Screens.FoodSearchPage"/>: Try again restarted the food seed load.</summary>
+    FoodSeedRetried = 3503,
+
     /// <summary><see cref="Components.Layout.AppScreen"/>: setting up pull to refresh failed, so the screen can't be pulled.</summary>
     PullRefreshFailed = 4001,
 }

@@ -43,6 +43,7 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<IFoodSearch, FoodSearch>()
             .AddSingleton<ISeedLoader>(provider =>
                 ActivatorUtilities.CreateInstance<SeedLoader>(provider, (Func<Stream>)SeedLoader.OpenBundledSeed))
+            .AddSingleton<SeedProgress>()
             .AddHttpClient<OpenFoodFactsLookup>(client =>
             {
                 client.BaseAddress = new Uri("https://world.openfoodfacts.org/");

@@ -31,6 +31,7 @@ public class CoreServiceCollectionExtensionsTests
                 (typeof(OpenFoodFactsLookup), (Type?)null, ServiceLifetime.Transient),
                 (typeof(ISeedLoader), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(IFoodSearch), typeof(FoodSearch), ServiceLifetime.Singleton),
+                (typeof(SeedProgress), typeof(SeedProgress), ServiceLifetime.Singleton),
             }));
     }
 
