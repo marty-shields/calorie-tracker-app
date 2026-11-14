@@ -1,0 +1,42 @@
+@using CalorieTracker.UI.Models.Scan
+@attribute [Stories("Screens/Scan")]
+
+<Stories TComponent="ScanView" Layout="typeof(PhoneLayout)">
+
+    <Story Name="Scanning">
+        <Template>
+            <ScanView State="ScanState.Scanning" OnBack="() => { }" OnScanAgain="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Looking up">
+        <Template>
+            <ScanView State="ScanState.LookingUp" OnBack="() => { }" OnScanAgain="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Found">
+        <Template>
+            <ScanView State="ScanState.Found" Product="@(new("Porridge oats", "Morning Mill", 372, 11, 60, 8))" OnBack="() => { }" OnScanAgain="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Found liquid">
+        <Template>
+            <ScanView State="ScanState.Found" Product="@(new("Semi-skimmed milk", null, 47, 3.5m, 4.8m, 1.7m, IsLiquid: true))" OnBack="() => { }" OnScanAgain="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Found with warning">
+        <Template>
+            <ScanView State="ScanState.Found" Product="@(new("Chocolate spread", "Nutty Co", 250, 6, 55, 31))" OnBack="() => { }" OnScanAgain="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Not found">
+        <Template>
+            <ScanView State="ScanState.NotFound" OnBack="() => { }" OnScanAgain="() => { }" />
+        </Template>
+    </Story>
+
+</Stories>

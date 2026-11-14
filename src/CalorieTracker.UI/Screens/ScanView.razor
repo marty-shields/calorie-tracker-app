@@ -1,0 +1,69 @@
+@using CalorieTracker.UI.Components.Feedback
+@using CalorieTracker.UI.Models.Scan
+<AppScreen Title="Scan barcode" OnBack="OnBack">
+    <ChildContent>
+        @switch (State)
+        {
+            case ScanState.Scanning:
+                <div class="viewfinder" data-testid="scan-camera">
+                    <div class="frame" aria-hidden="true"></div>
+                    <p class="hint" data-testid="scan-hint" data-wrap-ok>Point the camera at a barcode</p>
+                </div>
+                break;
+            case ScanState.LookingUp:
+                <div class="centre">
+                    <Spinner Label="Looking up product…" TestId="scan-looking-up" />
+                </div>
+                break;
+            case ScanState.Found when Product is { } product:
+                <div class="product" data-testid="scan-product">
+                    <h2 class="name" data-testid="scan-name" data-wrap-ok>@product.Name</h2>
+                    @if (product.Brand is not null)
+                    {
+                        <p class="brand" data-testid="scan-brand" data-wrap-ok>@product.Brand</p>
+                    }
+                    <p class="per" data-testid="scan-per">Per 100 @(product.IsLiquid ? "ml" : "g")</p>
+                    <dl class="values">
+                        <div class="row"><dt>Energy</dt><dd data-testid="scan-kcal">@product.Kcal.ToString("0.#") kcal</dd></div>
+                        <div class="row"><dt>Protein</dt><dd data-testid="scan-protein">@product.Protein.ToString("0.#") g</dd></div>
+                        <div class="row"><dt>Carbs</dt><dd data-testid="scan-carbs">@product.Carbs.ToString("0.#") g</dd></div>
+                        <div class="row"><dt>Fat</dt><dd data-testid="scan-fat">@product.Fat.ToString("0.#") g</dd></div>
+                    </dl>
+                    @if (product.KcalMismatch)
+                    {
+                        <p class="warning" role="alert" data-testid="scan-warning" data-wrap-ok>These values don't add up. Check the label before relying on them.</p>
+                    }
+                </div>
+                break;
+            default:
+                <div class="centre">
+                    <p class="message" role="alert" data-testid="scan-not-found">Unable to find this product</p>
+                </div>
+                break;
+        }
+    </ChildContent>
+    <BottomBar>
+        @if (State is ScanState.Found or ScanState.NotFound)
+        {
+            <AppButton FullWidth TestId="scan-again" OnClick="OnScanAgain">Scan again</AppButton>
+        }
+    </BottomBar>
+</AppScreen>
+
+@code {
+    /// <summary>Which of the four states to show.</summary>
+    [Parameter]
+    public ScanState State { get; set; }
+
+    /// <summary>The product to show when <see cref="State"/> is Found. Found with null shows the not-found message.</summary>
+    [Parameter]
+    public ScannedProduct? Product { get; set; }
+
+    /// <summary>Raised by Scan again.</summary>
+    [Parameter]
+    public EventCallback OnScanAgain { get; set; }
+
+    /// <summary>Raised by the back arrow and the Android back button.</summary>
+    [Parameter]
+    public EventCallback OnBack { get; set; }
+}
