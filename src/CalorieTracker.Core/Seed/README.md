@@ -1,6 +1,6 @@
 # Food seed
 
-`cofid-foods.json` is the generic-food seed: the foods of the UK Composition of Foods Integrated Dataset (CoFID) 2021, one food per line. It is generated, then edited by hand for everyday names (the `name` field only). The seed loader bundles it with the app.
+`cofid-foods.json` is the generic-food seed: the foods of the UK Composition of Foods Integrated Dataset (CoFID) 2021, one food per line. It is generated, then edited by hand for everyday names (the `name` field only). The seed loader bundles it with the app. Names follow the [naming guide](naming-guide.md).
 
 ## Source and licence
 
