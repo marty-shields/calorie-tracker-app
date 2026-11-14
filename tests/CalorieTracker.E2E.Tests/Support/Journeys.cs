@@ -3,13 +3,14 @@ using CalorieTracker.E2E.Tests.Screens;
 
 namespace CalorieTracker.E2E.Tests.Support;
 
-/// <summary>What a user does across screens: open Settings, go back to the Dashboard.</summary>
-public sealed class Journeys(WebView web, Native native, DashboardScreen dashboard, SettingsScreen settings, NavigationBar bar)
+/// <summary>What a user does across screens: open Settings, Foods or Scan, go back to the Dashboard.</summary>
+public sealed class Journeys(WebView web, Native native, DashboardScreen dashboard, SettingsScreen settings, NavigationBar navigation)
 {
     public enum Screen
     {
         Dashboard,
         Settings,
+        Foods,
         Scan,
         Other,
     }
@@ -19,6 +20,7 @@ public sealed class Journeys(WebView web, Native native, DashboardScreen dashboa
     {
         DashboardScreen.Title => Screen.Dashboard,
         SettingsScreen.Title => Screen.Settings,
+        FoodSearchScreen.Title => Screen.Foods,
         ScanScreen.Title => Screen.Scan,
         _ => Screen.Other,
     };
@@ -34,20 +36,34 @@ public sealed class Journeys(WebView web, Native native, DashboardScreen dashboa
         WaitFor(Screen.Settings);
     }
 
+    /// <summary>Opens Foods from the Dashboard's navigation bar and waits for it.</summary>
+    public void OpenFoods()
+    {
+        WaitFor(Screen.Dashboard);
+        navigation.Open("Foods");
+        WaitFor(Screen.Foods);
+    }
+
     /// <summary>Opens Scan from the navigation bar and waits for it.</summary>
     public void OpenScan()
     {
         WaitFor(Screen.Dashboard);
-        bar.Open("Scan");
+        navigation.Open("Scan");
         WaitFor(Screen.Scan);
     }
 
-    /// <summary>Goes to the Dashboard from Settings, or stays on it.</summary>
+    /// <summary>Goes to the Dashboard from Settings, Foods or Scan, or stays on it.</summary>
     public void GoToDashboard()
     {
-        if (Current() == Screen.Settings)
+        switch (Current())
         {
-            settings.Back();
+            case Screen.Settings:
+                settings.Back();
+                break;
+            case Screen.Foods:
+            case Screen.Scan:
+                navigation.Open("Dashboard");
+                break;
         }
 
         WaitFor(Screen.Dashboard);

@@ -36,9 +36,11 @@ public partial class EventIdTests
             [UiEvent.ThemeLoadFailed] = 3403,
             [UiEvent.ThemeSaveFailed] = 3404,
             [UiEvent.ThemeNotSaved] = 3405,
-            [UiEvent.ScanLookupStarted] = 3501,
-            [UiEvent.ScanLookupFinished] = 3502,
-            [UiEvent.ScanCameraUnavailable] = 3503,
+            [UiEvent.FoodSeedWaited] = 3501,
+            [UiEvent.FoodSeedRetried] = 3503,
+            [UiEvent.ScanLookupStarted] = 3601,
+            [UiEvent.ScanLookupFinished] = 3602,
+            [UiEvent.ScanCameraUnavailable] = 3603,
             [UiEvent.PullRefreshFailed] = 4001,
         }));
 

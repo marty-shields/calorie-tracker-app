@@ -11,7 +11,7 @@ namespace CalorieTracker.E2E.Tests.Steps;
 [Binding]
 public sealed class AppSteps(WebView web, Native native, AppLog log, Journeys journeys, ScenarioState state, DashboardScreen dashboard)
 {
-    [Given(@"^I am on (the Dashboard|Settings)$")]
+    [Given(@"^I am on (the Dashboard|Settings|Foods)$")]
     public void GivenIAmOn(string screen)
     {
         if (!native.Launched)
@@ -24,6 +24,10 @@ public sealed class AppSteps(WebView web, Native native, AppLog log, Journeys jo
         if (screen == "Settings")
         {
             journeys.OpenSettings();
+        }
+        else if (screen == "Foods")
+        {
+            journeys.OpenFoods();
         }
 
         state.LogAtStart = log.Read();

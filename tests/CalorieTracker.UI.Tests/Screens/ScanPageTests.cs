@@ -360,7 +360,7 @@ public class ScanPageTests : ComponentTestBase
     }
 
     private static Food Product(string name, string? brand, FoodUnit unit, double kcal, double protein, double carbs, double fat) =>
-        new() { Source = FoodSource.OpenFoodFacts, SourceId = Barcode, Name = name, Brand = brand, Barcode = Barcode, Unit = unit, Kcal = kcal, ProteinG = protein, CarbsG = carbs, FatG = fat };
+        new() { Source = FoodSource.OpenFoodFacts, SourceId = Barcode, Name = name, Brand = brand, Unit = unit, Kcal = kcal, ProteinG = protein, CarbsG = carbs, FatG = fat };
 
     private sealed class FakeScanner : IBarcodeScanner
     {

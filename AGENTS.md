@@ -21,7 +21,7 @@ Personal Android app (.NET 11 MAUI Blazor Hybrid). Setup: [docs/dev-setup-build.
 - Screens: a `*Page` calls services, a `*View` takes parameters. `StoryCoverageTests` requires a screen story for every `*View`.
 - Services return a status (such as `ReadResult<T>` or a result record), not exceptions.
 - Every database call goes through `DatabaseGate` (`DatabaseGateTests`).
-- Event ids: `CoreEvent` 1000s, `UiEvent` 2000s, `AppEvent` 5000s. `CoreEventTests` and `EventIdTests` fix the values and ranges.
+- Event ids: `CoreEvent` 1000s, `UiEvent` 2000–4999 (a block of 100 per type), `AppEvent` 5000s. `CoreEventTests` and `EventIdTests` fix the values and ranges.
 - Styling: tokens only, no literal colours or sizes (`TokensOnlyCssTests`).
 - Logs hold no PII: ids, counts, events and non-personal data such as a scanned barcode are fine, personal data never is (obfuscate when needed) (`Logging.feature`). Add a test that a new feature's log lines carry no PII.
 - Docs: `ReadmeDocsTests` checks the README's screenshot table and Project layout.

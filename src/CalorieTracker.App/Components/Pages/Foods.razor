@@ -1,0 +1,6 @@
+@page "/foods"
+@using CalorieTracker.UI.Screens
+@inject NavigationManager Navigation
+
+@* Back goes to the Dashboard (or from a food's values, to the list); AppScreen does both. *@
+<FoodSearchPage OnNavigate="@(destination => Navigation.GoTo(destination))" />

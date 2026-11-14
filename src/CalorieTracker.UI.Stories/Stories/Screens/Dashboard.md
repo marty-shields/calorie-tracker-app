@@ -10,8 +10,8 @@ Home screen. For now it is an empty shell: a title, the Settings gear and a "Not
 |---|---|
 | Top bar | Title "Calorie Tracker"; Settings gear (`IconButton`) on the right, opens Settings. No back arrow; back leaves the app. |
 | Content | Centred `EmptyState` "Nothing here yet". |
-| Navigation bar | `BottomNav` with Dashboard current, and Scan. |
+| Navigation bar | `BottomNav` with Dashboard current, beside Foods and Scan. |
 
 States: [Empty](./?path=/story/screens-dashboard--empty)
 
-`data-testid`: `dashboard-empty`, `bottom-nav`, `dashboard-link`, `settings`.
+`data-testid`: `dashboard-empty`, `bottom-nav`, `dashboard-link`, `foods-link`, `settings`.

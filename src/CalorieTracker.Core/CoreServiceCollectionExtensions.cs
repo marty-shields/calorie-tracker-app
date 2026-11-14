@@ -33,7 +33,8 @@ public static class CoreServiceCollectionExtensions
     }
 
     /// <summary>Registers each numbered schema upgrade step, one for each version after 1.</summary>
-    private static IServiceCollection AddSchemaUpgrades(this IServiceCollection services) => services;
+    private static IServiceCollection AddSchemaUpgrades(this IServiceCollection services) =>
+        services.AddSingleton<ISchemaUpgrade, FoodBarcodeUpgrade>();
 
     private static IServiceCollection AddServices(this IServiceCollection services)
     {
@@ -42,6 +43,7 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<IFoodSearch, FoodSearch>()
             .AddSingleton<ISeedLoader>(provider =>
                 ActivatorUtilities.CreateInstance<SeedLoader>(provider, (Func<Stream>)SeedLoader.OpenBundledSeed))
+            .AddSingleton<SeedProgress>()
             .AddHttpClient<OpenFoodFactsLookup>(client =>
             {
                 client.BaseAddress = new Uri("https://world.openfoodfacts.org/");

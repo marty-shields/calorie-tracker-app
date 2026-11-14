@@ -15,11 +15,12 @@ public class BottomNavTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(cut.Find("nav").GetAttribute("aria-label"), Is.EqualTo("Main"));
-            Assert.That(items, Is.EqualTo(new[] { ("dashboard-link", "Dashboard", 1), ("scan-link", "Scan", 1) }));
+            Assert.That(items, Is.EqualTo(new[] { ("dashboard-link", "Dashboard", 1), ("foods-link", "Foods", 1), ("scan-link", "Scan", 1) }));
         });
     }
 
     [TestCase(NavDestination.Dashboard, "dashboard-link")]
+    [TestCase(NavDestination.Foods, "foods-link")]
     [TestCase(NavDestination.Scan, "scan-link")]
     public void CurrentItem_IsTheOnlyCurrentPage(NavDestination current, string testId)
     {
@@ -28,6 +29,19 @@ public class BottomNavTests : ComponentTestBase
         var marked = cut.FindAll("[aria-current]").Select(b => (b.GetAttribute("data-testid"), b.GetAttribute("aria-current"), b.ClassList.Contains("current")));
 
         Assert.That(marked, Is.EqualTo(new[] { (testId, "page", true) }));
+    }
+
+    [Test]
+    public void TappingAnotherItem_RaisesItsDestination()
+    {
+        var navigated = new List<NavDestination>();
+        var cut = Context.Render<BottomNav>(p => p
+            .Add(x => x.Current, NavDestination.Dashboard)
+            .Add(x => x.OnNavigate, navigated.Add));
+
+        cut.Find("[data-testid=foods-link]").Click();
+
+        Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Foods }));
     }
 
     [Test]
