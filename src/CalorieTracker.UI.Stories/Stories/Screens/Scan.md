@@ -14,7 +14,7 @@ Scans a product's barcode and shows what it contains. View: `ScanView`; page: `S
 | Bottom bar | **Scan again** on Found, Not found and Camera unavailable. |
 | Navigation bar | `BottomNav` with Scan current. |
 
-The camera stays open until it sees a barcode of a valid length (8, 12 or 13 digits); other codes are ignored. That one barcode is normalised and looked up, and later detections are ignored. Not found, offline and rate limited all show the one not-found message, with no mention of the source or the reason. Cancelling the camera returns to the Dashboard.
+The camera stays open until it sees a barcode of a valid length (8, 12 or 13 digits); other codes are ignored. That one barcode is normalised and looked up, and later detections are ignored: the scanner closes on the first accepted code, so no separate in-flight guard is needed. Not found, offline and rate limited all show the one not-found message, with no mention of the source or the reason. Cancelling the camera returns to the Dashboard.
 
 States: [Scanning](./?path=/story/screens-scan--scanning), [Looking up](./?path=/story/screens-scan--looking-up), [Found](./?path=/story/screens-scan--found), [Found liquid](./?path=/story/screens-scan--found-liquid), [Found with warning](./?path=/story/screens-scan--found-with-warning), [Not found](./?path=/story/screens-scan--not-found), [Camera unavailable](./?path=/story/screens-scan--camera-unavailable).
 

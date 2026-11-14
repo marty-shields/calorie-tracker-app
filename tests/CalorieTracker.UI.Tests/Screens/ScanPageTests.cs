@@ -57,24 +57,23 @@ public class ScanPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task RepeatDetectionOfTheSameBarcode_DuringTheLookup_DoesNotLookItUpAgain()
+    public async Task ScannerThatAcceptsTheSameBarcodeSeveralTimes_StillLooksItUpOnce()
     {
         lookup.Hold = true;
+        scanner.Immediate = accept =>
+        {
+            Assert.That(accept(Barcode), Is.True);
+            Assert.That(accept(Barcode), Is.True);
+            Assert.That(accept(Barcode), Is.True);
+            return ScanResult.Scanned(Barcode);
+        };
+
         var cut = Context.Render<ScanPage>();
-
-        scanner.Detect(Barcode);
-        scanner.Complete(ScanResult.Scanned(Barcode));
-        await WaitForRendererAsync();
-        cut.WaitForAssertion(() => Assert.That(lookup.Barcodes, Has.Count.EqualTo(1)));
-
-        scanner.Detect(Barcode);
-        scanner.Detect(Barcode);
-        scanner.Complete(ScanResult.Scanned(Barcode));
         await WaitForRendererAsync();
 
         Assert.Multiple(() =>
         {
-            Assert.That(lookup.Barcodes, Has.Count.EqualTo(1));
+            Assert.That(lookup.Barcodes, Is.EqualTo(new[] { Barcode }));
             Assert.That(cut.FindAll("[data-testid=scan-looking-up]"), Has.Count.EqualTo(1));
         });
     }
@@ -324,6 +323,18 @@ public class ScanPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task AndroidBack_GoesToTheDashboard()
+    {
+        var navigated = new List<NavDestination>();
+        Context.Render<ScanPage>(p => p.Add(x => x.OnNavigate, navigated.Add));
+        await WaitForRendererAsync();
+
+        await BackButton.HandleAsync();
+
+        Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Dashboard }));
+    }
+
+    [Test]
     public async Task Logs_TheBarcodeAndStatus_ButNeverTheProductNameOrBrand()
     {
         lookup.Result = BarcodeLookupResult.Found(Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8));
@@ -355,8 +366,16 @@ public class ScanPageTests : ComponentTestBase
     {
         public List<(Func<string, bool> Accept, TaskCompletionSource<ScanResult> Completion)> Scans { get; } = [];
 
+        /// <summary>When set, a scan runs this at once with the caller's accept and completes with its result.</summary>
+        public Func<Func<string, bool>, ScanResult>? Immediate { get; set; }
+
         public Task<ScanResult> ScanAsync(Func<string, bool> accept)
         {
+            if (Immediate is not null)
+            {
+                return Task.FromResult(Immediate(accept));
+            }
+
             var completion = new TaskCompletionSource<ScanResult>(TaskCreationOptions.RunContinuationsAsynchronously);
             Scans.Add((accept, completion));
             return completion.Task;
