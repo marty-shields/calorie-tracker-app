@@ -24,6 +24,10 @@ public class CoreEventTests
             [CoreEvent.FoodUpdated] = 1102,
             [CoreEvent.OpenFoodFactsAdapterBlock] = 1200,
             [CoreEvent.StoredLookupBlock] = 1300,
+            [CoreEvent.StoredLookupStoreHit] = 1301,
+            [CoreEvent.StoredLookupFetched] = 1302,
+            [CoreEvent.StoredLookupNotFoundRemembered] = 1303,
+            [CoreEvent.StoredLookupNotFoundHit] = 1304,
             [CoreEvent.SeedLoaderBlock] = 1400,
         }));
 }
