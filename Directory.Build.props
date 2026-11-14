@@ -1,0 +1,40 @@
+<!-- Applies to every project in the repo. A project's own value overrides one set here. -->
+<Project>
+
+  <PropertyGroup>
+    <NetVersion>net11.0</NetVersion>
+    <TargetFramework>$(NetVersion)</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Pinned so an SDK bump cannot switch on new rules; move it in a deliberate PR, such as the next .NET version bump. -->
+    <AnalysisLevel>11.0-recommended</AnalysisLevel>
+    <!-- IDE0005 (unused usings) only runs in the build when XML documentation is generated. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- A public member needs no XML comment (CS1591), nor a param tag for each parameter (CS1573); a comment is written only where it says more than the name. -->
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+    <!-- Compiler and NuGet warnings fail the build. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- MSBuild task warnings (including the Android XA ones) fail the build. -->
+    <MSBuildTreatWarningsAsErrors>true</MSBuildTreatWarningsAsErrors>
+    <!-- NuGet audit covers transitive packages too; NU1901-NU1904 are warnings, so a vulnerable package fails the build. -->
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <!-- Each project commits a packages.lock.json; CI fails a restore that would change it. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode Condition="'$(CI)' != ''">true</RestoreLockedMode>
+  </PropertyGroup>
+
+  <!-- Test projects (*.Tests): NUnit. -->
+  <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit.Analyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="NUnit3TestAdapter" />
+    <Using Include="NUnit.Framework" />
+  </ItemGroup>
+
+</Project>

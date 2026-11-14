@@ -1,0 +1,70 @@
+# Runs on every PR to main that is not a draft (marking it ready starts the run): the dev pipeline, then the QA pipeline once the build and its tests pass.
+name: PR build
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dev:
+    if: github.event.pull_request.draft == false
+    uses: ./.github/workflows/dev-pipeline.yml
+
+  # Fails when a story clips, overflows or wraps at the narrowest card, or a README screenshot no longer matches its story.
+  story-layout:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-maui
+
+      - name: Build the stories
+        run: dotnet build src/CalorieTracker.UI.Stories
+
+      - name: Check the story layout
+        run: |
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          dotnet run --project src/CalorieTracker.UI.Stories --no-build --urls http://localhost:5056 > "$RUNNER_TEMP/stories.log" 2>&1 &
+          SERVER_PID=$!
+          ready=false
+          for _ in $(seq 60); do
+            if curl -fs -o /dev/null http://localhost:5056/iframe.html; then ready=true; break; fi
+            kill -0 "$SERVER_PID" 2>/dev/null || break
+            sleep 1
+          done
+          if [ "$ready" != true ]; then
+            echo "Stories server did not come up:"
+            cat "$RUNNER_TEMP/stories.log"
+            exit 1
+          fi
+          node .github/scripts/check-story-layout.mjs http://localhost:5056 "$(command -v google-chrome)" || { cat "$RUNNER_TEMP/stories.log"; exit 1; }
+          if ! node .github/scripts/readme-screenshots.mjs http://localhost:5056 "$(command -v google-chrome)" --check; then
+            node .github/scripts/readme-screenshots.mjs http://localhost:5056 "$(command -v google-chrome)"
+            echo "::error title=README screenshots::A changed screen's README screenshots are stale. Run .github/scripts/readme-screenshots.mjs, or download the readme-screenshots artifact into docs/images/readme/, and commit them."
+            exit 1
+          fi
+
+      - name: Upload retaken README screenshots
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: readme-screenshots
+          path: docs/images/readme/*.png
+          if-no-files-found: ignore
+
+  qa:
+    if: github.event.pull_request.draft == false
+    needs: dev
+    uses: ./.github/workflows/qa-pipeline.yml

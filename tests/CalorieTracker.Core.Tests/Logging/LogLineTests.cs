@@ -1,0 +1,53 @@
+using CalorieTracker.Core.Logging;
+using Microsoft.Extensions.Logging;
+
+namespace CalorieTracker.Core.Tests.Logging;
+
+public class LogLineTests
+{
+    [TestCase(LogLevel.Trace, "TRCE")]
+    [TestCase(LogLevel.Debug, "DBUG")]
+    [TestCase(LogLevel.Information, "INFO")]
+    [TestCase(LogLevel.Warning, "WARN")]
+    [TestCase(LogLevel.Error, "FAIL")]
+    [TestCase(LogLevel.Critical, "CRIT")]
+    public void Format_NoException_IsLevelCategoryEventIdAndMessage(LogLevel level, string expected) =>
+        Assert.That(LogLine.Format(level, "CalorieTracker.Core.Data.DatabaseInitializer", new EventId(1001), "Checked", null),
+            Is.EqualTo($"{expected} CalorieTracker.Core.Data.DatabaseInitializer[1001] Checked"));
+
+    [Test]
+    public void Format_WithException_PutsTheExceptionOnTheNextLines()
+    {
+        var exception = new InvalidOperationException("Broken");
+
+        Assert.That(LogLine.Format(LogLevel.Error, "Category", new EventId(1203), "Failed", exception),
+            Is.EqualTo($"FAIL Category[1203] Failed{Environment.NewLine}{exception}"));
+    }
+
+    [Test]
+    public void Split_EmptyText_IsNoPieces() =>
+        Assert.That(LogLine.Split("", 4), Is.Empty);
+
+    [Test]
+    public void Split_ShorterThanTheLimit_IsOnePiece() =>
+        Assert.That(LogLine.Split("abc", 4), Is.EqualTo(new[] { "abc" }));
+
+    [Test]
+    public void Split_ExactlyTheLimit_IsOnePiece() =>
+        Assert.That(LogLine.Split("abcd", 4), Is.EqualTo(new[] { "abcd" }));
+
+    [Test]
+    public void Split_OneOverTheLimit_LeavesTheRestInTheLastPiece() =>
+        Assert.That(LogLine.Split("abcde", 4), Is.EqualTo(new[] { "abcd", "e" }));
+
+    [Test]
+    public void Split_LongText_IsPiecesInOrderThatJoinBack()
+    {
+        var text = new string('a', 4000) + new string('b', 4000) + "c";
+
+        var pieces = LogLine.Split(text, 4000).ToArray();
+
+        Assert.That(pieces.Select(p => p.Length), Is.EqualTo(new[] { 4000, 4000, 1 }));
+        Assert.That(string.Concat(pieces), Is.EqualTo(text));
+    }
+}

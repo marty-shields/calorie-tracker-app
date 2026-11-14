@@ -1,0 +1,37 @@
+using CalorieTracker.Core.Data;
+using Microsoft.Extensions.DependencyInjection;
+using SQLite;
+
+namespace CalorieTracker.Core;
+
+public static class CoreServiceCollectionExtensions
+{
+    /// <summary>
+    /// Registers Core's services as singletons. The initializer is registered only as a gated decorator
+    /// that runs each call through one <see cref="DatabaseGate"/>; the connection is not registered.
+    /// The host must register logging.
+    /// </summary>
+    /// <param name="databasePath">Full path of the SQLite database file.</param>
+    public static IServiceCollection AddCore(this IServiceCollection services, string databasePath) =>
+        services
+            .AddDatabase(databasePath)
+            .AddSchemaUpgrades()
+            .AddServices();
+
+    /// <summary>The gated initializer, and each repository and unit of work added later, share one connection to <paramref name="databasePath"/>.</summary>
+    private static IServiceCollection AddDatabase(this IServiceCollection services, string databasePath)
+    {
+        var connection = new SQLiteAsyncConnection(databasePath);
+        return services
+            .AddSingleton<DatabaseGate>()
+            .AddDecoratedSingleton<IDatabaseInitializer, GatedDatabaseInitializer>(provider =>
+                ActivatorUtilities.CreateInstance<DatabaseInitializer>(provider, connection));
+    }
+
+    /// <summary>Registers each numbered schema upgrade step, one for each version after 1.</summary>
+    private static IServiceCollection AddSchemaUpgrades(this IServiceCollection services) => services;
+
+    private static IServiceCollection AddServices(this IServiceCollection services) =>
+        services
+            .AddSingleton(TimeProvider.System);
+}

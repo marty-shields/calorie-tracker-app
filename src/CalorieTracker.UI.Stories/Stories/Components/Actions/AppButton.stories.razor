@@ -1,0 +1,35 @@
+@attribute [Stories("Components/Actions/AppButton")]
+
+<Stories TComponent="AppButton" Layout="typeof(ThemeLayout)">
+
+    <Story Name="Primary">
+        <Template>
+            <AppButton Variant="ButtonVariant.Primary">Save</AppButton>
+        </Template>
+    </Story>
+
+    <Story Name="Secondary">
+        <Template>
+            <AppButton Variant="ButtonVariant.Secondary">Cancel</AppButton>
+        </Template>
+    </Story>
+
+    <Story Name="Danger">
+        <Template>
+            <AppButton Variant="ButtonVariant.Danger">Delete</AppButton>
+        </Template>
+    </Story>
+
+    <Story Name="Disabled">
+        <Template>
+            <AppButton Disabled>Save</AppButton>
+        </Template>
+    </Story>
+
+    <Story Name="Busy">
+        <Template>
+            <AppButton Variant="ButtonVariant.Secondary" FullWidth Busy>Saving…</AppButton>
+        </Template>
+    </Story>
+
+</Stories>

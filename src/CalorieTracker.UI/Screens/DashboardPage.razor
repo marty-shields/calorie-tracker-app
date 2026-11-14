@@ -1,0 +1,11 @@
+<DashboardView OnNavigate="OnNavigate" OnSettings="OnSettings" />
+
+@code {
+    /// <summary>Raised with the destination tapped in the bottom navigation bar.</summary>
+    [Parameter]
+    public EventCallback<NavDestination> OnNavigate { get; set; }
+
+    /// <summary>Raised by the Settings gear.</summary>
+    [Parameter]
+    public EventCallback OnSettings { get; set; }
+}

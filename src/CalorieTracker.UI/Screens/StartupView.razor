@@ -1,0 +1,23 @@
+@using CalorieTracker.UI.Components.Feedback
+<AppScreen Title="Calorie Tracker">
+    <div class="centre">
+        @if (Failed)
+        {
+            <LoadFailed Message="Couldn't open the database" TestId="startup" OnRetry="OnRetry" />
+        }
+        else
+        {
+            <Spinner Label="Loading…" TestId="startup-loading" />
+        }
+    </div>
+</AppScreen>
+
+@code {
+    /// <summary>Shows the error message instead of the spinner.</summary>
+    [Parameter]
+    public bool Failed { get; set; }
+
+    /// <summary>Raised by Try again, which shows under the error message.</summary>
+    [Parameter]
+    public EventCallback OnRetry { get; set; }
+}

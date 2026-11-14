@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <ItemGroup>
+    <PackageReference Include="bunit" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CalorieTracker.UI\CalorieTracker.UI.csproj" />
+    <ProjectReference Include="..\..\src\CalorieTracker.UI.Stories\CalorieTracker.UI.Stories.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Bunit" />
+  </ItemGroup>
+
+</Project>

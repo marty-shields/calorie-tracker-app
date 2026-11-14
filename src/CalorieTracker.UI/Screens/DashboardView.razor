@@ -1,0 +1,20 @@
+<AppScreen Title="Calorie Tracker" Destination="NavDestination.Dashboard" OnNavigate="OnNavigate">
+    <Actions>
+        <IconButton Icon="IconName.Settings" AriaLabel="Settings" TestId="settings" OnClick="OnSettings" />
+    </Actions>
+    <ChildContent>
+        <div class="centre">
+            <EmptyState Message="Nothing here yet" TestId="dashboard-empty" />
+        </div>
+    </ChildContent>
+</AppScreen>
+
+@code {
+    /// <summary>Raised with the destination tapped in the bottom navigation bar.</summary>
+    [Parameter]
+    public EventCallback<NavDestination> OnNavigate { get; set; }
+
+    /// <summary>Raised by the Settings gear.</summary>
+    [Parameter]
+    public EventCallback OnSettings { get; set; }
+}

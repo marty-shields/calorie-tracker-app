@@ -1,0 +1,156 @@
+name: Dev pipeline
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dev-pipeline-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Test the CI scripts
+        run: .github/scripts/tests/run.sh
+
+      - name: Lint the CI scripts and workflows
+        run: .github/scripts/lint-ci.sh
+
+      # Fails on an E2E step with no step definition or more than one.
+      - name: Check the E2E step bindings
+        run: python3 -I .github/scripts/e2e-step-check.py tests/CalorieTracker.E2E.Tests
+
+      # Fails on an XML doc comment that only restates the name of its member.
+      - name: Check for filler doc comments
+        run: python3 -I .github/scripts/check-filler-comments.py
+
+      # Fails on a broken relative link or #anchor in a tracked Markdown file, or a README screenshot and its table row that don't match.
+      - name: Check the docs
+        run: python3 -I .github/scripts/check-docs.py
+
+      - uses: ./.github/actions/setup-maui
+
+      - name: Build
+        id: build
+        # A unique display version (a suffix: assembly version parts stop at 65535) for the Debug App every shard installs, so the E2E test of the Settings version line proves it
+        # reads the build's version and not the 1.0.0 default. Only this Debug build gets it; release.yml sets the real one on its publish.
+        run: dotnet build CalorieTracker.slnx -p:ApplicationDisplayVersion=1.0.0-e2e.${{ github.run_id }}
+
+      # Fails on a file that breaks .editorconfig, such as import order, braces or private field names.
+      - name: Check code style
+        run: dotnet format CalorieTracker.slnx --verify-no-changes --no-restore
+
+      # Results are written as trx and reported by the Test results step. The GitHubActions logger is not used: it failed on every result
+      # in about 1 in 60 runs with the coverage collector and then stalled vstest.console. A test that hangs for 5 minutes is dumped
+      # and its host killed, and fails the step. Blame only watches the testhost, so a stall in the vstest layer never trips it. The step
+      # timeout ends such a hang, and --diag keeps the vstest, testhost and data collector logs in $RUNNER_TEMP/diag for the dotnet-diag
+      # artifact. A healthy Core run takes about 12 s.
+      - name: Core tests
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        timeout-minutes: 5
+        run: dotnet test tests/CalorieTracker.Core.Tests --no-build --diag "$RUNNER_TEMP/diag/core/log.txt;tracelevel=verbose" --logger trx --blame-hang-timeout 5m --blame-hang-dump-type mini --collect "Code Coverage;Format=cobertura" --results-directory "$RUNNER_TEMP/coverage/core" -- RunConfiguration.CollectSourceInformation=true
+
+      # Runs even when the Core tests fail.
+      - name: UI tests
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        timeout-minutes: 10
+        run: dotnet test tests/CalorieTracker.UI.Tests --no-build --diag "$RUNNER_TEMP/diag/ui/log.txt;tracelevel=verbose" --logger trx --blame-hang-timeout 5m --blame-hang-dump-type mini --collect "Code Coverage;Format=cobertura" --results-directory "$RUNNER_TEMP/coverage/ui" -- RunConfiguration.CollectSourceInformation=true
+
+      # Failed tests as annotations, and passed, failed and skipped counts in the job summary.
+      - name: Test results
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          python3 -I .github/scripts/trx-summary.py --annotations Core="$RUNNER_TEMP/coverage/core" UI="$RUNNER_TEMP/coverage/ui"
+          python3 -I .github/scripts/trx-summary.py Core="$RUNNER_TEMP/coverage/core" UI="$RUNNER_TEMP/coverage/ui" >> "$GITHUB_STEP_SUMMARY"
+
+      # Line and branch coverage of Core (from the Core tests) and UI (from the UI tests) in the job summary. Fails when either line coverage is under the fixed
+      # minimum, MIN_LINE_COVERAGE in .github/scripts/coverage-summary.py (95). The Cobertura XML is the coverage artifact. The trx logger keeps a copy of each report deeper
+      # in its own folder, so only the report directly under a run's folder counts.
+      - name: Coverage summary
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          python3 -I .github/scripts/coverage-summary.py --gate \
+            CalorieTracker.Core="$(find "$RUNNER_TEMP/coverage/core" -mindepth 2 -maxdepth 2 -name '*.cobertura.xml')" \
+            CalorieTracker.UI="$(find "$RUNNER_TEMP/coverage/ui" -mindepth 2 -maxdepth 2 -name '*.cobertura.xml')" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        with:
+          name: coverage
+          path: ${{ runner.temp }}/coverage/*/*/*.cobertura.xml
+          retention-days: 14
+          if-no-files-found: warn
+
+      # What --blame-hang-timeout wrote when a test hung.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ failure() }}
+        with:
+          name: hang-dumps
+          path: |
+            ${{ runner.temp }}/coverage/**/*.dmp
+            ${{ runner.temp }}/coverage/**/Sequence_*.xml
+          retention-days: 7
+          if-no-files-found: ignore
+
+      # The vstest diagnostic logs of a failed, timed-out or cancelled test step.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ failure() || cancelled() }}
+        with:
+          name: dotnet-diag
+          path: ${{ runner.temp }}/diag/**
+          retention-days: 7
+          if-no-files-found: ignore
+
+      # Nothing is backed up or transferred from the Debug APK.
+      - name: Check the Debug APK
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: .github/scripts/check-backup.sh src/CalorieTracker.App/bin/Debug/net11.0-android/uk.martinshields.calorietracker.debug-Signed.apk false no_backup
+
+      # The QA pipeline's shards download these. obj is included for dotnet test --no-build.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-build
+          path: |
+            src/CalorieTracker.App/bin/Debug/net11.0-android/uk.martinshields.calorietracker.debug-Signed.apk
+            tests/CalorieTracker.E2E.Tests/bin
+            tests/CalorieTracker.E2E.Tests/obj
+          retention-days: 1
+          if-no-files-found: error
+
+  # Only the database is backed up and transferred from the Release APK (x64, debug key, never published). The arm64 Release
+  # APK, built as the release builds it, must hold arm64-v8a only.
+  backup-manifest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-maui
+
+      - name: Build the Release APK (x64, debug key)
+        run: |
+          dotnet restore src/CalorieTracker.App -p:Configuration=Release
+          dotnet publish src/CalorieTracker.App -c Release -f net11.0-android -p:AndroidPackageFormat=apk \
+            -r android-x64 --no-restore -o "$RUNNER_TEMP/backup"
+
+      - name: Check the Release APK
+        run: .github/scripts/check-backup.sh "$RUNNER_TEMP/backup/uk.martinshields.calorietracker-Signed.apk" true backup_rules
+
+      - name: Build the Release APK (arm64, debug key)
+        run: |
+          dotnet publish src/CalorieTracker.App -c Release -f net11.0-android -p:AndroidPackageFormat=apk \
+            -r android-arm64 --no-restore -o "$RUNNER_TEMP/arm64"
+
+      - name: Check the arm64 Release APK holds arm64 only
+        run: .github/scripts/check-abi.sh "$RUNNER_TEMP/arm64/uk.martinshields.calorietracker-Signed.apk"

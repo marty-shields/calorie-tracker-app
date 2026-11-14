@@ -1,0 +1,16 @@
+{
+  "name": "calorietracker-e2e-tests",
+  "private": true,
+  "description": "Appium server and UiAutomator2 driver for CalorieTracker.E2E.Tests",
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "devDependencies": {
+    "appium": "3.9.0",
+    "appium-uiautomator2-driver": "8.7.3"
+  },
+  "overrides": {
+    "body-parser": "2.4.0",
+    "shell-quote": "1.11.0"
+  }
+}

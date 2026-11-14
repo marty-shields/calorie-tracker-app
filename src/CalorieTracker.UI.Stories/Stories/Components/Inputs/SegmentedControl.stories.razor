@@ -1,0 +1,52 @@
+@attribute [Stories("Components/Inputs/SegmentedControl")]
+
+<Stories TComponent="SegmentedControl<string>" Layout="typeof(ThemeLayout)">
+
+    <Story Name="Two options">
+        <Template>
+            <SegmentedControl TValue="string" Label="View" Options="Two" Value="@("list")" ValueChanged="(string _) => { }" TestId="example-tabs" />
+        </Template>
+    </Story>
+
+    <Story Name="Three options">
+        <Template>
+            <SegmentedControl TValue="string" Label="View" Options="Three" Value="@("week")" ValueChanged="(string _) => { }" TestId="example-tabs" />
+        </Template>
+    </Story>
+
+    <Story Name="Four options">
+        <Template>
+            <SegmentedControl TValue="string" Label="Range" Options="Four" Value="@("month")" ValueChanged="(string _) => { }" TestId="example-range" />
+        </Template>
+    </Story>
+
+    <Story Name="None chosen">
+        <Template>
+            <SegmentedControl TValue="string" Label="Range" Options="Four" Value="@("custom")" ValueChanged="(string _) => { }" TestId="example-range" />
+        </Template>
+    </Story>
+
+</Stories>
+
+@code {
+    private static readonly IReadOnlyList<RadioOption<string>> Two =
+    [
+        new("list", "List", "example-tab-list"),
+        new("chart", "Chart", "example-tab-chart"),
+    ];
+
+    private static readonly IReadOnlyList<RadioOption<string>> Three =
+    [
+        new("day", "Day", "example-tab-day"),
+        new("week", "Week", "example-tab-week"),
+        new("month", "Month", "example-tab-month"),
+    ];
+
+    private static readonly IReadOnlyList<RadioOption<string>> Four =
+    [
+        new("week", "1W", "example-range-week", AriaLabel: "Last week"),
+        new("month", "1M", "example-range-month", AriaLabel: "Last month"),
+        new("year", "1Y", "example-range-year", AriaLabel: "Last year"),
+        new("all", "All", "example-range-all"),
+    ];
+}

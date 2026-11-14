@@ -1,0 +1,44 @@
+# Build output and logs
+bin/
+obj/
+*.binlog
+MSBuild_Logs/
+mono_crash.*
+*.feature.cs
+
+# Test results
+TestResults/
+*.trx
+
+# IDE and per-user settings
+.vs/
+.idea/
+*.user
+*.suo
+*.rsuser
+*.userprefs
+*.DotSettings.user
+.vscode/
+.claude/settings.local.json
+
+# Android packages, signing keys and secrets
+*.apk
+*.aab
+*.idsig
+*.keystore
+*.jks
+*.pfx
+*.p12
+*.pem
+*.key
+.env
+
+# Tool output
+.playwright-mcp/
+node_modules/
+.chromedriver/
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store

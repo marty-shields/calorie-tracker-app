@@ -1,0 +1,60 @@
+using Android.Util;
+using CalorieTracker.Core.Logging;
+using Microsoft.Extensions.Logging;
+
+namespace CalorieTracker.App.Logging;
+
+/// <summary>Writes log entries to logcat with the tag <see cref="Tag"/>. Any write error is ignored.</summary>
+internal sealed class AndroidLogProvider : ILoggerProvider
+{
+    public const string Tag = "CalorieTracker";
+
+    /// <summary>Longest text written in one logcat entry; longer text is split.</summary>
+    private const int MaxEntryLength = 4000;
+
+    /// <inheritdoc />
+    public ILogger CreateLogger(string categoryName) => new AndroidLogger(categoryName);
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+    }
+
+    private sealed class AndroidLogger(string category) : ILogger
+    {
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => logLevel != LogLevel.None;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            if (!IsEnabled(logLevel))
+            {
+                return;
+            }
+
+            try
+            {
+                var text = LogLine.Format(logLevel, category, eventId, formatter(state, exception), exception);
+                foreach (var entry in LogLine.Split(text, MaxEntryLength))
+                {
+                    Android.Util.Log.WriteLine(Priority(logLevel), Tag, entry);
+                }
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        private static LogPriority Priority(LogLevel level) => level switch
+        {
+            LogLevel.Trace => LogPriority.Verbose,
+            LogLevel.Debug => LogPriority.Debug,
+            LogLevel.Information => LogPriority.Info,
+            LogLevel.Warning => LogPriority.Warn,
+            LogLevel.Error => LogPriority.Error,
+            _ => LogPriority.Assert,
+        };
+    }
+}

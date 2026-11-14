@@ -1,0 +1,7 @@
+@page "/"
+@using CalorieTracker.UI.Screens
+@inject NavigationManager Navigation
+
+@* Back has no handler here, so it leaves the app. *@
+<DashboardPage OnNavigate="@(destination => Navigation.GoTo(destination))"
+               OnSettings="@(() => Navigation.GoTo("settings"))" />

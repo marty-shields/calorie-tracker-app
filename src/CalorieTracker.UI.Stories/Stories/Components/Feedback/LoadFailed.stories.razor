@@ -1,0 +1,12 @@
+@using CalorieTracker.UI.Components.Feedback
+@attribute [Stories("Components/Feedback/LoadFailed")]
+
+<Stories TComponent="LoadFailed" Layout="typeof(ThemeLayout)">
+
+    <Story Name="Default">
+        <Template>
+            <LoadFailed Message="Couldn't load the Dashboard" TestId="dashboard" />
+        </Template>
+    </Story>
+
+</Stories>

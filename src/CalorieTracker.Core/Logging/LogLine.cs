@@ -1,0 +1,40 @@
+using Microsoft.Extensions.Logging;
+
+namespace CalorieTracker.Core.Logging;
+
+/// <summary>Formats a log entry as text.</summary>
+public static class LogLine
+{
+    /// <summary>"Level Category[EventId] Message", then the exception on the next lines.</summary>
+    /// <param name="level">Entry level.</param>
+    /// <param name="category">Logger category.</param>
+    /// <param name="eventId">Entry event id.</param>
+    /// <param name="message">Formatted message.</param>
+    /// <param name="exception">Exception, if any.</param>
+    public static string Format(LogLevel level, string category, EventId eventId, string message, Exception? exception)
+    {
+        var line = $"{Level(level)} {category}[{eventId.Id}] {message}";
+        return exception is null ? line : $"{line}{Environment.NewLine}{exception}";
+    }
+
+    /// <summary>Splits <paramref name="text"/> into pieces of at most <paramref name="maxLength"/> characters, in order. Empty text gives no pieces.</summary>
+    /// <param name="maxLength">Longest piece.</param>
+    public static IEnumerable<string> Split(string text, int maxLength)
+    {
+        for (var start = 0; start < text.Length; start += maxLength)
+        {
+            yield return text.Substring(start, Math.Min(maxLength, text.Length - start));
+        }
+    }
+
+    private static string Level(LogLevel level) => level switch
+    {
+        LogLevel.Trace => "TRCE",
+        LogLevel.Debug => "DBUG",
+        LogLevel.Information => "INFO",
+        LogLevel.Warning => "WARN",
+        LogLevel.Error => "FAIL",
+        LogLevel.Critical => "CRIT",
+        _ => "NONE",
+    };
+}

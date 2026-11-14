@@ -1,0 +1,44 @@
+# Weekly update PRs, labelled semver:patch with a chore(deps) title.
+version: 2
+updates:
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["semver:patch"]
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      nuget-minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "npm"
+    directory: "/tests/CalorieTracker.E2E.Tests"
+    schedule:
+      interval: "weekly"
+    labels: ["semver:patch"]
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      npm-minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "dotnet-sdk"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["semver:patch"]
+    commit-message:
+      prefix: "chore(deps)"
+
+  # Workflows live in /.github/workflows, which "/" covers; the composite actions are under /.github/actions/<name>.
+  - package-ecosystem: "github-actions"
+    directories: ["/", "/.github/actions/*"]
+    schedule:
+      interval: "weekly"
+    labels: ["semver:patch"]
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      actions-minor-patch:
+        update-types: ["minor", "patch"]

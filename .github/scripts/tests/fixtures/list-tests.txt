@@ -1,0 +1,8 @@
+The following Tests are available:
+    CalorieTracker.E2E.Tests.Features.AFeature.Long
+    CalorieTracker.E2E.Tests.Features.AFeature.Long2WithMore
+    CalorieTracker.E2E.Tests.Features.AFeature.Outline(1,"a")
+    CalorieTracker.E2E.Tests.Features.AFeature.Outline(2,"b")
+    CalorieTracker.E2E.Tests.Features.AFeature.Short
+    CalorieTracker.E2E.Tests.Features.AFeature.Missing
+    CalorieTracker.E2E.Tests.Other.NotAFeature

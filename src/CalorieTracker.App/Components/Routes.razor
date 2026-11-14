@@ -1,0 +1,23 @@
+@using Microsoft.AspNetCore.Components.Routing
+@using CalorieTracker.Core.Data
+@using CalorieTracker.UI.Components.Layout
+@inject IDatabaseInitializer DatabaseInitializer
+@inject NavigationManager Navigation
+
+<SystemBarInsets />
+<StartupGate Initialize="InitializeAsync">
+    <AppErrorBoundary OnRestart="() => Navigation.GoTo(string.Empty)">
+        <Router AppAssembly="typeof(MauiProgram).Assembly">
+            <Found Context="routeData">
+                <RouteView RouteData="routeData" />
+            </Found>
+        </Router>
+    </AppErrorBoundary>
+</StartupGate>
+
+@code {
+    private async Task InitializeAsync()
+    {
+        await DatabaseInitializer.InitializeAsync();
+    }
+}

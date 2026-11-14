@@ -1,0 +1,24 @@
+@using CalorieTracker.UI.Models.Settings
+@attribute [Stories("Screens/Settings")]
+
+<Stories TComponent="SettingsView" Layout="typeof(PhoneLayout)">
+
+    <Story Name="Default">
+        <Template>
+            <SettingsView Version="1.0.0" OnThemeChanged="(ThemePreference _) => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Dark chosen">
+        <Template>
+            <SettingsView Version="1.0.0" Theme="ThemePreference.Dark" OnThemeChanged="(ThemePreference _) => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="No version">
+        <Template>
+            <SettingsView OnThemeChanged="(ThemePreference _) => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+</Stories>

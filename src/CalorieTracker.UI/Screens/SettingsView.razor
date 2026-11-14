@@ -1,0 +1,39 @@
+@using CalorieTracker.UI.Components.Inputs
+@using CalorieTracker.UI.Models.Settings
+<AppScreen Title="Settings" OnBack="OnBack">
+    <div class="body">
+        <section class="section">
+            <h2 class="heading">Appearance</h2>
+            <SegmentedControl TValue="ThemePreference" Label="Theme" Options="Themes" Value="Theme" ValueChanged="OnThemeChanged" TestId="theme" />
+        </section>
+        @if (Version is not null)
+        {
+            <p class="version" data-testid="app-version">Version @Version</p>
+        }
+    </div>
+</AppScreen>
+
+@code {
+    /// <summary>The chosen theme, shown selected in Appearance. System follows the phone.</summary>
+    [Parameter]
+    public ThemePreference Theme { get; set; }
+
+    /// <summary>The installed app version, shown at the bottom as "Version 1.4.2". Null shows nothing.</summary>
+    [Parameter]
+    public string? Version { get; set; }
+
+    /// <summary>Raised with the theme tapped in Appearance.</summary>
+    [Parameter]
+    public EventCallback<ThemePreference> OnThemeChanged { get; set; }
+
+    /// <summary>Raised by the back arrow and the Android back button.</summary>
+    [Parameter]
+    public EventCallback OnBack { get; set; }
+
+    private static readonly IReadOnlyList<RadioOption<ThemePreference>> Themes =
+    [
+        new(ThemePreference.System, "System", "settings-theme-system"),
+        new(ThemePreference.Light, "Light", "settings-theme-light"),
+        new(ThemePreference.Dark, "Dark", "settings-theme-dark"),
+    ];
+}

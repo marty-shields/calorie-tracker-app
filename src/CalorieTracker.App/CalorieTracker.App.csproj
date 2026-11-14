@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetVersion)-android</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>CalorieTracker.App</RootNamespace>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <EnableDefaultCssItems>false</EnableDefaultCssItems>
+    <MauiXamlInflator>SourceGen</MauiXamlInflator>
+    <SupportedOSPlatformVersion>36.0</SupportedOSPlatformVersion>
+    <RuntimeIdentifiers>android-arm64;android-x64</RuntimeIdentifiers>
+    <RuntimeIdentifiers Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</RuntimeIdentifiers>
+
+    <ApplicationTitle>Calorie Tracker</ApplicationTitle>
+    <ApplicationId>uk.martinshields.calorietracker</ApplicationId>
+    <AndroidManifestPlaceholders>allowBackup=true;dataExtractionRules=backup_rules</AndroidManifestPlaceholders>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <ApplicationTitle>Calorie Tracker (Dev)</ApplicationTitle>
+    <ApplicationId>uk.martinshields.calorietracker.debug</ApplicationId>
+    <AndroidManifestPlaceholders>allowBackup=false;dataExtractionRules=no_backup</AndroidManifestPlaceholders>
+    <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" MonochromeFile="Resources\AppIcon\appicon_monochrome.svg" Color="#173535" />
+    <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#f4f8f8" DarkFile="Resources\AppIcon\appiconfg.svg" DarkColor="#173535" BaseSize="108,108" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Controls" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CalorieTracker.Core\CalorieTracker.Core.csproj" />
+    <ProjectReference Include="..\CalorieTracker.UI\CalorieTracker.UI.csproj" />
+  </ItemGroup>
+
+</Project>
