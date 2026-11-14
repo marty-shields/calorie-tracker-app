@@ -59,15 +59,24 @@ public class ScanPageTests : ComponentTestBase
     [Test]
     public async Task RepeatDetectionOfTheSameBarcode_DuringTheLookup_DoesNotLookItUpAgain()
     {
-        Context.Render<ScanPage>();
+        lookup.Hold = true;
+        var cut = Context.Render<ScanPage>();
 
         scanner.Detect(Barcode);
+        scanner.Complete(ScanResult.Scanned(Barcode));
         await WaitForRendererAsync();
+        cut.WaitForAssertion(() => Assert.That(lookup.Barcodes, Has.Count.EqualTo(1)));
+
         scanner.Detect(Barcode);
         scanner.Detect(Barcode);
+        scanner.Complete(ScanResult.Scanned(Barcode));
         await WaitForRendererAsync();
 
-        Assert.That(lookup.Barcodes, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(lookup.Barcodes, Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=scan-looking-up]"), Has.Count.EqualTo(1));
+        });
     }
 
     [Test]
@@ -76,6 +85,7 @@ public class ScanPageTests : ComponentTestBase
         Context.Render<ScanPage>();
 
         scanner.Detect("036000291452");
+        scanner.Complete(ScanResult.Scanned("036000291452"));
         await WaitForRendererAsync();
 
         Assert.That(lookup.Barcodes, Is.EqualTo(new[] { "0036000291452" }));
@@ -175,7 +185,38 @@ public class ScanPageTests : ComponentTestBase
             Assert.That(cut.FindAll("[data-testid=scan-not-found]"), Is.Empty);
             Assert.That(cut.FindAll("[data-testid=scan-again]"), Has.Count.EqualTo(1));
         });
+        Assert.Multiple(() =>
+        {
+            Assert.That(lookup.Barcodes, Is.Empty);
+            Assert.That(LoggedEvents.Of(logger).Select(e => e.Item1), Is.EqualTo(new[] { UiEvent.ScanCameraUnavailable }));
+        });
+    }
+
+    [Test]
+    public async Task ScannedCodeThatDoesNotNormalise_ShowsNotFoundWithoutALookup()
+    {
+        var cut = Context.Render<ScanPage>();
+
+        scanner.Complete(ScanResult.Scanned("123"));
+        await WaitForRendererAsync();
+
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-not-found]"), Has.Count.EqualTo(1)));
         Assert.That(lookup.Barcodes, Is.Empty);
+    }
+
+    [TestCase(double.MaxValue)]
+    [TestCase(double.PositiveInfinity)]
+    [TestCase(double.NaN)]
+    public async Task Found_WithAValueThatCannotBeShown_ShowsNotFound(double kcal)
+    {
+        lookup.Result = BarcodeLookupResult.Found(Product("Odd", null, FoodUnit.Gram, kcal, 1, 1, 1));
+        var cut = await ScannedAsync();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=scan-not-found]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=scan-product]"), Is.Empty);
+        });
     }
 
     [Test]
@@ -188,6 +229,50 @@ public class ScanPageTests : ComponentTestBase
         await WaitForRendererAsync();
 
         Assert.That(backs, Is.EqualTo(1));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task ScanResultAfterDispose_IsIgnored(bool cancelled)
+    {
+        var backs = 0;
+        Context.Render<ScanPage>(p => p.Add(x => x.OnBack, () => backs++));
+        await Context.DisposeComponentsAsync();
+
+        scanner.Complete(cancelled ? ScanResult.Cancelled : ScanResult.Unavailable);
+        await WaitForRendererAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(backs, Is.Zero);
+            Assert.That(LoggedEvents.Of(logger), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task LookupThatIgnoresItsToken_AndReturnsAfterScanAgain_IsDiscarded()
+    {
+        var late = new TaskCompletionSource<BarcodeLookupResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        lookup.Late = late;
+        var cut = Context.Render<ScanPage>();
+        scanner.Complete(ScanResult.Scanned(Barcode));
+        await WaitForRendererAsync();
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-looking-up]"), Has.Count.EqualTo(1)));
+
+        // Scan again has no button while looking up, so call the handler the button is bound to.
+        var runScan = typeof(ScanPage).GetMethod("RunScanAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        _ = cut.InvokeAsync(() => (Task)runScan.Invoke(cut.Instance, null)!);
+        cut.WaitForAssertion(() => Assert.That(scanner.Scans, Has.Count.EqualTo(2)));
+
+        late.SetResult(BarcodeLookupResult.Found(Product("Porridge oats", null, FoodUnit.Gram, 372, 11, 60, 8)));
+        await WaitForRendererAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=scan-camera]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=scan-product]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=scan-not-found]"), Is.Empty);
+        });
     }
 
     [Test]
@@ -207,6 +292,7 @@ public class ScanPageTests : ComponentTestBase
         });
 
         scanner.Detect(Barcode);
+        scanner.Complete(ScanResult.Scanned(Barcode));
         await WaitForRendererAsync();
         Assert.That(lookup.Barcodes, Is.EqualTo(new[] { Barcode, Barcode }), "the same barcode is looked up again after Scan again");
     }
@@ -217,6 +303,7 @@ public class ScanPageTests : ComponentTestBase
         lookup.Hold = true;
         Context.Render<ScanPage>();
         scanner.Detect(Barcode);
+        scanner.Complete(ScanResult.Scanned(Barcode));
         await WaitForRendererAsync();
 
         await Context.DisposeComponentsAsync();
@@ -290,12 +377,20 @@ public class ScanPageTests : ComponentTestBase
         /// <summary>When set, a lookup never finishes on its own.</summary>
         public bool Hold { get; set; }
 
+        /// <summary>When set, the lookup waits for this and ignores its token.</summary>
+        public TaskCompletionSource<BarcodeLookupResult>? Late { get; set; }
+
         public CancellationToken? Token { get; private set; }
 
         public async Task<BarcodeLookupResult> LookupAsync(string barcode, CancellationToken ct = default)
         {
             Barcodes.Add(barcode);
             Token = ct;
+            if (Late is not null)
+            {
+                return await Late.Task;
+            }
+
             if (Hold)
             {
                 await Task.Delay(Timeout.Infinite, ct);

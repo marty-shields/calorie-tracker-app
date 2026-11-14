@@ -11,12 +11,12 @@ namespace CalorieTracker.UI.Screens;
 /// <summary>Scans a barcode, looks it up once and shows the product. Logs barcodes and statuses, never the product.</summary>
 public partial class ScanPage : IDisposable
 {
-    private readonly object gate = new();
+    /// <summary>Largest nutrient value shown; anything above is not a real product and keeps decimal arithmetic far from overflow.</summary>
+    private const double MaxValue = 1e12;
+
     private ScanState state = ScanState.Scanning;
     private ScannedProduct? product;
-    private string? inFlight;
     private CancellationTokenSource? cancellation;
-    private bool started;
 
     [Inject]
     private IBarcodeScanner Scanner { get; set; } = null!;
@@ -31,36 +31,32 @@ public partial class ScanPage : IDisposable
     {
         cancellation?.Cancel();
         cancellation?.Dispose();
+        cancellation = null;
         GC.SuppressFinalize(this);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !started)
+        if (firstRender)
         {
-            await RunScanAsync();
+            await ScanCoreAsync();
         }
     }
 
-    private Task ScanAgainAsync() => RunScanAsync();
+    private Task RunScanAsync() => ScanCoreAsync();
 
-    private async Task RunScanAsync()
+    private async Task ScanCoreAsync()
     {
-        started = true;
-        CancellationTokenSource scan;
-        lock (gate)
-        {
-            cancellation?.Cancel();
-            scan = cancellation = new CancellationTokenSource();
-            inFlight = null;
-        }
+        cancellation?.Cancel();
+        cancellation?.Dispose();
+        var scan = cancellation = new CancellationTokenSource();
 
         product = null;
         state = ScanState.Scanning;
         StateHasChanged();
 
         var token = scan.Token;
-        var result = await Scanner.ScanAsync(raw => Accept(raw, token));
+        var result = await Scanner.ScanAsync(Accept);
         if (token.IsCancellationRequested)
         {
             return;
@@ -69,10 +65,9 @@ public partial class ScanPage : IDisposable
         switch (result.Status)
         {
             case ScanStatus.Scanned when BarcodeNormaliser.TryNormalise(result.Digits, out var barcode):
-                await BeginLookupAsync(barcode, token);
+                await LookUpAsync(barcode, token);
                 break;
             case ScanStatus.Cancelled:
-                await scan.CancelAsync();
                 await OnBack.InvokeAsync();
                 break;
             case ScanStatus.PermissionDenied or ScanStatus.Unavailable:
@@ -87,30 +82,23 @@ public partial class ScanPage : IDisposable
         }
     }
 
-    /// <summary>Called by the scanner for each detection, possibly off the UI thread. A usable barcode closes the scanner and is looked up once.</summary>
-    private bool Accept(string raw, CancellationToken token)
+    /// <summary>Called by the scanner for each detection, possibly off the UI thread. Only says whether the code is usable; the scanner then closes and the page looks up the one barcode it returns.</summary>
+    private static bool Accept(string raw) => BarcodeNormaliser.TryNormalise(raw, out _);
+
+    private static bool TryToDecimal(double value, out decimal result)
     {
-        if (!BarcodeNormaliser.TryNormalise(raw, out var barcode))
+        if (double.IsFinite(value) && Math.Abs(value) <= MaxValue)
         {
-            return false;
+            result = (decimal)value;
+            return true;
         }
 
-        _ = InvokeAsync(() => BeginLookupAsync(barcode, token));
-        return true;
+        result = 0;
+        return false;
     }
 
-    private async Task BeginLookupAsync(string barcode, CancellationToken token)
+    private async Task LookUpAsync(string barcode, CancellationToken token)
     {
-        lock (gate)
-        {
-            if (inFlight is not null || token.IsCancellationRequested)
-            {
-                return;
-            }
-
-            inFlight = barcode;
-        }
-
         state = ScanState.LookingUp;
         StateHasChanged();
         Log.LookupStarted(Logger, barcode);
@@ -131,9 +119,14 @@ public partial class ScanPage : IDisposable
         }
 
         Log.LookupFinished(Logger, barcode, result.Status);
-        if (result is { Status: BarcodeLookupStatus.Found, Food: { } food })
+        product = null;
+        if (result is { Status: BarcodeLookupStatus.Found, Food: { } food }
+            && TryToDecimal(food.Kcal, out var kcal)
+            && TryToDecimal(food.ProteinG, out var protein)
+            && TryToDecimal(food.CarbsG, out var carbs)
+            && TryToDecimal(food.FatG, out var fat))
         {
-            product = new ScannedProduct(food.Name, food.Brand, (decimal)food.Kcal, (decimal)food.ProteinG, (decimal)food.CarbsG, (decimal)food.FatG, food.Unit == FoodUnit.Millilitre);
+            product = new ScannedProduct(food.Name, food.Brand, kcal, protein, carbs, fat, food.Unit == FoodUnit.Millilitre);
             state = ScanState.Found;
         }
         else
