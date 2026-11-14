@@ -149,6 +149,27 @@ public class FoodStoreTests
     }
 
     [Test]
+    public async Task UpsertAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
+    {
+        var holding = new TaskCompletionSource();
+        var busy = gate.RunAsync(async () =>
+        {
+            await holding.Task;
+            await connection.InsertAsync(NewFood("1", kcal: 100));
+        });
+
+        var upsert = store.UpsertAsync(NewFood("1", kcal: 250));
+        holding.SetResult();
+
+        await busy;
+        var saved = await upsert;
+        var rows = await connection.Table<Food>().ToListAsync();
+        Assert.That(rows, Has.Count.EqualTo(1));
+        Assert.That(saved.Id, Is.EqualTo(rows[0].Id));
+        Assert.That(rows[0].Kcal, Is.EqualTo(250));
+    }
+
+    [Test]
     public async Task Logging_UpsertAndFind_LogsIdsOnlyNeverNameOrBarcode()
     {
         var food = NewFood("SRC-SECRET", barcode: "9876543210987");

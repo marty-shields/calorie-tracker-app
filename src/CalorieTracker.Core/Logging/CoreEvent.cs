@@ -2,6 +2,7 @@ namespace CalorieTracker.Core.Logging;
 
 /// <summary>
 /// Event ids of Core's log messages: 1000–1999, a block of 100 per type.
+/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader; the <c>*Block</c> members hold them.
 /// Ids never change and are never reused; list a retired id here and in <c>CoreEventTests</c>.
 /// </summary>
 internal enum CoreEvent

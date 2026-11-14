@@ -34,6 +34,20 @@ public class CoreServiceCollectionExtensionsTests
     }
 
     [Test]
+    public void AddCore_WithLogging_ResolvesOneFoodStore()
+    {
+        using var provider = new ServiceCollection()
+            .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
+            .AddCore(TempDatabase.NewPath())
+            .BuildServiceProvider();
+
+        var first = provider.GetRequiredService<FoodStore>();
+        var second = provider.GetRequiredService<FoodStore>();
+
+        Assert.That(second, Is.SameAs(first));
+    }
+
+    [Test]
     public void AddCore_UngatedDatabaseTypesCannotBeResolved()
     {
         using var provider = new ServiceCollection().AddCore(TempDatabase.NewPath()).BuildServiceProvider();
