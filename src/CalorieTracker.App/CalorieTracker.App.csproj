@@ -15,6 +15,9 @@
     <ApplicationTitle>Calorie Tracker</ApplicationTitle>
     <ApplicationId>uk.martinshields.calorietracker</ApplicationId>
     <AndroidManifestPlaceholders>allowBackup=true;dataExtractionRules=backup_rules</AndroidManifestPlaceholders>
+
+    <!-- Checked for BarcodeScanning.Native.Maui 3.1.0: several of its ML Kit and CameraX libraries ship the same native .so files, byte-identical by hash; packaging keeps the first copy. check-native-dupes.sh (dev / backup-manifest) fails when the copies of a library differ after a version bump, so the warning cannot be hidden by mistake. -->
+    <NoWarn>$(NoWarn);XA4301</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
@@ -30,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="BarcodeScanning.Native.Maui" />
     <PackageReference Include="Microsoft.Maui.Controls" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" />
   </ItemGroup>

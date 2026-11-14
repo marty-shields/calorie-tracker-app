@@ -1,7 +1,32 @@
 @page "/"
+@using CalorieTracker.UI.Scanning
 @using CalorieTracker.UI.Screens
 @inject NavigationManager Navigation
+@inject IBarcodeScanner Scanner
 
 @* Back has no handler here, so it leaves the app. *@
 <DashboardPage OnNavigate="@(destination => Navigation.GoTo(destination))"
                OnSettings="@(() => Navigation.GoTo("settings"))" />
+
+@* TODO(#14): remove the scan trial *@
+@* The dashboard's screen is fixed over the viewport, so the trial controls float above it. *@
+<div class="scan-trial">
+    <button type="button" data-testid="scan-trial" @onclick="ScanAsync">Scan (trial)</button>
+    <p data-testid="scan-trial-result">@scanMessage</p>
+</div>
+
+@code {
+    private string? scanMessage;
+
+    private async Task ScanAsync()
+    {
+        var result = await Scanner.ScanAsync();
+        scanMessage = result.Status switch
+        {
+            ScanStatus.Scanned => $"Scanned: {result.Digits}",
+            ScanStatus.PermissionDenied => "Camera permission denied. Allow it in the phone's settings to scan.",
+            ScanStatus.Unavailable => "The scanner could not open. Try again.",
+            _ => "Scan cancelled",
+        };
+    }
+}
