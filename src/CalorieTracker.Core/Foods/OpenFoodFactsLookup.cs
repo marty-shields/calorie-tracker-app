@@ -163,8 +163,7 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
             return null;
         }
 
-        JsonElement nutriments = default;
-        var hasNutriments = product.TryGetProperty("nutriments", out nutriments) && nutriments.ValueKind == JsonValueKind.Object;
+        var hasNutriments = product.TryGetProperty("nutriments", out var nutriments) && nutriments.ValueKind == JsonValueKind.Object;
         double? Nutrient(string key) => hasNutriments ? ReadNumber(nutriments, key) : null;
 
         var kcal = Nutrient("energy-kcal_100g") ?? Nutrient("energy-kj_100g") * KcalPerKj;
@@ -226,8 +225,8 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
         double number;
         switch (value.ValueKind)
         {
-            case JsonValueKind.Number:
-                number = value.GetDouble();
+            case JsonValueKind.Number when value.TryGetDouble(out var parsedNumber):
+                number = parsedNumber;
                 break;
             case JsonValueKind.String when double.TryParse(value.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed):
                 number = parsed;

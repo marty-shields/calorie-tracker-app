@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
+using CalorieTracker.Core.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Time.Testing;
 
@@ -196,6 +197,28 @@ public class OpenFoodFactsLookupTests
     }
 
     [Test]
+    public async Task NegativeRequiredValue_IsNotFound()
+    {
+        var values = AllRequired();
+        values["proteins_100g"] = "-1";
+        handler.Respond(Body("Oats", null, values));
+
+        Assert.That((await lookup.LookupAsync(Barcode)).Status, Is.EqualTo(BarcodeLookupStatus.NotFound));
+    }
+
+    [Test]
+    public async Task OverflowingNumber_CountsAsMissing_AndDoesNotThrow()
+    {
+        var values = AllRequired();
+        values["fat_100g"] = "1e400";
+        handler.Respond(Body("Oats", null, values));
+
+        var result = await lookup.LookupAsync(Barcode);
+
+        Assert.That(result.Status, Is.EqualTo(BarcodeLookupStatus.NotFound));
+    }
+
+    [Test]
     public async Task OnlyFirstBrand_IsKept_AndEmptyBrandIsNull()
     {
         handler.Respond(Body("Oats", " Quaker , Other", AllRequired()));
@@ -319,6 +342,28 @@ public class OpenFoodFactsLookupTests
     }
 
     [Test]
+    public async Task RetryAfter_EqualToTheCap_IsHonoured()
+    {
+        handler.Respond("", HttpStatusCode.TooManyRequests, retryAfter: "5");
+        handler.Respond(Fixture("solid-3017620422003.json"));
+
+        await lookup.LookupAsync(Barcode);
+
+        Assert.That(waits, Is.EqualTo(new[] { TimeSpan.FromSeconds(5) }));
+    }
+
+    [Test]
+    public async Task RetryAfter_HttpDateInThePast_FallsBackToTheDefaultWait()
+    {
+        handler.Respond("", HttpStatusCode.TooManyRequests, retryAfter: "Sat, 14 Nov 2026 11:59:00 GMT");
+        handler.Respond(Fixture("solid-3017620422003.json"));
+
+        await lookup.LookupAsync(Barcode);
+
+        Assert.That(waits, Is.EqualTo(new[] { OpenFoodFactsLookup.DefaultRetryWait }));
+    }
+
+    [Test]
     public async Task RetryAfter_AsHttpDate_IsHonouredRelativeToTheClock()
     {
         handler.Respond("", HttpStatusCode.TooManyRequests, retryAfter: "Sat, 14 Nov 2026 12:00:03 GMT");
@@ -347,7 +392,7 @@ public class OpenFoodFactsLookupTests
     [TestCase(HttpStatusCode.BadRequest)]
     public async Task OtherErrorStatuses_AreOfflineWithoutRetry(HttpStatusCode status)
     {
-        handler.Respond("", status);
+        handler.Respond(Fixture("solid-3017620422003.json"), status);
 
         var result = await lookup.LookupAsync(Barcode);
 
@@ -355,6 +400,7 @@ public class OpenFoodFactsLookupTests
         {
             Assert.That(result.Status, Is.EqualTo(BarcodeLookupStatus.Offline));
             Assert.That(handler.Requests, Has.Count.EqualTo(1));
+            Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Contain(CoreEvent.LookupUnexpectedStatus));
         });
     }
 
@@ -417,6 +463,8 @@ public class OpenFoodFactsLookupTests
         handler.Respond("Distinctive Body");
         await lookup.LookupAsync(secretBarcode);
         handler.Respond("Distinctive Body", HttpStatusCode.InternalServerError);
+        await lookup.LookupAsync(secretBarcode);
+        handler.Respond("Distinctive Body", HttpStatusCode.NotFound);
         await lookup.LookupAsync(secretBarcode);
 
         var records = logger.Collector.GetSnapshot();
