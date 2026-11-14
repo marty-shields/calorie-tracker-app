@@ -11,12 +11,12 @@ namespace CalorieTracker.Core.Tests;
 public class CoreServiceCollectionExtensionsTests
 {
     [Test]
-    public void AddCore_RegistersSingletonsAndATransientBarcodeLookup()
+    public void AddCore_RegistersSingletonsAndTheBarcodeLookupDecorator()
     {
         var services = new ServiceCollection().AddCore("calorietracker.db3");
 
         Assert.That(
-            services.Where(s => s.ServiceType != typeof(IBarcodeLookup) && s.ServiceType.Namespace?.StartsWith("Microsoft.Extensions.Http") != true
+            services.Where(s => s.ServiceType.Namespace?.StartsWith("Microsoft.Extensions.Http") != true
                     && s.ServiceType.Namespace?.StartsWith("Microsoft.Extensions.Options") != true
                     && s.ServiceType.Namespace?.StartsWith("Microsoft.Extensions.Logging") != true
                     && s.ServiceType != typeof(IHttpClientFactory) && s.ServiceType != typeof(IHttpMessageHandlerFactory))
@@ -27,20 +27,61 @@ public class CoreServiceCollectionExtensionsTests
                 (typeof(FoodStore), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(IDatabaseInitializer), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(TimeProvider), (Type?)null, ServiceLifetime.Singleton),
+                (typeof(IBarcodeLookup), (Type?)null, ServiceLifetime.Singleton),
+                (typeof(OpenFoodFactsLookup), (Type?)null, ServiceLifetime.Transient),
                 (typeof(ISeedLoader), (Type?)null, ServiceLifetime.Singleton),
             }));
-        Assert.That(services.Single(s => s.ServiceType == typeof(IBarcodeLookup)).Lifetime, Is.EqualTo(ServiceLifetime.Transient));
     }
 
     [Test]
-    public void AddCore_WithLogging_ResolvesTheOpenFoodFactsLookup()
+    public void AddCore_WithLogging_ResolvesTheStoredBarcodeLookup()
     {
         using var provider = new ServiceCollection()
             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
             .AddCore(TempDatabase.NewPath())
             .BuildServiceProvider();
 
-        Assert.That(provider.GetRequiredService<IBarcodeLookup>(), Is.InstanceOf<OpenFoodFactsLookup>());
+        Assert.That(provider.GetRequiredService<IBarcodeLookup>(), Is.InstanceOf<StoredBarcodeLookup>());
+    }
+
+    [Test]
+    public void AddCore_WithLogging_ResolvesOneBarcodeLookup()
+    {
+        using var provider = new ServiceCollection()
+            .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
+            .AddCore(TempDatabase.NewPath())
+            .BuildServiceProvider();
+
+        var first = provider.GetRequiredService<IBarcodeLookup>();
+        var second = provider.GetRequiredService<IBarcodeLookup>();
+
+        Assert.That(second, Is.SameAs(first));
+    }
+
+    [Test]
+    public async Task AddCore_BarcodeLookupWrapsTheOpenFoodFactsAdapterAndStoresWhatItFinds()
+    {
+        var path = TempDatabase.NewPath();
+        var handler = new CapturingHandler(System.Net.HttpStatusCode.OK,
+            "{\"code\":\"1\",\"product\":{\"product_name\":\"Oats\",\"nutriments\":{\"energy-kcal_100g\":100,\"proteins_100g\":1,\"carbohydrates_100g\":2,\"fat_100g\":3}},\"status\":1}");
+        var services = new ServiceCollection()
+            .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
+            .AddCore(path);
+        services.AddHttpClient(nameof(OpenFoodFactsLookup)).ConfigurePrimaryHttpMessageHandler(() => handler);
+        using var provider = services.BuildServiceProvider();
+        await provider.GetRequiredService<IDatabaseInitializer>().InitializeAsync();
+        var lookup = provider.GetRequiredService<IBarcodeLookup>();
+
+        var first = await lookup.LookupAsync("3017620422003");
+        var second = await lookup.LookupAsync("3017620422003");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(first.Status, Is.EqualTo(BarcodeLookupStatus.Found));
+            Assert.That(second.Status, Is.EqualTo(BarcodeLookupStatus.Found));
+            Assert.That(handler.Calls, Is.EqualTo(1));
+            Assert.That(handler.Uri!.GetLeftPart(UriPartial.Path), Is.EqualTo("https://world.openfoodfacts.org/api/v2/product/3017620422003"));
+        });
     }
 
     [Test]
@@ -50,13 +91,13 @@ public class CoreServiceCollectionExtensionsTests
         var services = new ServiceCollection()
             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
             .AddCore(TempDatabase.NewPath());
-        services.AddHttpClient(nameof(IBarcodeLookup)).ConfigurePrimaryHttpMessageHandler(() => handler);
+        services.AddHttpClient(nameof(OpenFoodFactsLookup)).ConfigurePrimaryHttpMessageHandler(() => handler);
         using var provider = services.BuildServiceProvider();
 
         await provider.GetRequiredService<IBarcodeLookup>().LookupAsync("3017620422003");
 
         var assembly = typeof(OpenFoodFactsLookup).Assembly.GetName();
-        using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(IBarcodeLookup));
+        using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(OpenFoodFactsLookup));
         Assert.Multiple(() =>
         {
             Assert.That(handler.Uri!.GetLeftPart(UriPartial.Path), Is.EqualTo("https://world.openfoodfacts.org/api/v2/product/3017620422003"));
@@ -156,17 +197,20 @@ public class CoreServiceCollectionExtensionsTests
         Assert.That(time, Is.SameAs(TimeProvider.System));
     }
 
-    private sealed class CapturingHandler : HttpMessageHandler
+    private sealed class CapturingHandler(System.Net.HttpStatusCode status = System.Net.HttpStatusCode.NotFound, string body = "") : HttpMessageHandler
     {
+        public int Calls { get; private set; }
+
         public Uri? Uri { get; private set; }
 
         public string? UserAgent { get; private set; }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            Calls++;
             Uri = request.RequestUri;
             UserAgent = request.Headers.UserAgent.ToString();
-            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
+            return Task.FromResult(new HttpResponseMessage(status) { Content = new StringContent(body) });
         }
     }
 }

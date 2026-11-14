@@ -9,7 +9,7 @@ namespace CalorieTracker.Core;
 public static class CoreServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers Core's services as singletons, except the barcode lookup, a typed HTTP client that holds no state. The initializer is registered only as a gated decorator
+    /// Registers Core's services as singletons. The barcode lookup is the stored decorator over the Open Food Facts adapter, which is registered as its concrete type only. The initializer is registered only as a gated decorator
     /// that runs each call through one <see cref="DatabaseGate"/>; the connection is not registered.
     /// The host must register logging.
     /// </summary>
@@ -28,7 +28,8 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<DatabaseGate>()
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<FoodStore>(provider, connection))
             .AddDecoratedSingleton<IDatabaseInitializer, GatedDatabaseInitializer>(provider =>
-                ActivatorUtilities.CreateInstance<DatabaseInitializer>(provider, connection));
+                ActivatorUtilities.CreateInstance<DatabaseInitializer>(provider, connection))
+            .AddDecoratedSingleton<IBarcodeLookup, StoredBarcodeLookup>(provider => provider.GetRequiredService<OpenFoodFactsLookup>());
     }
 
     /// <summary>Registers each numbered schema upgrade step, one for each version after 1.</summary>
@@ -40,12 +41,14 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton(TimeProvider.System)
             .AddSingleton<ISeedLoader>(provider =>
                 ActivatorUtilities.CreateInstance<SeedLoader>(provider, (Func<Stream>)SeedLoader.OpenBundledSeed))
-            .AddHttpClient<IBarcodeLookup, OpenFoodFactsLookup>(client =>
+            .AddHttpClient<OpenFoodFactsLookup>(client =>
             {
                 client.BaseAddress = new Uri("https://world.openfoodfacts.org/");
                 client.Timeout = TimeSpan.FromSeconds(10);
                 client.DefaultRequestHeaders.UserAgent.ParseAdd(OpenFoodFactsLookup.UserAgent);
-            });
+            })
+            // The singleton lookup keeps this client for the app's life, so connections must still be recycled to follow DNS changes.
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) });
         return services;
     }
 }
