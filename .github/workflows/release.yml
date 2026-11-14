@@ -40,7 +40,7 @@ jobs:
       - name: Release cert pinned
         run: |
           if ! grep -Eqx '([0-9A-F]{2}:){31}[0-9A-F]{2}' <<<"$CERT_SHA256"; then
-            echo "::error title=Release::release signing keystore not yet configured - see the tracking issue. CERT_SHA256 in release.yml is a placeholder; set it to the release cert's SHA-256 (docs/release.md)."
+            echo "::error title=Release::CERT_SHA256 in release.yml is not a SHA-256 digest (32 uppercase hex bytes separated by colons); set it to the release cert's SHA-256 (docs/release.md)."
             exit 1
           fi
 
