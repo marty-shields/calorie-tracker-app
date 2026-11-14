@@ -244,7 +244,8 @@ public class SeedLoaderTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(seed.Version, Is.GreaterThanOrEqualTo(1));
+            // 3 since the everyday names; main's version 2 was food search
+            Assert.That(seed.Version, Is.GreaterThanOrEqualTo(3));
             Assert.That(seed.Foods, Has.Count.EqualTo(2853));
             Assert.That(seed.Foods.Select(f => f.Source), Is.All.EqualTo(FoodSource.CoFID));
             Assert.That(seed.Foods.Select(f => f.SourceId), Is.Unique);

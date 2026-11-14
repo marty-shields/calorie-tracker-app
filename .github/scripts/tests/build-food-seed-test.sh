@@ -147,7 +147,7 @@ exit=0" "$(seed ok)"
 # Sorted by code then repeat number (not sheet order); Tr is 0; 0.125 rounds half up; float noise is gone; the NSP column
 # (9 for Bread) is not the fibre; Na 400 mg is 1 g salt; Na 2/37 mg are 0.01/0.09 g (half up); each repeat of a code takes the
 # sodium of its own name; salt is null for N or a missing Na and for a food absent from 1.4.
-check "the seed file" '{"seedVersion":2,"source":"CoFID 2021","foods":[
+check "the seed file" '{"seedVersion":3,"source":"CoFID 2021","foods":[
 {"source":"CoFID","sourceId":"10-001","name":"Bread, white","originalName":"Bread, white","foodGroup":"AA","unit":"Gram","energyKcal":100,"proteinG":0.07,"carbsG":4.6,"fatG":0.13,"fibreG":2.5,"sugarsG":0,"saturatesG":0.5,"saltG":1},
 {"source":"CoFID","sourceId":"10-006","name":"Nothing optional","originalName":"Nothing optional","foodGroup":"AA","unit":"Gram","energyKcal":5,"proteinG":1,"carbsG":1,"fatG":1,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":null},
 {"source":"CoFID","sourceId":"10-007","name":"Trace sodium","originalName":"Trace sodium","foodGroup":"AA","unit":"Gram","energyKcal":5,"proteinG":1,"carbsG":1,"fatG":1,"fibreG":null,"sugarsG":0.05,"saturatesG":null,"saltG":0},
@@ -167,6 +167,36 @@ cp "$work/out.json" "$work/first.json"
 seed ok > /dev/null
 check "a second run gives identical bytes" "same" "$(cmp -s "$work/first.json" "$work/out.json" && echo same || echo differs)"
 check "lines end with LF only" "0" "$(grep -c $'\r' "$work/out.json")"
+
+# Everyday names: names/<foodGroup>.json beside the output file sets `name` only.
+mkdir "$work/names"
+printf '{\n"10-001":"White bread",\n"10-006":"Plain food"\n}\n' > "$work/names/AA.json"
+printf '{\n"13-669#2":"Watercress"\n}\n' > "$work/names/DG.json"
+seed ok > /dev/null
+check "names from the overlays are applied; originalName and sourceId stay" '"sourceId":"10-001","name":"White bread","originalName":"Bread, white"
+"sourceId":"10-006","name":"Plain food","originalName":"Nothing optional"
+"sourceId":"13-669","name":"Aubergine, roasted","originalName":"Aubergine, roasted"
+"sourceId":"13-669#2","name":"Watercress","originalName":"Watercress, raw"' "$(grep -oE '"sourceId":"(10-001|10-006|13-669|13-669#2)","name":"[^"]*","originalName":"[^"]*"' "$work/out.json")"
+cp "$work/out.json" "$work/named.json"
+seed ok > /dev/null
+check "regenerating keeps the names and is byte-identical" "same" "$(cmp -s "$work/named.json" "$work/out.json" && echo same || echo differs)"
+check "--names reads another folder" "same" "$(python3 -I "$script" "$work/book.xlsx" "$work/other.json" --names "$work/names" 2> /dev/null; cmp -s "$work/named.json" "$work/other.json" && echo same || echo differs)"
+
+overlay() { rm -f "$work"/names/*.json; printf '%s\n' "$2" > "$work/names/$1.json"; seed ok | tail -2; }
+check "a code that is not in the workbook output fails" "build-food-seed: $work/names/AA.json: 10-999 is not a food in the workbook output
+exit=1" "$(overlay AA '{"10-999":"Nothing"}')"
+check "a food that was dropped for a missing value fails" "build-food-seed: $work/names/AA.json: 10-002 is not a food in the workbook output
+exit=1" "$(overlay AA '{"10-002":"Nothing"}')"
+check "an entry in another group's file fails" "build-food-seed: $work/names/DG.json: 10-001 is in group AA, not DG
+exit=1" "$(overlay DG '{"10-001":"White bread"}')"
+check "an empty name fails" "build-food-seed: $work/names/AA.json: 10-001 has an empty name
+exit=1" "$(overlay AA '{"10-001":" "}')"
+check "a padded overlay name is written unpadded" '"sourceId":"10-001","name":"White bread"' "$(overlay AA '{"10-001":" White bread "}' > /dev/null; grep -oE '"sourceId":"10-001","name":"[^"]*"' "$work/out.json")"
+check "a repeated sourceId key in an overlay fails" "build-food-seed: cannot read $work/names/AA.json: repeated key 10-001
+exit=1" "$(overlay AA '{"10-001":"White bread","10-001":"Bread"}')"
+rm -rf "$work/names"
+check "a --names folder that does not exist fails" "build-food-seed: names folder $work/nonexistent does not exist
+exit=1" "$(python3 -I "$script" "$work/book.xlsx" "$work/x.json" --names "$work/nonexistent" 2>&1 | tail -1; echo "exit=${PIPESTATUS[0]}")"
 
 check "a missing sheet fails" "build-food-seed: sheet '1.4 Inorganics' is not in the workbook
 exit=1" "$(seed nosheet)"
