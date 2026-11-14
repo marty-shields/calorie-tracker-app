@@ -37,8 +37,7 @@ jobs:
       - name: Check the docs
         run: python3 -I .github/scripts/check-docs.py
 
-      # Fails on a food name that breaks the naming guide, a duplicate name, or an overlay that doesn't match the seed. --allow-missing
-      # lets foods without an everyday name yet pass; the final everyday-names PR drops the flag so every food needs one.
+      # Fails on a food name that breaks the naming guide, a duplicate name, an overlay that doesn't match the seed, or a food with no everyday name.
       # On a pull request it also fails when a food's sourceId or originalName differs from the base branch's seed (--base). The
       # repo is public, so the fetch needs no credentials; BASE_REF comes through env, never into the script text.
       - name: Check the food names
@@ -47,15 +46,15 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           if [ "$EVENT_NAME" != "pull_request" ]; then
-            python3 -I .github/scripts/check-food-names.py --allow-missing
+            python3 -I .github/scripts/check-food-names.py
             exit
           fi
           git fetch --no-tags --depth=1 origin "$BASE_REF"
           if git show FETCH_HEAD:src/CalorieTracker.Core/Seed/cofid-foods.json > "$RUNNER_TEMP/base-seed.json"; then
-            python3 -I .github/scripts/check-food-names.py --allow-missing --base "$RUNNER_TEMP/base-seed.json"
+            python3 -I .github/scripts/check-food-names.py --base "$RUNNER_TEMP/base-seed.json"
           else
             echo "::notice::The base branch has no food seed, so the originalName and sourceId check was skipped."
-            python3 -I .github/scripts/check-food-names.py --allow-missing
+            python3 -I .github/scripts/check-food-names.py
           fi
 
       - uses: ./.github/actions/setup-maui

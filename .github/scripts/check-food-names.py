@@ -11,7 +11,9 @@ Prints one finding per line and exits 1 on:
   - two foods with the same name, case-insensitive and whitespace-normalised (both sourceIds are listed), where at least one
     is named: an unnamed food counts with its current seed name, but two unnamed foods are not compared;
   - a named food whose name has a comma, an American spelling (also plurals and -ing/-ed forms), or more than 80 characters;
-  - with --base: a food whose sourceId is not in the base seed, a base food that is gone, or an originalName that differs.
+  - with --base: a food whose sourceId is not in the base seed, a base food that is gone, or an originalName that differs; a
+    seedVersion below the base's; or a food whose name or any other field differs from the base while seedVersion is not above
+    the base's (bump SEED_VERSION in build-food-seed.py and regenerate, or installed apps keep the old values).
 An overlay file with a repeated sourceId key is rejected. Overlay names are stripped once, before every check.
 """
 import json
@@ -75,14 +77,15 @@ def read_overlays(folder, foods, findings):
     return names
 
 
-def check_base(base_path, foods):
-    """Findings for foods whose sourceId set or originalName differs from the base seed's."""
+def check_base(base_path, seed):
+    """Findings for a sourceId set or originalName that differs from the base seed's, a lower seedVersion, or changed
+    fields without a higher seedVersion."""
     findings = []
     base = load_json(base_path, findings)
     if base is None:
         return findings
     original = {food['sourceId']: food['originalName'] for food in base['foods']}
-    current = {food['sourceId']: food['originalName'] for food in foods}
+    current = {food['sourceId']: food['originalName'] for food in seed['foods']}
     for source_id in sorted(current.keys() - original.keys()):
         findings.append(f'{source_id}: not in the base seed')
     for source_id in sorted(original.keys() - current.keys()):
@@ -90,6 +93,18 @@ def check_base(base_path, foods):
     for source_id in sorted(current.keys() & original.keys()):
         if current[source_id] != original[source_id]:
             findings.append(f'{source_id}: originalName "{current[source_id]}" differs from the base "{original[source_id]}"')
+    version, base_version = seed.get('seedVersion'), base.get('seedVersion')
+    if isinstance(version, int) and isinstance(base_version, int):
+        if version < base_version:
+            findings.append(f'seedVersion {version} is below the base {base_version}')
+        elif version == base_version:
+            base_foods = {food['sourceId']: food for food in base['foods']}
+            for food in seed['foods']:
+                old = base_foods.get(food['sourceId'])
+                changed = sorted(key for key in (food.keys() | old.keys()) if food.get(key) != old.get(key)) if old else []
+                if changed:
+                    findings.append(f'{food["sourceId"]}: {", ".join(changed)} changed from the base but seedVersion is still {version}'
+                                    ' (bump SEED_VERSION in build-food-seed.py and regenerate)')
     return findings
 
 
@@ -129,7 +144,7 @@ def check(seed_path, names_folder, allow_missing, base_path=None):
         if len(ids) > 1:
             findings.append(f'{" and ".join(ids)}: the same name "{shown[key]}"')
     if base_path is not None:
-        findings.extend(check_base(base_path, seed['foods']))
+        findings.extend(check_base(base_path, seed))
     return findings
 
 

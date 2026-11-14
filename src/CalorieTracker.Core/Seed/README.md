@@ -12,7 +12,7 @@ McCance and Widdowson's Composition of Foods Integrated Dataset 2021, Public Hea
 2. Run `python3 -I .github/scripts/build-food-seed.py <path to cofid.xlsx> src/CalorieTracker.Core/Seed/cofid-foods.json` (`py -I` on Windows). It needs only Python 3.
 3. The run prints `kept 2853 of 2887 foods` (the 2021 workbook) and a warning for each repeated food code. Every kept food has a row in the Inorganics sheet (no "has no row" warning on the 2021 workbook), so the 41 foods with `saltG` `null` are all `N` or blank sodium; a warning appears if a later workbook breaks that. A rerun on the same workbook is byte-identical.
 
-Regenerating keeps the everyday names: the script reads `names/*.json` (next to the output file, or `--names <folder>`) and applies them. With no `names/` folder the output is the plain workbook names.
+Every food has an everyday name. Regenerating keeps them: the script reads `names/*.json` (next to the output file, or `--names <folder>`) and applies them. With no `names/` folder the output is the plain workbook names.
 
 ## Everyday names
 
@@ -27,17 +27,17 @@ Names live in `names/<foodGroup>.json`, one file per CoFID group code (`names/AA
 
 The generator sets `name` from the entry and leaves `originalName` and `sourceId` alone. It fails on a `sourceId` that is not in the workbook output, an entry in the file of another group, or an empty name. Edit `names/`, then regenerate the seed; never edit `name` in `cofid-foods.json` by hand. Names follow the [naming guide](naming-guide.md).
 
-`python3 -I .github/scripts/check-food-names.py` checks the seed against `names/` and the guide: every food has an overlay entry, no two foods share a name (case-insensitive; an unnamed food counts with its seed name), the seed `name` equals its entry, and each name has no comma, no American spelling and at most 80 characters. Any entry counts as named, including one equal to `originalName`. `--allow-missing` lets foods with no entry pass; CI uses it until the final everyday-names PR, which drops the flag. `--seed` and `--names` point it at other files. `--base <seed.json>` also fails when a food's `sourceId` set or any `originalName` differs from the base seed; CI runs it on every pull request against the base branch's seed (it has no workbook, so only this check guards those fields there). By hand: `git show origin/main:src/CalorieTracker.Core/Seed/cofid-foods.json > /tmp/base.json`, then `python3 -I .github/scripts/check-food-names.py --allow-missing --base /tmp/base.json`. A repeated `sourceId` key in an overlay file is an error in both scripts, and `--names` on the generator needs an existing folder.
+`python3 -I .github/scripts/check-food-names.py` checks the seed against `names/` and the guide: every food has an overlay entry, no two foods share a name (case-insensitive; an unnamed food counts with its seed name), the seed `name` equals its entry, and each name has no comma, no American spelling and at most 80 characters. Any entry counts as named, including one equal to `originalName`. `--allow-missing` lets foods with no entry pass (for a work in progress; CI runs strict, so every food needs a name). `--seed` and `--names` point it at other files. `--base <seed.json>` also fails when a food's `sourceId` set or any `originalName` differs from the base seed, when `seedVersion` is below the base's, or when any food field (such as a name) differs while `seedVersion` is not above the base's; CI runs it on every pull request against the base branch's seed (it has no workbook, so only this check guards those fields there). By hand: `git show origin/main:src/CalorieTracker.Core/Seed/cofid-foods.json > /tmp/base.json`, then `python3 -I .github/scripts/check-food-names.py --base /tmp/base.json`. A repeated `sourceId` key in an overlay file is an error in both scripts, and `--names` on the generator needs an existing folder.
 
 ## Format
 
-`{"seedVersion":1,"source":"CoFID 2021","foods":[...]}`, one food per line, sorted by `sourceId`, `\n` line endings. `seedVersion` is a constant in the script, bumped when the content is revised.
+`{"seedVersion":3,"source":"CoFID 2021","foods":[...]}`, one food per line, sorted by `sourceId`, `\n` line endings. `seedVersion` is a constant in the script, bumped whenever the names or content change: 3 since the everyday names (2 was the food-search change).
 
 | Key | Meaning |
 | --- | --- |
 | `source` | `CoFID` |
 | `sourceId` | CoFID food code, such as `11-001` (see the repeated-code rule below) |
-| `name` | Display name; equals `originalName` until an entry in `names/` sets it |
+| `name` | Everyday display name, set from `names/` |
 | `originalName` | CoFID food name, never edited |
 | `foodGroup` | CoFID group code, such as `AA` |
 | `unit` | `Millilitre` when the group code starts with `Q` (alcoholic drinks, alcohol-free lager included), else `Gram` |
@@ -61,4 +61,4 @@ The file is an embedded resource of `CalorieTracker.Core` (`cofid-foods.json`). 
 - Foods match on `source` and `sourceId`; an existing row keeps its `Id`. Rows of other sources are never read or written.
 - Foods missing from a newer seed are left in place, never deleted.
 - `originalName` and `foodGroup` are not stored (the Food table has no columns for them).
-- Bump `seedVersion` in `build-food-seed.py` whenever the content or names change, or installed apps will not pick the change up. For the everyday names it is bumped once, in the final PR.
+- Bump `seedVersion` in `build-food-seed.py` whenever the content or names change, or installed apps will not pick the change up.

@@ -113,7 +113,8 @@ check "a padded overlay name is stripped before the checks" "exit=0" "$(run)"
 
 setup "$bread,
 $milk" "$ok_overlay"
-base() { printf '{"seedVersion":1,"source":"CoFID 2021","foods":[\n%s\n]}\n' "$1" > "$work/base.json"; }
+# base <foods> [seedVersion]: the base seed; its version defaults to 0, below the seed's 1
+base() { printf '{"seedVersion":%s,"source":"CoFID 2021","foods":[\n%s\n]}\n' "${2:-0}" "$1" > "$work/base.json"; }
 base "$bread,
 $(food 10-002 "Milk, whole" "Milk, whole" AA)"
 check "--base passes when sourceIds and originalNames match" "exit=0" "$(run --base "$work/base.json")"
@@ -129,6 +130,21 @@ exit=1" "$(run --base "$work/base.json")"
 base "$bread"
 check "--base fails on an added food" "10-002: not in the base seed
 exit=1" "$(run --base "$work/base.json")"
+
+base "$bread,
+$(food 10-002 "Milk, whole" "Milk, whole" AA)" 1
+check "--base fails on a changed name at the same seedVersion" "10-002: name changed from the base but seedVersion is still 1 (bump SEED_VERSION in build-food-seed.py and regenerate)
+exit=1" "$(run --base "$work/base.json")"
+base "$bread,
+$milk" 1
+check "--base passes unchanged foods at the same seedVersion" "exit=0" "$(run --base "$work/base.json")"
+base "$bread,
+$(food 10-002 "Milk, whole" "Milk, whole" AA)" 2
+check "--base fails on a seedVersion below the base" "seedVersion 1 is below the base 2
+exit=1" "$(run --base "$work/base.json")"
+base "$bread,
+$(food 10-002 "Milk, whole" "Milk, whole" AA)" 0
+check "--base passes a changed name at a higher seedVersion" "exit=0" "$(run --base "$work/base.json")"
 
 long=$(printf 'a%.0s' {1..81})
 setup "$(food 10-001 "$long" "Bread" AA)" "{\"10-001\":\"$long\"}"

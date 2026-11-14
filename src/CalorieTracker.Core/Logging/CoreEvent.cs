@@ -2,7 +2,7 @@ namespace CalorieTracker.Core.Logging;
 
 /// <summary>
 /// Event ids of Core's log messages: 1000–1999, a block of 100 per type.
-/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader; the <c>*Block</c> members hold them.
+/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch; the <c>*Block</c> members hold them.
 /// Ids never change and are never reused; list a retired id here and in <c>CoreEventTests</c>.
 /// </summary>
 internal enum CoreEvent
@@ -84,4 +84,13 @@ internal enum CoreEvent
 
     /// <summary><see cref="Seed.SeedLoader"/>: loading failed; nothing is recorded as loaded, so the next start retries.</summary>
     SeedLoadFailed = 1403,
+
+    /// <summary>Start of the block reserved for <see cref="Foods.FoodSearch"/>.</summary>
+    FoodSearchBlock = 1500,
+
+    /// <summary><see cref="Foods.FoodSearch"/>: a search ran; term and result counts, never the text.</summary>
+    FoodSearched = 1501,
+
+    /// <summary><see cref="Foods.FoodSearch"/>: the store failed, so the search returned <see cref="Foods.FoodSearchStatus.Failed"/>.</summary>
+    FoodSearchFailed = 1502,
 }

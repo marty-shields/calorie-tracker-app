@@ -219,6 +219,16 @@ public class OpenFoodFactsLookupTests
     }
 
     [Test]
+    public async Task AccentedNameAndBrand_AreFoldedInSearchText()
+    {
+        handler.Respond(Body("Crème fraîche", "Président", AllRequired()));
+
+        var food = (await lookup.LookupAsync(Barcode)).Food!;
+
+        Assert.That((food.Name, food.SearchText), Is.EqualTo(("Crème fraîche", "creme fraiche president")));
+    }
+
+    [Test]
     public async Task OnlyFirstBrand_IsKept_AndEmptyBrandIsNull()
     {
         handler.Respond(Body("Oats", " Quaker , Other", AllRequired()));

@@ -44,7 +44,7 @@ Do not invent or drop facts beyond this table; the examples below follow it. If 
 
 ## 3. Spelling
 
-British: yoghurt (CoFID writes `Yogurt`: change it), courgette, aubergine, grey, flavour, colour, fibre, savoury. Never yogurt, eggplant, zucchini, gray, flavor, color, fiber. Keep CoFID's own spellings of foreign dishes (`dahl`, `bhaji`, `Gujerati`) unless they are plainly mistyped.
+British: yoghurt (CoFID writes `Yogurt`: change it), courgette, aubergine, grey, flavour, colour, fibre, savoury. Never yogurt, eggplant, zucchini, gray, flavor, color, fiber. Keep CoFID's own spellings of foreign dishes (`dahl`, `bhaji`, `Gujerati`) unless they are plainly mistyped. Keep accents as CoFID writes them (`Crème caramel`, `Dark chocolate with crème or mint fondant centres`).
 
 ## 4. Casing, punctuation, length
 
@@ -53,6 +53,7 @@ British: yoghurt (CoFID writes `Yogurt`: change it), courgette, aubergine, grey,
 - No trailing full stop. Brackets only for qualifiers, one pair per name, items separated by `; `. `/` stays only inside a food that has alternatives in CoFID (`Pakora/bhajia`).
 - At most 80 characters. CoFID's longest is 91. 106 CoFID names are over 64 characters and 13 are over 80; shorten those by dropping a table word, never a fact (the longest example, `Grilled lamb best end neck cutlets (lean and fat; weighed with bone)`, is 68). 94% of CoFID names are already under 60.
 - No duplicate names anywhere in the seed, compared case-insensitively.
+- `with sugar` on stewed or baked fruit stays bare (the basis is unstated); `(no sugar)` marks the other.
 
 ## 5. Telling near-duplicates apart: the qualifier order
 
@@ -75,7 +76,7 @@ How well this works: dropping only the table's words (`raw`, `flesh only`, `old`
 
 | `originalName` | Foods |
 | --- | --- |
-| `Red snapper, flesh only, fried in blended oil, weighed with bones and skin` | `16-127` (126 kcal, 24.5 g protein) and `16-128` (64 kcal, 12.5 g protein): CoFID repeats the name. The energy of the second is about half, so ask whether it is a different portion basis, and say so in the PR |
+| `Red snapper, flesh only, fried in blended oil, weighed with bones and skin` | `16-127` (126 kcal) and `16-128` (64 kcal): CoFID repeats the name. Numbers and codes never go in a name, so the second carries the factual qualifier `lower energy`: `Fried red snapper (blended oil; weighed with bones and skin; lower energy)`. This is a placeholder for the reviewer's call: ask whether it is a different portion basis, and say so in the PR |
 | `Beef, mince, stewed` | `18-470` (group MAC, 209 kcal) is plain stewed mince; `19-607` (group MR, 139 kcal) is a dish. Name the dish one for example `Stewed beef mince dish`, once the nutrients and the group show what it is |
 
 ## 6. Worked examples by group
@@ -107,4 +108,4 @@ Group codes and sizes are from the seed; names are what the contents show.
 
 **Other groups worth a note.** BL (45, cheese): `Cheese, Cheddar, English` is `English Cheddar cheese`, `Cheese, Cheddar type, half fat` is `Half fat Cheddar-type cheese`, keep a CoFID quoted claim such as `'30% less fat'` as `30% less fat` in the bracket; GA (47, nuts): `Barcelona nuts, Kernel only` is `Barcelona nuts (kernel only)`, because the shell-weighed twin needs it; AM (42, biscuits), AN (41, cakes), AP (38, pastries), AS (48, puddings and pies): same rules as DR; Q groups (alcoholic drinks) keep the unit `Millilitre` and need no change.
 
-`SEED_VERSION` (the constant in `.github/scripts/build-food-seed.py`) is bumped once, in the final PR after the last group merges, not on each group's PR; until then installed apps keep the old names.
+`SEED_VERSION` (the constant in `.github/scripts/build-food-seed.py`) is 3 since the everyday names (2 was the food-search change), and is bumped whenever a name or the content changes, or installed apps keep the old ones.
