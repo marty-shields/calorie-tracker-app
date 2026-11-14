@@ -16,7 +16,7 @@ Regenerating overwrites hand-edited names, so redo the everyday-names edit (or m
 
 ## Format
 
-`{"seedVersion":1,"source":"CoFID 2021","foods":[...]}`, one food per line, sorted by `sourceId`, `\n` line endings. `seedVersion` is a constant in the script, bumped when the content is revised.
+`{"seedVersion":2,"source":"CoFID 2021","foods":[...]}`, one food per line, sorted by `sourceId`, `\n` line endings. `seedVersion` is a constant in the script, bumped when the content is revised.
 
 | Key | Meaning |
 | --- | --- |

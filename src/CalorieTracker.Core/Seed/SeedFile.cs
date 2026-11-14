@@ -1,5 +1,6 @@
 using System.Text.Json;
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Foods;
 
 namespace CalorieTracker.Core.Seed;
 
@@ -70,7 +71,7 @@ internal static class SeedFile
             SugarsG = dto.SugarsG,
             SaturatesG = dto.SaturatesG,
             SaltG = dto.SaltG,
-            SearchText = name.ToLowerInvariant(),
+            SearchText = SearchFolding.Fold(name),
         };
     }
 

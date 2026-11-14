@@ -393,10 +393,11 @@ public class StoredBarcodeLookupTests
                 Tokens.Add(ct);
             }
 
+            // Take the block before signalling: a call started right after the signal must not see it too.
+            var pending = Interlocked.Exchange(ref block, null);
             firstCallArrived.TrySetResult();
-            if (block is { } pending)
+            if (pending is not null)
             {
-                block = null;
                 await pending.Task;
             }
 

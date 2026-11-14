@@ -56,7 +56,7 @@ public class Food
 
     public double? SaltG { get; set; }
 
-    /// <summary>Lowercased text that searches match against.</summary>
+    /// <summary>Lowercased text with accents removed that searches match against.</summary>
     [NotNull]
     public string SearchText { get; set; } = "";
 }
