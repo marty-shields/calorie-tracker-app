@@ -44,6 +44,55 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             return food;
         });
 
+    /// <summary>The seed version last fully loaded for <paramref name="source"/>, or null when none was.</summary>
+    public Task<int?> GetSeedVersionAsync(FoodSource source) =>
+        gate.RunAsync<int?>(async () =>
+            (await connection.Table<SeedVersion>().Where(v => v.Source == source).FirstOrDefaultAsync())?.Version);
+
+    public Task SetSeedVersionAsync(FoodSource source, int version) =>
+        gate.RunAsync(async () =>
+            await connection.InsertOrReplaceAsync(new SeedVersion { Source = source, Version = version }));
+
+    /// <summary>
+    /// Inserts or updates the foods in one transaction, matching rows by source and source id.
+    /// Every food must have the same <see cref="Food.Source"/> and a distinct source id; rows of other sources are not touched.
+    /// </summary>
+    public Task<UpsertManyResult> UpsertManyAsync(IReadOnlyList<Food> foods) =>
+        gate.RunAsync(async () =>
+        {
+            var result = new UpsertManyResult(0, 0);
+            if (foods.Count == 0)
+            {
+                return result;
+            }
+
+            var source = foods[0].Source;
+            await connection.RunInTransactionAsync(db =>
+            {
+                var ids = db.Table<Food>().Where(f => f.Source == source).ToList().ToDictionary(f => f.SourceId, f => f.Id);
+                var toInsert = new List<Food>();
+                var toUpdate = new List<Food>();
+                foreach (var food in foods)
+                {
+                    if (ids.TryGetValue(food.SourceId, out var id))
+                    {
+                        food.Id = id;
+                        toUpdate.Add(food);
+                    }
+                    else
+                    {
+                        toInsert.Add(food);
+                    }
+                }
+
+                db.InsertAll(toInsert);
+                db.UpdateAll(toUpdate);
+                result = new UpsertManyResult(toInsert.Count, toUpdate.Count);
+            });
+
+            return result;
+        });
+
     private static partial class Log
     {
         [LoggerMessage((int)CoreEvent.FoodInserted, LogLevel.Debug, "Food {FoodId} inserted")]
@@ -53,3 +102,6 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
         public static partial void Updated(ILogger logger, int foodId);
     }
 }
+
+/// <summary>How many foods <see cref="FoodStore.UpsertManyAsync"/> inserted and updated.</summary>
+internal readonly record struct UpsertManyResult(int Inserted, int Updated);

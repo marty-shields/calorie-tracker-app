@@ -1,4 +1,5 @@
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Seed;
 using Microsoft.Extensions.DependencyInjection;
 using SQLite;
 
@@ -34,5 +35,7 @@ public static class CoreServiceCollectionExtensions
 
     private static IServiceCollection AddServices(this IServiceCollection services) =>
         services
-            .AddSingleton(TimeProvider.System);
+            .AddSingleton(TimeProvider.System)
+            .AddSingleton<ISeedLoader>(provider =>
+                ActivatorUtilities.CreateInstance<SeedLoader>(provider, (Func<Stream>)SeedLoader.OpenBundledSeed));
 }

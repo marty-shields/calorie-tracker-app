@@ -9,6 +9,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Seed\cofid-foods.json" LogicalName="cofid-foods.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="CalorieTracker.Core.Tests" />
     <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>

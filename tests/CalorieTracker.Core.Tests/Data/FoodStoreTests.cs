@@ -19,6 +19,7 @@ public class FoodStoreTests
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
+        await connection.CreateTableAsync<SeedVersion>();
         gate = new DatabaseGate();
         logger = new FakeLogger<FoodStore>();
         store = new FoodStore(connection, gate, logger);
@@ -187,6 +188,69 @@ public class FoodStoreTests
             var text = record.Message + string.Join(" ", record.StructuredState!.Select(p => $"{p.Key}={p.Value}"));
             Assert.That(text, Does.Not.Contain("Distinctive").And.Not.Contain("9876543210987").And.Not.Contain("SRC-SECRET"));
         }
+    }
+
+    [Test]
+    public async Task UpsertManyAsync_NewFoods_InsertsThem()
+    {
+        var result = await store.UpsertManyAsync([NewFood("1"), NewFood("2")]);
+
+        Assert.That(result, Is.EqualTo(new UpsertManyResult(2, 0)));
+        Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task UpsertManyAsync_ExistingFoods_UpdateKeepingTheId()
+    {
+        var saved = await store.UpsertAsync(NewFood("1", kcal: 100));
+
+        var result = await store.UpsertManyAsync([NewFood("1", kcal: 250)]);
+
+        var row = await connection.Table<Food>().FirstAsync();
+        Assert.That(result, Is.EqualTo(new UpsertManyResult(0, 1)));
+        Assert.That((row.Id, row.Kcal), Is.EqualTo((saved.Id, 250d)));
+    }
+
+    [Test]
+    public async Task UpsertManyAsync_MixedFoods_InsertsAndUpdates()
+    {
+        await store.UpsertAsync(NewFood("1"));
+
+        var result = await store.UpsertManyAsync([NewFood("1"), NewFood("2")]);
+
+        Assert.That(result, Is.EqualTo(new UpsertManyResult(1, 1)));
+        Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task UpsertManyAsync_OtherSourceWithTheSameSourceId_IsNotTouched()
+    {
+        var other = await store.UpsertAsync(NewFood("1", FoodSource.OpenFoodFacts, kcal: 5));
+
+        var result = await store.UpsertManyAsync([NewFood("1", kcal: 250)]);
+
+        var rows = await connection.Table<Food>().ToListAsync();
+        Assert.That(result, Is.EqualTo(new UpsertManyResult(1, 0)));
+        Assert.That(rows.Single(f => f.Id == other.Id).Kcal, Is.EqualTo(5));
+        Assert.That(rows, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public async Task UpsertManyAsync_NoFoods_ChangesNothing()
+    {
+        Assert.That(await store.UpsertManyAsync([]), Is.EqualTo(new UpsertManyResult(0, 0)));
+    }
+
+    [Test]
+    public async Task SeedVersion_IsNullUntilSet_ThenReplaced()
+    {
+        Assert.That(await store.GetSeedVersionAsync(FoodSource.CoFID), Is.Null);
+
+        await store.SetSeedVersionAsync(FoodSource.CoFID, 1);
+        await store.SetSeedVersionAsync(FoodSource.CoFID, 2);
+
+        Assert.That(await store.GetSeedVersionAsync(FoodSource.CoFID), Is.EqualTo(2));
+        Assert.That(await store.GetSeedVersionAsync(FoodSource.OpenFoodFacts), Is.Null);
     }
 
     private static Food NewFood(string sourceId, FoodSource source = FoodSource.CoFID, string? barcode = null, double kcal = 100) => new()

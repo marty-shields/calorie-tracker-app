@@ -25,5 +25,8 @@ public class CoreEventTests
             [CoreEvent.OpenFoodFactsAdapterBlock] = 1200,
             [CoreEvent.StoredLookupBlock] = 1300,
             [CoreEvent.SeedLoaderBlock] = 1400,
+            [CoreEvent.SeedLoaded] = 1401,
+            [CoreEvent.SeedUpToDate] = 1402,
+            [CoreEvent.SeedLoadFailed] = 1403,
         }));
 }
