@@ -121,19 +121,31 @@ public class FoodStoreTests
     }
 
     [Test]
-    public async Task Calls_WhileTheGateIsBusy_WaitForIt()
+    public async Task FindByBarcodeAsync_TwoRowsShareABarcode_ReturnsTheLowestId()
     {
-        var release = new TaskCompletionSource();
-        var busy = gate.RunAsync(() => release.Task);
+        var first = await store.UpsertAsync(NewFood("1", barcode: "12345670"));
+        await store.UpsertAsync(NewFood("2", FoodSource.OpenFoodFacts, barcode: "12345670"));
+
+        var found = await store.FindByBarcodeAsync("12345670");
+
+        Assert.That(found?.Id, Is.EqualTo(first.Id));
+    }
+
+    [Test]
+    public async Task FindByBarcodeAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
+    {
+        var holding = new TaskCompletionSource();
+        var busy = gate.RunAsync(async () =>
+        {
+            await holding.Task;
+            await connection.InsertAsync(NewFood("1", barcode: "12345670"));
+        });
 
         var find = store.FindByBarcodeAsync("12345670");
-        var upsert = store.UpsertAsync(NewFood("1"));
+        holding.SetResult();
 
-        await Task.Delay(100);
-        Assert.That(find.IsCompleted, Is.False);
-        Assert.That(upsert.IsCompleted, Is.False);
-        release.SetResult();
-        await Task.WhenAll(busy, find, upsert);
+        await busy;
+        Assert.That((await find)?.SourceId, Is.EqualTo("1"));
     }
 
     [Test]

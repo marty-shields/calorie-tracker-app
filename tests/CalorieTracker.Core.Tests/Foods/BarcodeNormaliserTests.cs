@@ -20,6 +20,7 @@ public class BarcodeNormaliserTests
     [TestCase("")]
     [TestCase(null)]
     [TestCase("abc")]
+    [TestCase("١٢٣٤٥٦٧٨")]
     public void TryNormalise_OtherLength_IsInvalid(string? input)
     {
         Assert.That(BarcodeNormaliser.TryNormalise(input, out var barcode), Is.False);
