@@ -76,8 +76,8 @@ How well this works: dropping only the table's words (`raw`, `flesh only`, `old`
 
 | `originalName` | Foods |
 | --- | --- |
-| `Red snapper, flesh only, fried in blended oil, weighed with bones and skin` | `16-127` (126 kcal) and `16-128` (64 kcal): CoFID repeats the name. Numbers and codes never go in a name, so the second carries the factual qualifier `lower energy`: `Fried red snapper (blended oil; weighed with bones and skin; lower energy)`. This is a placeholder for the reviewer's call: ask whether it is a different portion basis, and say so in the PR |
-| `Beef, mince, stewed` | `18-470` (group MAC, 209 kcal) is plain stewed mince; `19-607` (group MR, 139 kcal) is a dish. Name the dish one for example `Stewed beef mince dish`, once the nutrients and the group show what it is |
+| `Red snapper, flesh only, fried in blended oil, weighed with bones and skin` | `16-127` (126 kcal, 24.5 g protein) and `16-128` (64 kcal, 12.5 g) share this CoFID name. Their nutrients equal the sunflower-oil pair `16-129` (flesh only) and `16-130` (weighed with bones and skin), and no flesh-only blended-oil entry exists, so the name on `16-127` is most likely a CoFID labelling error. Resolved: `16-127` is `Fried red snapper (blended oil)` and `16-128` is `Fried red snapper (blended oil; weighed with bones and skin)` |
+| `Beef, mince, stewed` | `18-470` (group MAC, 209 kcal) is plain stewed mince and stays `Stewed beef mince`. `19-607` (group MR, meat dishes, 139 kcal) is its twin: a meat-dishes-group record that repeats a plain-meat name takes `(prepared dish)`, named from the group, not from invented ingredients: `Stewed beef mince (prepared dish)` |
 
 ## 6. Worked examples by group
 
