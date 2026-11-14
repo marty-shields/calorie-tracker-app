@@ -7,10 +7,11 @@ namespace CalorieTracker.Core.Data;
 /// <summary>Reads and writes <see cref="Food"/> rows, each call through the <see cref="DatabaseGate"/>.</summary>
 internal sealed partial class FoodStore(SQLiteAsyncConnection connection, DatabaseGate gate, ILogger<FoodStore> logger)
 {
-    /// <summary>Finds a food by barcode. The barcode index is not unique, so when rows share one the lowest id (the oldest row) wins.</summary>
+    /// <summary>Finds the food a barcode is linked to, or null when it is linked to none.</summary>
     public Task<Food?> FindByBarcodeAsync(string barcode) =>
         gate.RunAsync<Food?>(async () =>
-            await connection.Table<Food>().Where(f => f.Barcode == barcode).OrderBy(f => f.Id).FirstOrDefaultAsync());
+            (await connection.QueryAsync<Food>(
+                "SELECT f.* FROM Food f JOIN FoodBarcode b ON b.FoodId = f.Id WHERE b.Barcode = ?", barcode)).FirstOrDefault());
 
     /// <summary>The characters that split <see cref="Food.SearchText"/> and typed queries into words.</summary>
     internal static readonly char[] Separators = [' ', '\t', '\r', '\n', ',', '(', ')', '/', '-'];
@@ -49,7 +50,15 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
     }
 
     /// <summary>Inserts the food, or updates the row with the same source and source id. Returns the stored food with its id.</summary>
-    public Task<Food> UpsertAsync(Food food) =>
+    public Task<Food> UpsertAsync(Food food) => UpsertAndLinkAsync(food, null);
+
+    /// <summary>
+    /// Upserts the food like <see cref="UpsertAsync(Food)"/> and links <paramref name="barcode"/> to it, in one transaction.
+    /// A barcode already linked to another food stays with that food.
+    /// </summary>
+    public Task<Food> UpsertAsync(Food food, string barcode) => UpsertAndLinkAsync(food, barcode);
+
+    private Task<Food> UpsertAndLinkAsync(Food food, string? barcode) =>
         gate.RunAsync(async () =>
         {
             var inserted = false;
@@ -65,6 +74,11 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
                 {
                     food.Id = existing.Id;
                     db.Update(food);
+                }
+
+                if (barcode is not null)
+                {
+                    db.Execute("INSERT OR IGNORE INTO FoodBarcode (Barcode, FoodId) VALUES (?, ?)", barcode, food.Id);
                 }
             });
 

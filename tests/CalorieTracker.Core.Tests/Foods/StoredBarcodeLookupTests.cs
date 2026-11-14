@@ -25,6 +25,7 @@ public class StoredBarcodeLookupTests
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
+        await connection.CreateTableAsync<FoodBarcode>();
         store = new FoodStore(connection, new DatabaseGate(), new FakeLogger<FoodStore>());
         logger = new FakeLogger<StoredBarcodeLookup>();
         inner = new FakeInner();
@@ -41,7 +42,7 @@ public class StoredBarcodeLookupTests
     [Test]
     public async Task Lookup_BarcodeInFoodTable_ReturnsItWithoutCallingInner()
     {
-        var saved = await store.UpsertAsync(NewFood("1", Barcode));
+        var saved = await store.UpsertAsync(NewFood("1"), Barcode);
 
         var result = await lookup.LookupAsync(Barcode);
 
@@ -66,13 +67,34 @@ public class StoredBarcodeLookupTests
     }
 
     [Test]
-    public async Task Lookup_InnerFound_SetsTheBarcodeOnTheStoredFood()
+    public async Task Lookup_InnerFound_LinksTheBarcodeToTheStoredFood()
     {
         inner.Enqueue(BarcodeLookupResult.Found(NewFood("1")));
 
-        await lookup.LookupAsync(Barcode);
+        var result = await lookup.LookupAsync(Barcode);
 
-        Assert.That((await connection.Table<Food>().FirstAsync()).Barcode, Is.EqualTo(Barcode));
+        var link = await connection.Table<FoodBarcode>().FirstAsync();
+        Assert.That((link.Barcode, link.FoodId), Is.EqualTo((Barcode, result.Food!.Id)));
+    }
+
+    [Test]
+    public async Task Lookup_TwoBarcodesOneProduct_BothServedFromTheStoreAfterOneExtraInnerCall()
+    {
+        const string otherBarcode = "5000000000024";
+        inner.Enqueue(BarcodeLookupResult.Found(NewFood("1")));
+        inner.Enqueue(BarcodeLookupResult.Found(NewFood("1")));
+
+        var first = await lookup.LookupAsync(Barcode);
+        var second = await lookup.LookupAsync(otherBarcode);
+        Assert.That(inner.Calls, Is.EqualTo(2));
+
+        var firstAgain = await lookup.LookupAsync(Barcode);
+        var secondAgain = await lookup.LookupAsync(otherBarcode);
+
+        Assert.That(inner.Calls, Is.EqualTo(2));
+        Assert.That(new[] { second.Food!.Id, firstAgain.Food!.Id, secondAgain.Food!.Id }, Is.All.EqualTo(first.Food!.Id));
+        Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(1));
+        Assert.That(await connection.Table<FoodBarcode>().CountAsync(), Is.EqualTo(2));
     }
 
     [Test]
@@ -239,7 +261,6 @@ public class StoredBarcodeLookupTests
 
         Assert.That(first.Status, Is.EqualTo(BarcodeLookupStatus.Found));
         Assert.That(first.Food!.Id, Is.Zero);
-        Assert.That(first.Food.Barcode, Is.EqualTo(Barcode));
         Assert.That(await connection.Table<Food>().CountAsync(), Is.Zero);
         Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Contain(CoreEvent.StoredLookupSaveFailed));
 
@@ -275,7 +296,7 @@ public class StoredBarcodeLookupTests
         const string secretBarcode = "9876543210987";
         const string missBarcode = "9876543210994";
         const string offlineBarcode = "9876543211007";
-        var food = NewFood("SRC-SECRET", null);
+        var food = NewFood("SRC-SECRET");
         food.Name = "Distinctive Name";
         food.Brand = "Distinctive Brand";
         inner.Enqueue(BarcodeLookupResult.Found(food));
@@ -306,9 +327,9 @@ public class StoredBarcodeLookupTests
     {
         const string readBarcode = "9876543212004";
         const string saveBarcode = "9876543212011";
-        var readFood = NewFood("SRC-SECRET", null);
+        var readFood = NewFood("SRC-SECRET");
         readFood.Name = "Distinctive Name";
-        var saveFood = NewFood("SRC-SECRET-2", null);
+        var saveFood = NewFood("SRC-SECRET-2");
         saveFood.Name = "Distinctive Name";
         inner.Enqueue(BarcodeLookupResult.Found(saveFood));
         inner.Enqueue(BarcodeLookupResult.Found(readFood));
@@ -345,12 +366,11 @@ public class StoredBarcodeLookupTests
         }
     }
 
-    private static Food NewFood(string sourceId, string? barcode = null) => new()
+    private static Food NewFood(string sourceId) => new()
     {
         Source = FoodSource.OpenFoodFacts,
         SourceId = sourceId,
         Name = "Oats",
-        Barcode = barcode,
         Unit = FoodUnit.Gram,
         Kcal = 100,
         ProteinG = 1,

@@ -54,7 +54,6 @@ public class OpenFoodFactsLookupTests
         {
             Assert.That(food.Source, Is.EqualTo(FoodSource.OpenFoodFacts));
             Assert.That(food.SourceId, Is.EqualTo(Barcode));
-            Assert.That(food.Barcode, Is.EqualTo(Barcode));
             Assert.That(food.Name, Is.EqualTo("Nutella"));
             Assert.That(food.Brand, Is.EqualTo("Ferrero"));
             Assert.That(food.Unit, Is.EqualTo(FoodUnit.Gram));

@@ -21,6 +21,7 @@ public class SeedLoaderTests
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
+        await connection.CreateTableAsync<FoodBarcode>();
         await connection.CreateTableAsync<SeedVersion>();
         store = new FoodStore(connection, new DatabaseGate(), new FakeLogger<FoodStore>());
         logger = new FakeLogger<SeedLoader>();
@@ -50,7 +51,7 @@ public class SeedLoaderTests
             Assert.That((foods["11-001"].FibreG, foods["11-001"].SugarsG, foods["11-001"].SaturatesG, foods["11-001"].SaltG), Is.EqualTo(((double?)null, (double?)0, (double?)null, (double?)0.01)));
             Assert.That(foods["11-002"].Unit, Is.EqualTo(FoodUnit.Millilitre));
             Assert.That(foods["11-001"].Unit, Is.EqualTo(FoodUnit.Gram));
-            Assert.That((foods["11-001"].Brand, foods["11-001"].Barcode), Is.EqualTo(((string?)null, (string?)null)));
+            Assert.That(foods["11-001"].Brand, Is.Null);
         });
         Assert.That(await store.GetSeedVersionAsync(FoodSource.CoFID), Is.EqualTo(1));
     }
@@ -115,7 +116,7 @@ public class SeedLoaderTests
     public async Task LoadAsync_OpenFoodFactsRows_AreUntouched()
     {
         await Loader().LoadAsync();
-        await store.UpsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "11-001", Name = "Off", Barcode = "5000000000017", Unit = FoodUnit.Gram, Kcal = 1, ProteinG = 2, CarbsG = 3, FatG = 4, SearchText = "off" });
+        await store.UpsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "11-001", Name = "Off", Unit = FoodUnit.Gram, Kcal = 1, ProteinG = 2, CarbsG = 3, FatG = 4, SearchText = "off" }, "5000000000017");
         await store.UpsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "999", Name = "Other", Unit = FoodUnit.Gram, Kcal = 1, ProteinG = 2, CarbsG = 3, FatG = 4, SearchText = "other" });
         var before = await Snapshot(FoodSource.OpenFoodFacts);
         seedJson = Sample(2, changedKcal: 999, extra: true);
@@ -256,7 +257,7 @@ public class SeedLoaderTests
 
     private async Task<List<string>> Snapshot(FoodSource source) =>
         (await connection.Table<Food>().Where(f => f.Source == source).OrderBy(f => f.Id).ToListAsync())
-            .Select(f => $"{f.Id}|{f.Source}|{f.SourceId}|{f.Name}|{f.Brand}|{f.Barcode}|{f.Unit}|{f.Kcal}|{f.ProteinG}|{f.CarbsG}|{f.FatG}|{f.FibreG}|{f.SugarsG}|{f.SaturatesG}|{f.SaltG}|{f.SearchText}").ToList();
+            .Select(f => $"{f.Id}|{f.Source}|{f.SourceId}|{f.Name}|{f.Brand}|{f.Unit}|{f.Kcal}|{f.ProteinG}|{f.CarbsG}|{f.FatG}|{f.FibreG}|{f.SugarsG}|{f.SaturatesG}|{f.SaltG}|{f.SearchText}").ToList();
 
     private static string Sample(int version, double changedKcal = 355, bool extra = false)
     {

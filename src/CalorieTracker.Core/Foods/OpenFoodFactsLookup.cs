@@ -184,7 +184,6 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
         {
             Source = FoodSource.OpenFoodFacts,
             SourceId = barcode,
-            Barcode = barcode,
             Name = name,
             Brand = brand,
             Unit = millilitre ? FoodUnit.Millilitre : FoodUnit.Gram,

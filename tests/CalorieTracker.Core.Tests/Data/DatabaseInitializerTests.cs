@@ -41,7 +41,7 @@ public class DatabaseInitializerTests
     [Test]
     public async Task InitializeAsync_NewDatabaseAtTheAppsVersion_NeedsNoSteps()
     {
-        await Initializer(DatabaseInitializer.CurrentVersion).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade()).InitializeAsync();
 
         Assert.That(await Version(), Is.EqualTo(DatabaseInitializer.CurrentVersion));
     }
@@ -184,7 +184,7 @@ public class DatabaseInitializerTests
     [Test]
     public async Task InitializeAsync_NewDatabase_CreatesTheFoodTableAndIndexes()
     {
-        await Initializer(DatabaseInitializer.CurrentVersion).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade()).InitializeAsync();
 
         await AssertFoodTableAndIndexes();
     }
@@ -194,7 +194,7 @@ public class DatabaseInitializerTests
     {
         await SetVersion(1);
 
-        await Initializer(DatabaseInitializer.CurrentVersion).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade()).InitializeAsync();
 
         await AssertFoodTableAndIndexes();
     }
@@ -202,7 +202,7 @@ public class DatabaseInitializerTests
     [Test]
     public async Task InitializeAsync_NewDatabase_CreatesTheSeedVersionTable()
     {
-        await Initializer(DatabaseInitializer.CurrentVersion).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade()).InitializeAsync();
 
         Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'SeedVersion'"), Is.EqualTo(1));
     }
@@ -212,9 +212,47 @@ public class DatabaseInitializerTests
     {
         await SetVersion(1);
 
-        await Initializer(DatabaseInitializer.CurrentVersion).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade()).InitializeAsync();
 
         Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'SeedVersion'"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task InitializeAsync_NewDatabase_CreatesTheFoodBarcodeTableWithoutTheOldColumn()
+    {
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade()).InitializeAsync();
+
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'FoodBarcode'"), Is.EqualTo(1));
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM pragma_table_info('Food') WHERE name = 'Barcode'"), Is.Zero);
+    }
+
+    [Test]
+    public async Task InitializeAsync_VersionOneDatabase_MovesBarcodesToTheFoodBarcodeTable()
+    {
+        await connection.ExecuteAsync(
+            "CREATE TABLE Food (Id integer primary key autoincrement not null, Source integer not null, SourceId varchar not null, Name varchar not null, Brand varchar, Barcode varchar, Unit integer not null, Kcal float, ProteinG float, CarbsG float, FatG float, FibreG float, SugarsG float, SaturatesG float, SaltG float, SearchText varchar not null)");
+        await connection.ExecuteAsync("CREATE INDEX Food_Barcode ON Food(Barcode)");
+        await connection.ExecuteAsync("CREATE UNIQUE INDEX UX_Food_Source_SourceId ON Food(Source, SourceId)");
+        await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Barcode, Unit, SearchText) VALUES (1, 1, 'a', 'A', '5000000000017', 0, 'a'), (2, 1, 'b', 'B', NULL, 0, 'b'), (3, 1, 'c', 'C', '5000000000017', 0, 'c'), (4, 1, 'd', 'D', '12345670', 0, 'd')");
+        await SetVersion(1);
+
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade()).InitializeAsync();
+
+        var links = await connection.QueryAsync<FoodBarcode>("SELECT Barcode, FoodId FROM FoodBarcode ORDER BY Barcode");
+        Assert.That(links.Select(l => (l.Barcode, l.FoodId)), Is.EqualTo(new[] { ("12345670", 4), ("5000000000017", 1) }));
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM pragma_table_info('Food') WHERE name = 'Barcode'"), Is.Zero);
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM Food"), Is.EqualTo(4));
+        Assert.That(await connection.QueryScalarsAsync<string>("SELECT name FROM pragma_index_list('FoodBarcode')"), Does.Contain("FoodBarcode_FoodId"));
+        Assert.That(await Version(), Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task Sqlite_BundledVersion_SupportsDropColumn()
+    {
+        var version = await connection.ExecuteScalarAsync<string>("SELECT sqlite_version()");
+
+        Assert.That(System.Version.Parse(version), Is.GreaterThanOrEqualTo(new System.Version(3, 35)));
+        TestContext.Out.WriteLine($"sqlite_version() = {version}");
     }
 
     private async Task AssertFoodTableAndIndexes()
@@ -223,7 +261,7 @@ public class DatabaseInitializerTests
         var unique = await connection.QueryScalarsAsync<string>("SELECT name FROM pragma_index_list('Food') WHERE \"unique\" = 1");
         var all = await connection.QueryScalarsAsync<string>("SELECT name FROM pragma_index_list('Food')");
         Assert.That(unique, Does.Contain("UX_Food_Source_SourceId"));
-        Assert.That(all, Does.Contain("Food_Barcode"));
+        Assert.That(all, Does.Not.Contain("Food_Barcode"));
     }
 
     private DatabaseInitializer Initializer(int currentVersion, params ISchemaUpgrade[] steps) =>
