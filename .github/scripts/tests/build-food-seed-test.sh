@@ -191,7 +191,12 @@ check "an entry in another group's file fails" "build-food-seed: $work/names/DG.
 exit=1" "$(overlay DG '{"10-001":"White bread"}')"
 check "an empty name fails" "build-food-seed: $work/names/AA.json: 10-001 has an empty name
 exit=1" "$(overlay AA '{"10-001":" "}')"
+check "a padded overlay name is written unpadded" '"sourceId":"10-001","name":"White bread"' "$(overlay AA '{"10-001":" White bread "}' > /dev/null; grep -oE '"sourceId":"10-001","name":"[^"]*"' "$work/out.json")"
+check "a repeated sourceId key in an overlay fails" "build-food-seed: cannot read $work/names/AA.json: repeated key 10-001
+exit=1" "$(overlay AA '{"10-001":"White bread","10-001":"Bread"}')"
 rm -rf "$work/names"
+check "a --names folder that does not exist fails" "build-food-seed: names folder $work/nonexistent does not exist
+exit=1" "$(python3 -I "$script" "$work/book.xlsx" "$work/x.json" --names "$work/nonexistent" 2>&1 | tail -1; echo "exit=${PIPESTATUS[0]}")"
 
 check "a missing sheet fails" "build-food-seed: sheet '1.4 Inorganics' is not in the workbook
 exit=1" "$(seed nosheet)"

@@ -3,10 +3,10 @@
 Builds the generic-food seed file from the CoFID 2021 workbook (src/CalorieTracker.Core/Seed/README.md says where to get it).
 Reads sheets "1.3 Proximates" and "1.4 Inorganics", joined on (food code, food name). Columns are found by the tag in row 2
 of each sheet, never by position; the food code is column A, the name B and the group D. Uses only the standard library.
-Everyday names: each <folder>/<foodGroup>.json (default: the "names" folder beside <out.json>; no folder means no overlay) is
+Everyday names: each <folder>/<foodGroup>.json (default: the "names" folder beside <out.json>, which may be absent; a --names folder must exist) is
 {"11-001":"Arrowroot",...}, one entry per line, sorted by sourceId. It sets that food's "name"; originalName and sourceId stay as
 the workbook has them. Exits 1 on an entry whose sourceId is not in the output, whose food is in another group than the file name,
-or whose name is empty.
+or whose name is empty, and on a repeated sourceId key in a file. Names are stripped of surrounding spaces once.
 Writes {"seedVersion", "source", "foods"} with one food per line, sorted by sourceId, so a rerun is byte-identical.
 A food with no value (N or blank) for energy, protein, carbohydrate or fat is dropped; the other values become null.
 Prints kept/dropped counts, any repeated food code and any kept food with no row in 1.4 to stderr. Exits 1 on a missing sheet, tag or column, or a value it
@@ -218,16 +218,26 @@ def build(path):
     return [food for _, _, food in foods]
 
 
-def apply_names(foods, folder):
-    """Sets each food's name from <folder>/<foodGroup>.json; a missing folder changes nothing."""
+def no_repeated_keys(pairs):
+    keys = [key for key, _ in pairs]
+    repeated = sorted({key for key in keys if keys.count(key) > 1})
+    if repeated:
+        raise ValueError(f"repeated key {', '.join(repeated)}")
+    return dict(pairs)
+
+
+def apply_names(foods, folder, required):
+    """Sets each food's name from <folder>/<foodGroup>.json; a missing folder changes nothing unless it is required."""
     if not os.path.isdir(folder):
+        if required:
+            fail(f"names folder {folder} does not exist")
         return
     by_id = {food["sourceId"]: food for food in foods}
     for path in sorted(glob.glob(os.path.join(folder, "*.json"))):
         group = os.path.splitext(os.path.basename(path))[0]
         try:
             with open(path, encoding="utf-8") as file:
-                names = json.load(file)
+                names = json.load(file, object_pairs_hook=no_repeated_keys)
         except (OSError, ValueError) as error:
             fail(f"cannot read {path}: {error}")
         if not isinstance(names, dict):
@@ -238,9 +248,10 @@ def apply_names(foods, folder):
                 fail(f"{path}: {source_id} is not a food in the workbook output")
             if food["foodGroup"] != group:
                 fail(f"{path}: {source_id} is in group {food['foodGroup']}, not {group}")
-            if not isinstance(name, str) or not name.strip():
+            name = name.strip() if isinstance(name, str) else ""
+            if not name:
                 fail(f"{path}: {source_id} has an empty name")
-            food["name"] = name.strip()
+            food["name"] = name
 
 
 class Raw(str):
@@ -270,7 +281,7 @@ def main(argv):
     if len(args) != 2:
         sys.exit(__doc__)
     foods = build(args[0])
-    apply_names(foods, names or os.path.join(os.path.dirname(os.path.abspath(args[1])), "names"))
+    apply_names(foods, names or os.path.join(os.path.dirname(os.path.abspath(args[1])), "names"), names is not None)
     text = render(foods)
     with open(args[1], "w", encoding="utf-8", newline="\n") as out:
         out.write(text)
