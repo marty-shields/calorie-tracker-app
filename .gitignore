@@ -45,3 +45,6 @@ Desktop.ini
 
 # Downloaded CoFID workbook (see src/CalorieTracker.Core/Seed/README.md)
 *.xlsx
+
+# Python bytecode
+__pycache__/
