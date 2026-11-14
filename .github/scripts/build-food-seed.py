@@ -16,7 +16,7 @@ import xml.etree.ElementTree as ET
 from decimal import Decimal
 
 # Bumped by hand when the seed's content is revised (for example by the everyday-names edit).
-SEED_VERSION = 1
+SEED_VERSION = 2
 SOURCE_NAME = "CoFID 2021"
 SOURCE = "CoFID"
 PROXIMATES = "1.3 Proximates"

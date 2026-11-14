@@ -344,6 +344,24 @@ public class FoodSearchTests
         Assert.That(records[0].Message, Is.EqualTo("Food search with 2 terms found 1 foods"));
     }
 
+    [TestCase("creme")]
+    [TestCase("crème")]
+    [TestCase("CRÈME")]
+    public async Task Search_AccentedFood_IsFoundWithOrWithoutTheAccent(string query)
+    {
+        await Add("Crème fraîche", SearchFolding.Fold("Crème fraîche"));
+
+        Assert.That(await Names(query), Is.EqualTo(new[] { "Crème fraîche" }));
+    }
+
+    [Test]
+    public async Task Search_PureeWithoutAccent_FindsPuree()
+    {
+        await Add("Purée", SearchFolding.Fold("Purée"));
+
+        Assert.That(await Names("puree"), Is.EqualTo(new[] { "Purée" }));
+    }
+
     private async Task<List<string>> Names(string query) =>
         (await search.SearchAsync(query)).Foods.Select(f => f.Name).ToList();
 

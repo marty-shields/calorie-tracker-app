@@ -147,7 +147,7 @@ exit=0" "$(seed ok)"
 # Sorted by code then repeat number (not sheet order); Tr is 0; 0.125 rounds half up; float noise is gone; the NSP column
 # (9 for Bread) is not the fibre; Na 400 mg is 1 g salt; Na 2/37 mg are 0.01/0.09 g (half up); each repeat of a code takes the
 # sodium of its own name; salt is null for N or a missing Na and for a food absent from 1.4.
-check "the seed file" '{"seedVersion":1,"source":"CoFID 2021","foods":[
+check "the seed file" '{"seedVersion":2,"source":"CoFID 2021","foods":[
 {"source":"CoFID","sourceId":"10-001","name":"Bread, white","originalName":"Bread, white","foodGroup":"AA","unit":"Gram","energyKcal":100,"proteinG":0.07,"carbsG":4.6,"fatG":0.13,"fibreG":2.5,"sugarsG":0,"saturatesG":0.5,"saltG":1},
 {"source":"CoFID","sourceId":"10-006","name":"Nothing optional","originalName":"Nothing optional","foodGroup":"AA","unit":"Gram","energyKcal":5,"proteinG":1,"carbsG":1,"fatG":1,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":null},
 {"source":"CoFID","sourceId":"10-007","name":"Trace sodium","originalName":"Trace sodium","foodGroup":"AA","unit":"Gram","energyKcal":5,"proteinG":1,"carbsG":1,"fatG":1,"fibreG":null,"sugarsG":0.05,"saturatesG":null,"saltG":0},

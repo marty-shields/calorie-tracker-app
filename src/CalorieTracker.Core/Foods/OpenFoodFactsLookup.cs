@@ -196,7 +196,7 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
             SugarsG = Nutrient("sugars_100g"),
             SaturatesG = Nutrient("saturated-fat_100g"),
             SaltG = Nutrient("salt_100g"),
-            SearchText = $"{name} {brand}".Trim().ToLowerInvariant(),
+            SearchText = SearchFolding.Fold($"{name} {brand}".Trim()),
         };
     }
 
