@@ -199,6 +199,24 @@ public class DatabaseInitializerTests
         await AssertFoodTableAndIndexes();
     }
 
+    [Test]
+    public async Task InitializeAsync_NewDatabase_CreatesTheSeedVersionTable()
+    {
+        await Initializer(DatabaseInitializer.CurrentVersion).InitializeAsync();
+
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'SeedVersion'"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task InitializeAsync_ExistingDatabaseWithoutSeedVersion_CreatesTheSeedVersionTable()
+    {
+        await SetVersion(1);
+
+        await Initializer(DatabaseInitializer.CurrentVersion).InitializeAsync();
+
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'SeedVersion'"), Is.EqualTo(1));
+    }
+
     private async Task AssertFoodTableAndIndexes()
     {
         Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'Food'"), Is.EqualTo(1));

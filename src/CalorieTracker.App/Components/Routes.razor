@@ -1,7 +1,9 @@
 @using Microsoft.AspNetCore.Components.Routing
 @using CalorieTracker.Core.Data
+@using CalorieTracker.Core.Seed
 @using CalorieTracker.UI.Components.Layout
 @inject IDatabaseInitializer DatabaseInitializer
+@inject ISeedLoader SeedLoader
 @inject NavigationManager Navigation
 
 <SystemBarInsets />
@@ -19,5 +21,8 @@
     private async Task InitializeAsync()
     {
         await DatabaseInitializer.InitializeAsync();
+
+        // Not awaited, so the first screen does not wait for the seed. LoadAsync never throws.
+        _ = SeedLoader.LoadAsync();
     }
 }

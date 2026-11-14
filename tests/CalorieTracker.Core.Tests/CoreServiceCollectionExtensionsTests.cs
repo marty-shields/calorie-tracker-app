@@ -1,5 +1,6 @@
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
+using CalorieTracker.Core.Seed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -26,6 +27,7 @@ public class CoreServiceCollectionExtensionsTests
                 (typeof(FoodStore), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(IDatabaseInitializer), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(TimeProvider), (Type?)null, ServiceLifetime.Singleton),
+                (typeof(ISeedLoader), (Type?)null, ServiceLifetime.Singleton),
             }));
         Assert.That(services.Single(s => s.ServiceType == typeof(IBarcodeLookup)).Lifetime, Is.EqualTo(ServiceLifetime.Transient));
     }
@@ -88,6 +90,26 @@ public class CoreServiceCollectionExtensionsTests
         var second = provider.GetRequiredService<FoodStore>();
 
         Assert.That(second, Is.SameAs(first));
+    }
+
+    [Test]
+    public async Task AddCore_WithLogging_ResolvesASeedLoaderThatLoadsTheBundledSeed()
+    {
+        var path = TempDatabase.NewPath();
+        using var provider = new ServiceCollection()
+            .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
+            .AddCore(path)
+            .BuildServiceProvider();
+        await provider.GetRequiredService<IDatabaseInitializer>().InitializeAsync();
+
+        var result = await provider.GetRequiredService<ISeedLoader>().LoadAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(SeedLoadStatus.Loaded));
+            Assert.That(result.Inserted, Is.EqualTo(2853));
+        });
+        File.Delete(path);
     }
 
     [Test]

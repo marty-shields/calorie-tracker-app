@@ -36,3 +36,14 @@ Values are rounded half up to 2 decimal places; `Tr` (trace) is 0; `N` or blank 
 ## Repeated food codes
 
 CoFID reuses code `13-669` for two foods ("Aubergine, flesh and skin, roasted in rapeseed oil" and "Watercress, raw"). Both are kept and joined to the Inorganics sheet by code and name. Numbering follows sheet order across every row of the sheet, dropped foods included, so ids do not shift when a food is dropped: the first in sheet order keeps the plain code even if it is dropped (then no food has the plain code), and each later one gets `#2`, `#3` and so on (`13-669#2` is the watercress), so `(source, sourceId)` stays unique.
+
+## Loading
+
+The file is an embedded resource of `CalorieTracker.Core` (`cofid-foods.json`). `ISeedLoader.LoadAsync` runs after the database initializer on each start, without holding up the first screen, and loads the foods in chunks of 500 through `FoodStore`.
+
+- The `SeedVersion` table holds the loaded `seedVersion` for each source. It is written only after the last chunk, so a crash part way retries on the next start (the upsert is idempotent).
+- A stored version equal to or higher than the bundled one loads nothing. A missing or lower one loads every food and then stores the bundled version.
+- Foods match on `source` and `sourceId`; an existing row keeps its `Id`. Rows of other sources are never read or written.
+- Foods missing from a newer seed are left in place, never deleted.
+- `originalName` and `foodGroup` are not stored (the Food table has no columns for them).
+- Bump `seedVersion` in `build-food-seed.py` whenever the content or names change, including the everyday-names edit, or installed apps will not pick the change up.
