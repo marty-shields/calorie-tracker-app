@@ -4,12 +4,13 @@ using CalorieTracker.E2E.Tests.Screens;
 namespace CalorieTracker.E2E.Tests.Support;
 
 /// <summary>What a user does across screens: open Settings, go back to the Dashboard.</summary>
-public sealed class Journeys(WebView web, Native native, DashboardScreen dashboard, SettingsScreen settings)
+public sealed class Journeys(WebView web, Native native, DashboardScreen dashboard, SettingsScreen settings, NavigationBar bar)
 {
     public enum Screen
     {
         Dashboard,
         Settings,
+        Scan,
         Other,
     }
 
@@ -18,6 +19,7 @@ public sealed class Journeys(WebView web, Native native, DashboardScreen dashboa
     {
         DashboardScreen.Title => Screen.Dashboard,
         SettingsScreen.Title => Screen.Settings,
+        ScanScreen.Title => Screen.Scan,
         _ => Screen.Other,
     };
 
@@ -30,6 +32,14 @@ public sealed class Journeys(WebView web, Native native, DashboardScreen dashboa
         WaitFor(Screen.Dashboard);
         dashboard.OpenSettings();
         WaitFor(Screen.Settings);
+    }
+
+    /// <summary>Opens Scan from the navigation bar and waits for it.</summary>
+    public void OpenScan()
+    {
+        WaitFor(Screen.Dashboard);
+        bar.Open("Scan");
+        WaitFor(Screen.Scan);
     }
 
     /// <summary>Goes to the Dashboard from Settings, or stays on it.</summary>

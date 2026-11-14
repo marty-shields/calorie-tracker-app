@@ -10,16 +10,16 @@ internal sealed partial class CameraBarcodeScanner(ILogger<CameraBarcodeScanner>
     // Only touched on the main thread, so a second tap while a scan is open joins it instead of pushing another page.
     private Task<ScanResult>? pending;
 
-    public Task<ScanResult> ScanAsync() => MainThread.InvokeOnMainThreadAsync(JoinOrOpenAsync);
+    public Task<ScanResult> ScanAsync(Func<string, bool> accept) => MainThread.InvokeOnMainThreadAsync(() => JoinOrOpenAsync(accept));
 
-    private async Task<ScanResult> JoinOrOpenAsync()
+    private async Task<ScanResult> JoinOrOpenAsync(Func<string, bool> accept)
     {
         if (pending is not null)
         {
             return await pending;
         }
 
-        pending = OpenAsync();
+        pending = OpenAsync(accept);
         try
         {
             return await pending;
@@ -30,7 +30,7 @@ internal sealed partial class CameraBarcodeScanner(ILogger<CameraBarcodeScanner>
         }
     }
 
-    private async Task<ScanResult> OpenAsync()
+    private async Task<ScanResult> OpenAsync(Func<string, bool> accept)
     {
         var result = ScanResult.Unavailable;
         try
@@ -42,7 +42,7 @@ internal sealed partial class CameraBarcodeScanner(ILogger<CameraBarcodeScanner>
             }
             else if (Application.Current?.Windows is [var window, ..] && window.Page?.Navigation is { } navigation)
             {
-                var page = new ScanPage();
+                var page = new ScanPage(accept);
                 await navigation.PushModalAsync(page);
                 result = await page.Result;
             }

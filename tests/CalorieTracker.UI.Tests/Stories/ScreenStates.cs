@@ -37,6 +37,7 @@ public static class ScreenStates
         new("Screens/Scan", "Found liquid", c => Scan(c, ScanState.Found, new("Semi-skimmed milk", null, 47, 3.5m, 4.8m, 1.7m, IsLiquid: true))),
         new("Screens/Scan", "Found with warning", c => Scan(c, ScanState.Found, new("Chocolate spread", "Nutty Co", 250, 6, 55, 31))),
         new("Screens/Scan", "Not found", c => Scan(c, ScanState.NotFound)),
+        new("Screens/Scan", "Camera unavailable", c => Scan(c, ScanState.CameraUnavailable)),
 
         new("Screens/Error", "Error", c => c.Render<ErrorView>(p => p.Add(x => x.OnRestart, () => { })).FindAll("*")),
     ];
@@ -46,7 +47,7 @@ public static class ScreenStates
             .Add(x => x.State, state)
             .Add(x => x.Product, product)
             .Add(x => x.OnScanAgain, () => { })
-            .Add(x => x.OnBack, () => { }))
+            .Add(x => x.OnNavigate, (NavDestination _) => { }))
             .FindAll("*");
 
     private static IReadOnlyList<IElement> Settings(BunitContext context, string? version = null, ThemePreference theme = ThemePreference.System) =>

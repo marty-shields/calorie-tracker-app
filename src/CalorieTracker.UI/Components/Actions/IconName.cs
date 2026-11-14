@@ -35,4 +35,7 @@ public enum IconName
 
     /// <summary>House (<c>home</c>).</summary>
     Home,
+
+    /// <summary>Barcode in scanner corners (<c>barcode_scanner</c>).</summary>
+    Scan,
 }

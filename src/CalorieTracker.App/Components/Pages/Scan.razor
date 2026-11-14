@@ -1,0 +1,6 @@
+@page "/scan"
+@using CalorieTracker.UI.Screens
+@inject NavigationManager Navigation
+
+<ScanPage OnBack="@(() => Navigation.GoTo(string.Empty))"
+          OnNavigate="@(destination => Navigation.GoTo(destination))" />

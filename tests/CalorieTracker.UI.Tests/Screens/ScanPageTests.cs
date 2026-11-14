@@ -1,0 +1,307 @@
+using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Foods;
+using CalorieTracker.UI.Logging;
+using CalorieTracker.UI.Navigation;
+using CalorieTracker.UI.Scanning;
+using CalorieTracker.UI.Screens;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
+
+namespace CalorieTracker.UI.Tests.Screens;
+
+public class ScanPageTests : ComponentTestBase
+{
+    private const string Barcode = "5000112637922";
+
+    private FakeScanner scanner = null!;
+    private FakeLookup lookup = null!;
+    private FakeLogger<ScanPage> logger = null!;
+
+    [SetUp]
+    public void SetUp()
+    {
+        scanner = new FakeScanner();
+        lookup = new FakeLookup();
+        logger = new FakeLogger<ScanPage>();
+        Context.Services.AddSingleton<IBarcodeScanner>(scanner);
+        Context.Services.AddSingleton<IBarcodeLookup>(lookup);
+        Context.Services.AddSingleton<ILogger<ScanPage>>(logger);
+    }
+
+    [Test]
+    public void OnFirstRender_StartsOneScanAndShowsTheCamera()
+    {
+        var cut = Context.Render<ScanPage>();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(scanner.Scans, Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=scan-camera]"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task AcceptedBarcode_IsLookedUpExactlyOnce()
+    {
+        lookup.Hold = true;
+        var cut = Context.Render<ScanPage>();
+
+        Assert.That(scanner.Detect(Barcode), Is.True);
+        await WaitForRendererAsync();
+        scanner.Complete(ScanResult.Scanned(Barcode));
+        await WaitForRendererAsync();
+
+        Assert.That(lookup.Barcodes, Is.EqualTo(new[] { Barcode }));
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-looking-up]"), Has.Count.EqualTo(1)));
+    }
+
+    [Test]
+    public async Task RepeatDetectionOfTheSameBarcode_DuringTheLookup_DoesNotLookItUpAgain()
+    {
+        Context.Render<ScanPage>();
+
+        scanner.Detect(Barcode);
+        await WaitForRendererAsync();
+        scanner.Detect(Barcode);
+        scanner.Detect(Barcode);
+        await WaitForRendererAsync();
+
+        Assert.That(lookup.Barcodes, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public async Task UpcA_IsLookedUpWithALeadingZero()
+    {
+        Context.Render<ScanPage>();
+
+        scanner.Detect("036000291452");
+        await WaitForRendererAsync();
+
+        Assert.That(lookup.Barcodes, Is.EqualTo(new[] { "0036000291452" }));
+    }
+
+    [TestCase("12345")]
+    [TestCase("")]
+    [TestCase("not a barcode")]
+    public async Task InvalidLengthCode_IsRefusedAndNotLookedUp(string raw)
+    {
+        var cut = Context.Render<ScanPage>();
+
+        var accepted = scanner.Detect(raw);
+        await WaitForRendererAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(accepted, Is.False);
+            Assert.That(lookup.Barcodes, Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=scan-camera]"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task Found_ShowsTheProductPer100g()
+    {
+        lookup.Result = BarcodeLookupResult.Found(Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8));
+        var cut = await ScannedAsync();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.That(cut.Find("[data-testid=scan-name]").TextContent, Is.EqualTo("Porridge oats"));
+            Assert.That(cut.Find("[data-testid=scan-brand]").TextContent, Is.EqualTo("Morning Mill"));
+            Assert.That(cut.Find("[data-testid=scan-per]").TextContent, Is.EqualTo("Per 100 g"));
+            Assert.That(cut.Find("[data-testid=scan-kcal]").TextContent, Is.EqualTo("372 kcal"));
+            Assert.That(cut.Find("[data-testid=scan-protein]").TextContent, Is.EqualTo("11 g"));
+            Assert.That(cut.Find("[data-testid=scan-carbs]").TextContent, Is.EqualTo("60 g"));
+            Assert.That(cut.Find("[data-testid=scan-fat]").TextContent, Is.EqualTo("8 g"));
+            Assert.That(cut.FindAll("[data-testid=scan-warning]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task Found_Liquid_ShowsPer100mlAndNoBrandWhenThereIsNone()
+    {
+        lookup.Result = BarcodeLookupResult.Found(Product("Semi-skimmed milk", null, FoodUnit.Millilitre, 47, 3.5, 4.8, 1.7));
+        var cut = await ScannedAsync();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.That(cut.Find("[data-testid=scan-per]").TextContent, Is.EqualTo("Per 100 ml"));
+            Assert.That(cut.FindAll("[data-testid=scan-brand]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task Found_WithValuesThatDoNotAddUp_ShowsTheWarning()
+    {
+        lookup.Result = BarcodeLookupResult.Found(Product("Chocolate spread", "Nutty Co", FoodUnit.Gram, 250, 6, 55, 31));
+        var cut = await ScannedAsync();
+
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-warning]"), Has.Count.EqualTo(1)));
+    }
+
+    [TestCase(BarcodeLookupStatus.NotFound)]
+    [TestCase(BarcodeLookupStatus.Offline)]
+    [TestCase(BarcodeLookupStatus.RateLimited)]
+    public async Task EveryStatusButFound_ShowsTheOneMessageAndScanAgain(BarcodeLookupStatus status)
+    {
+        lookup.Result = status switch
+        {
+            BarcodeLookupStatus.Offline => BarcodeLookupResult.Offline(),
+            BarcodeLookupStatus.RateLimited => BarcodeLookupResult.RateLimited(),
+            _ => BarcodeLookupResult.NotFound(),
+        };
+        var cut = await ScannedAsync();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.That(cut.Find("[data-testid=scan-not-found]").TextContent, Is.EqualTo("Unable to find this product"));
+            Assert.That(cut.FindAll("[data-testid=scan-again]"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [TestCase(ScanStatus.PermissionDenied)]
+    [TestCase(ScanStatus.Unavailable)]
+    public async Task CameraRefused_ShowsTheCameraUnavailableState(ScanStatus status)
+    {
+        var cut = Context.Render<ScanPage>();
+
+        scanner.Complete(status == ScanStatus.PermissionDenied ? ScanResult.PermissionDenied : ScanResult.Unavailable);
+        await WaitForRendererAsync();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=scan-camera-unavailable]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=scan-not-found]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=scan-again]"), Has.Count.EqualTo(1));
+        });
+        Assert.That(lookup.Barcodes, Is.Empty);
+    }
+
+    [Test]
+    public async Task Cancelled_RaisesOnBack()
+    {
+        var backs = 0;
+        Context.Render<ScanPage>(p => p.Add(x => x.OnBack, () => backs++));
+
+        scanner.Complete(ScanResult.Cancelled);
+        await WaitForRendererAsync();
+
+        Assert.That(backs, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task ScanAgain_StartsANewScan()
+    {
+        lookup.Result = BarcodeLookupResult.NotFound();
+        var cut = await ScannedAsync();
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-again]"), Has.Count.EqualTo(1)));
+
+        cut.Find("[data-testid=scan-again]").Click();
+        await WaitForRendererAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(scanner.Scans, Has.Count.EqualTo(2));
+            Assert.That(cut.FindAll("[data-testid=scan-camera]"), Has.Count.EqualTo(1));
+        });
+
+        scanner.Detect(Barcode);
+        await WaitForRendererAsync();
+        Assert.That(lookup.Barcodes, Is.EqualTo(new[] { Barcode, Barcode }), "the same barcode is looked up again after Scan again");
+    }
+
+    [Test]
+    public async Task Dispose_CancelsTheLookup()
+    {
+        lookup.Hold = true;
+        Context.Render<ScanPage>();
+        scanner.Detect(Barcode);
+        await WaitForRendererAsync();
+
+        await Context.DisposeComponentsAsync();
+
+        Assert.That(lookup.Token!.Value.IsCancellationRequested, Is.True);
+    }
+
+    [Test]
+    public async Task NavigationBar_RaisesOnNavigate()
+    {
+        var navigated = new List<NavDestination>();
+        var cut = Context.Render<ScanPage>(p => p.Add(x => x.OnNavigate, navigated.Add));
+        await WaitForRendererAsync();
+
+        cut.Find("[data-testid=dashboard-link]").Click();
+
+        Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Dashboard }));
+    }
+
+    [Test]
+    public async Task Logs_TheBarcodeAndStatus_ButNeverTheProductNameOrBrand()
+    {
+        lookup.Result = BarcodeLookupResult.Found(Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8));
+        await ScannedAsync();
+
+        var lines = logger.Collector.GetSnapshot().Select(r => r.Message).ToList();
+        Assert.Multiple(() =>
+        {
+            Assert.That(LoggedEvents.Of(logger).Select(e => e.Item1), Is.EqualTo(new[] { UiEvent.ScanLookupStarted, UiEvent.ScanLookupFinished }));
+            Assert.That(lines, Has.Some.Contain(Barcode));
+            Assert.That(lines, Has.None.Contain("Porridge").And.None.Contain("Morning Mill"));
+        });
+    }
+
+    private async Task<IRenderedComponent<ScanPage>> ScannedAsync()
+    {
+        var cut = Context.Render<ScanPage>();
+        scanner.Detect(Barcode);
+        await WaitForRendererAsync();
+        scanner.Complete(ScanResult.Scanned(Barcode));
+        await WaitForRendererAsync();
+        return cut;
+    }
+
+    private static Food Product(string name, string? brand, FoodUnit unit, double kcal, double protein, double carbs, double fat) =>
+        new() { Source = FoodSource.OpenFoodFacts, SourceId = Barcode, Name = name, Brand = brand, Barcode = Barcode, Unit = unit, Kcal = kcal, ProteinG = protein, CarbsG = carbs, FatG = fat };
+
+    private sealed class FakeScanner : IBarcodeScanner
+    {
+        public List<(Func<string, bool> Accept, TaskCompletionSource<ScanResult> Completion)> Scans { get; } = [];
+
+        public Task<ScanResult> ScanAsync(Func<string, bool> accept)
+        {
+            var completion = new TaskCompletionSource<ScanResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Scans.Add((accept, completion));
+            return completion.Task;
+        }
+
+        /// <summary>Offers a detection to the latest scan, as the camera does.</summary>
+        public bool Detect(string raw) => Scans[^1].Accept(raw);
+
+        public void Complete(ScanResult result) => Scans[^1].Completion.TrySetResult(result);
+    }
+
+    private sealed class FakeLookup : IBarcodeLookup
+    {
+        public List<string> Barcodes { get; } = [];
+
+        public BarcodeLookupResult Result { get; set; } = BarcodeLookupResult.NotFound();
+
+        /// <summary>When set, a lookup never finishes on its own.</summary>
+        public bool Hold { get; set; }
+
+        public CancellationToken? Token { get; private set; }
+
+        public async Task<BarcodeLookupResult> LookupAsync(string barcode, CancellationToken ct = default)
+        {
+            Barcodes.Add(barcode);
+            Token = ct;
+            if (Hold)
+            {
+                await Task.Delay(Timeout.Infinite, ct);
+            }
+
+            return Result;
+        }
+    }
+}

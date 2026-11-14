@@ -51,4 +51,29 @@ public class ScanViewTests : ComponentTestBase
 
         Assert.That(cut.Find("[data-testid=scan-per]").TextContent, Is.EqualTo("Per 100 ml"));
     }
+
+    [Test]
+    public void CameraUnavailable_ShowsItsMessageAndScanAgain()
+    {
+        var cut = Context.Render<ScanView>(p => p.Add(x => x.State, ScanState.CameraUnavailable));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=scan-camera-unavailable]").TextContent, Does.StartWith("Camera unavailable"));
+            Assert.That(cut.FindAll("[data-testid=scan-not-found]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=scan-again]"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public void IsATopLevelScreen_WithScanCurrentInTheNavigationBar()
+    {
+        var cut = Context.Render<ScanView>(p => p.Add(x => x.State, ScanState.Scanning));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=scan-link]").GetAttribute("aria-current"), Is.EqualTo("page"));
+            Assert.That(cut.FindAll("[data-testid=back]"), Is.Empty);
+        });
+    }
 }

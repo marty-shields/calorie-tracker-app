@@ -14,4 +14,7 @@ public enum ScanState
 
     /// <summary>Any other lookup outcome. The screen never says which.</summary>
     NotFound,
+
+    /// <summary>The camera could not open: permission was refused or the scanner failed.</summary>
+    CameraUnavailable,
 }

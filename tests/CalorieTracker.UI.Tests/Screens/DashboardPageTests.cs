@@ -33,6 +33,17 @@ public class DashboardPageTests : ComponentTestBase
     }
 
     [Test]
+    public void ScanItem_RaisesNavigateToScan()
+    {
+        var navigated = new List<NavDestination>();
+        var cut = Context.Render<DashboardPage>(p => p.Add(x => x.OnNavigate, navigated.Add));
+
+        cut.Find("[data-testid=scan-link]").Click();
+
+        Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Scan }));
+    }
+
+    [Test]
     public void AndroidBack_HasNoHandler()
     {
         Context.Render<DashboardPage>();

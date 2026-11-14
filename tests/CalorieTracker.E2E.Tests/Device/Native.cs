@@ -121,6 +121,26 @@ public sealed partial class Native(WebView web)
         }
     }
 
+    /// <summary>
+    /// Waits until Android's runtime permission prompt is in front, taps its deny button and switches back to the app's WebView.
+    /// Fails if the prompt doesn't show.
+    /// </summary>
+    public void DenyPermission()
+    {
+        App.Context = NativeApp;
+        try
+        {
+            var deny = By.XPath("//*[contains(@resource-id,'permission_deny')]");
+            web.WaitUntil(() => App.FindElements(deny).Count > 0, "the permission prompt didn't show", LaunchTimeout);
+            App.FindElement(deny).Click();
+            web.WaitUntil(() => App.CurrentPackage == AppiumSetup.App.Package, "the app didn't come back from the permission prompt", LaunchTimeout);
+        }
+        finally
+        {
+            App.Context = WebView;
+        }
+    }
+
     /// <summary>Drags one finger down the middle of the screen, as a user pulls a list to refresh it.</summary>
     public void PullDown()
     {

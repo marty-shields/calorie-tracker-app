@@ -29,14 +29,36 @@ public class ScanResultTests
 
     [Test]
     public void FromRawValues_TakesTheFirstNonEmpty() =>
-        Assert.That(ScanResult.FromRawValues([null, "", "12345670", "5000112637922"]), Is.EqualTo(ScanResult.Scanned("12345670")));
+        Assert.That(ScanResult.FromRawValues([null, "", "12345670", "5000112637922"], _ => true), Is.EqualTo(ScanResult.Scanned("12345670")));
+
+    [Test]
+    public void FromRawValues_SkipsValuesNotAccepted() =>
+        Assert.That(ScanResult.FromRawValues(["123", "12345670"], v => v.Length == 8), Is.EqualTo(ScanResult.Scanned("12345670")));
+
+    [Test]
+    public void FromRawValues_OffersOnlyNonEmptyValues()
+    {
+        var offered = new List<string>();
+
+        ScanResult.FromRawValues([null, "", "123"], v =>
+        {
+            offered.Add(v);
+            return false;
+        });
+
+        Assert.That(offered, Is.EqualTo(new[] { "123" }));
+    }
 
     [TestCase]
     [TestCase(null, "")]
     public void FromRawValues_WithNoValue_GivesNoResult(params string?[] values) =>
-        Assert.That(ScanResult.FromRawValues(values), Is.Null);
+        Assert.That(ScanResult.FromRawValues(values, _ => true), Is.Null);
+
+    [Test]
+    public void FromRawValues_WithNothingAccepted_GivesNoResult() =>
+        Assert.That(ScanResult.FromRawValues(["123"], _ => false), Is.Null);
 
     [Test]
     public void FromRawValues_KeepsLeadingZeros() =>
-        Assert.That(ScanResult.FromRawValues(["0012345678905"])!.Digits, Is.EqualTo("0012345678905"));
+        Assert.That(ScanResult.FromRawValues(["0012345678905"], _ => true)!.Digits, Is.EqualTo("0012345678905"));
 }

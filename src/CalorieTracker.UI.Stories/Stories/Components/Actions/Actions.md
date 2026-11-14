@@ -29,6 +29,7 @@ A Material Symbols Outlined icon (weight 400), drawn as an SVG and hidden from s
 - Up and Down: an increase (`Success`) or decrease (`Error`).
 - Edit (pencil) and Check (tick): used by `IconButton`.
 - Home: the Dashboard item in `BottomNav`.
+- Scan: the Scan item in `BottomNav`.
 
 ## `IconButton`
 A button that shows an `Icon`, with a 48px touch target.
