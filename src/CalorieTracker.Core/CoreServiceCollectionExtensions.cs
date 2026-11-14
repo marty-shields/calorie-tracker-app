@@ -39,6 +39,7 @@ public static class CoreServiceCollectionExtensions
     {
         services
             .AddSingleton(TimeProvider.System)
+            .AddSingleton<IFoodSearch, FoodSearch>()
             .AddSingleton<ISeedLoader>(provider =>
                 ActivatorUtilities.CreateInstance<SeedLoader>(provider, (Func<Stream>)SeedLoader.OpenBundledSeed))
             .AddHttpClient<OpenFoodFactsLookup>(client =>
