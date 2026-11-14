@@ -24,7 +24,7 @@ Everything is optional except the food. Raw is the default: a food with no cooki
 
 | CoFID wording | In the name |
 | --- | --- |
-| `raw` (459 foods) | Dropped (raw is the default). `uncooked` is kept as the prefix `Uncooked` |
+| `raw` (460 foods) | Dropped (raw is the default). `uncooked` is kept as the prefix `Uncooked` |
 | `boiled`, `stewed`, `cooked` `in unsalted water` | Prefix only: `Boiled`, `Stewed`, `Cooked`. The unsalted water drops |
 | `boiled in salted water`, `boiled and salted` | `Boiled ... (salted water)`, `(salted)` |
 | `flesh only`, `meat only`, `old`, `average` | Dropped. They never change what the food is. Keep `new`, `young` |
@@ -32,7 +32,7 @@ Everything is optional except the food. Raw is the default: a food with no cooki
 | `lean`, `lean only`, `lean and fat`, `fat` | `(lean)`, `(lean and fat)`; a part sold on its own is a name: `Lamb fat` |
 | `weighed with bones and skin`, `weighed with stones`, ... | Kept, in the weighing slot: `(weighed with bones and skin)` |
 | `fried in rapeseed oil`, `roasted in corn oil`, ... | Prefix `Fried`, `Roasted`; the fat goes in a qualifier only when the same food is cooked in more than one fat (see 5) |
-| `homemade` (557 foods) | Dropped, unless the same dish also exists without a source word, then `(homemade)` (see 5) |
+| `homemade` (558 foods, any case) | Dropped, unless the same dish also exists without a source word, then `(homemade)` (see 5) |
 | `retail`, `takeaway`, `reheated` | Kept: `(retail)`, `(takeaway)`, `(reheated)` |
 | `made with ...`, `with ...`, `in ...` | Kept as the qualifier: `(made with semi-skimmed milk)`, `(in syrup)`, `(in brine)` |
 | `fortified`, `unfortified`, `reduced fat`, `canned in juice`, `whole contents` | Kept when they tell foods apart (`(unfortified)`); `drained` and `whole contents` drop unless a sibling needs them |
@@ -65,11 +65,11 @@ Rules for when a qualifier is added:
 
 - Siblings move together. If one member of a set needs a fat, a weighing basis or a source to be unique, every member of that set gets that slot, in this order. `Fried onions (rapeseed oil)`, `Fried onions (corn oil)`, `Fried onions (sunflower oil)`, never one bare and two bracketed.
 - A fat is named only when the same food is cooked in more than one fat. A single `Fried in sunflower oil` entry is just `Fried ...`.
-- `homemade` is kept only when the dish also exists with no source word: `Chutney, tomato` is `Tomato chutney` and `Chutney, tomato, homemade` is `Tomato chutney (homemade)`. Counted over the data: 6 of the 542 `homemade` foods have a bare twin, and 8 have a `retail` twin, so `(retail)` is kept on the twin and `homemade` drops.
+- `homemade` is kept only when the dish also exists with no source word: `Chutney, tomato` is `Tomato chutney` and `Chutney, tomato, homemade` is `Tomato chutney (homemade)`. Counted over the data: 6 of the 558 `homemade` foods have a bare twin, and 8 have a `retail` twin, so `(retail)` is kept on the twin and `homemade` drops.
 - If two names are still equal after this, take the CoFID words you dropped that differ between them (section 2 lists them) and add the earliest slot that fits. Never add numbers, codes or `(2)`.
 - Two foods share an identical `originalName` (see below). Tell them apart by what the nutrients show, or ask the reviewer. Do not guess silently.
 
-How well this works: dropping the table's words (and keeping everything else) merges 81 foods into 35 sets of equal names. 26 are fat sets (`Fried in rapeseed / sunflower / corn oil`), 6 are `homemade` twins, and the last 3 sets are the cases below. A food whose CoFID name states no fat stays bare next to its siblings that state one: `Cod, in batter, fried, takeaway` is `Fried cod in batter (takeaway)` and `Cod, in batter, fried in sunflower oil, takeaway` is `Fried cod in batter (sunflower oil; takeaway)`. The two repeated `originalName`s need a judgement call:
+How well this works: dropping only the table's words (`raw`, `flesh only`, `old`, `homemade`, `drained`, `whole contents`, ...) and keeping every fat and source, 18 foods fall into 9 sets of equal names: the 6 `homemade` twins, the two `Longans, canned in syrup` (`drained` against `whole contents`, so one of them keeps its word) and the 2 repeated `originalName`s below. A food whose CoFID name states no fat stays bare next to its siblings that state one: `Cod, in batter, fried, takeaway` is `Fried cod in batter (takeaway)` and `Cod, in batter, fried in sunflower oil, takeaway` is `Fried cod in batter (sunflower oil; takeaway)`. The repeated `originalName`s need a judgement call:
 
 | `originalName` | Foods |
 | --- | --- |
