@@ -47,6 +47,15 @@ internal enum UiEvent
     /// <summary><see cref="Screens.FoodSearchPage"/>: Try again restarted the food seed load.</summary>
     FoodSeedRetried = 3503,
 
+    /// <summary><see cref="Screens.ScanPage"/>: a barcode was accepted and its lookup started.</summary>
+    ScanLookupStarted = 3601,
+
+    /// <summary><see cref="Screens.ScanPage"/>: a barcode lookup finished, with its status.</summary>
+    ScanLookupFinished = 3602,
+
+    /// <summary><see cref="Screens.ScanPage"/>: the scanner ended without a barcode because the camera is unavailable.</summary>
+    ScanCameraUnavailable = 3603,
+
     /// <summary><see cref="Components.Layout.AppScreen"/>: setting up pull to refresh failed, so the screen can't be pulled.</summary>
     PullRefreshFailed = 4001,
 }

@@ -3,7 +3,7 @@ using CalorieTracker.E2E.Tests.Screens;
 
 namespace CalorieTracker.E2E.Tests.Support;
 
-/// <summary>What a user does across screens: open Settings or Foods, go back to the Dashboard.</summary>
+/// <summary>What a user does across screens: open Settings, Foods or Scan, go back to the Dashboard.</summary>
 public sealed class Journeys(WebView web, Native native, DashboardScreen dashboard, SettingsScreen settings, NavigationBar navigation)
 {
     public enum Screen
@@ -11,6 +11,7 @@ public sealed class Journeys(WebView web, Native native, DashboardScreen dashboa
         Dashboard,
         Settings,
         Foods,
+        Scan,
         Other,
     }
 
@@ -20,6 +21,7 @@ public sealed class Journeys(WebView web, Native native, DashboardScreen dashboa
         DashboardScreen.Title => Screen.Dashboard,
         SettingsScreen.Title => Screen.Settings,
         FoodSearchScreen.Title => Screen.Foods,
+        ScanScreen.Title => Screen.Scan,
         _ => Screen.Other,
     };
 
@@ -42,7 +44,15 @@ public sealed class Journeys(WebView web, Native native, DashboardScreen dashboa
         WaitFor(Screen.Foods);
     }
 
-    /// <summary>Goes to the Dashboard from Settings or Foods, or stays on it.</summary>
+    /// <summary>Opens Scan from the navigation bar and waits for it.</summary>
+    public void OpenScan()
+    {
+        WaitFor(Screen.Dashboard);
+        navigation.Open("Scan");
+        WaitFor(Screen.Scan);
+    }
+
+    /// <summary>Goes to the Dashboard from Settings, Foods or Scan, or stays on it.</summary>
     public void GoToDashboard()
     {
         switch (Current())
@@ -51,6 +61,7 @@ public sealed class Journeys(WebView web, Native native, DashboardScreen dashboa
                 settings.Back();
                 break;
             case Screen.Foods:
+            case Screen.Scan:
                 navigation.Open("Dashboard");
                 break;
         }

@@ -10,6 +10,12 @@ A message in a dashed box, for a list or section with nothing in it. An optional
 
 Stories: [EmptyState](./?path=/docs/components-lists-emptystate--docs)
 
+## `FoodValues`
+A food's values block: the name as a heading, a muted brand (when known), "Per 100 g" or "Per 100 ml" and the rows Energy, Protein, Carbs and Fat, then Fibre, Sugars, Saturates and Salt only for the values given. Each row is a muted label with its bold value, divided by a `--color-border` line. Content passed in shows under the rows (the Scan screen puts its warning there). Numbers show with at most one decimal.
+- `data-testid`: the prefix `TestId` gives `{TestId}-name`, `-brand`, `-per`, `-kcal`, `-protein`, `-carbs`, `-fat`, `-fibre`, `-sugars`, `-saturates`, `-salt`.
+
+Stories: [FoodValues](./?path=/docs/components-lists-foodvalues--docs)
+
 ## `ListRow`
 One row of a list: `Text`, an optional muted `Detail` line under it, and an optional muted `Aside` at the right. With `OnClick` it is a button with a chevron; without, a plain row.
 - `data-testid`: `TestId`.

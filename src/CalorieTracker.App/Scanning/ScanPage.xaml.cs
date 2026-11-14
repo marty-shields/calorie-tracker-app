@@ -3,22 +3,25 @@ using CalorieTracker.UI.Scanning;
 
 namespace CalorieTracker.App.Scanning;
 
-/// <summary>Temporary modal for the scanner trial; #14 replaces it.</summary>
+/// <summary>The camera modal. Stays open across detections until one is accepted.</summary>
 public partial class ScanPage : ContentPage
 {
     private readonly TaskCompletionSource<ScanResult> completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public ScanPage()
+    private readonly Func<string, bool> accept;
+
+    public ScanPage(Func<string, bool> accept)
     {
+        this.accept = accept;
         InitializeComponent();
     }
 
-    /// <summary>Completes with the first detection, or Cancelled if the page closes without one.</summary>
+    /// <summary>Completes with the first accepted detection, or Cancelled if the page closes without one.</summary>
     public Task<ScanResult> Result => completion.Task;
 
     private async void OnDetectionFinished(object? sender, OnDetectionFinishedEventArg e)
     {
-        var result = ScanResult.FromRawValues(e.BarcodeResults.Select(b => b.RawValue));
+        var result = ScanResult.FromRawValues(e.BarcodeResults.Select(b => b.RawValue), accept);
         if (result is not null)
         {
             await CloseAsync(result);

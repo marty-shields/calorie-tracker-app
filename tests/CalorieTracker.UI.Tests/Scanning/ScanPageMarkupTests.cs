@@ -10,6 +10,18 @@ public class ScanPageMarkupTests
         Assert.That(RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "ScanPage.xaml"), Does.Match(@"BarcodeSymbologies=""[^""]*\b" + symbology + @"\b"));
 
     [Test]
+    public void ScanPage_OffersEachDetectionToTheCallerInsteadOfClosingOnTheFirst() =>
+        Assert.That(RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "ScanPage.xaml.cs"), Does.Contain("ScanResult.FromRawValues(e.BarcodeResults.Select(b => b.RawValue), accept)"));
+
+    [Test]
+    public void ScanPage_TakesOnlyTheFirstOutcome() =>
+        Assert.That(RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "ScanPage.xaml.cs"), Does.Match(@"if \(!completion\.TrySetResult\(result\)\)\s*\{\s*return;"));
+
+    [Test]
+    public void Scanner_PassesTheCallerAcceptToTheModal() =>
+        Assert.That(RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "CameraBarcodeScanner.cs"), Does.Contain("new ScanPage(accept)"));
+
+    [Test]
     public void Manifest_DeclaresTheCameraPermission() =>
         Assert.That(Manifest(), Does.Match(@"<uses-permission\s+android:name=""android\.permission\.CAMERA"""));
 

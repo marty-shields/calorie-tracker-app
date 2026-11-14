@@ -8,34 +8,9 @@
         @if (Selected is { } food)
         {
             <section class="detail" data-testid="food-detail">
-                <h2 class="detail-name" data-testid="food-detail-name">@food.Name</h2>
-                @if (food.Brand is not null)
-                {
-                    <p class="brand" data-testid="food-detail-brand">@food.Brand</p>
-                }
-                <p class="per" data-testid="food-detail-per">Per 100 @UnitText(food)</p>
-                <dl class="values">
-                    <div class="row"><dt>Energy</dt><dd data-testid="food-detail-kcal">@Number(food.Kcal) kcal</dd></div>
-                    <div class="row"><dt>Protein</dt><dd data-testid="food-detail-protein">@Number(food.ProteinG) g</dd></div>
-                    <div class="row"><dt>Carbs</dt><dd data-testid="food-detail-carbs">@Number(food.CarbsG) g</dd></div>
-                    <div class="row"><dt>Fat</dt><dd data-testid="food-detail-fat">@Number(food.FatG) g</dd></div>
-                    @if (food.FibreG is { } fibre)
-                    {
-                        <div class="row"><dt>Fibre</dt><dd data-testid="food-detail-fibre">@Number(fibre) g</dd></div>
-                    }
-                    @if (food.SugarsG is { } sugars)
-                    {
-                        <div class="row"><dt>Sugars</dt><dd data-testid="food-detail-sugars">@Number(sugars) g</dd></div>
-                    }
-                    @if (food.SaturatesG is { } saturates)
-                    {
-                        <div class="row"><dt>Saturates</dt><dd data-testid="food-detail-saturates">@Number(saturates) g</dd></div>
-                    }
-                    @if (food.SaltG is { } salt)
-                    {
-                        <div class="row"><dt>Salt</dt><dd data-testid="food-detail-salt">@Number(salt) g</dd></div>
-                    }
-                </dl>
+                <FoodValues Name="@food.Name" Brand="@food.Brand" IsLiquid="@(food.Unit == FoodUnit.Millilitre)" Kcal="food.Kcal" Protein="food.ProteinG"
+                            Carbs="food.CarbsG" Fat="food.FatG" Fibre="food.FibreG" Sugars="food.SugarsG" Saturates="food.SaturatesG" Salt="food.SaltG"
+                            TestId="food-detail" />
                 <AppButton Variant="ButtonVariant.Secondary" FullWidth TestId="food-detail-close" OnClick="OnClearSelection">Back to results</AppButton>
             </section>
         }

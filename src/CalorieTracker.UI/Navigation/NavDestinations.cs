@@ -12,6 +12,7 @@ public static class NavDestinations
     [
         new(NavDestination.Dashboard, "Dashboard", IconName.Home, "dashboard-link", ""),
         new(NavDestination.Foods, "Foods", IconName.Search, "foods-link", "foods"),
+        new(NavDestination.Scan, "Scan", IconName.Scan, "scan-link", "scan"),
     ];
 
     public static NavItem Of(NavDestination destination) => All.Single(item => item.Destination == destination);

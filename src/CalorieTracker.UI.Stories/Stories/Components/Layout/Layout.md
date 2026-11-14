@@ -23,11 +23,11 @@ The frame of every screen:
 Stories: [AppScreen](./?path=/docs/components-layout-appscreen--docs)
 
 ## `BottomNav`
-The Material navigation bar for the top-level screens: The Dashboard and Foods, from the `NavDestinations` table (label, icon, test id and route of each `NavDestination`).
+The Material navigation bar for the top-level screens: The Dashboard, Foods and Scan, from the `NavDestinations` table (label, icon, test id and route of each `NavDestination`).
 
 | Part | Content |
 |---|---|
-| Item | Icon over its label, sharing the width equally, at least 48px tall. Dashboard: house; Foods: magnifier. Add an item per top-level screen. |
+| Item | Icon over its label, sharing the width equally, at least 48px tall. Dashboard: house; Foods: magnifier; Scan: barcode scanner. Add an item per top-level screen. |
 | Current item | A `--color-selected` pill behind the icon, label and icon in the text colour and bold; the others are muted. `aria-current="page"`. |
 
 - Tapping an item raises `OnNavigate` with its destination. Tapping the current item does nothing.

@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using CalorieTracker.Core.Data;
+using CalorieTracker.UI.Models.Scan;
 using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Screens;
@@ -44,6 +45,14 @@ public static class ScreenStates
         new("Screens/FoodSearch", "No results", c => FoodSearch(c, query: "zzz")),
         new("Screens/FoodSearch", "Food selected", c => FoodSearch(c, query: "oat", results: SampleFoods, selected: SampleFoods[0])),
         new("Screens/FoodSearch", "Search failed", c => FoodSearch(c, query: "oat", failed: true)),
+        new("Screens/Scan", "Scanning", c => Scan(c, ScanState.Scanning)),
+        new("Screens/Scan", "Looking up", c => Scan(c, ScanState.LookingUp)),
+        new("Screens/Scan", "Found", c => Scan(c, ScanState.Found, new("Porridge oats", "Morning Mill", 372, 11, 60, 8))),
+        new("Screens/Scan", "Found liquid", c => Scan(c, ScanState.Found, new("Semi-skimmed milk", null, 47, 3.5m, 4.8m, 1.7m, IsLiquid: true))),
+        new("Screens/Scan", "Found with extra nutrients", c => Scan(c, ScanState.Found, new("Porridge oats", "Morning Mill", 372, 11, 60, 8, Fibre: 9, Sugars: 1.1m, Saturates: 1.4m, Salt: 0.01m))),
+        new("Screens/Scan", "Found with warning", c => Scan(c, ScanState.Found, new("Chocolate spread", "Nutty Co", 250, 6, 55, 31))),
+        new("Screens/Scan", "Not found", c => Scan(c, ScanState.NotFound)),
+        new("Screens/Scan", "Camera unavailable", c => Scan(c, ScanState.CameraUnavailable)),
 
         new("Screens/Error", "Error", c => c.Render<ErrorView>(p => p.Add(x => x.OnRestart, () => { })).FindAll("*")),
     ];
@@ -59,6 +68,14 @@ public static class ScreenStates
             .Add(x => x.OnSelect, (Food _) => { })
             .Add(x => x.OnClearSelection, () => { })
             .Add(x => x.OnRetry, () => { })
+            .Add(x => x.OnNavigate, (NavDestination _) => { }))
+            .FindAll("*");
+
+    private static IReadOnlyList<IElement> Scan(BunitContext context, ScanState state, ScannedProduct? product = null) =>
+        context.Render<ScanView>(p => p
+            .Add(x => x.State, state)
+            .Add(x => x.Product, product)
+            .Add(x => x.OnScanAgain, () => { })
             .Add(x => x.OnNavigate, (NavDestination _) => { }))
             .FindAll("*");
 

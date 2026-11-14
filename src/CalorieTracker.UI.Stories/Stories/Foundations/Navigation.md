@@ -6,15 +6,16 @@ $attribute: CustomPage("Foundations/Navigation")
 
 The app opens on [Startup](./?path=/custom/screens-startup-overview), then the Dashboard.
 
-The Dashboard and Foods are the top-level screens: each shows the navigation bar ([`BottomNav`](./?path=/custom/components-layout-overview)) and has no back arrow. Android back from Foods goes to the Dashboard; from the Dashboard it leaves the app. Add a `NavDestination` and its `NavDestinations` entry for each new top-level screen.
+The Dashboard, Foods and [Scan](./?path=/custom/screens-scan-overview) are the top-level screens: each shows the navigation bar ([`BottomNav`](./?path=/custom/components-layout-overview)) and has no back arrow. Android back from Foods or Scan goes to the Dashboard; from the Dashboard it leaves the app. Add a `NavDestination` and its `NavDestinations` entry for each new top-level screen.
 
 | From | Action | To |
 |---|---|---|
 | Dashboard | Settings gear | Settings |
 | Dashboard | Back | Leaves the app |
-| Dashboard | Foods item | Foods |
-| Foods | Dashboard item, Back | Dashboard |
+| Dashboard, Foods, Scan | Navigation bar item | That screen |
+| Foods | Back | Dashboard |
 | Foods (a food open) | Back, Back to results | Foods list |
+| Scan | Back, or the camera cancelled | Dashboard |
 | Settings | Back | Dashboard |
 | Error | Restart | Dashboard |
 

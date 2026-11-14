@@ -15,12 +15,13 @@ public class BottomNavTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(cut.Find("nav").GetAttribute("aria-label"), Is.EqualTo("Main"));
-            Assert.That(items, Is.EqualTo(new[] { ("dashboard-link", "Dashboard", 1), ("foods-link", "Foods", 1) }));
+            Assert.That(items, Is.EqualTo(new[] { ("dashboard-link", "Dashboard", 1), ("foods-link", "Foods", 1), ("scan-link", "Scan", 1) }));
         });
     }
 
     [TestCase(NavDestination.Dashboard, "dashboard-link")]
     [TestCase(NavDestination.Foods, "foods-link")]
+    [TestCase(NavDestination.Scan, "scan-link")]
     public void CurrentItem_IsTheOnlyCurrentPage(NavDestination current, string testId)
     {
         var cut = Context.Render<BottomNav>(p => p.Add(x => x.Current, current));

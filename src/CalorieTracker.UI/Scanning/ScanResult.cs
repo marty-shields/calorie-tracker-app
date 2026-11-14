@@ -5,10 +5,10 @@ public sealed record ScanResult(ScanStatus Status, string? Digits = null)
 {
     public static ScanResult Scanned(string digits) => new(ScanStatus.Scanned, digits);
 
-    /// <summary>The first non-empty value, kept verbatim; null when there is none.</summary>
-    public static ScanResult? FromRawValues(IEnumerable<string?> rawValues)
+    /// <summary>The first non-empty value that <paramref name="accept"/> takes, kept verbatim; null when there is none.</summary>
+    public static ScanResult? FromRawValues(IEnumerable<string?> rawValues, Func<string, bool> accept)
     {
-        var digits = rawValues.FirstOrDefault(v => !string.IsNullOrEmpty(v));
+        var digits = rawValues.FirstOrDefault(v => !string.IsNullOrEmpty(v) && accept(v));
         return digits is null ? null : Scanned(digits);
     }
 

@@ -1,0 +1,89 @@
+@using System.Globalization
+<div class="food">
+    <h2 class="name" data-testid="@Id("name")" data-wrap-ok>@Name</h2>
+    @if (Brand is not null)
+    {
+        <p class="brand" data-testid="@Id("brand")" data-wrap-ok>@Brand</p>
+    }
+    <p class="per" data-testid="@Id("per")">Per 100 @(IsLiquid ? "ml" : "g")</p>
+    <dl class="values">
+        <div class="row"><dt>Energy</dt><dd data-testid="@Id("kcal")">@Number(Kcal) kcal</dd></div>
+        <div class="row"><dt>Protein</dt><dd data-testid="@Id("protein")">@Number(Protein) g</dd></div>
+        <div class="row"><dt>Carbs</dt><dd data-testid="@Id("carbs")">@Number(Carbs) g</dd></div>
+        <div class="row"><dt>Fat</dt><dd data-testid="@Id("fat")">@Number(Fat) g</dd></div>
+        @if (Fibre is { } fibre)
+        {
+            <div class="row"><dt>Fibre</dt><dd data-testid="@Id("fibre")">@Number(fibre) g</dd></div>
+        }
+        @if (Sugars is { } sugars)
+        {
+            <div class="row"><dt>Sugars</dt><dd data-testid="@Id("sugars")">@Number(sugars) g</dd></div>
+        }
+        @if (Saturates is { } saturates)
+        {
+            <div class="row"><dt>Saturates</dt><dd data-testid="@Id("saturates")">@Number(saturates) g</dd></div>
+        }
+        @if (Salt is { } salt)
+        {
+            <div class="row"><dt>Salt</dt><dd data-testid="@Id("salt")">@Number(salt) g</dd></div>
+        }
+    </dl>
+    @ChildContent
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = "";
+
+    /// <summary>Null shows no brand line.</summary>
+    [Parameter]
+    public string? Brand { get; set; }
+
+    /// <summary>True when the values are per 100 ml instead of per 100 g.</summary>
+    [Parameter]
+    public bool IsLiquid { get; set; }
+
+    /// <summary>Energy in kcal.</summary>
+    [Parameter]
+    public double Kcal { get; set; }
+
+    /// <summary>Grams.</summary>
+    [Parameter]
+    public double Protein { get; set; }
+
+    /// <summary>Grams.</summary>
+    [Parameter]
+    public double Carbs { get; set; }
+
+    /// <summary>Grams.</summary>
+    [Parameter]
+    public double Fat { get; set; }
+
+    /// <summary>Grams. Null shows no Fibre row.</summary>
+    [Parameter]
+    public double? Fibre { get; set; }
+
+    /// <summary>Grams. Null shows no Sugars row.</summary>
+    [Parameter]
+    public double? Sugars { get; set; }
+
+    /// <summary>Grams. Null shows no Saturates row.</summary>
+    [Parameter]
+    public double? Saturates { get; set; }
+
+    /// <summary>Grams. Null shows no Salt row.</summary>
+    [Parameter]
+    public double? Salt { get; set; }
+
+    /// <summary>Shown under the rows, e.g. a warning about the values.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Prefix of the data-testid attributes: <c>{TestId}-name</c>, <c>-brand</c>, <c>-per</c>, <c>-kcal</c>, <c>-protein</c>, <c>-carbs</c>, <c>-fat</c>, <c>-fibre</c>, <c>-sugars</c>, <c>-saturates</c> and <c>-salt</c>.</summary>
+    [Parameter]
+    public string? TestId { get; set; }
+
+    private string Id(string part) => $"{TestId}-{part}";
+
+    private static string Number(double value) => value.ToString("0.#", CultureInfo.InvariantCulture);
+}
