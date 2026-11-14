@@ -17,7 +17,7 @@ See the README's [Install](../README.md#install). An update installs over the ap
 
 ## Keystore handling
 - PKCS12, RSA 4096, valid 10000 days, one password for the store and the key.
-- Release cert SHA-256: **not yet set (TODO).** The CalorieTracker release keystore has not been generated, and a GitHub issue tracks it. Until then `CERT_SHA256` in `release.yml` holds the placeholder `UNSET-release-keystore-not-yet-configured`, and the first job of the release workflow (`Release cert pinned`) fails with "release signing keystore not yet configured - see the tracking issue", so no release can run with a wrong pin. To finish: generate the keystore as described here, store the three secrets in the `release` environment, and replace the placeholder with the cert's 32-byte SHA-256 (`keytool -list -v -keystore <file>`), uppercase and colon-separated. The same value goes in `CERT_SHA256` and nowhere else.
+- Release cert SHA-256: `07:02:25:A2:56:98:2B:94:CE:AC:8A:2C:C5:5F:A0:5F:BB:80:36:0B:A2:92:58:AC:5D:CF:8A:92:33:3E:A6:46` (`keytool -list -v -keystore <file>`, uppercase and colon-separated). The same value goes in `CERT_SHA256` in `release.yml` and nowhere else; the first job of the release workflow (`Release cert pinned`) fails the release if it is not a real 32-byte digest, and `check-apk.sh` fails it if the APK is signed by any other cert.
 - The keystore file lives outside the repo and is gitignored. CI gets it only through the `release` environment's secrets (base64 for the file) and deletes it after the build.
 - The owner keeps one backup of the keystore file with its passwords and alias, in a private location that is not recorded in the repo.
 - Local Release builds are signed with the debug key.
