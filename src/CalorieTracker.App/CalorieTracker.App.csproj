@@ -15,6 +15,9 @@
     <ApplicationTitle>Calorie Tracker</ApplicationTitle>
     <ApplicationId>uk.martinshields.calorietracker</ApplicationId>
     <AndroidManifestPlaceholders>allowBackup=true;dataExtractionRules=backup_rules</AndroidManifestPlaceholders>
+
+    <!-- Several of BarcodeScanning.Native.Maui's ML Kit and CameraX libraries ship the same native .so files (byte-identical, checked by hash); packaging keeps the first copy. -->
+    <NoWarn>$(NoWarn);XA4301</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
@@ -30,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="BarcodeScanning.Native.Maui" />
     <PackageReference Include="Microsoft.Maui.Controls" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" />
   </ItemGroup>

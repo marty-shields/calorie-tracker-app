@@ -60,4 +60,12 @@ internal enum AppEvent
 
     /// <summary>The device manufacturer, model and default keyboard app package, logged once when the activity is created.</summary>
     KeyboardDevice = 5069,
+
+    /// <summary>The camera permission was denied, so the scanner did not open.</summary>
+    ScanPermissionDenied = 5071,
+
+    ScanNoWindow = 5072,
+
+    /// <summary>The scanner closed; records only the status, never the barcode.</summary>
+    ScanFinished = 5073,
 }

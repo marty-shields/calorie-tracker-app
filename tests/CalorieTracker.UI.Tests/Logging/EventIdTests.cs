@@ -77,6 +77,9 @@ public partial class EventIdTests
             ["KeyboardShowRequested"] = 5067,
             ["KeyboardRestoreSkipped"] = 5068,
             ["KeyboardDevice"] = 5069,
+            ["ScanPermissionDenied"] = 5071,
+            ["ScanNoWindow"] = 5072,
+            ["ScanFinished"] = 5073,
         }));
 
     [TestCaseSource(nameof(SourceFiles))]
