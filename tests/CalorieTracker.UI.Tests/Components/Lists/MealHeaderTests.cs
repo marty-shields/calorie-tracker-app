@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using CalorieTracker.UI.Components.Actions;
 using CalorieTracker.UI.Components.Lists;
 
@@ -69,8 +70,23 @@ public class MealHeaderTests : ComponentTestBase
     {
         var stories = RepoFiles.Read("src", "CalorieTracker.UI.Stories", "Stories", "Components", "Lists", "MealHeader.stories.razor");
 
-        Assert.That(stories, Does.Contain("<Story Name=\"With entries\">")
-            .And.Contain("<Story Name=\"Empty\">")
-            .And.Contain("<Story Name=\"Long name\">"));
+        var withEntries = StoryMarkup(stories, "With entries");
+        var empty = StoryMarkup(stories, "Empty");
+        var longName = StoryMarkup(stories, "Long name");
+        var name = Regex.Match(longName, "Name=\"([^\"]*)\"").Groups[1].Value;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(withEntries, Does.Contain("Calories=\""));
+            Assert.That(empty, Does.Not.Contain("Calories="));
+            Assert.That(name.Length, Is.GreaterThan(30));
+        });
+    }
+
+    private static string StoryMarkup(string stories, string storyName)
+    {
+        var match = Regex.Match(stories, $"<Story Name=\"{Regex.Escape(storyName)}\">(.*?)</Story>", RegexOptions.Singleline);
+        Assert.That(match.Success, Is.True, $"Story '{storyName}' is missing");
+        return match.Groups[1].Value;
     }
 }
