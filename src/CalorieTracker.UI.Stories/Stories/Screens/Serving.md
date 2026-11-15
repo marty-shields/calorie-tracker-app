@@ -11,7 +11,7 @@ Query parameters: `meal` (Breakfast, Lunch, Dinner or Snacks; a preset, such as 
 | Part | Content |
 |---|---|
 | Top bar | Back arrow; the food's name as the title. |
-| Per line | Muted "Per 100 g · 258 kcal · P 25.4 · C 0.1 · F 34.9" ("Per 100 ml" for a liquid). |
+| Per line | Muted "Per 100 g · 258 kcal" for a food with a serving. A grams-only food adds macros: "Per 100 g · 416 kcal · P 25.4 · C 0.1 · F 34.9" ("Per 100 ml" for a liquid). |
 | Enter as | Only when the food has a serving label and a weight above zero: the heading ENTER AS, a `SegmentedControl` Grams / Servings (Servings by default) and, in Servings mode, a card with the serving label. Foods without a serving show no switch, only grams (or ml). |
 | Amount | Heading AMOUNT (Grams) or HOW MANY (Servings). A `NumberField` with the stepper: grams or ml in steps of 10, or a count of servings in steps of 1 (unit "serving"). Any positive number can be typed. In Servings mode a muted "= 202 g" shows the weight it comes to. In Grams mode a food with a serving shows **Use serving: <label>**, which switches to 1 serving. |
 | Modes | Switching modes keeps the same weight: 150 g becomes 0.74 servings of a 201.8 g serving and back to exactly 150 g, until the number is edited. |

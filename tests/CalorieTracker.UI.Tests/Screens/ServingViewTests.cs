@@ -33,6 +33,14 @@ public class ServingViewTests : ComponentTestBase
     }
 
     [Test]
+    public void PerLine_ForAFoodWithAServing_HasKcalOnly()
+    {
+        var cut = Render(ScreenStates.Pizza);
+
+        Assert.That(Text(cut, "serving-per"), Is.EqualTo($"Per 100 g · {ScreenStates.Pizza.Kcal.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} kcal"));
+    }
+
+    [Test]
     public void PerLine_ForALiquid_IsPer100Ml()
     {
         var cut = Render(ScreenStates.Milk, EntryMode.Grams, 250, 250);

@@ -190,8 +190,10 @@
             : "Enter an amount above 0.";
     }
 
-    private static string PerLine(Food food) =>
-        $"Per 100 {UnitText(food)} · {Number(food.Kcal)} kcal · P {Number(food.ProteinG)} · C {Number(food.CarbsG)} · F {Number(food.FatG)}";
+    private string PerLine(Food food) =>
+        HasServing
+            ? $"Per 100 {UnitText(food)} · {Number(food.Kcal)} kcal"
+            : $"Per 100 {UnitText(food)} · {Number(food.Kcal)} kcal · P {Number(food.ProteinG)} · C {Number(food.CarbsG)} · F {Number(food.FatG)}";
 
     private string AddsDetail(Food food) =>
         HasServing
