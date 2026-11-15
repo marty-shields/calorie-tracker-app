@@ -7,11 +7,12 @@
 @inject SeedProgress Seed
 @inject ILogger<FoodSearchPage> Logger
 
-<FoodSearchView Query="@query" Results="results" Selected="selected" Loading="loading" Failed="failed"
+<FoodSearchView Query="@query" Filter="filter" OnFilterChanged="ChangeFilter" Results="results" Selected="selected" Loading="loading" Failed="failed"
                 OnQueryChanged="SearchAsync" OnSelect="Select" OnClearSelection="ClearSelection" OnRetry="Retry" OnNavigate="OnNavigate" />
 
 @code {
     private string query = "";
+    private FoodType? filter = FoodType.Ingredient;
     private IReadOnlyList<Food> results = [];
     private Food? selected;
     private bool loading;
@@ -71,7 +72,7 @@
         var token = source.Token;
         try
         {
-            var result = await Search.SearchAsync(text, ct: token);
+            var result = await Search.SearchAsync(text, filter, ct: token);
             if (token.IsCancellationRequested)
             {
                 return;
@@ -83,6 +84,12 @@
         catch (OperationCanceledException)
         {
         }
+    }
+
+    private Task ChangeFilter(FoodType? type)
+    {
+        filter = type;
+        return SearchAsync(query);
     }
 
     private void CancelRunning()

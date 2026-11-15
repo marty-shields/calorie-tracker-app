@@ -1,6 +1,7 @@
 @using System.Globalization
 @using CalorieTracker.Core.Data
 @using CalorieTracker.UI.Components.Feedback
+@using CalorieTracker.UI.Components.Inputs
 @using CalorieTracker.UI.Components.Lists
 <AppScreen Title="Search foods" Destination="NavDestination.Foods" OnNavigate="OnNavigate" OnBack="@(Selected is null ? default : OnClearSelection)"
            Toolbar="@(Selected is null && !Failed ? Tools : null)">
@@ -38,7 +39,7 @@
                 @foreach (var item in Results)
                 {
                     <li>
-                        <ListRow Text="@item.Name" Detail="@item.Brand" Aside="@($"{Number(item.Kcal)} kcal / 100 {UnitText(item)}")"
+                        <ListRow Text="@item.Name" Detail="@Subtitle(item)" Aside="@item.Type?.ToString()"
                                  OnClick="@(() => OnSelect.InvokeAsync(item))" TestId="@($"food-result-{item.Id}")" />
                     </li>
                 }
@@ -52,7 +53,11 @@
     [Parameter]
     public string Query { get; set; } = "";
 
-    /// <summary>Foods matching <see cref="Query"/>, best match first. Empty shows "No foods match" once something is typed.</summary>
+    /// <summary>The type chosen on the chips; null is All.</summary>
+    [Parameter]
+    public FoodType? Filter { get; set; }
+
+    /// <summary>Foods matching <see cref="Query"/> and <see cref="Filter"/>, best match first. Empty shows "No foods match" once something is typed.</summary>
     [Parameter]
     public IReadOnlyList<Food> Results { get; set; } = [];
 
@@ -71,6 +76,10 @@
     /// <summary>Raised with the whole text on every keystroke.</summary>
     [Parameter]
     public EventCallback<string> OnQueryChanged { get; set; }
+
+    /// <summary>Raised with the type of the chip tapped; null for All.</summary>
+    [Parameter]
+    public EventCallback<FoodType?> OnFilterChanged { get; set; }
 
     /// <summary>Raised with the food tapped in the results.</summary>
     [Parameter]
@@ -95,9 +104,25 @@
                 <input type="search" class="search-input" placeholder="Search foods" aria-label="Search foods" autocomplete="off"
                        value="@Query" data-testid="food-search-input" @oninput="OnInput" />
             </div>
+            <FilterChips TValue="FoodType?" Label="Type" Options="Chips" Value="Filter" ValueChanged="OnFilterChanged" TestId="food-filter" />
         </div>;
 
+    private static readonly IReadOnlyList<RadioOption<FoodType?>> Chips =
+    [
+        new(FoodType.Ingredient, "Ingredients", "food-filter-ingredients"),
+        new(FoodType.Food, "Foods", "food-filter-foods"),
+        new(FoodType.Dish, "Dishes", "food-filter-dishes"),
+        new(FoodType.Drink, "Drinks", "food-filter-drinks"),
+        new(null, "All", "food-filter-all"),
+    ];
+
     private Task OnInput(ChangeEventArgs args) => OnQueryChanged.InvokeAsync(args.Value?.ToString() ?? "");
+
+    private static string Subtitle(Food food)
+    {
+        var kcal = $"{Number(food.Kcal)} kcal / 100 {UnitText(food)}";
+        return string.IsNullOrEmpty(food.Brand) ? kcal : $"{food.Brand} · {kcal}";
+    }
 
     private static string UnitText(Food food) => food.Unit == FoodUnit.Millilitre ? "ml" : "g";
 

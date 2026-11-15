@@ -7,6 +7,8 @@ Everyday names: each <folder>/<foodGroup>.json (default: the "names" folder besi
 {"11-001":"Arrowroot",...}, one entry per line, sorted by sourceId. It sets that food's "name"; originalName and sourceId stay as
 the workbook has them. Exits 1 on an entry whose sourceId is not in the output, whose food is in another group than the file name,
 or whose name is empty, and on a repeated sourceId key in a file. Names are stripped of surrounding spaces once.
+Types: each food gets a "type" (Ingredient, Food, Dish or Drink) from its CoFID group (GROUP_TYPES), then NAME_RULES may move it by its everyday name.
+Exits 1 on a food whose group has no type. Seed/README.md holds the table as the decision record.
 Writes {"seedVersion", "source", "foods"} with one food per line, sorted by sourceId, so a rerun is byte-identical.
 A food with no value (N or blank) for energy, protein, carbohydrate or fat is dropped; the other values become null.
 Prints kept/dropped counts, any repeated food code and any kept food with no row in 1.4 to stderr. Exits 1 on a missing sheet, tag or column, or a value it
@@ -21,8 +23,8 @@ import zipfile
 import xml.etree.ElementTree as ET
 from decimal import Decimal
 
-# Bumped by hand when the seed's content is revised (for example by the everyday-names edit).
-SEED_VERSION = 3
+# Bumped by hand when the seed's content is revised (for example by the everyday-names edit or the food types).
+SEED_VERSION = 4
 SOURCE_NAME = "CoFID 2021"
 SOURCE = "CoFID"
 PROXIMATES = "1.3 Proximates"
@@ -42,6 +44,36 @@ PROXIMATE_TAGS = {
 SODIUM_TAG = "NA"
 # CoFID group codes of alcoholic drinks all start with Q (beer, cider, wine, spirits, liqueurs, alcohol-free lager included).
 ALCOHOL_GROUP_PREFIX = "Q"
+INGREDIENT, FOOD, DISH, DRINK = "Ingredient", "Food", "Dish", "Drink"
+# CoFID group code -> food type. Every group in the workbook needs an entry.
+GROUP_TYPES = {
+    **dict.fromkeys(
+        "A AA AC AD AF AG AO BJC BJS BL BNE BTM CA D DA DAE DAM DB DF DG DI F FA G GA H J JA JC JK JM MAA MAC MAE MAG MAI "
+        "MCA MCC MCE MCG MCI MCK MCM MCO MEA MEC MEE MG OA OB OC OE OF S SC WY".split(), INGREDIENT),
+    **dict.fromkeys(
+        "AI AK AM AN AP BJP BN BNH BNS BP CDH DAP DAR JR MBG MI SEA SEC SN SNA SNC WA WAC WAE WC WCG WCN WE".split(), FOOD),
+    **dict.fromkeys("AB AE AS AT BR BV CD CDE DR MIG MR WAA WCD".split(), DISH),
+    **dict.fromkeys(
+        "BA BAB BAE BAH BAK BAR BC BH FC P PA PAA PAC PCA PCC PE Q QA QC QE QF QG QI QK".split(), DRINK),
+}
+COATED = r"(?<!un)coated|crumbs|batter|breaded"
+# group -> (pattern searched case-insensitively in the everyday name, type it gives); applied after the group's type.
+NAME_RULES = {
+    "A": (r"pizza", DISH),
+    "AC": (r"takeaway|fried rice|pilau|biryani", DISH),
+    "AD": (r"filled|fried|stir|takeaway", DISH),
+    "AG": (r"croissant|pain au|bagel", FOOD),
+    "AT": (r"polenta", INGREDIENT),
+    "BAR": (r"evaporated|condensed|dried|powder", INGREDIENT),
+    "BV": (r"dried cheese sauce|packet mix", FOOD),
+    "DA": (r"shaped|frozen", FOOD),
+    "JA": (COATED, FOOD),
+    "JK": (COATED, FOOD),
+    "MCA": (COATED + r"|nugget|kiev", FOOD),
+    "BN": (r"lassi", DRINK),
+    "WY": (r"distilled water", DRINK),
+    "PAA": (r"soup powder", FOOD),
+}
 NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 REL_NS = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 PKG_REL_NS = "{http://schemas.openxmlformats.org/package/2006/relationships}"
@@ -211,6 +243,7 @@ def build(path):
             "originalName": name,
             "foodGroup": group,
             "unit": "Millilitre" if group.startswith(ALCOHOL_GROUP_PREFIX) else "Gram",
+            "type": None,
             **{key: None if value is None else Raw(number_text(value)) for key, value in values.items()},
         }))
     foods.sort(key=lambda f: (f[0], f[1]))
@@ -254,6 +287,26 @@ def apply_names(foods, folder, required):
             food["name"] = name
 
 
+def food_type(group, name):
+    """The group's type, moved by the group's name rule when the name matches; None for a group with no type."""
+    found = GROUP_TYPES.get(group)
+    if found is None:
+        return None
+    rule = NAME_RULES.get(group)
+    if rule is not None and re.search(rule[0], name, re.IGNORECASE):
+        return rule[1]
+    return found
+
+
+def apply_types(foods):
+    """Sets each food's type from its group and everyday name; run after apply_names."""
+    for food in foods:
+        found = food_type(food["foodGroup"], food["name"])
+        if found is None:
+            fail(f"food {food['sourceId']} is in group {food['foodGroup']}, which has no type in GROUP_TYPES")
+        food["type"] = found
+
+
 class Raw(str):
     """A number already formatted as JSON text."""
 
@@ -282,6 +335,7 @@ def main(argv):
         sys.exit(__doc__)
     foods = build(args[0])
     apply_names(foods, names or os.path.join(os.path.dirname(os.path.abspath(args[1])), "names"), names is not None)
+    apply_types(foods)
     text = render(foods)
     with open(args[1], "w", encoding="utf-8", newline="\n") as out:
         out.write(text)

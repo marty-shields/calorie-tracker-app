@@ -1,0 +1,35 @@
+@using CalorieTracker.Core.Data
+@attribute [Stories("Components/Inputs/FilterChips")]
+
+<Stories TComponent="FilterChips<FoodType?>" Layout="typeof(ThemeLayout)">
+
+    <Story Name="Ingredients chosen">
+        <Template>
+            <FilterChips TValue="FoodType?" Label="Type" Options="Options" Value="FoodType.Ingredient" ValueChanged="(FoodType? _) => { }" TestId="example-filter" />
+        </Template>
+    </Story>
+
+    <Story Name="Dishes chosen">
+        <Template>
+            <FilterChips TValue="FoodType?" Label="Type" Options="Options" Value="FoodType.Dish" ValueChanged="(FoodType? _) => { }" TestId="example-filter" />
+        </Template>
+    </Story>
+
+    <Story Name="All chosen">
+        <Template>
+            <FilterChips TValue="FoodType?" Label="Type" Options="Options" Value="@((FoodType?)null)" ValueChanged="(FoodType? _) => { }" TestId="example-filter" />
+        </Template>
+    </Story>
+
+</Stories>
+
+@code {
+    private static readonly IReadOnlyList<RadioOption<FoodType?>> Options =
+    [
+        new(FoodType.Ingredient, "Ingredients", "example-filter-ingredients"),
+        new(FoodType.Food, "Foods", "example-filter-foods"),
+        new(FoodType.Dish, "Dishes", "example-filter-dishes"),
+        new(FoodType.Drink, "Drinks", "example-filter-drinks"),
+        new(null, "All", "example-filter-all"),
+    ];
+}

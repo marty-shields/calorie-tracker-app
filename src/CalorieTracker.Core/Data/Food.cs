@@ -15,6 +15,15 @@ public enum FoodUnit
     Millilitre,
 }
 
+/// <summary>The kind of food a search filters by. Stored as its number, so keep the order.</summary>
+public enum FoodType
+{
+    Ingredient,
+    Food,
+    Dish,
+    Drink,
+}
+
 /// <summary>A food and its nutrients per 100 g or 100 ml. Unique by <see cref="Source"/> and <see cref="SourceId"/>.</summary>
 public class Food
 {
@@ -51,6 +60,9 @@ public class Food
     public double? SaturatesG { get; set; }
 
     public double? SaltG { get; set; }
+
+    /// <summary>Null on a row stored before types existed, until the seed refresh fills it.</summary>
+    public FoodType? Type { get; set; }
 
     /// <summary>Lowercased text with accents removed that searches match against.</summary>
     [NotNull]

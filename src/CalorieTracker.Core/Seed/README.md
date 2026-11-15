@@ -31,7 +31,7 @@ The generator sets `name` from the entry and leaves `originalName` and `sourceId
 
 ## Format
 
-`{"seedVersion":3,"source":"CoFID 2021","foods":[...]}`, one food per line, sorted by `sourceId`, `\n` line endings. `seedVersion` is a constant in the script, bumped whenever the names or content change: 3 since the everyday names (2 was the food-search change).
+`{"seedVersion":4,"source":"CoFID 2021","foods":[...]}`, one food per line, sorted by `sourceId`, `\n` line endings. `seedVersion` is a constant in the script, bumped whenever the names or content change: 4 since the food types (3 was the everyday names, 2 the food-search change).
 
 | Key | Meaning |
 | --- | --- |
@@ -41,12 +41,44 @@ The generator sets `name` from the entry and leaves `originalName` and `sourceId
 | `originalName` | CoFID food name, never edited |
 | `foodGroup` | CoFID group code, such as `AA` |
 | `unit` | `Millilitre` when the group code starts with `Q` (alcoholic drinks, alcohol-free lager included), else `Gram` |
+| `type` | `Ingredient`, `Food`, `Dish` or `Drink`, from the group and the name rules in [Food types](#food-types) |
 | `energyKcal`, `proteinG`, `carbsG`, `fatG` | Per 100 g or 100 ml; a food with no value for any of these is left out |
 | `fibreG` | AOAC fibre (not NSP); `null` when not measured |
 | `sugarsG`, `saturatesG` | Total sugars and saturated fatty acids per 100 g; `null` when not measured |
 | `saltG` | Sodium (mg) × 2.5 ÷ 1000, from the Inorganics sheet; `null` when not measured |
 
 Values are rounded half up to 2 decimal places; `Tr` (trace) is 0; `N` or blank is `null`.
+
+## Food types
+
+Search filters by `type` (the search screen's chips: Ingredients, Foods, Dishes, Drinks, All). The generator gives each food its group's type, then a name rule may move it. The owner approved this table (issue #33); change it in `build-food-seed.py` (`GROUP_TYPES`, `NAME_RULES`), bump `SEED_VERSION` and regenerate. A group with no entry fails the build. Open Food Facts foods are stored as `Food`. Totals: Ingredient 1,585, Food 476, Dish 637, Drink 155 (2,853).
+
+| Type | Groups |
+| --- | --- |
+| Ingredient | A, AA, AC, AD, AF, AG, AO, BJC, BJS, BL, BNE, BTM, CA, D, DA, DAE, DAM, DB, DF, DG, DI, F, FA, G, GA, H, J, JA, JC, JK, JM, MAA, MAC, MAE, MAG, MAI, MCA, MCC, MCE, MCG, MCI, MCK, MCM, MCO, MEA, MEC, MEE, MG, OA, OB, OC, OE, OF, S, SC, WY |
+| Food | AI, AK, AM, AN, AP, BJP, BN, BNH, BNS, BP, CDH, DAP, DAR, JR, MBG, MI, SEA, SEC, SN, SNA, SNC, WA, WAC, WAE, WC, WCG, WCN, WE |
+| Dish | AB, AE, AS, AT, BR, BV, CD, CDE, DR, MIG, MR, WAA, WCD |
+| Drink | BA, BAB, BAE, BAH, BAK, BAR, BC, BH, FC, P, PA, PAA, PAC, PCA, PCC, PE, Q, QA, QC, QE, QF, QG, QI, QK |
+
+Name rules (case-insensitive, searched in the everyday `name`, applied after the group's type; 60 foods move):
+
+| Group | Name contains | Becomes |
+| --- | --- | --- |
+| A | pizza | Dish |
+| AC | takeaway, fried rice, pilau, biryani | Dish |
+| AD | filled, fried, stir, takeaway | Dish |
+| AG | croissant, pain au, bagel | Food |
+| AT | polenta | Ingredient |
+| BAR | evaporated, condensed, dried, powder | Ingredient |
+| BV | dried cheese sauce, packet mix | Food |
+| DA | shaped, frozen | Food |
+| JA, JK | coated (not uncoated), crumbs, batter, breaded | Food |
+| MCA | coated (not uncoated), crumbs, batter, breaded, nugget, kiev | Food |
+| BN | lassi | Drink |
+| WY | distilled water | Drink |
+| PAA | soup powder | Food |
+
+Judgment calls: BAR milk products stay Ingredients, "Plain pilau rice" stays a Dish, sandwiches are Dishes, breads Ingredients, homemade sauces and soups Dishes (retail ones Foods), yoghurt and ice cream Foods, JR fish products Foods, cereals Foods, milkshakes Drinks, and drink mixes, squash, cordial and juice concentrates Drinks. Foods stored before types existed have a null `type` until the next seed refresh fills it.
 
 ## Repeated food codes
 

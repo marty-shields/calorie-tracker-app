@@ -113,6 +113,40 @@ public class SeedLoaderTests
     }
 
     [Test]
+    public async Task LoadAsync_EveryType_IsStored()
+    {
+        seedJson = Wrap(1, [Row("1", "A", 1, type: "Ingredient"), Row("2", "B", 1, type: "Food"), Row("3", "C", 1, type: "Dish"), Row("4", "D", 1, type: "Drink")]);
+
+        await Loader().LoadAsync();
+
+        var types = (await connection.Table<Food>().ToListAsync()).OrderBy(f => f.SourceId).Select(f => f.Type);
+        Assert.That(types, Is.EqualTo(new FoodType?[] { FoodType.Ingredient, FoodType.Food, FoodType.Dish, FoodType.Drink }));
+    }
+
+    [Test]
+    public async Task LoadAsync_RowStoredWithoutAType_GetsItsTypeAndKeepsIdAndBarcodeLinks()
+    {
+        await Loader().LoadAsync();
+        await connection.ExecuteAsync("UPDATE Food SET Type = NULL");
+        await store.UpsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "5000000000017", Name = "Off", Unit = FoodUnit.Gram, SearchText = "off", Type = FoodType.Food }, "5000000000017");
+        var arrowroot = await connection.Table<Food>().FirstAsync(f => f.SourceId == "11-001");
+        await connection.ExecuteAsync("INSERT INTO FoodBarcode (Barcode, FoodId) VALUES (?, ?)", "5000000000024", arrowroot.Id);
+        await store.SetSeedVersionAsync(FoodSource.CoFID, 3);
+        seedJson = Wrap(4, [Row("11-001", "Arrowroot", 355, type: "Ingredient"), Row("11-002", "Gin", 250, unit: "Millilitre", type: "Drink"), Row("11-003", "Barley", 360, type: "Dish")]);
+
+        await Loader().LoadAsync();
+
+        var after = (await connection.Table<Food>().Where(f => f.Source == FoodSource.CoFID).ToListAsync()).ToDictionary(f => f.SourceId);
+        var linked = await connection.QueryScalarsAsync<int>("SELECT FoodId FROM FoodBarcode WHERE Barcode = ?", "5000000000024");
+        Assert.Multiple(() =>
+        {
+            Assert.That(after["11-001"].Id, Is.EqualTo(arrowroot.Id));
+            Assert.That(after.Values.Select(f => f.Type), Is.EqualTo(new FoodType?[] { FoodType.Ingredient, FoodType.Drink, FoodType.Dish }));
+            Assert.That(linked, Is.EqualTo(new[] { arrowroot.Id }));
+        });
+    }
+
+    [Test]
     public async Task LoadAsync_OpenFoodFactsRows_AreUntouched()
     {
         await Loader().LoadAsync();
@@ -222,6 +256,9 @@ public class SeedLoaderTests
         yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, unit: "1")])).SetName("numeric unit");
         yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, unit: "99")])).SetName("undefined numeric unit");
         yield return new TestCaseData(Wrap(1, ["""{"source":"CoFID","sourceId":"1","name":"A","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}"""])).SetName("missing unit");
+        yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, type: "Snack")])).SetName("unknown type");
+        yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, type: "1")])).SetName("numeric type");
+        yield return new TestCaseData(Wrap(1, ["""{"source":"CoFID","sourceId":"1","name":"A","unit":"Gram","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}"""])).SetName("missing type");
         yield return new TestCaseData(Wrap(1, [Row("1", "   ", 1)])).SetName("whitespace name");
         yield return new TestCaseData(Wrap(0, [Row("1", "A", 1)])).SetName("seedVersion 0");
         yield return new TestCaseData("""{"foods":[]}""").SetName("missing seedVersion");
@@ -245,13 +282,31 @@ public class SeedLoaderTests
 
         Assert.Multiple(() =>
         {
-            // 3 since the everyday names; main's version 2 was food search
-            Assert.That(seed.Version, Is.GreaterThanOrEqualTo(3));
+            // 4 since the food types; 3 was the everyday names and 2 food search
+            Assert.That(seed.Version, Is.GreaterThanOrEqualTo(4));
             Assert.That(seed.Foods, Has.Count.EqualTo(2853));
             Assert.That(seed.Foods.Select(f => f.Source), Is.All.EqualTo(FoodSource.CoFID));
             Assert.That(seed.Foods.Select(f => f.SourceId), Is.Unique);
             Assert.That(seed.Foods.Select(f => f.Name), Is.All.Not.Empty);
+            Assert.That(seed.Foods.Select(f => f.Type), Is.All.Not.Null);
         });
+    }
+
+    [Test]
+    public void SeedFile_BundledSeed_HasTheApprovedTypeCounts()
+    {
+        using var stream = SeedLoader.OpenBundledSeed();
+
+        var seed = SeedFile.Parse(stream);
+
+        var counts = seed.Foods.GroupBy(f => f.Type!.Value).ToDictionary(g => g.Key, g => g.Count());
+        Assert.That(counts, Is.EqualTo(new Dictionary<FoodType, int>
+        {
+            [FoodType.Ingredient] = 1585,
+            [FoodType.Food] = 476,
+            [FoodType.Dish] = 637,
+            [FoodType.Drink] = 155,
+        }));
     }
 
     private SeedLoader Loader() => new(store, logger, () => new MemoryStream(Encoding.UTF8.GetBytes(seedJson)));
@@ -279,6 +334,6 @@ public class SeedLoaderTests
     private static string Wrap(int version, IEnumerable<string> rows) =>
         $$"""{"seedVersion":{{version}},"source":"CoFID 2021","foods":[{{string.Join(",\n", rows)}}]}""";
 
-    private static string Row(string id, string name, double kcal, string unit = "Gram", string fibre = "1.5", string sugars = "1", string saturates = "0.5", string salt = "0.1", string protein = "1", string carbs = "2", string fat = "3") =>
-        $$"""{"source":"CoFID","sourceId":"{{id}}","name":"{{name}}","originalName":"{{name}}","foodGroup":"AA","unit":"{{unit}}","energyKcal":{{kcal}},"proteinG":{{protein}},"carbsG":{{carbs}},"fatG":{{fat}},"fibreG":{{fibre}},"sugarsG":{{sugars}},"saturatesG":{{saturates}},"saltG":{{salt}}}""";
+    private static string Row(string id, string name, double kcal, string unit = "Gram", string fibre = "1.5", string sugars = "1", string saturates = "0.5", string salt = "0.1", string protein = "1", string carbs = "2", string fat = "3", string type = "Ingredient") =>
+        $$"""{"source":"CoFID","sourceId":"{{id}}","name":"{{name}}","originalName":"{{name}}","foodGroup":"AA","unit":"{{unit}}","type":"{{type}}","energyKcal":{{kcal}},"proteinG":{{protein}},"carbsG":{{carbs}},"fatG":{{fat}},"fibreG":{{fibre}},"sugarsG":{{sugars}},"saturatesG":{{saturates}},"saltG":{{salt}}}""";
 }

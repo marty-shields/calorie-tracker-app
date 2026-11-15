@@ -198,6 +198,7 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
             Name = name,
             Brand = brand,
             Unit = millilitre ? FoodUnit.Millilitre : FoodUnit.Gram,
+            Type = FoodType.Food,
             Kcal = kcal.Value,
             ProteinG = protein.Value,
             CarbsG = carbs.Value,
