@@ -212,4 +212,44 @@ public class FoodServiceTests
             Assert.That(lines.Where(l => l.Id == CoreEvent.FoodReadFailed).Select(l => l.Level), Is.All.EqualTo(LogLevel.Warning));
         });
     }
+
+    [TestCase(" 1 biscuit ", 15.0, true, "1 biscuit", 15.0)]
+    [TestCase("x", 10_000.0, true, "x", 10_000.0)]
+    [TestCase(null, 15.0, false, "", 0.0)]
+    [TestCase("  ", 15.0, false, "", 0.0)]
+    [TestCase("1 biscuit", null, false, "", 0.0)]
+    [TestCase("1 biscuit", 0.0, false, "", 0.0)]
+    [TestCase("1 biscuit", 10_000.5, false, "", 0.0)]
+    [TestCase("1 biscuit", double.NaN, false, "", 0.0)]
+    [TestCase("1 biscuit", double.PositiveInfinity, false, "", 0.0)]
+    public void TryBoundServing_KeepsOnlyAWellFormedServing(string? label, double? amount, bool expected, string expectedLabel, double expectedAmount)
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(FoodService.TryBoundServing(label, amount, out var kept, out var weight), Is.EqualTo(expected));
+            Assert.That(kept, Is.EqualTo(expectedLabel));
+            Assert.That(weight, Is.EqualTo(expectedAmount));
+        });
+    }
+
+    [Test]
+    public void TryBoundServing_ALabelOverTheLimit_IsRejected() =>
+        Assert.That(FoodService.TryBoundServing(new string('a', FoodService.MaxServingLabelLength + 1), 10, out _, out _), Is.False);
+
+    [TestCase(0.0, 0.0)]
+    [TestCase(5.5, 5.5)]
+    [TestCase(100.0, 100.0)]
+    public void BoundNutrient_InRange_IsKept(double value, double expected) =>
+        Assert.That(FoodService.BoundNutrient(value), Is.EqualTo(expected));
+
+    [TestCase(-0.1)]
+    [TestCase(100.1)]
+    [TestCase(double.NaN)]
+    [TestCase(double.NegativeInfinity)]
+    public void BoundNutrient_OutOfRange_IsNull(double value) =>
+        Assert.That(FoodService.BoundNutrient(value), Is.Null);
+
+    [Test]
+    public void BoundNutrient_Unknown_StaysNull() =>
+        Assert.That(FoodService.BoundNutrient(null), Is.Null);
 }

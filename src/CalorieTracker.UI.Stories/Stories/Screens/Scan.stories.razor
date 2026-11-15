@@ -23,25 +23,31 @@
 
     <Story Name="Found">
         <Template>
-            <ScanView State="ScanState.Found" Product="@(new("Porridge oats", "Morning Mill", 372, 11, 60, 8))" OnNavigate="_ => { }" OnScanAgain="() => { }" />
+            <ScanView State="ScanState.Found" Product="@(new("Porridge oats", "Morning Mill", 372, 11, 60, 8, FoodId: 1))" OnNavigate="_ => { }" OnScanAgain="() => { }" />
         </Template>
     </Story>
 
     <Story Name="Found liquid">
         <Template>
-            <ScanView State="ScanState.Found" Product="@(new("Semi-skimmed milk", null, 47, 3.5m, 4.8m, 1.7m, IsLiquid: true))" OnNavigate="_ => { }" OnScanAgain="() => { }" />
+            <ScanView State="ScanState.Found" Product="@(new("Semi-skimmed milk", null, 47, 3.5m, 4.8m, 1.7m, IsLiquid: true, FoodId: 2))" OnNavigate="_ => { }" OnScanAgain="() => { }" />
         </Template>
     </Story>
 
     <Story Name="Found with extra nutrients">
         <Template>
-            <ScanView State="ScanState.Found" Product="@(new("Porridge oats", "Morning Mill", 372, 11, 60, 8, Fibre: 9, Sugars: 1.1m, Saturates: 1.4m, Salt: 0.01m))" OnNavigate="_ => { }" OnScanAgain="() => { }" />
+            <ScanView State="ScanState.Found" Product="@(new("Porridge oats", "Morning Mill", 372, 11, 60, 8, Fibre: 9, Sugars: 1.1m, Saturates: 1.4m, Salt: 0.01m, FoodId: 1))" OnNavigate="_ => { }" OnScanAgain="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Found with a serving">
+        <Template>
+            <ScanView State="ScanState.Found" Product="@(new("Digestive biscuits", "Morning Mill", 480, 7, 62, 22, FoodId: 3, ServingLabel: "1 biscuit", ServingAmount: 15))" OnNavigate="_ => { }" OnScanAgain="() => { }" />
         </Template>
     </Story>
 
     <Story Name="Found with warning">
         <Template>
-            <ScanView State="ScanState.Found" Product="@(new("Chocolate spread", "Nutty Co", 250, 6, 55, 31))" OnNavigate="_ => { }" OnScanAgain="() => { }" />
+            <ScanView State="ScanState.Found" Product="@(new("Chocolate spread", "Nutty Co", 250, 6, 55, 31, FoodId: 4))" OnNavigate="_ => { }" OnScanAgain="() => { }" />
         </Template>
     </Story>
 

@@ -11,8 +11,11 @@ namespace CalorieTracker.UI.Models.Scan;
 /// <param name="Sugars">Sugars in grams. Null when the source has none.</param>
 /// <param name="Saturates">Saturated fat in grams. Null when the source has none.</param>
 /// <param name="Salt">Salt in grams. Null when the source has none.</param>
+/// <param name="FoodId">Id of the stored food the Serving screen reads. Null when the food could not be saved, and the screen offers no Add to diary.</param>
+/// <param name="ServingLabel">The product's own serving, such as "1 biscuit". Null with <paramref name="ServingAmount"/> when it has none or the values are out of range.</param>
+/// <param name="ServingAmount">Weight (g) or volume (ml) of one serving.</param>
 public sealed record ScannedProduct(string Name, string? Brand, decimal Kcal, decimal Protein, decimal Carbs, decimal Fat, bool IsLiquid = false,
-    decimal? Fibre = null, decimal? Sugars = null, decimal? Saturates = null, decimal? Salt = null)
+    decimal? Fibre = null, decimal? Sugars = null, decimal? Saturates = null, decimal? Salt = null, int? FoodId = null, string? ServingLabel = null, decimal? ServingAmount = null)
 {
     /// <summary>Largest allowed gap between <see cref="Kcal"/> and the energy the macros add up to, as a fraction of that energy. A placeholder to confirm.</summary>
     public const decimal KcalTolerance = 0.20m;

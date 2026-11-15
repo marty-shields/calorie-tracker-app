@@ -58,10 +58,7 @@ public sealed partial class FoodService
 
     private void Bound(Food food)
     {
-        var label = food.ServingLabel?.Trim();
-        var hasServing = !string.IsNullOrEmpty(label) && label.Length <= MaxServingLabelLength
-            && food.ServingAmount is { } amount && double.IsFinite(amount) && amount > 0 && amount <= MaxServingAmount;
-        if (hasServing)
+        if (TryBoundServing(food.ServingLabel, food.ServingAmount, out var label, out _))
         {
             food.ServingLabel = label;
         }
@@ -87,15 +84,38 @@ public sealed partial class FoodService
         }
     }
 
-    private static double? Nutrient(double? value, ref int dropped)
+    /// <summary>True when the label and weight make a serving: the trimmed label is not blank and at most <see cref="MaxServingLabelLength"/> characters, and the weight is finite, above zero and at most <see cref="MaxServingAmount"/>.</summary>
+    /// <param name="trimmedLabel">The label without surrounding whitespace; empty when false.</param>
+    /// <param name="servingAmount">The weight in g or ml; 0 when false.</param>
+    public static bool TryBoundServing(string? label, double? amount, out string trimmedLabel, out double servingAmount)
     {
-        if (value is not { } v || (double.IsFinite(v) && v >= 0 && v <= MaxNutrientPer100))
+        var trimmed = label?.Trim();
+        if (!string.IsNullOrEmpty(trimmed) && trimmed.Length <= MaxServingLabelLength
+            && amount is { } a && double.IsFinite(a) && a > 0 && a <= MaxServingAmount)
         {
-            return value;
+            trimmedLabel = trimmed;
+            servingAmount = a;
+            return true;
         }
 
-        dropped++;
-        return null;
+        trimmedLabel = string.Empty;
+        servingAmount = 0;
+        return false;
+    }
+
+    /// <summary>The value when it is finite and within 0 to <see cref="MaxNutrientPer100"/>; null when it is unknown or out of range.</summary>
+    public static double? BoundNutrient(double? value) =>
+        value is { } v && double.IsFinite(v) && v >= 0 && v <= MaxNutrientPer100 ? v : null;
+
+    private static double? Nutrient(double? value, ref int dropped)
+    {
+        var bounded = BoundNutrient(value);
+        if (value is not null && bounded is null)
+        {
+            dropped++;
+        }
+
+        return bounded;
     }
 
     private static partial class Log
