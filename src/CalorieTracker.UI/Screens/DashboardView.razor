@@ -1,4 +1,5 @@
-<AppScreen Title="Calorie Tracker" Destination="NavDestination.Dashboard" OnNavigate="OnNavigate">
+@using CalorieTracker.UI.Components.Feedback
+<AppScreen Title="Calorie Tracker" Destination="NavDestination.Dashboard" OnNavigate="OnNavigate" Status="Notice">
     <Actions>
         <IconButton Icon="IconName.Settings" AriaLabel="Settings" TestId="settings" OnClick="OnSettings" />
     </Actions>
@@ -10,6 +11,8 @@
 </AppScreen>
 
 @code {
+    private RenderFragment Notice => @<Snackbar />;
+
     /// <summary>Raised with the destination tapped in the bottom navigation bar.</summary>
     [Parameter]
     public EventCallback<NavDestination> OnNavigate { get; set; }

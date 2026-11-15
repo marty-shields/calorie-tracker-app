@@ -1,5 +1,6 @@
 using System.Globalization;
 using CalorieTracker.Core.Data;
+using CalorieTracker.UI.Screens;
 
 namespace CalorieTracker.UI.Navigation;
 
@@ -17,8 +18,9 @@ public static class ServingRoute
     private const string DateFormat = "yyyy-MM-dd";
 
     /// <summary>The route to add a food. Leave <paramref name="meal"/> null to suggest a meal from the time of day, and <paramref name="date"/> null for today.</summary>
-    /// <param name="returnTo">An in-app route such as /foods to go back to; null for the defaults.</param>
-    public static string Url(int foodId, Meal? meal = null, DateOnly? date = null, string? returnTo = null)
+    /// <param name="returnTo">An in-app route such as /foods to go to after Back or a saved entry; null for the defaults. A route here also makes the screen offer "View day" after Add instead of Undo.</param>
+    /// <param name="backTo">An in-app route for Back alone, when it differs from where a saved entry goes; null uses <paramref name="returnTo"/>.</param>
+    public static string Url(int foodId, Meal? meal = null, DateOnly? date = null, string? returnTo = null, string? backTo = null)
     {
         var query = new List<string>();
         if (meal is { } m)
@@ -36,6 +38,11 @@ public static class ServingRoute
             query.Add($"return={Uri.EscapeDataString(returnTo)}");
         }
 
+        if (backTo is not null)
+        {
+            query.Add($"back={Uri.EscapeDataString(backTo)}");
+        }
+
         return $"/serving/{foodId}" + (query.Count == 0 ? "" : "?" + string.Join('&', query));
     }
 
@@ -50,4 +57,14 @@ public static class ServingRoute
     /// <summary>The return route when it is an in-app path (starts with one slash, no backslash or control character), otherwise <paramref name="fallback"/>.</summary>
     public static string ReturnOr(string? returnTo, string fallback) =>
         returnTo is { Length: > 0 } && returnTo[0] == '/' && !returnTo.StartsWith("//", StringComparison.Ordinal) && !returnTo.Contains('\\') && !returnTo.Any(char.IsControl) ? returnTo : fallback;
+
+    /// <summary>Where Back goes: the <c>back</c> route if it is in-app, else the <c>return</c> route if it is, else <see cref="DefaultBack"/>.</summary>
+    public static string BackTarget(string? backTo, string? returnTo) => ReturnOr(backTo, ReturnOr(returnTo, DefaultBack));
+
+    /// <summary>Where a saved entry goes: the <c>return</c> route if it is in-app, else <see cref="DefaultAfterAdd"/>.</summary>
+    public static string AfterAddTarget(string? returnTo) => ReturnOr(returnTo, DefaultAfterAdd);
+
+    /// <summary>View day when the <c>return</c> route is accepted, since the person stays where they came from; Undo when it is missing or rejected, since a saved entry then goes to the Dashboard.</summary>
+    public static AddedFollowUp FollowUpFor(string? returnTo) =>
+        ReturnOr(returnTo, "") is { Length: > 0 } ? AddedFollowUp.ViewDay : AddedFollowUp.Undo;
 }

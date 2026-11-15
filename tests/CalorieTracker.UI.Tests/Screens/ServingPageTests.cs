@@ -2,10 +2,14 @@ using CalorieTracker.Core;
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Foods;
+using CalorieTracker.UI.Components.Feedback;
+using CalorieTracker.UI.Logging;
 using CalorieTracker.UI.Screens;
 using CalorieTracker.UI.Tests.Stories;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Time.Testing;
 using SQLite;
 
@@ -492,5 +496,116 @@ public class ServingPageTests : ComponentTestBase
         await cut.Find("[data-testid=back]").ClickAsync(new());
 
         Assert.That(back, Is.True);
+    }
+
+    [Test]
+    public async Task Add_PostsAnUndoSnackbar_AndUndoRemovesTheEntry()
+    {
+        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
+        var cut = Render(cheddarId, Meal.Lunch);
+
+        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
+        var message = snackbar.Current!;
+        await snackbar.InvokeActionAsync(message);
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That((message.Text, message.ActionLabel), Is.EqualTo(("Cheddar cheese added to Lunch", "Undo")));
+            Assert.That(await Entries(), Is.Empty);
+            Assert.That(snackbar.Current, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task Add_WithAReturnRoute_PostsViewDay_AndItOpensTheDayAfterThePageIsGone()
+    {
+        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
+        var opened = new List<DateOnly>();
+        var cut = Render(cheddarId, Meal.Lunch, more: p => p
+            .Add(x => x.AfterAdd, AddedFollowUp.ViewDay)
+            .Add(x => x.ViewDay, day =>
+            {
+                opened.Add(day);
+                return Task.CompletedTask;
+            }));
+
+        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
+        var message = snackbar.Current!;
+        await Context.DisposeComponentsAsync();
+        await snackbar.InvokeActionAsync(message);
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That((message.Text, message.ActionLabel), Is.EqualTo(("Cheddar cheese added to Lunch", "View day")));
+            Assert.That(opened, Is.EqualTo(new[] { Day }));
+            Assert.That(await Entries(), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task Add_AskingForViewDayWithNoWayToOpenIt_PostsUndoInstead()
+    {
+        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
+        var cut = Render(cheddarId, Meal.Lunch, more: p => p.Add(x => x.AfterAdd, AddedFollowUp.ViewDay));
+
+        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
+
+        Assert.That(snackbar.Current!.ActionLabel, Is.EqualTo("Undo"));
+    }
+
+    [Test]
+    public async Task Undo_OfAnEntryAlreadyGone_CountsAsUndone_WithNoMessageAndNoLog()
+    {
+        var logger = new FakeLogger<ServingPage>();
+        Context.Services.AddSingleton<ILogger<ServingPage>>(logger);
+        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
+        var cut = Render(cheddarId, Meal.Lunch);
+        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
+        var message = snackbar.Current!;
+        var entry = (await Entries()).Single();
+        await core.GetRequiredService<DiaryService>().RemoveAsync(entry.Id);
+
+        await snackbar.InvokeActionAsync(message);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snackbar.Current, Is.Null);
+            Assert.That(LoggedEvents.Of(logger), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task Add_WhenSavingFails_PostsNoSnackbar()
+    {
+        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
+        var cut = Render(cheddarId, Meal.Lunch);
+        await connection.ExecuteAsync("DROP TABLE DiaryEntry");
+
+        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
+
+        Assert.That(snackbar.Current, Is.Null);
+    }
+
+    [Test]
+    public async Task Undo_WhenRemovingFails_DoesNotThrow_SaysSo_AndLogsOnlyTheStatus()
+    {
+        var logger = new FakeLogger<ServingPage>();
+        Context.Services.AddSingleton<ILogger<ServingPage>>(logger);
+        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
+        var cut = Render(cheddarId, Meal.Lunch);
+        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
+        var message = snackbar.Current!;
+        await connection.ExecuteAsync("DROP TABLE DiaryEntry");
+
+        await snackbar.InvokeActionAsync(message);
+
+        var records = logger.Collector.GetSnapshot();
+        Assert.Multiple(() =>
+        {
+            Assert.That(snackbar.Current!.Text, Does.StartWith("Couldn't undo"));
+            Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { UiEvent.UndoFailed }));
+            Assert.That(records.Select(r => r.Message), Has.None.Contain("Cheddar"));
+            Assert.That(records.Select(r => r.Message), Has.None.Contain("Lunch"));
+        });
     }
 }

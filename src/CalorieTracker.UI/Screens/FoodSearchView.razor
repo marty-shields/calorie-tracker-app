@@ -3,8 +3,10 @@
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Components.Inputs
 @using CalorieTracker.UI.Components.Lists
-<AppScreen Title="Search foods" Destination="NavDestination.Foods" OnNavigate="OnNavigate" OnBack="@(Selected is null ? default : OnClearSelection)"
-           Toolbar="@(Selected is null && !Failed ? Tools : null)">
+@* AppScreen shows Status only with a navigation bar, and add mode has none. The snackbar there is shown by the Dashboard. *@
+<AppScreen Title="@(Meal is { } meal ? $"Add to {meal}" : "Search foods")" Destination="@(Meal is null ? NavDestination.Foods : null)" OnNavigate="OnNavigate"
+           OnBack="@(Meal is not null ? OnBack : Selected is null ? default : OnClearSelection)" Toolbar="@(Selected is null && !Failed ? Tools : null)"
+           Status="@(Meal is null ? Notice : null)">
     <ChildContent>
         @if (Selected is { } food)
         {
@@ -12,6 +14,7 @@
                 <FoodValues Name="@food.Name" Brand="@food.Brand" IsLiquid="@(food.Unit == FoodUnit.Millilitre)" Kcal="food.Kcal" Protein="food.ProteinG"
                             Carbs="food.CarbsG" Fat="food.FatG" Fibre="food.FibreG" Sugars="food.SugarsG" Saturates="food.SaturatesG" Salt="food.SaltG"
                             TestId="food-detail" />
+                <AppButton Variant="ButtonVariant.Primary" FullWidth TestId="food-detail-add" OnClick="@(() => OnAdd.InvokeAsync(food))">Add to diary</AppButton>
                 <AppButton Variant="ButtonVariant.Secondary" FullWidth TestId="food-detail-close" OnClick="OnClearSelection">Back to results</AppButton>
             </section>
         }
@@ -73,6 +76,10 @@
     [Parameter]
     public bool Failed { get; set; }
 
+    /// <summary>The meal being added to, which turns search into add mode: the title reads "Add to Lunch", a back arrow leaves for the Dashboard and no navigation bar shows. Null is the Foods tab.</summary>
+    [Parameter]
+    public Meal? Meal { get; set; }
+
     /// <summary>Raised with the whole text on every keystroke.</summary>
     [Parameter]
     public EventCallback<string> OnQueryChanged { get; set; }
@@ -85,6 +92,14 @@
     [Parameter]
     public EventCallback<Food> OnSelect { get; set; }
 
+    /// <summary>Raised with the food on a food's values by Add to diary.</summary>
+    [Parameter]
+    public EventCallback<Food> OnAdd { get; set; }
+
+    /// <summary>Raised by the back arrow and Android back in add mode.</summary>
+    [Parameter]
+    public EventCallback OnBack { get; set; }
+
     /// <summary>Raised by Back to results on a food's values, the back arrow and Android back.</summary>
     [Parameter]
     public EventCallback OnClearSelection { get; set; }
@@ -96,6 +111,8 @@
     /// <summary>Raised with the destination tapped in the bottom navigation bar, or with the start screen on Android back.</summary>
     [Parameter]
     public EventCallback<NavDestination> OnNavigate { get; set; }
+
+    private RenderFragment Notice => @<Snackbar />;
 
     private RenderFragment Tools =>
         @<div class="tools">

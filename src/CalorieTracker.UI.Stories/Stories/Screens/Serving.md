@@ -4,9 +4,9 @@ $attribute: CustomPage("Screens/Serving/Overview")
 
 # Serving
 
-Choose an amount and a meal, then add the food to a day. Opened from a food (route `/serving/<food id>`; the Foods and Scan screens link to it in a later change). View: `ServingView`; page: `ServingPage`; route page: `Serving.razor` in the App.
+Choose an amount and a meal, then add the food to a day. Opened from a food (route `/serving/<food id>`; food search links to it, the Scan screen in a later change). View: `ServingView`; page: `ServingPage`; route page: `Serving.razor` in the App.
 
-Query parameters: `meal` (Breakfast, Lunch, Dinner or Snacks; a preset, such as from a meal's +), `date` (yyyy-MM-dd; today when missing or not a date), `return` (an in-app route such as `/foods`; Back and a saved entry go there). Without `return`, Back goes to Foods and a saved entry to the Dashboard.
+Query parameters: `meal` (Breakfast, Lunch, Dinner or Snacks; a preset, such as from a meal's +), `date` (yyyy-MM-dd; today when missing or not a date), `return` (an in-app route such as `/foods`; Back and a saved entry go there), `back` (an in-app route for Back alone, so a meal's search can be returned to while a saved entry still goes to the Dashboard). Without them, Back goes to Foods and a saved entry to the Dashboard. After a saved entry a snackbar says "<food> added to <meal>": **View day** when `return` is set (the person goes back to where they came from), otherwise **Undo**, which removes the entry just added.
 
 | Part | Content |
 |---|---|
@@ -23,7 +23,7 @@ Query parameters: `meal` (Breakfast, Lunch, Dinner or Snacks; a preset, such as 
 
 A food's serving label (at most 60 characters), serving weight (above 0, at most 10,000) and optional nutrients (fibre, sugars, saturates, salt: 0 to 100 g per 100 g or ml) are bounded by `FoodService` before the screen sees them; a serving out of range shows as no serving, a nutrient out of range as unknown.
 
-Back: the `return` route, or Foods.
+Back: the `back` route, else the `return` route, else Foods.
 
 States: [Servings](./?path=/story/screens-serving--servings) · [Grams with a serving](./?path=/story/screens-serving--grams-with-a-serving) · [Scanned product with no serving](./?path=/story/screens-serving--scanned-product-with-no-serving) · [CoFID ingredient](./?path=/story/screens-serving--cofid-ingredient) · [Liquid](./?path=/story/screens-serving--liquid) · [Preset meal](./?path=/story/screens-serving--preset-meal) · [Suggested meal](./?path=/story/screens-serving--suggested-meal) · [Invalid amount](./?path=/story/screens-serving--invalid-amount) · [Amount too large](./?path=/story/screens-serving--amount-too-large) · [Saving](./?path=/story/screens-serving--saving) · [Save failed](./?path=/story/screens-serving--save-failed) · [Loading](./?path=/story/screens-serving--loading) · [Load failed](./?path=/story/screens-serving--load-failed) · [Food not found](./?path=/story/screens-serving--food-not-found)
 

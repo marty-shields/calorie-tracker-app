@@ -7,8 +7,8 @@
 @inject SeedProgress Seed
 @inject ILogger<FoodSearchPage> Logger
 
-<FoodSearchView Query="@query" Filter="filter" OnFilterChanged="ChangeFilter" Results="results" Selected="selected" Loading="loading" Failed="failed"
-                OnQueryChanged="SearchAsync" OnSelect="Select" OnClearSelection="ClearSelection" OnRetry="Retry" OnNavigate="OnNavigate" />
+<FoodSearchView Meal="Meal" Query="@query" Filter="filter" OnFilterChanged="ChangeFilter" Results="results" Selected="selected" Loading="loading" Failed="failed"
+                OnQueryChanged="SearchAsync" OnSelect="SelectAsync" OnAdd="AddAsync" OnBack="OnBack" OnClearSelection="ClearSelection" OnRetry="Retry" OnNavigate="OnNavigate" />
 
 @code {
     private string query = "";
@@ -19,7 +19,30 @@
     private bool failed;
     private bool seedFailed;
     private bool disposed;
+
+    /// <summary>Set by the first result tapped in add mode, so a double tap adds once. The page is left on the way out, so it is never cleared.</summary>
+    private bool added;
     private CancellationTokenSource? running;
+
+    /// <summary>The meal being added to. Set, the page is in add mode: tapping a result raises <see cref="OnAdd"/> straight away instead of showing the food's values.</summary>
+    [Parameter]
+    public Meal? Meal { get; set; }
+
+    /// <summary>The text the search opens with, such as when coming back from adding a food. Read once, when the page starts.</summary>
+    [Parameter]
+    public string? InitialQuery { get; set; }
+
+    /// <summary>The type the search opens on; null is All. Read once, when the page starts.</summary>
+    [Parameter]
+    public FoodType? InitialFilter { get; set; } = FoodType.Ingredient;
+
+    /// <summary>Raised to add a food: from a result in add mode, or Add to diary on a food's values. Carries the search so it can be restored on the way back.</summary>
+    [Parameter]
+    public EventCallback<FoodAddRequest> OnAdd { get; set; }
+
+    /// <summary>Raised by the back arrow and Android back in add mode.</summary>
+    [Parameter]
+    public EventCallback OnBack { get; set; }
 
     /// <summary>Raised with the destination tapped in the bottom navigation bar, or with the start screen on Android back.</summary>
     [Parameter]
@@ -27,9 +50,15 @@
 
     protected override async Task OnInitializedAsync()
     {
+        query = InitialQuery ?? "";
+        filter = InitialFilter;
         if (Seed.Current is { } load)
         {
             await WaitForSeedAsync(load);
+        }
+        else if (query.Length > 0)
+        {
+            await SearchAsync(query);
         }
     }
 
@@ -104,7 +133,24 @@
         running = null;
     }
 
-    private void Select(Food food) => selected = food;
+    private Task SelectAsync(Food food)
+    {
+        if (Meal is null)
+        {
+            selected = food;
+            return Task.CompletedTask;
+        }
+
+        if (added)
+        {
+            return Task.CompletedTask;
+        }
+
+        added = true;
+        return AddAsync(food);
+    }
+
+    private Task AddAsync(Food food) => OnAdd.InvokeAsync(new FoodAddRequest(food, query, filter));
 
     private void ClearSelection() => selected = null;
 

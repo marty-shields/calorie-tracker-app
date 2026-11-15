@@ -1,6 +1,7 @@
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Seed;
+using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Logging;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Screens;
@@ -392,6 +393,123 @@ public class FoodSearchPageTests : ComponentTestBase
             Assert.That(records.Select(r => r.Message), Has.None.Contain(Typed));
             Assert.That(records.SelectMany(r => r.StructuredState ?? []).Select(p => p.Value), Has.None.Contain(Typed));
         });
+    }
+
+    [Test]
+    public async Task Selected_AddToDiary_RaisesOnAddWithTheFoodAndTheSearch()
+    {
+        search.Results = [Oats];
+        var requests = new List<FoodAddRequest>();
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.OnAdd, requests.Add));
+        await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
+        await cut.Find("[data-testid=food-filter-all]").ChangeAsync(true);
+        await cut.Find("[data-testid=food-result-1]").ClickAsync(new());
+
+        await cut.Find("[data-testid=food-detail-add]").ClickAsync(new());
+
+        Assert.That(requests, Is.EqualTo(new[] { new FoodAddRequest(Oats, "oat", null) }));
+    }
+
+    [Test]
+    public async Task AddMode_ATappedResult_RaisesOnAddAtOnce_WithNoValuesStep()
+    {
+        search.Results = [Oats];
+        var requests = new List<FoodAddRequest>();
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch).Add(x => x.OnAdd, requests.Add));
+        await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
+
+        await cut.Find("[data-testid=food-result-1]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(requests, Is.EqualTo(new[] { new FoodAddRequest(Oats, "oat", FoodType.Ingredient) }));
+            Assert.That(cut.FindAll("[data-testid=food-detail]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task AddMode_ADoubleTapOnAResult_AddsOnce()
+    {
+        search.Results = [Oats];
+        var requests = new List<FoodAddRequest>();
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch).Add(x => x.OnAdd, requests.Add));
+        await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
+
+        await cut.Find("[data-testid=food-result-1]").ClickAsync(new());
+        await cut.Find("[data-testid=food-result-1]").ClickAsync(new());
+
+        Assert.That(requests, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public void TabMode_ShowsAPostedSnackbar_WhereAddModeLeavesItToTheDashboard()
+    {
+        Context.Services.GetRequiredService<SnackbarService>().Show("Oats added to Lunch");
+
+        var tab = Context.Render<FoodSearchPage>();
+        var add = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(tab.FindAll("[data-testid=snackbar]"), Has.Count.EqualTo(1));
+            Assert.That(add.FindAll("[data-testid=snackbar]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public void AddMode_TitlesTheMeal_HasABackArrowAndNoNavigationBar()
+    {
+        var backed = 0;
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Dinner).Add(x => x.OnBack, () => backed++));
+
+        cut.Find("[data-testid=back]").Click();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=screen-title]").TextContent.Trim(), Is.EqualTo("Add to Dinner"));
+            Assert.That(cut.FindAll("[data-testid=bottom-nav]"), Is.Empty);
+            Assert.That(backed, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public void FoodsTab_IsTitledSearchFoods_WithTheNavigationBar()
+    {
+        var cut = Context.Render<FoodSearchPage>();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=screen-title]").TextContent.Trim(), Is.EqualTo("Search foods"));
+            Assert.That(cut.FindAll("[data-testid=bottom-nav]"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public void OpeningWithAQueryAndType_SearchesThemRightAway()
+    {
+        search.Results = [Oats];
+
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.InitialQuery, "oat").Add(x => x.InitialFilter, (FoodType?)null));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(search.Queries, Is.EqualTo(new[] { "oat" }));
+            Assert.That(search.Types, Is.EqualTo(new FoodType?[] { null }));
+            Assert.That(cut.Find("[data-testid=food-search-input]").GetAttribute("value"), Is.EqualTo("oat"));
+            Assert.That(cut.FindAll("[data-testid=food-result-1]"), Has.Count.EqualTo(1));
+            Assert.That(cut.Find("[data-testid=food-filter-all]").HasAttribute("checked"), Is.True);
+        });
+    }
+
+    [Test]
+    public void ASnackbarPosted_ShowsAboveTheNavigationBar()
+    {
+        var cut = Context.Render<FoodSearchPage>();
+
+        Context.Services.GetRequiredService<SnackbarService>().Show("Oats added to Lunch", "View day", () => Task.CompletedTask);
+
+        cut.WaitForState(() => cut.FindAll("[data-testid=snackbar]").Count == 1);
+        Assert.That(cut.Find("[data-testid=snackbar-action]").TextContent.Trim(), Is.EqualTo("View day"));
     }
 
     private sealed class FakeSearch : IFoodSearch

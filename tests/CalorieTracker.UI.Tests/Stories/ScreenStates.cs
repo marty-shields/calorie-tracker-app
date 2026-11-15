@@ -106,6 +106,8 @@ public static class ScreenStates
         new("Screens/FoodSearch", "No results", c => FoodSearch(c, query: "zzz", filter: FoodType.Ingredient)),
         new("Screens/FoodSearch", "No match on a filter", c => FoodSearch(c, query: "oat", filter: FoodType.Drink)),
         new("Screens/FoodSearch", "Food selected", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, results: Ingredients, selected: Ingredients[0])),
+        new("Screens/FoodSearch", "Add to a meal", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, results: Ingredients, meal: Meal.Lunch)),
+        new("Screens/FoodSearch", "Add to a meal with nothing typed", c => FoodSearch(c, filter: FoodType.Ingredient, meal: Meal.Snacks)),
         new("Screens/FoodSearch", "Search failed", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, failed: true)),
         new("Screens/Scan", "Opening camera", c => Scan(c, ScanState.OpeningCamera)),
         new("Screens/Scan", "Closing camera", c => Scan(c, ScanState.Closing)),
@@ -135,8 +137,11 @@ public static class ScreenStates
         new("Screens/Error", "Error", c => c.Render<ErrorView>(p => p.Add(x => x.OnRestart, () => { })).FindAll("*")),
     ];
 
-    private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", FoodType? filter = null, IReadOnlyList<Food>? results = null, Food? selected = null, bool loading = false, bool failed = false) =>
+    private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", FoodType? filter = null, IReadOnlyList<Food>? results = null, Food? selected = null, bool loading = false, bool failed = false, Meal? meal = null) =>
         context.Render<FoodSearchView>(p => p
+            .Add(x => x.Meal, meal)
+            .Add(x => x.OnAdd, (Food _) => { })
+            .Add(x => x.OnBack, () => { })
             .Add(x => x.Query, query)
             .Add(x => x.Filter, filter)
             .Add(x => x.OnFilterChanged, (FoodType? _) => { })

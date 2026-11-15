@@ -1,5 +1,5 @@
 Feature: Serving
-  The Serving screen adds a food to a meal. Foods and Scan do not link to it yet, so these scenarios open its route for a food found in Foods; a food with a serving needs a scanned product, so the Grams and Servings switch is covered by bUnit, not here.
+  The Serving screen adds a food to a meal. Without a preset the scenarios tap through Foods (open a food, Add to diary); a preset meal comes from a meal's +, which the Dashboard does not have yet, so those open the route for a food found in Foods; a food with a serving needs a scanned product, so the Grams and Servings switch is covered by bUnit, not here.
 
   Scenario: A food from the CoFID seed is added by grams with no switch
     Given I have opened Serving for the first food found by "oat" with Lunch preset

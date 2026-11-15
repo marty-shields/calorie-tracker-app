@@ -2,10 +2,14 @@
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Diary
 @using CalorieTracker.Core.Foods
+@using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Models.Serving
+@using Microsoft.Extensions.Logging
 @inject FoodService Foods
 @inject DiaryService Diary
 @inject TimeProvider Time
+@inject SnackbarService Snackbar
+@inject ILogger<ServingPage> Logger
 
 <ServingView Food="food" Loading="loading" LoadFailed="loadFailed" Mode="mode" Amount="amount" Grams="Grams" Meal="meal" SuggestedAt="suggestedAt"
              Saving="saving" SaveFailed="saveFailed" OnModeChanged="ChangeMode" OnAmountChanged="ChangeAmount" OnUseServing="UseServing"
@@ -42,7 +46,15 @@
     [Parameter]
     public DateOnly Date { get; set; }
 
-    /// <summary>Raised once the entry is saved.</summary>
+    /// <summary>What the snackbar after a saved entry offers.</summary>
+    [Parameter]
+    public AddedFollowUp AfterAdd { get; set; }
+
+    /// <summary>Opens the day an entry was added to. Runs when "View day" is tapped, possibly after this screen is gone, so it is a plain delegate rather than an <see cref="EventCallback"/> bound to a screen that no longer exists.</summary>
+    [Parameter]
+    public Func<DateOnly, Task>? ViewDay { get; set; }
+
+    /// <summary>Raised once the entry is saved, after its snackbar is posted.</summary>
     [Parameter]
     public EventCallback OnAdded { get; set; }
 
@@ -187,6 +199,10 @@
         {
             var result = await Diary.AddAsync(Date, meal, food.Id, grams, servings);
             saveFailed = result.Status != DiaryStatus.Ok;
+            if (!saveFailed)
+            {
+                Announce(food.Name, meal, Date, result.Entry!);
+            }
         }
         catch
         {
@@ -200,6 +216,31 @@
         if (!saveFailed)
         {
             await OnAdded.InvokeAsync();
+        }
+    }
+
+    /// <summary>Posts "{food} added to {meal}" with Undo or View day. The actions can run after this screen is gone, so they use nothing of it.</summary>
+    private void Announce(string name, Meal addedTo, DateOnly day, DiaryEntry entry)
+    {
+        var text = $"{name} added to {addedTo}";
+        if (AfterAdd == AddedFollowUp.ViewDay && ViewDay is { } viewDay)
+        {
+            Snackbar.Show(text, "View day", () => viewDay(day));
+        }
+        else
+        {
+            Snackbar.Show(text, "Undo", () => UndoAsync(Diary, Snackbar, Logger, entry.Id));
+        }
+    }
+
+    /// <summary>Removes the entry just added. An entry already gone counts as undone. A failure is logged and said in a snackbar; it never throws.</summary>
+    private static async Task UndoAsync(DiaryService diary, SnackbarService snackbar, ILogger logger, int entryId)
+    {
+        var result = await diary.RemoveAsync(entryId);
+        if (result.Status is not (DiaryStatus.Ok or DiaryStatus.NotFound))
+        {
+            Log.UndoFailed(logger, result.Status);
+            snackbar.Show("Couldn't undo. Remove it from the day.");
         }
     }
 }
