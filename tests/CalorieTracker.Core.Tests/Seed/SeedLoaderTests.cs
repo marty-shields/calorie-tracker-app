@@ -44,7 +44,7 @@ public class SeedLoaderTests
         var foods = (await connection.Table<Food>().ToListAsync()).ToDictionary(f => f.SourceId);
         Assert.Multiple(() =>
         {
-            Assert.That(result, Is.EqualTo(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0)));
+            Assert.That(result, Is.EqualTo(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0, 0)));
             Assert.That(foods.Keys, Is.EquivalentTo(new[] { "11-001", "11-002", "11-003" }));
             Assert.That(foods.Values.Select(f => f.Source), Is.All.EqualTo(FoodSource.CoFID));
             Assert.That(foods["11-001"].Kcal, Is.EqualTo(355));
@@ -102,7 +102,7 @@ public class SeedLoaderTests
         var after = (await connection.Table<Food>().ToListAsync()).ToDictionary(f => f.SourceId);
         Assert.Multiple(() =>
         {
-            Assert.That(result, Is.EqualTo(new SeedLoadResult(SeedLoadStatus.Loaded, 2, 1, 3)));
+            Assert.That(result, Is.EqualTo(new SeedLoadResult(SeedLoadStatus.Loaded, 2, 1, 3, 0)));
             Assert.That(after["11-001"].Kcal, Is.EqualTo(999));
             Assert.That(after["11-001"].Name, Is.EqualTo("Arrowroot v2"));
             Assert.That(after["11-001"].Id, Is.EqualTo(before["11-001"]));
@@ -229,7 +229,7 @@ public class SeedLoaderTests
         await connection.ExecuteAsync("DROP TRIGGER FailChunkTwo");
         var result = await Loader().LoadAsync();
 
-        Assert.That(result, Is.EqualTo(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 700, SeedLoader.ChunkSize)));
+        Assert.That(result, Is.EqualTo(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 700, SeedLoader.ChunkSize, 0)));
         Assert.That(await store.GetSeedVersionAsync(FoodSource.CoFID), Is.EqualTo(1));
     }
 
@@ -339,6 +339,31 @@ public class SeedLoaderTests
             Assert.That(foods.Select(f => (f.Source, f.SourceId)), Is.EquivalentTo(new[] { (FoodSource.CoFID, "11-001"), (FoodSource.OpenFoodFacts, "old-dish") }));
         });
         Assert.That(await connection.QueryScalarsAsync<string>("SELECT Barcode FROM FoodBarcode"), Is.EqualTo(new[] { "5000000000024" }));
+    }
+
+    [Test]
+    public async Task LoadAsync_NewerSeedWithoutSomeFoods_CountsOnlyTheFoodsItDeletedAndLogsTheCount()
+    {
+        var first = await Loader().LoadAsync();
+        await store.UpsertAsync(new Food { Source = FoodSource.CoFID, SourceId = "old-a", Name = "Old A", SearchText = "old a" });
+        await store.UpsertAsync(new Food { Source = FoodSource.CoFID, SourceId = "old-b", Name = "Old B", SearchText = "old b" });
+        var used = await store.UpsertAsync(new Food { Source = FoodSource.CoFID, SourceId = "old-used", Name = "Old used", SearchText = "old used" });
+        await store.UpsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "old-a", Name = "Scanned", SearchText = "scanned" });
+        await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = used.Id, Amount = 10 });
+        seedJson = Sample(2, changedKcal: 999, extra: true);
+
+        var second = await Loader().LoadAsync();
+        var up = await Loader().LoadAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(first.Deleted, Is.Zero);
+            Assert.That(second.Deleted, Is.EqualTo(2));
+            Assert.That(up, Is.EqualTo(new SeedLoadResult(SeedLoadStatus.UpToDate, 2, 0, 0, 0)));
+        });
+        var loaded = logger.Collector.GetSnapshot().Where(r => r.Id.Id == (int)CoreEvent.SeedLoaded).Last();
+        Assert.That(loaded.Message, Does.Contain("2 deleted"));
+        Assert.That(loaded.Message, Does.Not.Contain("Old"));
     }
 
     [Test]

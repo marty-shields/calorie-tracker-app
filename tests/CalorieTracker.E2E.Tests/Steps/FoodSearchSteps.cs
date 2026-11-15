@@ -37,6 +37,10 @@ public sealed class FoodSearchSteps(FoodSearchScreen foods, NavigationBar naviga
     public void ThenTheChipIsChosen(string chip) =>
         web.Eventually(() => foods.IsTypeChosen(chip.ToLowerInvariant()), Is.True, $"{chip} chip chosen");
 
+    [Then(@"^the type chips read Ingredients, Foods, Drinks, All in that order$")]
+    public void ThenTheTypeChipsReadInOrder() =>
+        web.Eventually(foods.TypeChipLabels, Is.EqualTo(new[] { "Ingredients", "Foods", "Drinks", "All" }));
+
     [Then(@"^every result is a ""(Ingredient|Food|Drink)""$")]
     public void ThenEveryResultIsOfType(string type) =>
         web.Eventually(foods.ResultTypes, Has.Count.GreaterThan(0).And.All.EqualTo(type));

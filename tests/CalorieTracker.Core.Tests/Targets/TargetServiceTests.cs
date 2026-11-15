@@ -61,7 +61,7 @@ public class TargetServiceTests
 
     [TestCase(1.0, 1)]
     [TestCase(2000.0, 2000)]
-    [TestCase((double)int.MaxValue, int.MaxValue)]
+    [TestCase(10000.0, 10000)]
     public async Task SaveAsync_EdgeOfTheValidRange_Saves(double value, int expected)
     {
         Assert.That((await service.SaveAsync(value)).Kcal, Is.EqualTo(expected));
@@ -92,7 +92,9 @@ public class TargetServiceTests
     [TestCase(double.NaN)]
     [TestCase(double.PositiveInfinity)]
     [TestCase(double.NegativeInfinity)]
+    [TestCase(10001.0)]
     [TestCase(3000000000.0)]
+    [TestCase((double)int.MaxValue)]
     public async Task SaveAsync_NotAWholeNumberAboveZero_ReturnsInvalidAndKeepsTheTarget(double value)
     {
         await service.SaveAsync(2000);

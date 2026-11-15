@@ -126,11 +126,16 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             return food;
         });
 
-    /// <summary>Sets only the serving of the food with <paramref name="id"/>, leaving its nutrients as stored. False when no food has that id.</summary>
-    public Task<bool> SetServingAsync(int id, string label, double amount) =>
+    /// <summary>
+    /// Sets the serving and the nutrients (kcal, protein, carbs, fat, fibre, sugars, saturates, salt) of the food with <paramref name="id"/> from <paramref name="fresh"/>, which must have a serving; every other column stays as stored.
+    /// False when no food has that id.
+    /// </summary>
+    public Task<bool> RefreshServingAsync(int id, Food fresh) =>
         gate.RunAsync(async () =>
         {
-            var changed = await connection.ExecuteAsync("UPDATE Food SET ServingLabel = ?, ServingAmount = ? WHERE Id = ?", label, amount, id) > 0;
+            var changed = await connection.ExecuteAsync(
+                "UPDATE Food SET ServingLabel = ?, ServingAmount = ?, Kcal = ?, ProteinG = ?, CarbsG = ?, FatG = ?, FibreG = ?, SugarsG = ?, SaturatesG = ?, SaltG = ? WHERE Id = ?",
+                fresh.ServingLabel, fresh.ServingAmount, fresh.Kcal, fresh.ProteinG, fresh.CarbsG, fresh.FatG, fresh.FibreG, fresh.SugarsG, fresh.SaturatesG, fresh.SaltG, id) > 0;
             if (changed)
             {
                 Log.Updated(logger, id);
@@ -138,6 +143,10 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
 
             return changed;
         });
+
+    /// <summary>Marks the food as asked for a serving, so it is not asked again (see <see cref="Food.ServingChecked"/>). False when no food has that id.</summary>
+    public Task<bool> MarkServingCheckedAsync(int id) =>
+        gate.RunAsync(async () => await connection.ExecuteAsync("UPDATE Food SET ServingChecked = 1 WHERE Id = ?", id) > 0);
 
     /// <summary>The seed version last fully loaded for <paramref name="source"/>, or null when none was.</summary>
     public Task<int?> GetSeedVersionAsync(FoodSource source) =>

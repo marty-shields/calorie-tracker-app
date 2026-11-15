@@ -267,33 +267,80 @@ public class FoodStoreTests
         Assert.That(rows[0].Kcal, Is.EqualTo(250));
     }
 
-    [Test]
-    public async Task SetServingAsync_ChangesOnlyTheRowWithThatId()
+    private static Food Fresh() => new()
     {
-        var target = await store.UpsertAsync(NewFood("1", kcal: 100));
+        ServingLabel = "1 slice (30 g)",
+        ServingAmount = 30,
+        Kcal = 111,
+        ProteinG = 11,
+        CarbsG = 12,
+        FatG = 13,
+        FibreG = 1.5,
+        SugarsG = 2.5,
+        SaturatesG = 3.5,
+        SaltG = 0.5,
+        // Everything below must be left alone by a refresh.
+        Name = "Renamed",
+        Brand = "Other brand",
+        Type = FoodType.Drink,
+        Unit = FoodUnit.Millilitre,
+        SourceId = "changed",
+        SearchText = "renamed",
+    };
+
+    [Test]
+    public async Task RefreshServingAsync_SetsTheServingAndNutrientsOfOnlyTheRowWithThatId()
+    {
+        var original = NewFood("1", kcal: 100);
+        original.Brand = "Brand";
+        original.Type = FoodType.Food;
+        original.FibreG = 9;
+        var target = await store.UpsertAsync(original, "5000000000017");
         var other = await store.UpsertAsync(NewFood("2", kcal: 200));
 
-        var changed = await store.SetServingAsync(target.Id, "1 slice (30 g)", 30);
+        var changed = await store.RefreshServingAsync(target.Id, Fresh());
 
         Assert.That(changed, Is.True);
         var rows = await connection.Table<Food>().ToListAsync();
-        var targetRow = rows.Single(r => r.Id == target.Id);
+        var row = rows.Single(r => r.Id == target.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That((row.ServingLabel, row.ServingAmount), Is.EqualTo(("1 slice (30 g)", 30.0)));
+            Assert.That((row.Kcal, row.ProteinG, row.CarbsG, row.FatG), Is.EqualTo((111.0, 11.0, 12.0, 13.0)));
+            Assert.That((row.FibreG, row.SugarsG, row.SaturatesG, row.SaltG), Is.EqualTo(((double?)1.5, (double?)2.5, (double?)3.5, (double?)0.5)));
+            Assert.That((row.Name, row.Brand, row.Type, row.Unit, row.Source, row.SourceId, row.SearchText), Is.EqualTo(("Oats", "Brand", FoodType.Food, FoodUnit.Gram, FoodSource.CoFID, "1", "oats")));
+            Assert.That(row.ServingChecked, Is.Null);
+        });
         var otherRow = rows.Single(r => r.Id == other.Id);
-        Assert.That((targetRow.ServingLabel, targetRow.ServingAmount, targetRow.Kcal), Is.EqualTo(("1 slice (30 g)", 30.0, 100.0)));
         Assert.That((otherRow.ServingLabel, otherRow.ServingAmount, otherRow.Kcal), Is.EqualTo(((string?)null, (double?)null, 200.0)));
+        Assert.That(await store.FindByBarcodeAsync("5000000000017"), Has.Property("Id").EqualTo(target.Id));
     }
 
     [Test]
-    public async Task SetServingAsync_UnknownId_ReturnsFalseAndLogsNothing()
+    public async Task RefreshServingAsync_AnOptionalNutrientTheSourceLacks_ClearsIt()
     {
-        var changed = await store.SetServingAsync(999, "1 slice (30 g)", 30);
+        var original = NewFood("1");
+        original.FibreG = 9;
+        var target = await store.UpsertAsync(original);
+        var fresh = Fresh();
+        fresh.FibreG = null;
+
+        await store.RefreshServingAsync(target.Id, fresh);
+
+        Assert.That((await connection.Table<Food>().FirstAsync()).FibreG, Is.Null);
+    }
+
+    [Test]
+    public async Task RefreshServingAsync_UnknownId_ReturnsFalseAndLogsNothing()
+    {
+        var changed = await store.RefreshServingAsync(999, Fresh());
 
         Assert.That(changed, Is.False);
         Assert.That(LoggedEvents.Of(logger), Is.Empty);
     }
 
     [Test]
-    public async Task SetServingAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
+    public async Task RefreshServingAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
     {
         var holding = new TaskCompletionSource();
         var inserted = NewFood("1");
@@ -303,12 +350,51 @@ public class FoodStoreTests
             await connection.InsertAsync(inserted);
         });
 
-        var set = store.SetServingAsync(1, "1 slice (30 g)", 30);
+        var set = store.RefreshServingAsync(1, Fresh());
         holding.SetResult();
 
         await busy;
         Assert.That(await set, Is.True);
         Assert.That((await connection.Table<Food>().FirstAsync()).ServingAmount, Is.EqualTo(30));
+    }
+
+    [Test]
+    public async Task MarkServingCheckedAsync_MarksOnlyTheRowWithThatIdAndChangesNothingElse()
+    {
+        var target = await store.UpsertAsync(NewFood("1", kcal: 100));
+        var other = await store.UpsertAsync(NewFood("2", kcal: 200));
+
+        var changed = await store.MarkServingCheckedAsync(target.Id);
+
+        Assert.That(changed, Is.True);
+        var rows = await connection.Table<Food>().ToListAsync();
+        var row = rows.Single(r => r.Id == target.Id);
+        Assert.That((row.ServingChecked, row.ServingAmount, row.Kcal, row.Name), Is.EqualTo(((bool?)true, (double?)null, 100.0, "Oats")));
+        Assert.That(rows.Single(r => r.Id == other.Id).ServingChecked, Is.Null);
+    }
+
+    [Test]
+    public async Task MarkServingCheckedAsync_UnknownId_ReturnsFalse()
+    {
+        Assert.That(await store.MarkServingCheckedAsync(999), Is.False);
+    }
+
+    [Test]
+    public async Task MarkServingCheckedAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
+    {
+        var holding = new TaskCompletionSource();
+        var busy = gate.RunAsync(async () =>
+        {
+            await holding.Task;
+            await connection.InsertAsync(NewFood("1"));
+        });
+
+        var mark = store.MarkServingCheckedAsync(1);
+        holding.SetResult();
+
+        await busy;
+        Assert.That(await mark, Is.True);
+        Assert.That((await connection.Table<Food>().FirstAsync()).ServingChecked, Is.True);
     }
 
     [Test]

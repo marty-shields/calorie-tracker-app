@@ -85,7 +85,7 @@ internal enum CoreEvent
     /// <summary>Start of the block reserved for the CoFID seed loader.</summary>
     SeedLoaderBlock = 1400,
 
-    /// <summary><see cref="Seed.SeedLoader"/>: a seed was loaded; version, inserted and updated counts.</summary>
+    /// <summary><see cref="Seed.SeedLoader"/>: a seed was loaded; version, inserted, updated and deleted counts.</summary>
     SeedLoaded = 1401,
 
     /// <summary><see cref="Seed.SeedLoader"/>: the stored seed is as new as the bundled one, so nothing was loaded.</summary>

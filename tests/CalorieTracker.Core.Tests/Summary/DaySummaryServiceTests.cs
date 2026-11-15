@@ -37,7 +37,7 @@ public class DaySummaryServiceTests
         logger = new FakeLogger<DaySummaryService>();
         diary = new DiaryService(new DiaryStore(connection, gate), NullLogger<DiaryService>.Instance);
         targets = new TargetService(new TargetStore(connection, gate), NullLogger<TargetService>.Instance);
-        service = new DaySummaryService(diary, targets, new FoodStore(connection, gate, NullLogger<FoodStore>.Instance), logger);
+        service = new DaySummaryService(new DaySummaryStore(connection, gate), logger);
     }
 
     [TearDown]
@@ -253,7 +253,8 @@ public class DaySummaryServiceTests
         await connection.CreateTableAsync<DiaryEntry>();
         await connection.ExecuteAsync("DROP TABLE AppSettings");
         Assert.That((await service.GetAsync(Day)).Status, Is.EqualTo(DaySummaryStatus.Failed));
-        Assert.That(LoggedEvents.Of(logger), Is.Empty, "the diary and target services already logged these");
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { CoreEvent.DaySummaryFailed, CoreEvent.DaySummaryFailed }));
+        logger.Collector.Clear();
 
         await connection.CreateTableAsync<AppSettings>();
         await diary.AddAsync(Day, Meal.Lunch, cheddar, 30);
@@ -265,8 +266,9 @@ public class DaySummaryServiceTests
     [Test]
     public async Task DaySummary_TotalsTooLargeForAnInt_ReturnFailedAndLogOverflow()
     {
-        await diary.AddAsync(Day, Meal.Lunch, cheddar, 5e8);
-        await diary.AddAsync(Day, Meal.Dinner, cheddar, 5e8);
+        // Stored directly: the diary service caps an amount, but a stored row can hold more.
+        await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = cheddar, Amount = 5e8 });
+        await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Dinner, FoodId = cheddar, Amount = 5e8 });
         await targets.SaveAsync(2100);
 
         var result = await service.GetAsync(Day);
@@ -292,7 +294,7 @@ public class DaySummaryServiceTests
     [Test]
     public async Task DaySummary_AnAmountTooLargeToScale_ReturnsFailedInsteadOfThrowing()
     {
-        await diary.AddAsync(Day, Meal.Lunch, cheddar, 1e300);
+        await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = cheddar, Amount = 1e300 });
 
         Assert.That((await service.GetAsync(Day)).Status, Is.EqualTo(DaySummaryStatus.Failed));
     }
@@ -335,6 +337,30 @@ public class DaySummaryServiceTests
 
         Assert.That(await busy, Is.EqualTo(1));
         Assert.That((await summary).Summary!.Totals.Kcal, Is.EqualTo(125));
+    }
+
+    [Test]
+    public async Task DaySummary_WritesQueuedBehindTheSummary_NeverShowInHalfOfIt()
+    {
+        // One gate call reads the target, the entries and the foods, so a write queued behind it cannot land between them.
+        await diary.AddAsync(Day, Meal.Lunch, cheddar, 30);
+        await targets.SaveAsync(2000);
+        var holding = new TaskCompletionSource();
+        var busy = gate.RunAsync(() => holding.Task);
+
+        var summary = service.GetAsync(Day);
+        var write = gate.RunAsync(async () =>
+        {
+            await connection.ExecuteAsync("UPDATE AppSettings SET DailyTargetKcal = 1000");
+            await connection.ExecuteAsync("UPDATE Food SET Kcal = 832 WHERE Id = ?", cheddar);
+            await connection.ExecuteAsync("DELETE FROM DiaryEntry");
+        });
+        holding.SetResult();
+
+        await busy;
+        await write;
+        var s = (await summary).Summary!;
+        Assert.That((s.Totals.Kcal, s.TargetKcal, s.Meals.Sum(m => m.Entries.Count)), Is.EqualTo((125, (int?)2000, 1)));
     }
 
     private async Task<int> AddFood(string name, FoodUnit unit, double kcal, double protein, double carbs, double fat)

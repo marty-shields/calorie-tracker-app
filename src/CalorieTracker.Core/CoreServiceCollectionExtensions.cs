@@ -32,6 +32,7 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<DatabaseGate>()
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<TargetStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<DiaryStore>(provider, connection))
+            .AddSingleton(provider => ActivatorUtilities.CreateInstance<DaySummaryStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<FoodStore>(provider, connection))
             .AddDecoratedSingleton<IDatabaseInitializer, GatedDatabaseInitializer>(provider =>
                 ActivatorUtilities.CreateInstance<DatabaseInitializer>(provider, connection))
@@ -46,7 +47,8 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<ISchemaUpgrade, DropDishesUpgrade>()
             .AddSingleton<ISchemaUpgrade, FoodServingUpgrade>()
             .AddSingleton<ISchemaUpgrade, SettingsTableUpgrade>()
-            .AddSingleton<ISchemaUpgrade, DiaryTableUpgrade>();
+            .AddSingleton<ISchemaUpgrade, DiaryTableUpgrade>()
+            .AddSingleton<ISchemaUpgrade, FoodServingCheckedUpgrade>();
 
     private static IServiceCollection AddServices(this IServiceCollection services)
     {
@@ -55,9 +57,7 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<IFoodSearch, FoodSearch>()
             .AddSingleton(provider => new TargetService(provider.GetRequiredService<TargetStore>(), provider.GetRequiredService<ILogger<TargetService>>()))
             .AddSingleton(provider => new DiaryService(provider.GetRequiredService<DiaryStore>(), provider.GetRequiredService<ILogger<DiaryService>>()))
-            .AddSingleton(provider => new DaySummaryService(
-                provider.GetRequiredService<DiaryService>(), provider.GetRequiredService<TargetService>(), provider.GetRequiredService<FoodStore>(),
-                provider.GetRequiredService<ILogger<DaySummaryService>>()))
+            .AddSingleton(provider => new DaySummaryService(provider.GetRequiredService<DaySummaryStore>(), provider.GetRequiredService<ILogger<DaySummaryService>>()))
             .AddSingleton<ISeedLoader>(provider =>
                 ActivatorUtilities.CreateInstance<SeedLoader>(provider, (Func<Stream>)SeedLoader.OpenBundledSeed))
             .AddSingleton<SeedProgress>()
