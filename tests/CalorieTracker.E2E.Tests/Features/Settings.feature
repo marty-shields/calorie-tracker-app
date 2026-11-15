@@ -10,6 +10,26 @@ Feature: Settings
     Given I have opened Settings
     Then the app version is listed on Settings
 
+  Scenario: A daily target survives closing and reopening the app
+    Given I have opened Settings
+    And I have set the daily target to 2100
+    When I close the app and open it again
+    And I open Settings
+    Then the daily target is 2100
+
+  Scenario: Emptying the daily target clears it
+    Given I have opened Settings
+    And I have set the daily target to 2100
+    When I clear the daily target
+    And I close the app and open it again
+    And I open Settings
+    Then the daily target is empty
+
+  Scenario: A daily target of zero is rejected
+    Given I have opened Settings
+    When I type 0 as the daily target
+    Then Settings asks for "Enter a whole number above 0, or clear the field."
+
   Scenario Outline: Back returns to the Dashboard
     Given I have opened Settings
     When I go back with <how>
