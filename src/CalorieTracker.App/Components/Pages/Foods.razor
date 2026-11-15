@@ -9,7 +9,7 @@
    Query: meal and date (yyyy-MM-dd, default today) open search to add to that meal, q and type restore a search.
    A meal's + sends a person here with a meal: a result opens Serving with that meal, and Add goes on to the Dashboard.
    From the Foods tab a food's Add to diary opens Serving with a suggested meal, and Add comes back to this search. *@
-<FoodSearchPage Meal="meal" InitialQuery="Query" InitialFilter="FoodSearchRoute.ParseFilter(TypeText)"
+<FoodSearchPage Meal="meal" InitialQuery="@Query" InitialFilter="FoodSearchRoute.ParseFilter(TypeText)"
                 OnAdd="Add" OnBack="@(() => Navigation.GoTo("/"))" OnNavigate="@(destination => Navigation.GoTo(destination))" />
 
 @code {

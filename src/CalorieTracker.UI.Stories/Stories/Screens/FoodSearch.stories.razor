@@ -53,12 +53,6 @@
 
     <Story Name="Food selected">
         <Template>
-            <FoodSearchView Query="oat" Filter="FoodType.Ingredient" Results="FoodSearchSamples.Ingredients" Selected="FoodSearchSamples.Ingredients[0]" OnQueryChanged="(string _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
-        </Template>
-    </Story>
-
-    <Story Name="Food selected for the diary">
-        <Template>
             <FoodSearchView Query="oat" Filter="FoodType.Ingredient" Results="FoodSearchSamples.Ingredients" Selected="FoodSearchSamples.Ingredients[0]" OnQueryChanged="(string _) => { }" OnAdd="(Food _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
