@@ -508,33 +508,63 @@ public class DatabaseInitializerTests
     }
 
     [Test]
-    public async Task EveryStep_AppliedToADatabaseWithADiaryEntry_KeepsTheFoodItPointsAtAndItsBarcode()
+    public async Task EveryStepFromTheDiaryTableOn_AppliedToADatabaseWithDiaryEntries_KeepsEveryFoodItsBarcodeAndTheEntries()
     {
-        // No step older than step 7 can meet a diary entry in a real upgrade (the table first appears at 7), so this applies every step to the current schema.
+        // Only steps from the diary table's version on can meet a diary entry in a real upgrade, so only those run, on the current schema.
+        // A later step that deletes foods fails this test.
         await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
-        await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Unit, SearchText, Type) VALUES (1, 1, 'a', 'A', 0, 'a', 1)");
-        await connection.ExecuteAsync("INSERT INTO FoodBarcode (Barcode, FoodId) VALUES ('5000000000017', 1)");
-        await connection.ExecuteAsync("INSERT INTO DiaryEntry (Date, Meal, FoodId, Amount, IsRemoved) VALUES ('2031-07-19', 0, 1, 10, 0)");
+        var foodIds = new List<int>();
+        var id = 0;
+        foreach (var type in Enum.GetValues<FoodType>())
+        {
+            foreach (var source in Enum.GetValues<FoodSource>())
+            {
+                foreach (var unit in Enum.GetValues<FoodUnit>())
+                {
+                    id++;
+                    foodIds.Add(id);
+                    await connection.ExecuteAsync($"INSERT INTO Food (Id, Source, SourceId, Name, Unit, SearchText, Type) VALUES ({id}, {(int)source}, 'f{id}', 'F{id}', {(int)unit}, 'f{id}', {(int)type})");
+                    await connection.ExecuteAsync($"INSERT INTO FoodBarcode (Barcode, FoodId) VALUES ('50000000{id:D5}', {id})");
+                    await connection.ExecuteAsync($"INSERT INTO DiaryEntry (Date, Meal, FoodId, Amount, IsRemoved) VALUES ('2031-07-19', 0, {id}, 10, 0)");
+                }
+            }
+        }
+
         await connection.CloseAsync();
 
         var db = new SQLiteConnection(databasePath);
         try
         {
-            foreach (var step in SchemaSteps.All().OrderBy(s => s.Version))
+            var diaryVersion = new DiaryTableUpgrade().Version;
+            foreach (var step in SchemaSteps.All().Where(s => s.Version >= diaryVersion).OrderBy(s => s.Version))
             {
                 step.Apply(db);
             }
 
-            Assert.That(
-                db.QueryScalars<int>("SELECT Id FROM Food WHERE Id IN (SELECT FoodId FROM DiaryEntry) ORDER BY Id"),
-                Is.EqualTo(new[] { 1 }));
-            Assert.That(db.QueryScalars<string>("SELECT Barcode FROM FoodBarcode WHERE FoodId = 1"), Is.EqualTo(new[] { "5000000000017" }));
-            Assert.That(db.ExecuteScalar<int>("SELECT COUNT(*) FROM DiaryEntry"), Is.EqualTo(1));
+            Assert.That(db.QueryScalars<int>("SELECT Id FROM Food ORDER BY Id"), Is.EqualTo(foodIds));
+            Assert.That(db.QueryScalars<int>("SELECT FoodId FROM FoodBarcode ORDER BY FoodId"), Is.EqualTo(foodIds));
+            Assert.That(db.QueryScalars<int>("SELECT FoodId FROM DiaryEntry ORDER BY FoodId"), Is.EqualTo(foodIds));
         }
         finally
         {
             db.Close();
             connection = new SQLiteAsyncConnection(databasePath);
+        }
+    }
+
+    [Test]
+    public void EveryStepThatDeletesFoods_IsOlderThanTheDiaryTable()
+    {
+        // Add any new step that deletes foods to this list.
+        var foodDeletingSteps = new ISchemaUpgrade[] { new DropDishesUpgrade() };
+        var diaryVersion = new DiaryTableUpgrade().Version;
+
+        foreach (var step in foodDeletingSteps)
+        {
+            Assert.That(
+                step.Version,
+                Is.LessThan(diaryVersion),
+                $"{step.GetType().Name} deletes foods, so it must be older than the diary table (step {diaryVersion}): no step older than the diary table may meet a diary entry, and a diary entry must never lose its food.");
         }
     }
 
