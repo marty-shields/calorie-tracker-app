@@ -2,7 +2,7 @@ namespace CalorieTracker.Core.Logging;
 
 /// <summary>
 /// Event ids of Core's log messages: 1000–1999, a block of 100 per type.
-/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch, 1600 TargetService, 1700 DiaryService; the <c>*Block</c> members hold them.
+/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch, 1600 TargetService, 1700 DiaryService, 1800 DaySummaryService; the <c>*Block</c> members hold them.
 /// Ids never change and are never reused; list a retired id here and in <c>CoreEventTests</c>.
 /// </summary>
 internal enum CoreEvent
@@ -147,4 +147,22 @@ internal enum CoreEvent
 
     /// <summary><see cref="Diary.DiaryService"/>: the database failed, so the call returned <see cref="Diary.DiaryStatus.Failed"/>.</summary>
     DiaryFailed = 1709,
+
+    /// <summary>Start of the block reserved for <see cref="Summary.DaySummaryService"/>.</summary>
+    DaySummaryServiceBlock = 1800,
+
+    /// <summary><see cref="Summary.DaySummaryService"/>: a summary was built; carries the entry count, never the date.</summary>
+    DaySummaryBuilt = 1801,
+
+    /// <summary><see cref="Summary.DaySummaryService"/>: an entry's food no longer exists, so the call returned <see cref="Summary.DaySummaryStatus.FoodMissing"/>; carries the entry and food ids.</summary>
+    DaySummaryFoodMissing = 1802,
+
+    /// <summary><see cref="Summary.DaySummaryService"/>: an unexpected failure (the database, say), so the call returned <see cref="Summary.DaySummaryStatus.Failed"/>.</summary>
+    DaySummaryFailed = 1803,
+
+    /// <summary><see cref="Summary.DaySummaryService"/>: an amount or total was too large to work out, so the call returned <see cref="Summary.DaySummaryStatus.Failed"/>.</summary>
+    DaySummaryOverflow = 1804,
+
+    /// <summary><see cref="Summary.DaySummaryService"/>: an entry holds a meal that is not one of the four, so the call returned <see cref="Summary.DaySummaryStatus.Failed"/>; carries the entry id.</summary>
+    DaySummaryMealUnknown = 1805,
 }

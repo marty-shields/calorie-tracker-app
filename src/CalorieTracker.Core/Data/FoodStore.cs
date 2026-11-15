@@ -13,6 +13,21 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             await connection.FindWithQueryAsync<Food>(
                 "SELECT f.* FROM Food f JOIN FoodBarcode b ON b.FoodId = f.Id WHERE b.Barcode = ?", barcode));
 
+    /// <summary>The foods with these ids; an id with no food is left out.</summary>
+    public Task<List<Food>> FindAsync(IReadOnlyCollection<int> ids) =>
+        gate.RunAsync(async () =>
+        {
+            var found = new List<Food>();
+            // Chunked so a long list stays under SQLite's limit on bound variables.
+            foreach (var chunk in ids.Distinct().Chunk(500))
+            {
+                var marks = string.Join(",", chunk.Select(_ => "?"));
+                found.AddRange(await connection.QueryAsync<Food>($"SELECT * FROM Food WHERE Id IN ({marks})", chunk.Cast<object>().ToArray()));
+            }
+
+            return found;
+        });
+
     /// <summary>The characters that split <see cref="Food.SearchText"/> and typed queries into words.</summary>
     internal static readonly char[] Separators = [' ', '\t', '\r', '\n', ',', '(', ')', '/', '-'];
 

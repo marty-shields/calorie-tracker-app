@@ -2,6 +2,7 @@ using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Seed;
+using CalorieTracker.Core.Summary;
 using CalorieTracker.Core.Targets;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -54,6 +55,9 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<IFoodSearch, FoodSearch>()
             .AddSingleton(provider => new TargetService(provider.GetRequiredService<TargetStore>(), provider.GetRequiredService<ILogger<TargetService>>()))
             .AddSingleton(provider => new DiaryService(provider.GetRequiredService<DiaryStore>(), provider.GetRequiredService<ILogger<DiaryService>>()))
+            .AddSingleton(provider => new DaySummaryService(
+                provider.GetRequiredService<DiaryService>(), provider.GetRequiredService<TargetService>(), provider.GetRequiredService<FoodStore>(),
+                provider.GetRequiredService<ILogger<DaySummaryService>>()))
             .AddSingleton<ISeedLoader>(provider =>
                 ActivatorUtilities.CreateInstance<SeedLoader>(provider, (Func<Stream>)SeedLoader.OpenBundledSeed))
             .AddSingleton<SeedProgress>()
