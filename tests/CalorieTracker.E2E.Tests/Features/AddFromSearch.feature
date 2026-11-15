@@ -4,10 +4,16 @@ Feature: Add a food from food search
   Scenario: A meal's search adds to that meal and goes to the Dashboard with Undo
     Given I am on the Dashboard
     And I have opened search to add to Lunch
+    And search is titled "Add to Lunch" with no navigation bar
     And I have searched for "oat"
     When I open the first result
     Then Serving has the Lunch meal chosen
     And Serving does not say a meal was suggested
+    When I tap Back on Serving
+    Then search is titled "Add to Lunch" with no navigation bar
+    And "oat" is still typed
+    When I open the first result
+    Then Serving has the Lunch meal chosen
     When I tap Add
     Then I am on the Dashboard
     And the snackbar says it was added to Lunch with the action "Undo"

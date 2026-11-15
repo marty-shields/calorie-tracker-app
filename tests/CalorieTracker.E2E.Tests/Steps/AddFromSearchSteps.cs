@@ -17,6 +17,17 @@ public sealed class AddFromSearchSteps(FoodSearchScreen foods, ServingScreen ser
         foods.OpenToAdd(meal);
     }
 
+    [When(@"^I tap Back on Serving$")]
+    public void WhenITapBackOnServing() => serving.Back();
+
+    [Given(@"^search is titled ""(.*)"" with no navigation bar$")]
+    [Then(@"^search is titled ""(.*)"" with no navigation bar$")]
+    public void ThenSearchIsTitledWithNoNavigationBar(string title)
+    {
+        web.Eventually(foods.ScreenTitle, Is.EqualTo(title));
+        Assert.That(foods.HasNavigationBar(), Is.False);
+    }
+
     [When(@"^I tap Add to diary$")]
     public void WhenITapAddToDiary() => foods.AddToDiary();
 

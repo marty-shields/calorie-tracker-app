@@ -23,6 +23,9 @@ public class FoodSearchRouteTests
         {
             Assert.That(FoodSearchRoute.AddUrl(Meal.Lunch), Is.EqualTo("/foods?meal=Lunch"));
             Assert.That(FoodSearchRoute.AddUrl(Meal.Snacks, new DateOnly(2031, 7, 4)), Is.EqualTo("/foods?meal=Snacks&date=2031-07-04"));
+            Assert.That(FoodSearchRoute.AddUrl(Meal.Lunch, null, "a&b", FoodType.Drink), Is.EqualTo("/foods?meal=Lunch&q=a%26b&type=Drink"));
+            Assert.That(FoodSearchRoute.AddUrl(Meal.Lunch, new DateOnly(2031, 7, 4), "oat", null), Is.EqualTo("/foods?meal=Lunch&date=2031-07-04&q=oat&type=All"));
+            Assert.That(FoodSearchRoute.AddUrl(Meal.Lunch, null, "", FoodType.Food), Is.EqualTo("/foods?meal=Lunch&type=Food"));
         });
     }
 
@@ -35,8 +38,18 @@ public class FoodSearchRouteTests
     [TestCase("", FoodType.Ingredient)]
     [TestCase("Dish", FoodType.Ingredient)]
     [TestCase("7", FoodType.Ingredient)]
+    [TestCase(" 1", FoodType.Ingredient)]
+    [TestCase("Food,Drink", FoodType.Ingredient)]
     public void ParseFilter_GivesTheTypeAllOrIngredients(string? text, FoodType? expected) =>
         Assert.That(FoodSearchRoute.ParseFilter(text), Is.EqualTo(expected));
+
+    [Test]
+    public void TheFoodsPage_ComesBackToTheSearchFromServingInAddMode()
+    {
+        var page = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Foods.razor");
+
+        Assert.That(page, Does.Contain("FoodSearchRoute.AddUrl(preset, date, request.Query, request.Filter)"));
+    }
 
     [Test]
     public void DashboardRoute_OpensTheDay() =>

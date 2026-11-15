@@ -428,6 +428,35 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task AddMode_ADoubleTapOnAResult_AddsOnce()
+    {
+        search.Results = [Oats];
+        var requests = new List<FoodAddRequest>();
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch).Add(x => x.OnAdd, requests.Add));
+        await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
+
+        await cut.Find("[data-testid=food-result-1]").ClickAsync(new());
+        await cut.Find("[data-testid=food-result-1]").ClickAsync(new());
+
+        Assert.That(requests, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public void TabMode_ShowsAPostedSnackbar_WhereAddModeLeavesItToTheDashboard()
+    {
+        Context.Services.GetRequiredService<SnackbarService>().Show("Oats added to Lunch");
+
+        var tab = Context.Render<FoodSearchPage>();
+        var add = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(tab.FindAll("[data-testid=snackbar]"), Has.Count.EqualTo(1));
+            Assert.That(add.FindAll("[data-testid=snackbar]"), Is.Empty);
+        });
+    }
+
+    [Test]
     public void AddMode_TitlesTheMeal_HasABackArrowAndNoNavigationBar()
     {
         var backed = 0;

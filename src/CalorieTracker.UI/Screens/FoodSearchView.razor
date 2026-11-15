@@ -3,9 +3,10 @@
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Components.Inputs
 @using CalorieTracker.UI.Components.Lists
+@* AppScreen shows Status only with a navigation bar, and add mode has none. The snackbar there is shown by the Dashboard. *@
 <AppScreen Title="@(Meal is { } meal ? $"Add to {meal}" : "Search foods")" Destination="@(Meal is null ? NavDestination.Foods : null)" OnNavigate="OnNavigate"
            OnBack="@(Meal is not null ? OnBack : Selected is null ? default : OnClearSelection)" Toolbar="@(Selected is null && !Failed ? Tools : null)"
-           Status="Notice">
+           Status="@(Meal is null ? Notice : null)">
     <ChildContent>
         @if (Selected is { } food)
         {

@@ -1,4 +1,6 @@
+using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Screens;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CalorieTracker.UI.Tests.Screens;
 
@@ -41,5 +43,19 @@ public class DashboardViewTests : ComponentTestBase
         cut.Find("[data-testid=settings]").Click();
 
         Assert.That(settings, Is.True);
+    }
+
+    [Test]
+    public void ASnackbarPostedBeforeTheScreenOpens_Shows()
+    {
+        Context.Services.GetRequiredService<SnackbarService>().Show("Oats added to Lunch", "Undo", () => Task.CompletedTask);
+
+        var cut = Context.Render<DashboardView>();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=snackbar-message]").TextContent, Is.EqualTo("Oats added to Lunch"));
+            Assert.That(cut.Find("[data-testid=snackbar-action]").TextContent, Is.EqualTo("Undo"));
+        });
     }
 }

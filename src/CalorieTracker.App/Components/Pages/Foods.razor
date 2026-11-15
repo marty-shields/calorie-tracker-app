@@ -31,6 +31,6 @@
 
     private void Add(FoodAddRequest request) =>
         Navigation.GoTo(meal is { } preset
-            ? ServingRoute.Url(request.Food.Id, preset, date, backTo: FoodSearchRoute.AddUrl(preset, date))
+            ? ServingRoute.Url(request.Food.Id, preset, date, backTo: FoodSearchRoute.AddUrl(preset, date, request.Query, request.Filter))
             : ServingRoute.Url(request.Food.Id, returnTo: FoodSearchRoute.Url(request.Query, request.Filter)));
 }

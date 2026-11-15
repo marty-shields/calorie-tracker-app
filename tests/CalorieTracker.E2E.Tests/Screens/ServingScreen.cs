@@ -52,5 +52,7 @@ public sealed class ServingScreen(WebView web)
 
     public void Add() => web.Tap("serving-add");
 
+    public void Back() => web.Tap("back");
+
     public string NotFoundText() => web.Text("serving-not-found-message");
 }

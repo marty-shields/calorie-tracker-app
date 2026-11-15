@@ -17,20 +17,20 @@ public static class FoodSearchRoute
         return string.IsNullOrEmpty(query) ? $"{Template}?type={type}" : $"{Template}?q={Uri.EscapeDataString(query)}&type={type}";
     }
 
-    /// <summary>The route that opens search to add to <paramref name="meal"/>; <paramref name="date"/> null is today.</summary>
-    public static string AddUrl(Meal meal, DateOnly? date = null) =>
-        $"{Template}?meal={meal}" + (date is { } d ? $"&date={d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}" : "");
-
-    /// <summary>The type chosen by a query value: All is null, a type name is that type, anything else (or nothing) is Ingredients, where search opens.</summary>
-    public static FoodType? ParseFilter(string? text)
+    /// <summary>The route that opens search to add to <paramref name="meal"/>; <paramref name="date"/> null is today. A non-null <paramref name="query"/> also restores that search, with <paramref name="filter"/> (null is All).</summary>
+    public static string AddUrl(Meal meal, DateOnly? date = null, string? query = null, FoodType? filter = null)
     {
-        if (AllType.Equals(text, StringComparison.OrdinalIgnoreCase))
+        var url = $"{Template}?meal={meal}" + (date is { } d ? $"&date={d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}" : "");
+        if (query is null)
         {
-            return null;
+            return url;
         }
 
-        return Enum.GetNames<FoodType>().FirstOrDefault(name => name.Equals(text, StringComparison.OrdinalIgnoreCase)) is { } found
-            ? Enum.Parse<FoodType>(found)
-            : FoodType.Ingredient;
+        return url + (query.Length > 0 ? $"&q={Uri.EscapeDataString(query)}" : "") + $"&type={filter?.ToString() ?? AllType}";
     }
+
+    /// <summary>The type chosen by a query value: All is null, a type name is that type, anything else (or nothing) is Ingredients, where search opens.</summary>
+    public static FoodType? ParseFilter(string? text) =>
+        AllType.Equals(text, StringComparison.OrdinalIgnoreCase) ? null
+        : Enum.GetValues<FoodType>().Cast<FoodType?>().FirstOrDefault(type => type.ToString()!.Equals(text, StringComparison.OrdinalIgnoreCase)) ?? FoodType.Ingredient;
 }

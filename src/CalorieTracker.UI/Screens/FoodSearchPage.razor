@@ -19,6 +19,9 @@
     private bool failed;
     private bool seedFailed;
     private bool disposed;
+
+    /// <summary>Set by the first result tapped in add mode, so a double tap adds once. The page is left on the way out, so it is never cleared.</summary>
+    private bool added;
     private CancellationTokenSource? running;
 
     /// <summary>The meal being added to. Set, the page is in add mode: tapping a result raises <see cref="OnAdd"/> straight away instead of showing the food's values.</summary>
@@ -138,6 +141,12 @@
             return Task.CompletedTask;
         }
 
+        if (added)
+        {
+            return Task.CompletedTask;
+        }
+
+        added = true;
         return AddAsync(food);
     }
 

@@ -543,6 +543,38 @@ public class ServingPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task Add_AskingForViewDayWithNoWayToOpenIt_PostsUndoInstead()
+    {
+        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
+        var cut = Render(cheddarId, Meal.Lunch, more: p => p.Add(x => x.AfterAdd, AddedFollowUp.ViewDay));
+
+        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
+
+        Assert.That(snackbar.Current!.ActionLabel, Is.EqualTo("Undo"));
+    }
+
+    [Test]
+    public async Task Undo_OfAnEntryAlreadyGone_CountsAsUndone_WithNoMessageAndNoLog()
+    {
+        var logger = new FakeLogger<ServingPage>();
+        Context.Services.AddSingleton<ILogger<ServingPage>>(logger);
+        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
+        var cut = Render(cheddarId, Meal.Lunch);
+        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
+        var message = snackbar.Current!;
+        var entry = (await Entries()).Single();
+        await core.GetRequiredService<DiaryService>().RemoveAsync(entry.Id);
+
+        await snackbar.InvokeActionAsync(message);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snackbar.Current, Is.Null);
+            Assert.That(LoggedEvents.Of(logger), Is.Empty);
+        });
+    }
+
+    [Test]
     public async Task Add_WhenSavingFails_PostsNoSnackbar()
     {
         var snackbar = Context.Services.GetRequiredService<SnackbarService>();

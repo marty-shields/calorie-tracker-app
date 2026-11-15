@@ -201,7 +201,7 @@
             saveFailed = result.Status != DiaryStatus.Ok;
             if (!saveFailed)
             {
-                Announce(food.Name, meal, Date, result.Entry);
+                Announce(food.Name, meal, Date, result.Entry!);
             }
         }
         catch
@@ -220,29 +220,24 @@
     }
 
     /// <summary>Posts "{food} added to {meal}" with Undo or View day. The actions can run after this screen is gone, so they use nothing of it.</summary>
-    private void Announce(string name, Meal addedTo, DateOnly day, DiaryEntry? entry)
+    private void Announce(string name, Meal addedTo, DateOnly day, DiaryEntry entry)
     {
         var text = $"{name} added to {addedTo}";
-        if (AfterAdd == AddedFollowUp.ViewDay)
+        if (AfterAdd == AddedFollowUp.ViewDay && ViewDay is { } viewDay)
         {
-            var viewDay = ViewDay;
-            Snackbar.Show(text, viewDay is null ? null : "View day", viewDay is null ? null : () => viewDay(day));
-        }
-        else if (entry is not null)
-        {
-            Snackbar.Show(text, "Undo", () => UndoAsync(Diary, Snackbar, Logger, entry.Id));
+            Snackbar.Show(text, "View day", () => viewDay(day));
         }
         else
         {
-            Snackbar.Show(text);
+            Snackbar.Show(text, "Undo", () => UndoAsync(Diary, Snackbar, Logger, entry.Id));
         }
     }
 
-    /// <summary>Removes the entry just added. A failure is logged and said in a snackbar; it never throws.</summary>
+    /// <summary>Removes the entry just added. An entry already gone counts as undone. A failure is logged and said in a snackbar; it never throws.</summary>
     private static async Task UndoAsync(DiaryService diary, SnackbarService snackbar, ILogger logger, int entryId)
     {
         var result = await diary.RemoveAsync(entryId);
-        if (result.Status != DiaryStatus.Ok)
+        if (result.Status is not (DiaryStatus.Ok or DiaryStatus.NotFound))
         {
             Log.UndoFailed(logger, result.Status);
             snackbar.Show("Couldn't undo. Remove it from the day.");

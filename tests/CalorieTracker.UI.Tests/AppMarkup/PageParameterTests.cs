@@ -29,9 +29,9 @@ public partial class PageParameterTests
         Assert.That(foods, Does.Contain("InitialQuery=\"@Query\""));
     }
 
-    [GeneratedRegex(@"public\s+string\??\s+(\w+)\s*\{\s*get;")]
+    [GeneratedRegex(@"public\s+string\??\s+(\w+)\s*\{")]
     private static partial Regex PropertyName();
 
-    [GeneratedRegex(@"\b([A-Z]\w*)=""(\w+)""")]
+    [GeneratedRegex(@"(?<![\w@])([A-Z]\w*)=""(\w+)""")]
     private static partial Regex Attribute();
 }
