@@ -1,0 +1,49 @@
+@implements IDisposable
+@inject SnackbarService Injected
+
+@if (Source.Current is { } message)
+{
+    <div class="snackbar" data-testid="snackbar">
+        <span class="text" data-testid="snackbar-message">@message.Text</span>
+        @if (message.ActionLabel is not null)
+        {
+            <button type="button" class="action" data-testid="snackbar-action" @onclick="Source.InvokeActionAsync">@message.ActionLabel</button>
+        }
+    </div>
+}
+
+@code {
+    private SnackbarService? subscribed;
+
+    /// <summary>The service whose message shows. The app's own when unset; a story gives its own so stories don't share one.</summary>
+    [Parameter]
+    public SnackbarService? Service { get; set; }
+
+    private SnackbarService Source => Service ?? Injected;
+
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(subscribed, Source))
+        {
+            return;
+        }
+
+        if (subscribed is not null)
+        {
+            subscribed.Changed -= OnChanged;
+        }
+
+        subscribed = Source;
+        subscribed.Changed += OnChanged;
+    }
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        if (subscribed is not null)
+        {
+            subscribed.Changed -= OnChanged;
+        }
+    }
+}
