@@ -21,10 +21,13 @@ public static class ScreenStates
 {
     private static readonly IReadOnlyList<Food> SampleFoods =
     [
-        new() { Id = 1, Name = "Oats, rolled", Unit = FoodUnit.Gram, Kcal = 375, ProteinG = 11, CarbsG = 60, FatG = 9, FibreG = 8.5, SugarsG = 1, SaturatesG = 1.6, SaltG = 0 },
-        new() { Id = 2, Name = "Porridge oats", Brand = "Quaker", Unit = FoodUnit.Gram, Kcal = 372, ProteinG = 11, CarbsG = 60, FatG = 8.5 },
-        new() { Id = 3, Name = "Oat drink", Brand = "Oatly", Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 1, CarbsG = 6.7, FatG = 1.5 },
+        new() { Id = 1, Name = "Oats, rolled", Type = FoodType.Ingredient, Unit = FoodUnit.Gram, Kcal = 375, ProteinG = 11, CarbsG = 60, FatG = 9, FibreG = 8.5, SugarsG = 1, SaturatesG = 1.6, SaltG = 0 },
+        new() { Id = 2, Name = "Porridge oats", Brand = "Quaker", Type = FoodType.Food, Unit = FoodUnit.Gram, Kcal = 372, ProteinG = 11, CarbsG = 60, FatG = 8.5 },
+        new() { Id = 3, Name = "Oat porridge, made with milk", Type = FoodType.Dish, Unit = FoodUnit.Gram, Kcal = 116, ProteinG = 4.8, CarbsG = 13, FatG = 5 },
+        new() { Id = 4, Name = "Oat drink", Brand = "Oatly", Type = FoodType.Drink, Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 1, CarbsG = 6.7, FatG = 1.5 },
     ];
+
+    private static readonly IReadOnlyList<Food> Ingredients = SampleFoods.Where(f => f.Type == FoodType.Ingredient).ToList();
 
     public static IReadOnlyList<ScreenState> All { get; } =
     [
@@ -39,12 +42,17 @@ public static class ScreenStates
         new("Screens/Settings", "Dark chosen", c => Settings(c, version: "1.0.0", theme: ThemePreference.Dark)),
         new("Screens/Settings", "No version", c => Settings(c)),
 
-        new("Screens/FoodSearch", "Loading", c => FoodSearch(c, query: "oat", loading: true)),
-        new("Screens/FoodSearch", "Nothing typed", c => FoodSearch(c)),
-        new("Screens/FoodSearch", "Results", c => FoodSearch(c, query: "oat", results: SampleFoods)),
-        new("Screens/FoodSearch", "No results", c => FoodSearch(c, query: "zzz")),
-        new("Screens/FoodSearch", "Food selected", c => FoodSearch(c, query: "oat", results: SampleFoods, selected: SampleFoods[0])),
-        new("Screens/FoodSearch", "Search failed", c => FoodSearch(c, query: "oat", failed: true)),
+        new("Screens/FoodSearch", "Loading", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, loading: true)),
+        new("Screens/FoodSearch", "Nothing typed", c => FoodSearch(c, filter: FoodType.Ingredient)),
+        new("Screens/FoodSearch", "Results", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, results: Ingredients)),
+        new("Screens/FoodSearch", "Foods filter", c => FoodSearch(c, query: "oat", filter: FoodType.Food, results: SampleFoods.Where(f => f.Type == FoodType.Food).ToList())),
+        new("Screens/FoodSearch", "Dishes filter", c => FoodSearch(c, query: "oat", filter: FoodType.Dish, results: SampleFoods.Where(f => f.Type == FoodType.Dish).ToList())),
+        new("Screens/FoodSearch", "Drinks filter", c => FoodSearch(c, query: "oat", filter: FoodType.Drink, results: SampleFoods.Where(f => f.Type == FoodType.Drink).ToList())),
+        new("Screens/FoodSearch", "All filter", c => FoodSearch(c, query: "oat", results: SampleFoods)),
+        new("Screens/FoodSearch", "No results", c => FoodSearch(c, query: "zzz", filter: FoodType.Ingredient)),
+        new("Screens/FoodSearch", "No match on a filter", c => FoodSearch(c, query: "oat", filter: FoodType.Drink)),
+        new("Screens/FoodSearch", "Food selected", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, results: Ingredients, selected: Ingredients[0])),
+        new("Screens/FoodSearch", "Search failed", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, failed: true)),
         new("Screens/Scan", "Opening camera", c => Scan(c, ScanState.OpeningCamera)),
         new("Screens/Scan", "Closing camera", c => Scan(c, ScanState.Closing)),
         new("Screens/Scan", "Looking up", c => Scan(c, ScanState.LookingUp)),
@@ -58,9 +66,11 @@ public static class ScreenStates
         new("Screens/Error", "Error", c => c.Render<ErrorView>(p => p.Add(x => x.OnRestart, () => { })).FindAll("*")),
     ];
 
-    private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", IReadOnlyList<Food>? results = null, Food? selected = null, bool loading = false, bool failed = false) =>
+    private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", FoodType? filter = null, IReadOnlyList<Food>? results = null, Food? selected = null, bool loading = false, bool failed = false) =>
         context.Render<FoodSearchView>(p => p
             .Add(x => x.Query, query)
+            .Add(x => x.Filter, filter)
+            .Add(x => x.OnFilterChanged, (FoodType? _) => { })
             .Add(x => x.Results, results ?? [])
             .Add(x => x.Selected, selected)
             .Add(x => x.Loading, loading)

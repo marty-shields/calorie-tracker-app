@@ -113,6 +113,40 @@ public class SeedLoaderTests
     }
 
     [Test]
+    public async Task LoadAsync_EveryType_IsStored()
+    {
+        seedJson = Wrap(1, [Row("1", "A", 1, type: "Ingredient"), Row("2", "B", 1, type: "Food"), Row("3", "C", 1, type: "Dish"), Row("4", "D", 1, type: "Drink")]);
+
+        await Loader().LoadAsync();
+
+        var types = (await connection.Table<Food>().ToListAsync()).OrderBy(f => f.SourceId).Select(f => f.Type);
+        Assert.That(types, Is.EqualTo(new[] { FoodType.Ingredient, FoodType.Food, FoodType.Dish, FoodType.Drink }));
+    }
+
+    [Test]
+    public async Task LoadAsync_RowStoredWithAnotherType_GetsTheSeedsTypeAndKeepsIdAndBarcodeLinks()
+    {
+        await Loader().LoadAsync();
+        await connection.ExecuteAsync("UPDATE Food SET Type = ?", (int)FoodType.Food);
+        await store.UpsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "5000000000017", Name = "Off", Unit = FoodUnit.Gram, SearchText = "off", Type = FoodType.Food }, "5000000000017");
+        var arrowroot = await connection.Table<Food>().FirstAsync(f => f.SourceId == "11-001");
+        await connection.ExecuteAsync("INSERT INTO FoodBarcode (Barcode, FoodId) VALUES (?, ?)", "5000000000024", arrowroot.Id);
+        await store.SetSeedVersionAsync(FoodSource.CoFID, 3);
+        seedJson = Wrap(4, [Row("11-001", "Arrowroot", 355, type: "Ingredient"), Row("11-002", "Gin", 250, unit: "Millilitre", type: "Drink"), Row("11-003", "Barley", 360, type: "Dish")]);
+
+        await Loader().LoadAsync();
+
+        var after = (await connection.Table<Food>().Where(f => f.Source == FoodSource.CoFID).ToListAsync()).ToDictionary(f => f.SourceId);
+        var linked = await connection.QueryScalarsAsync<int>("SELECT FoodId FROM FoodBarcode WHERE Barcode = ?", "5000000000024");
+        Assert.Multiple(() =>
+        {
+            Assert.That(after["11-001"].Id, Is.EqualTo(arrowroot.Id));
+            Assert.That(after.Values.Select(f => f.Type), Is.EqualTo(new[] { FoodType.Ingredient, FoodType.Drink, FoodType.Dish }));
+            Assert.That(linked, Is.EqualTo(new[] { arrowroot.Id }));
+        });
+    }
+
+    [Test]
     public async Task LoadAsync_OpenFoodFactsRows_AreUntouched()
     {
         await Loader().LoadAsync();
@@ -222,6 +256,9 @@ public class SeedLoaderTests
         yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, unit: "1")])).SetName("numeric unit");
         yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, unit: "99")])).SetName("undefined numeric unit");
         yield return new TestCaseData(Wrap(1, ["""{"source":"CoFID","sourceId":"1","name":"A","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}"""])).SetName("missing unit");
+        yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, type: "Snack")])).SetName("unknown type");
+        yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, type: "1")])).SetName("numeric type");
+        yield return new TestCaseData(Wrap(1, ["""{"source":"CoFID","sourceId":"1","name":"A","unit":"Gram","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}"""])).SetName("missing type");
         yield return new TestCaseData(Wrap(1, [Row("1", "   ", 1)])).SetName("whitespace name");
         yield return new TestCaseData(Wrap(0, [Row("1", "A", 1)])).SetName("seedVersion 0");
         yield return new TestCaseData("""{"foods":[]}""").SetName("missing seedVersion");
@@ -245,14 +282,187 @@ public class SeedLoaderTests
 
         Assert.Multiple(() =>
         {
-            // 3 since the everyday names; main's version 2 was food search
-            Assert.That(seed.Version, Is.GreaterThanOrEqualTo(3));
+            // 4 since the food types; 3 was the everyday names and 2 food search
+            Assert.That(seed.Version, Is.GreaterThanOrEqualTo(4));
             Assert.That(seed.Foods, Has.Count.EqualTo(2853));
             Assert.That(seed.Foods.Select(f => f.Source), Is.All.EqualTo(FoodSource.CoFID));
             Assert.That(seed.Foods.Select(f => f.SourceId), Is.Unique);
             Assert.That(seed.Foods.Select(f => f.Name), Is.All.Not.Empty);
         });
     }
+
+    [Test]
+    public void SeedFile_BundledSeed_HasTheApprovedTypeCounts()
+    {
+        using var stream = SeedLoader.OpenBundledSeed();
+
+        var seed = SeedFile.Parse(stream);
+
+        var counts = seed.Foods.GroupBy(f => f.Type).ToDictionary(g => g.Key, g => g.Count());
+        Assert.That(counts, Is.EqualTo(new Dictionary<FoodType, int>
+        {
+            [FoodType.Ingredient] = 1472,
+            [FoodType.Food] = 546,
+            [FoodType.Dish] = 679,
+            [FoodType.Drink] = 156,
+        }));
+    }
+
+    [Test]
+    public void SeedFile_BundledSeed_TypesPreparedAndPlainOatsApart()
+    {
+        using var stream = SeedLoader.OpenBundledSeed();
+
+        var seed = SeedFile.Parse(stream);
+
+        var types = seed.Foods.Where(f => f.SourceId is "11-788" or "11-789").ToDictionary(f => f.SourceId, f => f.Type);
+        Assert.That(types, Is.EqualTo(new Dictionary<string, FoodType> { ["11-788"] = FoodType.Ingredient, ["11-789"] = FoodType.Dish }));
+    }
+
+    [Test]
+    public void SeedFile_BundledSeed_HasTheApprovedTypeCountsPerFoodGroup()
+    {
+        // I = Ingredient, F = Food, D = Dish, K = Drink; the foodGroup is not on SeedFile, so read the JSON.
+        using var stream = SeedLoader.OpenBundledSeed();
+        using var document = System.Text.Json.JsonDocument.Parse(stream);
+        var letters = new Dictionary<string, char> { ["Ingredient"] = 'I', ["Food"] = 'F', ["Dish"] = 'D', ["Drink"] = 'K' };
+
+        var table = document.RootElement.GetProperty("foods").EnumerateArray()
+            .GroupBy(f => f.GetProperty("foodGroup").GetString()!)
+            .OrderBy(g => g.Key, StringComparer.Ordinal)
+            .Select(g => g.Key + " " + string.Join(" ", g
+                .GroupBy(f => letters[f.GetProperty("type").GetString()!])
+                .OrderBy(t => t.Key)
+                .Select(t => $"{t.Key}{t.Count()}")))
+            .ToArray();
+
+        Assert.That(table, Is.EqualTo(ExpectedTypeCountsPerFoodGroup));
+    }
+
+    private static readonly string[] ExpectedTypeCountsPerFoodGroup =
+    [
+        "A D2 I1",
+        "AA I29",
+        "AB D6",
+        "AC D4 F1 I24",
+        "AD D7 F3 I17",
+        "AE D6",
+        "AF F3 I35",
+        "AG F1 I4",
+        "AI F32",
+        "AK F1",
+        "AM F42",
+        "AN F41",
+        "AO I15",
+        "AP F38",
+        "AS D48",
+        "AT D17 I1",
+        "BA K1",
+        "BAB K3",
+        "BAE K4",
+        "BAH K4",
+        "BAK K4",
+        "BAR I5 K3",
+        "BC K7",
+        "BH K13",
+        "BJC I8",
+        "BJP F2",
+        "BJS I2",
+        "BL F5 I40",
+        "BN F14 K1",
+        "BNE I1",
+        "BNH F2",
+        "BNS F1",
+        "BP F18",
+        "BR D38",
+        "BTM I3",
+        "BV D5 F1",
+        "CA I16",
+        "CD D14",
+        "CDE D2",
+        "CDH F1",
+        "D I1",
+        "DA F1 I1",
+        "DAE I4",
+        "DAM D2 I12",
+        "DAP F17",
+        "DAR F10",
+        "DB D1 F6 I59",
+        "DF F1 I15",
+        "DG F3 I225 K1",
+        "DI I5",
+        "DR D309",
+        "F D1 I6",
+        "FA D28 F14 I168",
+        "FC K10",
+        "G F1 I1",
+        "GA F9 I38",
+        "H I35",
+        "J D2 F1 I5",
+        "JA D2 F32 I117",
+        "JC F2 I51",
+        "JK F2 I20",
+        "JM D1 F1 I14",
+        "JR F35",
+        "MAA F1 I24",
+        "MAC F1 I90",
+        "MAE I105",
+        "MAG F1 I64",
+        "MAI I4",
+        "MBG F11",
+        "MCA F5 I59",
+        "MCC F1 I6",
+        "MCE I2",
+        "MCG I2",
+        "MCI I2",
+        "MCK I2",
+        "MCM I2",
+        "MCO I21",
+        "MEA I2",
+        "MEC I3",
+        "MEE I2",
+        "MG D1 I39",
+        "MI F42",
+        "MIG D1",
+        "MR D151",
+        "OA I12",
+        "OB I1",
+        "OC I18",
+        "OE I1",
+        "OF I5",
+        "P K1",
+        "PA K1",
+        "PAA F1 K21",
+        "PAC K17",
+        "PCA K8",
+        "PCC K16",
+        "PE K9",
+        "Q K1",
+        "QA K11",
+        "QC K4",
+        "QE K7",
+        "QF K2",
+        "QG K1",
+        "QI K4",
+        "QK K1",
+        "S F1 I3",
+        "SC F8 I14",
+        "SEA F17",
+        "SEC F18",
+        "SN F11",
+        "SNA F2",
+        "SNC F2",
+        "WA F5",
+        "WAA D12",
+        "WAC F9",
+        "WAE F4",
+        "WC F30",
+        "WCD D18",
+        "WCG F13",
+        "WCN F14",
+        "WE F2",
+        "WY D1 F6 I11 K1",
+    ];
 
     private SeedLoader Loader() => new(store, logger, () => new MemoryStream(Encoding.UTF8.GetBytes(seedJson)));
 
@@ -279,6 +489,6 @@ public class SeedLoaderTests
     private static string Wrap(int version, IEnumerable<string> rows) =>
         $$"""{"seedVersion":{{version}},"source":"CoFID 2021","foods":[{{string.Join(",\n", rows)}}]}""";
 
-    private static string Row(string id, string name, double kcal, string unit = "Gram", string fibre = "1.5", string sugars = "1", string saturates = "0.5", string salt = "0.1", string protein = "1", string carbs = "2", string fat = "3") =>
-        $$"""{"source":"CoFID","sourceId":"{{id}}","name":"{{name}}","originalName":"{{name}}","foodGroup":"AA","unit":"{{unit}}","energyKcal":{{kcal}},"proteinG":{{protein}},"carbsG":{{carbs}},"fatG":{{fat}},"fibreG":{{fibre}},"sugarsG":{{sugars}},"saturatesG":{{saturates}},"saltG":{{salt}}}""";
+    private static string Row(string id, string name, double kcal, string unit = "Gram", string fibre = "1.5", string sugars = "1", string saturates = "0.5", string salt = "0.1", string protein = "1", string carbs = "2", string fat = "3", string type = "Ingredient") =>
+        $$"""{"source":"CoFID","sourceId":"{{id}}","name":"{{name}}","originalName":"{{name}}","foodGroup":"AA","unit":"{{unit}}","type":"{{type}}","energyKcal":{{kcal}},"proteinG":{{protein}},"carbsG":{{carbs}},"fatG":{{fat}},"fibreG":{{fibre}},"sugarsG":{{sugars}},"saturatesG":{{saturates}},"saltG":{{salt}}}""";
 }

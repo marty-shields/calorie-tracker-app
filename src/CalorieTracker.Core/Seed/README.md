@@ -31,7 +31,7 @@ The generator sets `name` from the entry and leaves `originalName` and `sourceId
 
 ## Format
 
-`{"seedVersion":3,"source":"CoFID 2021","foods":[...]}`, one food per line, sorted by `sourceId`, `\n` line endings. `seedVersion` is a constant in the script, bumped whenever the names or content change: 3 since the everyday names (2 was the food-search change).
+`{"seedVersion":5,"source":"CoFID 2021","foods":[...]}`, one food per line, sorted by `sourceId`, `\n` line endings. `seedVersion` is a constant in the script, bumped whenever the names or content change: 5 since the second food-type review (4 was the first food types, 3 was the everyday names, 2 the food-search change).
 
 | Key | Meaning |
 | --- | --- |
@@ -41,12 +41,68 @@ The generator sets `name` from the entry and leaves `originalName` and `sourceId
 | `originalName` | CoFID food name, never edited |
 | `foodGroup` | CoFID group code, such as `AA` |
 | `unit` | `Millilitre` when the group code starts with `Q` (alcoholic drinks, alcohol-free lager included), else `Gram` |
+| `type` | `Ingredient`, `Food`, `Dish` or `Drink`, from the group and the name rules in [Food types](#food-types) |
 | `energyKcal`, `proteinG`, `carbsG`, `fatG` | Per 100 g or 100 ml; a food with no value for any of these is left out |
 | `fibreG` | AOAC fibre (not NSP); `null` when not measured |
 | `sugarsG`, `saturatesG` | Total sugars and saturated fatty acids per 100 g; `null` when not measured |
 | `saltG` | Sodium (mg) × 2.5 ÷ 1000, from the Inorganics sheet; `null` when not measured |
 
 Values are rounded half up to 2 decimal places; `Tr` (trace) is 0; `N` or blank is `null`.
+
+## Food types
+
+Search filters by `type` (the search screen's chips: Ingredients, Foods, Dishes, Drinks, All). The generator gives each food its group's type, then a name rule or a single-food override may move it. The owner approved this table (issue #33); change it in `build-food-seed.py` (`GROUP_TYPES`, `NAME_RULES`, `TYPE_OVERRIDES`), bump `SEED_VERSION` and regenerate. A group with no entry fails the build. Open Food Facts foods get their type when the barcode is looked up, from the product data alone: when `categories_tags` has any tag, `Drink` only if it contains `en:beverages` (case-insensitive), otherwise `Food`, so oils, vinegars and soy sauce sold in ml are `Food`; the `ml` unit makes it `Drink` only when `categories_tags` is missing, empty or malformed. They are never `Ingredient` or `Dish`, since the product data does not say. Totals: Ingredient 1,472, Food 546, Dish 679, Drink 156 (2,853).
+
+| Type | Groups |
+| --- | --- |
+| Ingredient | A, AA, AC, AD, AF, AG, AO, BJC, BJS, BL, BNE, BTM, CA, D, DA, DAE, DAM, DB, DF, DG, DI, F, FA, G, GA, H, J, JA, JC, JK, JM, MAA, MAC, MAE, MAG, MAI, MCA, MCC, MCE, MCG, MCI, MCK, MCM, MCO, MEA, MEC, MEE, MG, OA, OB, OC, OE, OF, S, SC, WY |
+| Food | AI, AK, AM, AN, AP, BJP, BN, BNH, BNS, BP, CDH, DAP, DAR, JR, MBG, MI, SEA, SEC, SN, SNA, SNC, WA, WAC, WAE, WC, WCG, WCN, WE |
+| Dish | AB, AE, AS, AT, BR, BV, CD, CDE, DR, MIG, MR, WAA, WCD |
+| Drink | BA, BAB, BAE, BAH, BAK, BAR, BC, BH, FC, P, PA, PAA, PAC, PCA, PCC, PE, Q, QA, QC, QE, QF, QG, QI, QK |
+
+Name rules (case-insensitive, searched in the everyday `name`, applied after the group's type; the first rule of the food's group that matches wins; 168 foods move, 60 of them by the first approved rules and 108 by the review of the Ingredients below):
+
+| Group | Name contains | Becomes | Moves |
+| --- | --- | --- | --- |
+| A | pizza, made up with | Dish | 2 |
+| AC | takeaway, fried rice, pilau, biryani, cooked savoury rice (starts with) | Dish | 4 |
+| AC | savoury rice (the uncooked packet) | Food | 1 |
+| AD | filled, fried, stir, takeaway, macaroni cheese | Dish | 7 |
+| AD | canned (starts with), sauce mixes | Food | 3 |
+| AF | buns, garlic and herb, papadum | Food | 3 |
+| AG | croissant, pain au, bagel | Food | 1 |
+| AT | polenta | Ingredient | 1 |
+| BAR | evaporated, condensed, dried, powder | Ingredient | 5 |
+| BL | cheese spread, processed | Food | 5 |
+| BV | dried cheese sauce, packet mix | Food | 1 |
+| DA | shaped, frozen | Food | 1 |
+| DAM | mashed | Dish | 2 |
+| DB | mixed dahl (starts with) | Dish | 1 |
+| DB | baked beans, re-fried, houmous | Food | 6 |
+| DF | mushy | Food | 1 |
+| DG | pickled | Food | 3 |
+| F, FA | stewed or baked cooking apples (starts with) unless "no sugar"; fruit salad | Dish | 29 |
+| F, FA | canned (starts with), olives | Food | 14 |
+| G, GA | salted (not unsalted), roasted, trail mix, raisins, peanut butter | Food | 10 |
+| J | curry | Dish | 2 |
+| JA | in milk | Dish | 2 |
+| JC | pickled, in tomato sauce | Food | 2 |
+| JM | in white wine sauce | Dish | 1 |
+| J, JA, JC, JK, JM | coated (not uncoated), crumbs, batter, breaded, goujon | Food | 36 |
+| MCA | coated (not uncoated), crumbs, batter, breaded, nugget, kiev | Food | 5 |
+| MG | in milk | Dish | 1 |
+| S, SC | jam, marmalade, lemon curd, chocolate spread, chocolate nut spread, topping | Food | 9 |
+| BN | lassi | Drink | 1 |
+| WY | distilled water | Drink | 1 |
+| WY | gravy ... made up | Dish | 1 |
+| WY | gravy, smooth or wholegrain mustard, mustard powder (made up), extract | Food | 6 |
+| PAA | soup powder | Food | 1 |
+
+Overrides (`TYPE_OVERRIDES`, by `sourceId`, for single foods no name rule captures cleanly; the build fails on an id that is not in the output): 13-607 Carrot juice (Drink), 18-042 Barbecued beef mince patties (Food), 18-216 Cooked pork crackling (Food), 18-490 Crispy Chinese style duck (Food), 19-496 Ham (Food; bacon and gammon stay Ingredients).
+
+The Ingredient review (owner request: foods made up with milk or similar are Dishes; check each Ingredient for Food or Dish): an Ingredient is a single component people cook with (raw or plainly cooked meat, fish, vegetables and fruit, flours, grains, pulses, fats, sugars, herbs, spices, eggs, plain cheese, breads). Plain boiled rice, pasta, beans, potatoes and vegetables stay Ingredients. A food that combines components (porridge made up with milk, fruit stewed or baked with sugar, mashed potato with fat, fish cooked in milk or a sauce, curries, macaroni cheese) is a Dish. A ready-to-eat processed product (canned fruit and baked beans, pickles, jam, spreads, mustard, seasoned nuts, processed cheese, coated fish) is a Food. Unfortified porridge oats (11-788) stay an Ingredient and Cooked porridge oats made up with semi-skimmed milk (11-789) is a Dish.
+
+Judgment calls: BAR milk products stay Ingredients, "Plain pilau rice" stays a Dish, sandwiches are Dishes, breads Ingredients, homemade sauces and soups Dishes (retail ones Foods), yoghurt and ice cream Foods, JR fish products Foods, cereals Foods, milkshakes Drinks, and drink mixes, squash, cordial and juice concentrates Drinks. Every stored food has a type (the column is not null). Schema step 3 (`FoodTypeUpgrade`) gave the foods stored before types existed one: an Open Food Facts food measured in millilitres is `Drink` (no categories are stored, so the unit is all there is), any other food (CoFID rows too) is `Food`; the CoFID rows then get the seed's type on the seed 4 load.
 
 ## Repeated food codes
 

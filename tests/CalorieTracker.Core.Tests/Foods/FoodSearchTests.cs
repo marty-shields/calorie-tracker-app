@@ -111,19 +111,79 @@ public class FoodSearchTests
             await Add($"Potato {i}", $"potato {i}");
         }
 
-        Assert.That((await search.SearchAsync("potato", 3)).Foods, Has.Count.EqualTo(3));
-        Assert.That((await search.SearchAsync("potato", 0)).Foods, Has.Count.EqualTo(1));
+        Assert.That((await search.SearchAsync("potato", limit: 3)).Foods, Has.Count.EqualTo(3));
+        Assert.That((await search.SearchAsync("potato", limit: 0)).Foods, Has.Count.EqualTo(1));
     }
 
     [Test]
-    public async Task Search_WholeWordMatchesComeBeforePrefixMatchesThenByName()
+    public async Task Search_NamesStartingWithTheQueryComeFirstThenOtherMatchesEachByName()
     {
         await Add("Potatoes, baked", "potatoes, baked");
         await Add("Sweet potato", "sweet potato");
         await Add("Potato salad", "potato salad");
         await Add("Potatoes, roast", "potatoes, roast");
 
-        Assert.That(await Names("potato"), Is.EqualTo(new[] { "Potato salad", "Sweet potato", "Potatoes, baked", "Potatoes, roast" }));
+        Assert.That(await Names("potato"), Is.EqualTo(new[] { "Potato salad", "Potatoes, baked", "Potatoes, roast", "Sweet potato" }));
+    }
+
+    [Test]
+    public async Task Search_FirstTermAtTheStartOfTheName_RanksBeforeAnEarlierAlphabeticalMatch()
+    {
+        await Add("Apple potato", "apple potato");
+        await Add("Potato", "potato");
+        await Add("Baked potato", "baked potato");
+
+        Assert.That(await Names("potato"), Is.EqualTo(new[] { "Potato", "Apple potato", "Baked potato" }));
+    }
+
+    [Test]
+    public async Task Search_SeveralWords_NamesStartingWithTheWholeQueryComeFirst()
+    {
+        await Add("Sweet and sour potato", "sweet and sour potato");
+        await Add("Potato, sweet, boiled", "potato, sweet, boiled");
+        await Add("Sweet potato, baked", "sweet potato, baked");
+        await Add("Sweet potato", "sweet potato");
+        await Add("Sweet red potato", "sweet red potato");
+
+        Assert.That(await Names("Sweet Potato"), Is.EqualTo(new[] { "Sweet potato", "Sweet potato, baked", "Potato, sweet, boiled", "Sweet and sour potato", "Sweet red potato" }));
+        Assert.That(await Names("potato sweet"), Is.EqualTo(new[] { "Potato, sweet, boiled", "Sweet and sour potato", "Sweet potato", "Sweet potato, baked", "Sweet red potato" }));
+    }
+
+    [Test]
+    public async Task Search_WholeQueryAcrossAComma_StillRanksFirst()
+    {
+        await Add("Baked sweet potato", "baked sweet potato");
+        await Add("Sweet, potato mash", "sweet, potato mash");
+
+        Assert.That(await Names("sweet potato"), Is.EqualTo(new[] { "Sweet, potato mash", "Baked sweet potato" }));
+    }
+
+    [Test]
+    public async Task Search_WholeQueryAcrossALongSeparatorRun_StillRanksFirst()
+    {
+        await Add("Baked cola zero", "baked cola zero");
+        await Add("Cola) / (zero", "cola) / (zero");
+
+        Assert.That(await Names("cola zero"), Is.EqualTo(new[] { "Cola) / (zero", "Baked cola zero" }));
+    }
+
+    [Test]
+    public async Task Search_WithAType_FindsOnlyFoodsOfThatType()
+    {
+        await Add("Potato", "potato", type: FoodType.Ingredient);
+        await Add("Potato salad", "potato salad", type: FoodType.Dish);
+        await Add("Potato crisps", "potato crisps", type: FoodType.Food);
+        await Add("Potato vodka", "potato vodka", type: FoodType.Drink);
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That(await Names("potato", FoodType.Ingredient), Is.EqualTo(new[] { "Potato" }));
+            Assert.That(await Names("potato", FoodType.Food), Is.EqualTo(new[] { "Potato crisps" }));
+            Assert.That(await Names("potato", FoodType.Dish), Is.EqualTo(new[] { "Potato salad" }));
+            Assert.That(await Names("potato", FoodType.Drink), Is.EqualTo(new[] { "Potato vodka" }));
+            Assert.That(await Names("potato"), Has.Count.EqualTo(4));
+            Assert.That(await Names("salad", FoodType.Drink), Is.Empty);
+        });
     }
 
     [Test]
@@ -232,7 +292,7 @@ public class FoodSearchTests
         await cts.CancelAsync();
         var store = new FoodStore(connection, gate, new FakeLogger<FoodStore>());
 
-        Assert.That(async () => await store.SearchAsync(["potato"], 10, cts.Token), Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(async () => await store.SearchAsync(["potato"], "potato", 10, ct: cts.Token), Throws.InstanceOf<OperationCanceledException>());
     }
 
     [Test]
@@ -258,7 +318,7 @@ public class FoodSearchTests
 
         Assert.That(result.Status, Is.EqualTo(FoodSearchStatus.Found));
         Assert.That(result.Foods.Select(f => f.Name), Is.EqualTo(new[] { "Words" }));
-        Assert.That(logger.Collector.GetSnapshot()[0].Message, Is.EqualTo("Food search with 10 terms found 1 foods"));
+        Assert.That(logger.Collector.GetSnapshot()[0].Message, Is.EqualTo("Food search with 10 terms and type (null) found 1 foods"));
     }
 
     [Test]
@@ -268,7 +328,7 @@ public class FoodSearchTests
 
         await search.SearchAsync("potato potato");
 
-        Assert.That(logger.Collector.GetSnapshot()[0].Message, Is.EqualTo("Food search with 1 terms found 1 foods"));
+        Assert.That(logger.Collector.GetSnapshot()[0].Message, Is.EqualTo("Food search with 1 terms and type (null) found 1 foods"));
     }
 
     [Test]
@@ -294,8 +354,8 @@ public class FoodSearchTests
         Assert.Multiple(async () =>
         {
             Assert.That(await Names("whole"), Is.EqualTo(new[] { "Milk" }));
-            Assert.That(await Names("raw"), Is.EqualTo(new[] { "Beef", "Rawhide" }));
-            Assert.That(await Names("raw)"), Is.EqualTo(new[] { "Beef", "Rawhide" }));
+            Assert.That(await Names("raw"), Is.EqualTo(new[] { "Rawhide", "Beef" }));
+            Assert.That(await Names("raw)"), Is.EqualTo(new[] { "Rawhide", "Beef" }));
             Assert.That(await Names("close"), Is.EqualTo(new[] { "Paren" }));
             Assert.That(await Names("open"), Is.EqualTo(new[] { "Paren" }));
             Assert.That(await Names("lamb"), Is.EqualTo(new[] { "Pork" }));
@@ -321,7 +381,18 @@ public class FoodSearchTests
             await Add($"Potato {i:000}", $"potato {i:000}");
         }
 
-        Assert.That((await search.SearchAsync("potato", 1000)).Foods, Has.Count.EqualTo(IFoodSearch.MaxLimit));
+        Assert.That((await search.SearchAsync("potato", limit: 1000)).Foods, Has.Count.EqualTo(IFoodSearch.MaxLimit));
+    }
+
+    [Test]
+    public async Task Logging_SearchWithAType_LogsTheTypeAndCounts()
+    {
+        await Add("Distinctive Name", "distinctive name", type: FoodType.Dish);
+
+        await search.SearchAsync("Distinctive", FoodType.Dish);
+
+        var message = logger.Collector.GetSnapshot()[0].Message;
+        Assert.That(message, Is.EqualTo("Food search with 1 terms and type Dish found 1 foods"));
     }
 
     [Test]
@@ -341,7 +412,7 @@ public class FoodSearchTests
             Assert.That(text, Does.Not.Contain("istinctive").And.Not.Contain("secretbrand"));
         }
 
-        Assert.That(records[0].Message, Is.EqualTo("Food search with 2 terms found 1 foods"));
+        Assert.That(records[0].Message, Is.EqualTo("Food search with 2 terms and type (null) found 1 foods"));
     }
 
     [TestCase("creme")]
@@ -362,14 +433,15 @@ public class FoodSearchTests
         Assert.That(await Names("puree"), Is.EqualTo(new[] { "Purée" }));
     }
 
-    private async Task<List<string>> Names(string query) =>
-        (await search.SearchAsync(query)).Foods.Select(f => f.Name).ToList();
+    private async Task<List<string>> Names(string query, FoodType? type = null) =>
+        (await search.SearchAsync(query, type)).Foods.Select(f => f.Name).ToList();
 
-    private Task Add(string name, string searchText, FoodSource source = FoodSource.CoFID) =>
-        connection.InsertAsync(NewFood(name, searchText, source));
+    private Task Add(string name, string searchText, FoodSource source = FoodSource.CoFID, FoodType type = FoodType.Ingredient) =>
+        connection.InsertAsync(NewFood(name, searchText, source, type));
 
-    private Food NewFood(string name, string searchText, FoodSource source = FoodSource.CoFID) => new()
+    private Food NewFood(string name, string searchText, FoodSource source = FoodSource.CoFID, FoodType type = FoodType.Ingredient) => new()
     {
+        Type = type,
         Source = source,
         SourceId = (++nextId).ToString(),
         Name = name,

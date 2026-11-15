@@ -30,6 +30,24 @@ public sealed class FoodSearchSteps(FoodSearchScreen foods, NavigationBar naviga
     [When(@"^I tap Back to results$")]
     public void WhenITapBackToResults() => foods.BackToResults();
 
+    [When(@"^I choose the (Ingredients|Foods|Dishes|Drinks|All) chip$")]
+    public void WhenIChooseTheChip(string chip) => foods.ChooseType(chip.ToLowerInvariant());
+
+    [Then(@"^the (Ingredients|Foods|Dishes|Drinks|All) chip is chosen$")]
+    public void ThenTheChipIsChosen(string chip) =>
+        web.Eventually(() => foods.IsTypeChosen(chip.ToLowerInvariant()), Is.True, $"{chip} chip chosen");
+
+    [Then(@"^every result is a ""(Ingredient|Food|Dish|Drink)""$")]
+    public void ThenEveryResultIsOfType(string type) =>
+        web.Eventually(foods.ResultTypes, Has.Count.GreaterThan(0).And.All.EqualTo(type));
+
+    [Then(@"^the results include more than one type$")]
+    public void ThenTheResultsIncludeMoreThanOneType() =>
+        web.Eventually(() => foods.ResultTypes().Distinct().Count(), Is.GreaterThan(1));
+
+    [Then(@"^""(.*)"" is still typed$")]
+    public void ThenIsStillTyped(string text) => web.Eventually(foods.Typed, Is.EqualTo(text));
+
     [Then(@"^Foods shows ""(.*)""$")]
     public void ThenFoodsShows(string text) =>
         web.Eventually(() => text == "No foods match" ? foods.NoneText() : foods.PromptText(), Is.EqualTo(text));

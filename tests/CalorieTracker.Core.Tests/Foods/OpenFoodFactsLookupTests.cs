@@ -57,6 +57,7 @@ public class OpenFoodFactsLookupTests
             Assert.That(food.Name, Is.EqualTo("Nutella"));
             Assert.That(food.Brand, Is.EqualTo("Ferrero"));
             Assert.That(food.Unit, Is.EqualTo(FoodUnit.Gram));
+            Assert.That(food.Type, Is.EqualTo(FoodType.Food));
             Assert.That(food.Kcal, Is.EqualTo(539));
             Assert.That(food.ProteinG, Is.EqualTo(6.3));
             Assert.That(food.CarbsG, Is.EqualTo(57.5));
@@ -80,6 +81,7 @@ public class OpenFoodFactsLookupTests
         Assert.Multiple(() =>
         {
             Assert.That(result.Food!.Unit, Is.EqualTo(FoodUnit.Millilitre));
+            Assert.That(result.Food.Type, Is.EqualTo(FoodType.Drink));
             Assert.That(result.Food.Name, Is.EqualTo("Coca-Cola Original"));
             Assert.That(result.Food.Kcal, Is.EqualTo(44));
         });
@@ -99,6 +101,28 @@ public class OpenFoodFactsLookupTests
         handler.Respond(Fixture("not-food-8410757001090.json"), HttpStatusCode.NotFound);
 
         Assert.That((await lookup.LookupAsync("8410757001090")).Status, Is.EqualTo(BarcodeLookupStatus.NotFound));
+    }
+
+    [TestCase("[\"en:beverages-and-beverages-preparations\",\"en:beverages\"]", null, FoodType.Drink)]
+    [TestCase("[\"en:beverages\"]", "\"g\"", FoodType.Drink)]
+    [TestCase("[\"en:Beverages\"]", null, FoodType.Drink)]
+    [TestCase("[\"en:breakfasts\",\"en:spreads\"]", "\"g\"", FoodType.Food)]
+    [TestCase("[\"en:oils\",\"en:vegetable-oils\"]", "\"ml\"", FoodType.Food)]
+    [TestCase("[\"en:beverages\"]", "\"ml\"", FoodType.Drink)]
+    [TestCase(null, "\"ml\"", FoodType.Drink)]
+    [TestCase("[]", "\"ml\"", FoodType.Drink)]
+    [TestCase("[1,null,{}]", "\"ml\"", FoodType.Drink)]
+    [TestCase("[]", null, FoodType.Food)]
+    [TestCase(null, null, FoodType.Food)]
+    [TestCase("\"en:beverages\"", null, FoodType.Food)]
+    [TestCase("[1,null,{}]", null, FoodType.Food)]
+    public async Task Type_FollowsTheCategoriesWhenThereAreAnyElseTheUnit(string? categories, string? servingUnit, FoodType expected)
+    {
+        handler.Respond(Body("Thing", null, AllRequired(), servingUnit: servingUnit, categories: categories));
+
+        var result = await lookup.LookupAsync(Barcode);
+
+        Assert.That(result.Food!.Type, Is.EqualTo(expected));
     }
 
     [Test]
@@ -364,7 +388,7 @@ public class OpenFoodFactsLookupTests
         {
             Assert.That(request.Method, Is.EqualTo(HttpMethod.Get));
             Assert.That(request.Uri.GetLeftPart(UriPartial.Path), Is.EqualTo("https://world.openfoodfacts.org/api/v2/product/" + Barcode));
-            Assert.That(request.Uri.Query, Is.EqualTo("?fields=product_name,brands,nutriments,product_quantity_unit,serving_quantity_unit"));
+            Assert.That(request.Uri.Query, Is.EqualTo("?fields=product_name,brands,nutriments,product_quantity_unit,serving_quantity_unit,categories_tags"));
         });
     }
 
@@ -576,11 +600,12 @@ public class OpenFoodFactsLookupTests
         ["fat_100g"] = "3",
     };
 
-    private static string Body(string name, string? brands, Dictionary<string, string> nutriments, string? productUnit = null, string? servingUnit = null)
+    private static string Body(string name, string? brands, Dictionary<string, string> nutriments, string? productUnit = null, string? servingUnit = null, string? categories = null)
     {
         var extra = (brands is null ? "" : $",\"brands\":\"{brands}\"")
             + (productUnit is null ? "" : $",\"product_quantity_unit\":{productUnit}")
-            + (servingUnit is null ? "" : $",\"serving_quantity_unit\":{servingUnit}");
+            + (servingUnit is null ? "" : $",\"serving_quantity_unit\":{servingUnit}")
+            + (categories is null ? "" : $",\"categories_tags\":{categories}");
         var nutrients = string.Join(",", nutriments.Select(n => $"\"{n.Key}\":{n.Value}"));
         return $"{{\"code\":\"1\",\"product\":{{\"product_name\":\"{name}\"{extra},\"nutriments\":{{{nutrients}}}}},\"status\":1}}";
     }

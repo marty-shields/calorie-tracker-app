@@ -15,6 +15,15 @@ public enum FoodUnit
     Millilitre,
 }
 
+/// <summary>The kind of food a search filters by. Stored as its number, so keep the order.</summary>
+public enum FoodType
+{
+    Ingredient,
+    Food,
+    Dish,
+    Drink,
+}
+
 /// <summary>A food and its nutrients per 100 g or 100 ml. Unique by <see cref="Source"/> and <see cref="SourceId"/>.</summary>
 public class Food
 {
@@ -51,6 +60,13 @@ public class Food
     public double? SaturatesG { get; set; }
 
     public double? SaltG { get; set; }
+
+    /// <summary>
+    /// CoFID foods get the seed's type. Open Food Facts foods: when the product has categories, Drink iff they include en:beverages (so oils and sauces sold in ml are Food); only with no usable categories does a millilitre unit make it Drink. Never Ingredient or Dish.
+    /// A row stored before types existed is set the same way by schema step 3 (Open Food Facts by its unit, since no categories are stored; a CoFID row is Food until the seed refresh sets its own).
+    /// </summary>
+    [NotNull]
+    public FoodType Type { get; set; }
 
     /// <summary>Lowercased text with accents removed that searches match against.</summary>
     [NotNull]

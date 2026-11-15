@@ -3,12 +3,21 @@
 set -uo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 source "$here/lib.sh"
-script="$here/../build-food-seed.py"
+real_script="$here/../build-food-seed.py"
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
-# The workbook generator: mkbook.py <out.xlsx> <variant>, variant ok | nosheet | notag | dupkey | dupinorganics | notnumber | negative | badgroup | duptag | noname | badinorganics | notzip.
+# The script under test is a copy that also types group AQ (not a CoFID group), so a group that merely contains a Q can be Gram.
+mkdir "$work/bin"
+script="$work/bin/build-food-seed.py"
+# It also swaps TYPE_OVERRIDES for a given table (the real one names real CoFID codes, so the real rows are tested on the real seed).
+with_overrides() { sed -e 's/^GROUP_TYPES = {$/GROUP_TYPES = {"AQ": "Ingredient",/' \
+    -e "s/^TYPE_OVERRIDES = {\$/TYPE_OVERRIDES = {$2} if True else {/" "$real_script" > "$1"; }
+with_overrides "$script" ""
+check "the test copy of the script types AQ" "1" "$(grep -c '^GROUP_TYPES = {"AQ": "Ingredient",$' "$script")"
+
+# The workbook generator: mkbook.py <out.xlsx> <variant>, variant ok | rules | nosheet | notag | dupkey | dupinorganics | notnumber | negative | badgroup | types | unknowngroup | duptag | noname | badinorganics | notzip.
 # A str that looks like a number is written as a number (<v>, verbatim, so float noise survives); N and Tr are shared strings.
 cat > "$work/mkbook.py" <<'PY'
 import re
@@ -92,6 +101,20 @@ for f in foods:
     else:
         continue
     inorganics.append({"A": key, "B": f["B"], "H": value})
+if variant == "types":
+    foods += [proximate("20-001", "Pizza, cheese", "A", 250, 10, 30, 10),
+              proximate("20-002", "Chips, Coated", "JA", 200, 2, 25, 10),
+              proximate("20-003", "Chips, uncoated", "JA", 200, 2, 25, 10),
+              proximate("20-004", "Milk, DRIED", "BAR", 400, 30, 40, 1),
+              proximate("20-005", "Milk, whole", "BA", 60, 3, 5, 3),
+              proximate("20-006", "Garlic bread", "AB", 300, 8, 40, 12)]
+if variant == "rules":
+    with open(out.rsplit("/", 1)[0] + "/rules.txt") as f:
+        for number, line in enumerate(f, 1):
+            group, name, _ = line.rstrip("\n").split("|")
+            foods.append(proximate(f"30-{number:03d}", name, group, 100, 1, 1, 1))
+if variant == "unknowngroup":
+    foods.append(proximate("20-009", "Mystery", "ZZ", 1, 1, 1, 1))
 if variant == "dupkey":
     foods.append(dict(foods[0]))
 if variant == "dupinorganics":
@@ -147,21 +170,189 @@ exit=0" "$(seed ok)"
 # Sorted by code then repeat number (not sheet order); Tr is 0; 0.125 rounds half up; float noise is gone; the NSP column
 # (9 for Bread) is not the fibre; Na 400 mg is 1 g salt; Na 2/37 mg are 0.01/0.09 g (half up); each repeat of a code takes the
 # sodium of its own name; salt is null for N or a missing Na and for a food absent from 1.4.
-check "the seed file" '{"seedVersion":3,"source":"CoFID 2021","foods":[
-{"source":"CoFID","sourceId":"10-001","name":"Bread, white","originalName":"Bread, white","foodGroup":"AA","unit":"Gram","energyKcal":100,"proteinG":0.07,"carbsG":4.6,"fatG":0.13,"fibreG":2.5,"sugarsG":0,"saturatesG":0.5,"saltG":1},
-{"source":"CoFID","sourceId":"10-006","name":"Nothing optional","originalName":"Nothing optional","foodGroup":"AA","unit":"Gram","energyKcal":5,"proteinG":1,"carbsG":1,"fatG":1,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":null},
-{"source":"CoFID","sourceId":"10-007","name":"Trace sodium","originalName":"Trace sodium","foodGroup":"AA","unit":"Gram","energyKcal":5,"proteinG":1,"carbsG":1,"fatG":1,"fibreG":null,"sugarsG":0.05,"saturatesG":null,"saltG":0},
-{"source":"CoFID","sourceId":"10-008","name":"Not in inorganics","originalName":"Not in inorganics","foodGroup":"AQ","unit":"Gram","energyKcal":5,"proteinG":1,"carbsG":1,"fatG":1,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":null},
-{"source":"CoFID","sourceId":"13-669","name":"Aubergine, roasted","originalName":"Aubergine, roasted","foodGroup":"DG","unit":"Gram","energyKcal":62,"proteinG":2.1,"carbsG":5.2,"fatG":3.8,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":0.01},
-{"source":"CoFID","sourceId":"13-669#2","name":"Watercress, raw","originalName":"Watercress, raw","foodGroup":"DG","unit":"Gram","energyKcal":10,"proteinG":1.9,"carbsG":0,"fatG":0.3,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":0.09},
-{"source":"CoFID","sourceId":"13-669#3","name":"Third with the code","originalName":"Third with the code","foodGroup":"DG","unit":"Gram","energyKcal":7,"proteinG":1,"carbsG":1,"fatG":1,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":null},
-{"source":"CoFID","sourceId":"17-001","name":"Lager, 4%","originalName":"Lager, 4%","foodGroup":"QA","unit":"Millilitre","energyKcal":29,"proteinG":0.3,"carbsG":1.5,"fatG":0,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":0.01},
-{"source":"CoFID","sourceId":"17-002","name":"Whisky","originalName":"Whisky","foodGroup":"QK","unit":"Millilitre","energyKcal":222,"proteinG":0,"carbsG":0,"fatG":0,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":0},
-{"source":"CoFID","sourceId":"18-001","name":"Alcohol-free","originalName":"Alcohol-free","foodGroup":"QA","unit":"Millilitre","energyKcal":7,"proteinG":0,"carbsG":1,"fatG":0,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":0.25}
+check "the seed file" '{"seedVersion":5,"source":"CoFID 2021","foods":[
+{"source":"CoFID","sourceId":"10-001","name":"Bread, white","originalName":"Bread, white","foodGroup":"AA","unit":"Gram","type":"Ingredient","energyKcal":100,"proteinG":0.07,"carbsG":4.6,"fatG":0.13,"fibreG":2.5,"sugarsG":0,"saturatesG":0.5,"saltG":1},
+{"source":"CoFID","sourceId":"10-006","name":"Nothing optional","originalName":"Nothing optional","foodGroup":"AA","unit":"Gram","type":"Ingredient","energyKcal":5,"proteinG":1,"carbsG":1,"fatG":1,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":null},
+{"source":"CoFID","sourceId":"10-007","name":"Trace sodium","originalName":"Trace sodium","foodGroup":"AA","unit":"Gram","type":"Ingredient","energyKcal":5,"proteinG":1,"carbsG":1,"fatG":1,"fibreG":null,"sugarsG":0.05,"saturatesG":null,"saltG":0},
+{"source":"CoFID","sourceId":"10-008","name":"Not in inorganics","originalName":"Not in inorganics","foodGroup":"AQ","unit":"Gram","type":"Ingredient","energyKcal":5,"proteinG":1,"carbsG":1,"fatG":1,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":null},
+{"source":"CoFID","sourceId":"13-669","name":"Aubergine, roasted","originalName":"Aubergine, roasted","foodGroup":"DG","unit":"Gram","type":"Ingredient","energyKcal":62,"proteinG":2.1,"carbsG":5.2,"fatG":3.8,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":0.01},
+{"source":"CoFID","sourceId":"13-669#2","name":"Watercress, raw","originalName":"Watercress, raw","foodGroup":"DG","unit":"Gram","type":"Ingredient","energyKcal":10,"proteinG":1.9,"carbsG":0,"fatG":0.3,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":0.09},
+{"source":"CoFID","sourceId":"13-669#3","name":"Third with the code","originalName":"Third with the code","foodGroup":"DG","unit":"Gram","type":"Ingredient","energyKcal":7,"proteinG":1,"carbsG":1,"fatG":1,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":null},
+{"source":"CoFID","sourceId":"17-001","name":"Lager, 4%","originalName":"Lager, 4%","foodGroup":"QA","unit":"Millilitre","type":"Drink","energyKcal":29,"proteinG":0.3,"carbsG":1.5,"fatG":0,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":0.01},
+{"source":"CoFID","sourceId":"17-002","name":"Whisky","originalName":"Whisky","foodGroup":"QK","unit":"Millilitre","type":"Drink","energyKcal":222,"proteinG":0,"carbsG":0,"fatG":0,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":0},
+{"source":"CoFID","sourceId":"18-001","name":"Alcohol-free","originalName":"Alcohol-free","foodGroup":"QA","unit":"Millilitre","type":"Drink","energyKcal":7,"proteinG":0,"carbsG":1,"fatG":0,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":0.25}
 ]}' "$(cat "$work/out.json")"
 
 check "a food with an N or blank energy, protein, carbs or fat is dropped" "" "$(grep -E '10-00[2-5]' "$work/out.json")"
 check "the group must start with Q to be a Millilitre food (AQ is not)" "3" "$(grep -c '"unit":"Millilitre"' "$work/out.json")"
+
+# The type is the group's, moved by the group's name rule (case-insensitive; "uncoated" is not "coated").
+seed types > /dev/null
+check "a food's type comes from its group, then the group's name rule" '10-001 Ingredient
+20-001 Dish
+20-002 Food
+20-003 Ingredient
+20-004 Ingredient
+20-005 Drink
+20-006 Dish' "$(python3 -I -c '
+import json
+import sys
+foods = {f["sourceId"]: f for f in json.load(open(sys.argv[1]))["foods"]}
+for key in ("10-001", "20-001", "20-002", "20-003", "20-004", "20-005", "20-006"):
+    print(key, foods[key]["type"])
+' "$work/out.json")"
+# A type override beats the name rule (20-001 is a Pizza, so a Dish by rule) and the group.
+with_overrides "$work/bin/override.py" '"20-001": ("Drink", "test"), "10-001": ("Food", "test")'
+python3 -I "$work/mkbook.py" "$work/book.xlsx" types
+python3 -I "$work/bin/override.py" "$work/book.xlsx" "$work/override.json" 2> /dev/null
+check "a type override sets the type over the group and the name rule" "10-001 Food
+20-001 Drink
+20-002 Food" "$(python3 -I -c '
+import json
+import sys
+foods = {f["sourceId"]: f for f in json.load(open(sys.argv[1]))["foods"]}
+for key in ("10-001", "20-001", "20-002"):
+    print(key, foods[key]["type"])
+' "$work/override.json")"
+with_overrides "$work/bin/missing.py" '"99-999": ("Food", "test")'
+check "an override whose sourceId is not in the workbook fails" "build-food-seed: TYPE_OVERRIDES: 99-999 is not a food in the workbook output
+exit=1" "$(python3 -I "$work/bin/missing.py" "$work/book.xlsx" "$work/missing.json" 2>&1 | tail -1; echo "exit=${PIPESTATUS[0]}")"
+check "a group with no type fails" "build-food-seed: food 20-009 is in group ZZ, which has no type in GROUP_TYPES
+exit=1" "$(seed unknowngroup | tail -2)"
+
+# One row per alternative of every NAME_RULES entry: group|name|expected type. The rest of the group is its base type, so
+# each row moves the food away from it ("uncoated" rows stay in the base type).
+cat > "$work/rules.txt" <<'RULES'
+A|Pizza, cheese|Dish
+A|Porridge, made up with milk|Dish
+A|Porridge oats, unfortified|Ingredient
+AC|Takeaway curry|Dish
+AC|Egg fried rice|Dish
+AC|Pilau rice|Dish
+AC|Chicken biryani|Dish
+AC|Cooked savoury rice|Dish
+AC|Uncooked savoury rice|Food
+AC|Boiled white rice|Ingredient
+AD|Pastry, filled|Dish
+AD|Pastry, fried|Dish
+AD|Vegetables, stir fried|Dish
+AD|Pastry takeaway|Dish
+AD|Macaroni cheese|Dish
+AD|Canned spaghetti|Food
+AD|Pasta and sauce mixes|Food
+AD|Boiled pasta|Ingredient
+AF|Currant buns|Food
+AF|Garlic and herb bread|Food
+AF|Papadums|Food
+AF|White bread|Ingredient
+AG|Croissant|Food
+AG|Pain au chocolat|Food
+AG|Bagel|Food
+AT|Polenta|Ingredient
+BAR|Milk, evaporated|Ingredient
+BAR|Milk, condensed|Ingredient
+BAR|Milk, dried|Ingredient
+BAR|Milk powder|Ingredient
+BL|Cheese spread|Food
+BL|Cheese, processed|Food
+BL|Cheese, spreadable|Ingredient
+BL|Cheddar cheese|Ingredient
+BV|Dried cheese sauce|Food
+BV|Sauce, packet mix|Food
+DA|Chips, shaped|Food
+DA|Peas, frozen|Food
+DAM|Potatoes, mashed|Dish
+DAM|Potatoes, boiled|Ingredient
+DB|Mixed dahl|Dish
+DB|Dried mung bean dahl|Ingredient
+DB|Canned baked beans|Food
+DB|Re-fried beans|Food
+DB|Houmous|Food
+DB|Boiled red kidney beans|Ingredient
+DF|Canned mushy peas|Food
+DF|Canned peas|Ingredient
+DG|Pickled onions|Food
+DG|Onions, boiled|Ingredient
+F|Stewed pears (with sugar)|Dish
+F|Stewed pears (no sugar)|Ingredient
+F|Canned pears|Food
+FA|Stewed apricots|Dish
+FA|Baked cooking apples|Dish
+FA|Fruit salad|Dish
+FA|Stewed apricots (no sugar)|Ingredient
+FA|Baked cooking apples (no sugar)|Ingredient
+FA|Canned peaches (in juice)|Food
+FA|Green olives|Food
+FA|Fresh peaches|Ingredient
+G|Salted macadamia nuts|Food
+GA|Roasted peanuts|Food
+GA|Cashew nuts, salted|Food
+GA|Trail mix|Food
+GA|Peanuts and raisins|Food
+GA|Smooth peanut butter|Food
+GA|Peanuts, unsalted|Ingredient
+GA|Walnuts|Ingredient
+J|Prawn curry|Dish
+J|Cod in batter|Food
+J|Salmon, raw|Ingredient
+JA|Cod poached in milk|Dish
+JA|Chips, coated|Food
+JA|Fish, crumbs|Food
+JA|Fish, batter|Food
+JA|Fish, breaded|Food
+JA|Sole goujons|Food
+JA|Chips, uncoated|Ingredient
+JC|Herring, pickled|Food
+JC|Sardines in tomato sauce|Food
+JC|Fish, batter|Food
+JC|Sardines in brine|Ingredient
+JK|Chips, coated|Food
+JK|Fish, crumbs|Food
+JK|Fish, batter|Food
+JK|Fish, breaded|Food
+JM|Mussels in white wine sauce|Dish
+JM|Calamari, batter|Food
+JM|Mussels, raw|Ingredient
+MCA|Chicken, coated|Food
+MCA|Chicken, crumbs|Food
+MCA|Chicken, batter|Food
+MCA|Chicken, breaded|Food
+MCA|Chicken nuggets|Food
+MCA|Chicken kiev|Food
+MCA|Chicken, uncoated|Ingredient
+MG|Tripe stewed in milk|Dish
+MG|Liver, raw|Ingredient
+S|Lemon curd, homemade|Food
+SC|Fruit jam|Food
+SC|Marmalade|Food
+SC|Lemon curd|Food
+SC|Chocolate spread|Food
+SC|Chocolate nut spread|Food
+SC|Ice cream sauce topping|Food
+SC|Golden syrup|Ingredient
+BN|Lassi, sweet|Drink
+WY|Distilled water|Drink
+WY|Gravy granules, made up with water|Dish
+WY|Gravy granules|Food
+WY|Smooth mustard|Food
+WY|Wholegrain mustard|Food
+WY|Mustard powder (made up)|Food
+WY|Yeast extract|Food
+WY|Beef extract|Food
+WY|Mustard powder|Ingredient
+WY|Salt|Ingredient
+PAA|Soup powder|Food
+RULES
+seed rules > /dev/null
+check "every alternative of every name rule sets its type" "$(cut -d'|' -f3 "$work/rules.txt")" "$(python3 -I -c '
+import json
+import sys
+foods = json.load(open(sys.argv[1]))["foods"]
+for f in foods:
+    if f["sourceId"].startswith("30-"):
+        print(f["type"])
+' "$work/out.json")"
+seed ok > /dev/null
 
 cp "$work/out.json" "$work/first.json"
 seed ok > /dev/null

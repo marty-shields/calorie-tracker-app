@@ -20,23 +20,45 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
 
     /// <summary>
     /// Finds foods where every term starts a word of <see cref="Food.SearchText"/>, split on <see cref="Separators"/>. Terms must be lowercase.
-    /// Foods where every term is a whole word come first, then by name. Scans the table, which is fine at the seed's size.
+    /// Foods whose text starts with <paramref name="phrase"/> come first, then the other matches, each by name. Scans the table, which is fine at the seed's size.
     /// </summary>
-    public Task<List<Food>> SearchAsync(IReadOnlyList<string> terms, int limit, CancellationToken ct = default) =>
+    /// <param name="phrase">The whole folded query, every word in the order typed, joined by single spaces.</param>
+    /// <param name="type">Only foods of this type; null for every type.</param>
+    public Task<List<Food>> SearchAsync(IReadOnlyList<string> terms, string phrase, int limit, FoodType? type = null, CancellationToken ct = default) =>
         gate.RunAsync(async () =>
         {
             ct.ThrowIfCancellationRequested();
             var haystack = Haystack;
-            var escaped = terms.Select(t => t.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_")).ToList();
-            var prefix = string.Join(" AND ", escaped.Select(_ => $"{haystack} LIKE ? ESCAPE '\\'"));
+            var escaped = terms.Select(EscapeLike).ToList();
+            var match = string.Join(" AND ", escaped.Select(_ => $"{haystack} LIKE ? ESCAPE '\\'"));
             var args = new List<object>();
             args.AddRange(escaped.Select(t => "% " + t + "%"));
-            args.AddRange(escaped.Select(t => "% " + t + " %"));
-            args.Add(limit);
-            return await connection.QueryAsync<Food>(
-                $"SELECT * FROM Food WHERE {prefix} ORDER BY CASE WHEN {prefix} THEN 0 ELSE 1 END, Name COLLATE NOCASE, Id LIMIT ?",
+            var typeClause = "";
+            if (type is { } wanted)
+            {
+                typeClause = " AND Type = ?";
+                args.Add((int)wanted);
+            }
+
+            var matches = await connection.QueryAsync<Food>(
+                $"SELECT * FROM Food WHERE {match}{typeClause} ORDER BY Name COLLATE NOCASE, Id",
                 args.ToArray());
+            // Done here rather than in SQL because SQL cannot collapse a separator run of any length.
+            var spaced = " " + phrase;
+            return matches
+                .Select(f => (Food: f, First: StartsWithPhrase(f.SearchText, spaced)))
+                .OrderBy(m => m.First ? 0 : 1)
+                .Select(m => m.Food)
+                .Take(limit)
+                .ToList();
         });
+
+    private static string EscapeLike(string text) =>
+        text.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
+
+    private static bool StartsWithPhrase(string searchText, string spacedPhrase) =>
+        (" " + string.Join(' ', searchText.Split(Separators, StringSplitOptions.RemoveEmptyEntries)))
+            .StartsWith(spacedPhrase, StringComparison.OrdinalIgnoreCase);
 
     private static string BuildHaystack()
     {

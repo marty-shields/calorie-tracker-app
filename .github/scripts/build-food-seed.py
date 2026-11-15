@@ -7,6 +7,8 @@ Everyday names: each <folder>/<foodGroup>.json (default: the "names" folder besi
 {"11-001":"Arrowroot",...}, one entry per line, sorted by sourceId. It sets that food's "name"; originalName and sourceId stay as
 the workbook has them. Exits 1 on an entry whose sourceId is not in the output, whose food is in another group than the file name,
 or whose name is empty, and on a repeated sourceId key in a file. Names are stripped of surrounding spaces once.
+Types: each food gets a "type" (Ingredient, Food, Dish or Drink) from its CoFID group (GROUP_TYPES), then NAME_RULES may move it by its everyday name and TYPE_OVERRIDES by its sourceId (an override whose sourceId is not in the output exits 1).
+Exits 1 on a food whose group has no type. Seed/README.md holds the table as the decision record.
 Writes {"seedVersion", "source", "foods"} with one food per line, sorted by sourceId, so a rerun is byte-identical.
 A food with no value (N or blank) for energy, protein, carbohydrate or fat is dropped; the other values become null.
 Prints kept/dropped counts, any repeated food code and any kept food with no row in 1.4 to stderr. Exits 1 on a missing sheet, tag or column, or a value it
@@ -21,8 +23,8 @@ import zipfile
 import xml.etree.ElementTree as ET
 from decimal import Decimal
 
-# Bumped by hand when the seed's content is revised (for example by the everyday-names edit).
-SEED_VERSION = 3
+# Bumped by hand when the seed's content is revised (for example by the everyday-names edit or the food types).
+SEED_VERSION = 5
 SOURCE_NAME = "CoFID 2021"
 SOURCE = "CoFID"
 PROXIMATES = "1.3 Proximates"
@@ -42,6 +44,65 @@ PROXIMATE_TAGS = {
 SODIUM_TAG = "NA"
 # CoFID group codes of alcoholic drinks all start with Q (beer, cider, wine, spirits, liqueurs, alcohol-free lager included).
 ALCOHOL_GROUP_PREFIX = "Q"
+INGREDIENT, FOOD, DISH, DRINK = "Ingredient", "Food", "Dish", "Drink"
+# CoFID group code -> food type. Every group in the workbook needs an entry.
+GROUP_TYPES = {
+    **dict.fromkeys(
+        "A AA AC AD AF AG AO BJC BJS BL BNE BTM CA D DA DAE DAM DB DF DG DI F FA G GA H J JA JC JK JM MAA MAC MAE MAG MAI "
+        "MCA MCC MCE MCG MCI MCK MCM MCO MEA MEC MEE MG OA OB OC OE OF S SC WY".split(), INGREDIENT),
+    **dict.fromkeys(
+        "AI AK AM AN AP BJP BN BNH BNS BP CDH DAP DAR JR MBG MI SEA SEC SN SNA SNC WA WAC WAE WC WCG WCN WE".split(), FOOD),
+    **dict.fromkeys("AB AE AS AT BR BV CD CDE DR MIG MR WAA WCD".split(), DISH),
+    **dict.fromkeys(
+        "BA BAB BAE BAH BAK BAR BC BH FC P PA PAA PAC PCA PCC PE Q QA QC QE QF QG QI QK".split(), DRINK),
+}
+COATED = r"(?<!un)coated|crumbs|batter|breaded"
+# (CoFID groups, pattern searched case-insensitively in the everyday name, type it gives), applied after the group's type.
+# The first rule of the food's group that matches wins, so a narrower rule goes before a wider one.
+NAME_RULES = [
+    ("A", r"pizza|made up with", DISH),
+    ("AC", r"takeaway|fried rice|pilau|biryani|^cooked savoury rice", DISH),
+    ("AC", r"savoury rice", FOOD),
+    ("AD", r"filled|fried|stir|takeaway|macaroni cheese", DISH),
+    ("AD", r"^canned|sauce mixes", FOOD),
+    ("AF", r"buns|garlic and herb|papadum", FOOD),
+    ("AG", r"croissant|pain au|bagel", FOOD),
+    ("AT", r"polenta", INGREDIENT),
+    ("BAR", r"evaporated|condensed|dried|powder", INGREDIENT),
+    ("BL", r"cheese spread|processed", FOOD),
+    ("BV", r"dried cheese sauce|packet mix", FOOD),
+    ("DA", r"shaped|frozen", FOOD),
+    ("DAM", r"mashed", DISH),
+    ("DB", r"^mixed dahl", DISH),
+    ("DB", r"baked beans|re-fried|houmous", FOOD),
+    ("DF", r"mushy", FOOD),
+    ("DG", r"pickled", FOOD),
+    ("F FA", r"^(stewed|baked cooking apples)(?!.*no sugar)|fruit salad", DISH),
+    ("F FA", r"^canned|olives", FOOD),
+    ("G GA", r"(?<!un)salted|roasted|trail mix|raisins|peanut butter", FOOD),
+    ("J", r"curry", DISH),
+    ("JA", r"in milk", DISH),
+    ("JC", r"pickled|in tomato sauce", FOOD),
+    ("JM", r"in white wine sauce", DISH),
+    ("J JA JC JK JM", COATED + r"|goujon", FOOD),
+    ("MCA", COATED + r"|nugget|kiev", FOOD),
+    ("MG", r"in milk", DISH),
+    ("S SC", r"\bjam\b|marmalade|lemon curd|chocolate (nut )?spread|topping", FOOD),
+    ("BN", r"lassi", DRINK),
+    ("WY", r"distilled water", DRINK),
+    ("WY", r"gravy.*made up", DISH),
+    ("WY", r"gravy|^(smooth|wholegrain) mustard|mustard powder \(made up\)|extract", FOOD),
+    ("PAA", r"soup powder", FOOD),
+]
+# sourceId -> (type, why): single foods no name rule captures cleanly. Applied after NAME_RULES; an id that is not in the
+# workbook output fails the build, so a renumbered food cannot silently lose its type.
+TYPE_OVERRIDES = {
+    "13-607": (DRINK, "carrot juice is a drink"),
+    "18-042": (FOOD, "mince patties are a processed burger product"),
+    "18-216": (FOOD, "pork crackling is a ready-to-eat snack"),
+    "18-490": (FOOD, "crispy Chinese style duck is a prepared product"),
+    "19-496": (FOOD, "sliced ham is a processed meat product (bacon and gammon stay Ingredients)"),
+}
 NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 REL_NS = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 PKG_REL_NS = "{http://schemas.openxmlformats.org/package/2006/relationships}"
@@ -211,6 +272,7 @@ def build(path):
             "originalName": name,
             "foodGroup": group,
             "unit": "Millilitre" if group.startswith(ALCOHOL_GROUP_PREFIX) else "Gram",
+            "type": None,
             **{key: None if value is None else Raw(number_text(value)) for key, value in values.items()},
         }))
     foods.sort(key=lambda f: (f[0], f[1]))
@@ -254,6 +316,30 @@ def apply_names(foods, folder, required):
             food["name"] = name
 
 
+def food_type(group, name):
+    """The group's type, moved by the group's name rule when the name matches; None for a group with no type."""
+    found = GROUP_TYPES.get(group)
+    if found is None:
+        return None
+    for groups, pattern, becomes in NAME_RULES:
+        if group in groups.split() and re.search(pattern, name, re.IGNORECASE):
+            return becomes
+    return found
+
+
+def apply_types(foods):
+    """Sets each food's type from its group, everyday name and override; run after apply_names."""
+    known = {food["sourceId"] for food in foods}
+    for source_id in TYPE_OVERRIDES:
+        if source_id not in known:
+            fail(f"TYPE_OVERRIDES: {source_id} is not a food in the workbook output")
+    for food in foods:
+        found = food_type(food["foodGroup"], food["name"])
+        if found is None:
+            fail(f"food {food['sourceId']} is in group {food['foodGroup']}, which has no type in GROUP_TYPES")
+        food["type"] = TYPE_OVERRIDES.get(food["sourceId"], (found,))[0]
+
+
 class Raw(str):
     """A number already formatted as JSON text."""
 
@@ -282,6 +368,7 @@ def main(argv):
         sys.exit(__doc__)
     foods = build(args[0])
     apply_names(foods, names or os.path.join(os.path.dirname(os.path.abspath(args[1])), "names"), names is not None)
+    apply_types(foods)
     text = render(foods)
     with open(args[1], "w", encoding="utf-8", newline="\n") as out:
         out.write(text)

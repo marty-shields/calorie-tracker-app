@@ -8,11 +8,12 @@ public interface IFoodSearch
     public const int MaxLimit = 200;
 
     /// <summary>
-    /// Finds foods whose words start with every word typed, in any order and either case. Whole-word matches come before prefix matches, then by name (ignoring case). Only the first 10 distinct words are used.
+    /// Finds foods whose words start with every word typed, in any order and either case. Foods whose name starts with the whole query (every word, in the order typed) come first, then the other matches, each by name (ignoring case). Only the first 10 distinct words must match, but the ranking uses every word.
     /// A blank query finds nothing.
     /// </summary>
+    /// <param name="type">Only foods of this type; null finds every type.</param>
     /// <param name="limit">Most foods to return; kept between 1 and <see cref="MaxLimit"/>.</param>
-    Task<FoodSearchResult> SearchAsync(string query, int limit = DefaultLimit, CancellationToken ct = default);
+    Task<FoodSearchResult> SearchAsync(string query, FoodType? type = null, int limit = DefaultLimit, CancellationToken ct = default);
 }
 
 public enum FoodSearchStatus
