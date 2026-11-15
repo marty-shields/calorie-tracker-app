@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using CalorieTracker.UI.Components.Actions;
 
 namespace CalorieTracker.UI.Tests.Components.Actions;
@@ -161,6 +162,40 @@ public class IconButtonTests : ComponentTestBase
             Assert.That(baseRule, Does.Contain("min-width: var(--touch-target)").And.Contain("min-height: var(--touch-target)"));
             Assert.That(start, Is.GreaterThanOrEqualTo(0));
             Assert.That(filledBlock, Does.Contain("background-color: var(--color-chip);").And.Contain("color: var(--color-on-chip);"));
+        });
+    }
+
+    [Test]
+    public void Css_SetsNoOutline_SoTheGlobalFocusRingShows()
+    {
+        var css = File.ReadAllText(RepoFiles.PathOf("src", "CalorieTracker.UI", "Components", "Actions", "IconButton.razor.css"));
+        var baseCss = RepoFiles.Read("src", "CalorieTracker.UI", "wwwroot", "css", "base.css");
+        var ring = baseCss[baseCss.IndexOf(":focus-visible {", StringComparison.Ordinal)..];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(css, Does.Not.Contain("outline"));
+            Assert.That(ring[..ring.IndexOf('}', StringComparison.Ordinal)], Does.Contain("outline:"));
+        });
+    }
+
+    // Filled ignores Active and Muted, so those stories have no Filled twin.
+    private static readonly string[] StoriesWithoutFilledTwin = ["Active", "Muted"];
+
+    [Test]
+    public void Stories_HaveAFilledTwinForEachPlainStory_ExceptThoseFilledIgnores()
+    {
+        var stories = RepoFiles.Read("src", "CalorieTracker.UI.Stories", "Stories", "Components", "Actions", "IconButton.stories.razor");
+        var names = Regex.Matches(stories, "<Story Name=\"([^\"]+)\"").Select(m => m.Groups[1].Value).ToList();
+        var plain = names.Where(n => !n.StartsWith("Filled ", StringComparison.Ordinal) && !StoriesWithoutFilledTwin.Contains(n));
+        var missing = plain.Where(n => !names.Contains("Filled " + n)).ToList();
+        var filledStories = Regex.Matches(stories, "<Story Name=\"Filled [^\"]+\">(.*?)</Story>", RegexOptions.Singleline);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(missing, Is.Empty);
+            Assert.That(filledStories, Is.Not.Empty);
+            Assert.That(filledStories.Select(m => m.Groups[1].Value), Has.All.Contain("IconButtonStyle.Filled"));
         });
     }
 }
