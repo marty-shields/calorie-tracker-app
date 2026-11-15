@@ -1,4 +1,4 @@
-{"seedVersion":4,"source":"CoFID 2021","foods":[
+{"seedVersion":5,"source":"CoFID 2021","foods":[
 {"source":"CoFID","sourceId":"11-001","name":"Arrowroot","originalName":"Arrowroot","foodGroup":"AA","unit":"Gram","type":"Ingredient","energyKcal":355,"proteinG":0.4,"carbsG":94,"fatG":0.1,"fibreG":null,"sugarsG":0,"saturatesG":null,"saltG":0.01},
 {"source":"CoFID","sourceId":"11-002","name":"Pearl barley","originalName":"Barley, pearl, raw","foodGroup":"AA","unit":"Gram","type":"Ingredient","energyKcal":360,"proteinG":7.9,"carbsG":83.6,"fatG":1.7,"fibreG":null,"sugarsG":0,"saturatesG":null,"saltG":0.01},
 {"source":"CoFID","sourceId":"11-003","name":"Boiled pearl barley","originalName":"Barley, pearl, boiled","foodGroup":"AA","unit":"Gram","type":"Ingredient","energyKcal":120,"proteinG":2.7,"carbsG":27.6,"fatG":0.6,"fibreG":null,"sugarsG":0,"saturatesG":null,"saltG":0},

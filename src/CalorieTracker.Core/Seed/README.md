@@ -31,7 +31,7 @@ The generator sets `name` from the entry and leaves `originalName` and `sourceId
 
 ## Format
 
-`{"seedVersion":4,"source":"CoFID 2021","foods":[...]}`, one food per line, sorted by `sourceId`, `\n` line endings. `seedVersion` is a constant in the script, bumped whenever the names or content change: 4 since the food types and their review (3 was the everyday names, 2 the food-search change).
+`{"seedVersion":5,"source":"CoFID 2021","foods":[...]}`, one food per line, sorted by `sourceId`, `\n` line endings. `seedVersion` is a constant in the script, bumped whenever the names or content change: 5 since the second food-type review (4 was the first food types, 3 was the everyday names, 2 the food-search change).
 
 | Key | Meaning |
 | --- | --- |
