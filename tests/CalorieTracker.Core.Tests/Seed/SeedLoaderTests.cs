@@ -310,6 +310,151 @@ public class SeedLoaderTests
     }
 
     [Test]
+    public void SeedFile_BundledSeed_HasTheApprovedTypeCountsPerFoodGroup()
+    {
+        // I = Ingredient, F = Food, D = Dish, K = Drink; the foodGroup is not on SeedFile, so read the JSON.
+        using var stream = SeedLoader.OpenBundledSeed();
+        using var document = System.Text.Json.JsonDocument.Parse(stream);
+        var letters = new Dictionary<string, char> { ["Ingredient"] = 'I', ["Food"] = 'F', ["Dish"] = 'D', ["Drink"] = 'K' };
+
+        var table = document.RootElement.GetProperty("foods").EnumerateArray()
+            .GroupBy(f => f.GetProperty("foodGroup").GetString()!)
+            .OrderBy(g => g.Key, StringComparer.Ordinal)
+            .Select(g => g.Key + " " + string.Join(" ", g
+                .GroupBy(f => letters[f.GetProperty("type").GetString()!])
+                .OrderBy(t => t.Key)
+                .Select(t => $"{t.Key}{t.Count()}")))
+            .ToArray();
+
+        Assert.That(table, Is.EqualTo(ExpectedTypeCountsPerFoodGroup));
+    }
+
+    private static readonly string[] ExpectedTypeCountsPerFoodGroup =
+    [
+        "A D1 I2",
+        "AA I29",
+        "AB D6",
+        "AC D3 I26",
+        "AD D6 I21",
+        "AE D6",
+        "AF I38",
+        "AG F1 I4",
+        "AI F32",
+        "AK F1",
+        "AM F42",
+        "AN F41",
+        "AO I15",
+        "AP F38",
+        "AS D48",
+        "AT D17 I1",
+        "BA K1",
+        "BAB K3",
+        "BAE K4",
+        "BAH K4",
+        "BAK K4",
+        "BAR I5 K3",
+        "BC K7",
+        "BH K13",
+        "BJC I8",
+        "BJP F2",
+        "BJS I2",
+        "BL I45",
+        "BN F14 K1",
+        "BNE I1",
+        "BNH F2",
+        "BNS F1",
+        "BP F18",
+        "BR D38",
+        "BTM I3",
+        "BV D5 F1",
+        "CA I16",
+        "CD D14",
+        "CDE D2",
+        "CDH F1",
+        "D I1",
+        "DA F1 I1",
+        "DAE I4",
+        "DAM I14",
+        "DAP F17",
+        "DAR F10",
+        "DB I66",
+        "DF I16",
+        "DG I229",
+        "DI I5",
+        "DR D309",
+        "F I7",
+        "FA I210",
+        "FC K10",
+        "G I2",
+        "GA I47",
+        "H I35",
+        "J I8",
+        "JA F31 I120",
+        "JC I53",
+        "JK F2 I20",
+        "JM I16",
+        "JR F35",
+        "MAA I25",
+        "MAC I91",
+        "MAE I105",
+        "MAG I65",
+        "MAI I4",
+        "MBG F11",
+        "MCA F5 I59",
+        "MCC I7",
+        "MCE I2",
+        "MCG I2",
+        "MCI I2",
+        "MCK I2",
+        "MCM I2",
+        "MCO I21",
+        "MEA I2",
+        "MEC I3",
+        "MEE I2",
+        "MG I40",
+        "MI F42",
+        "MIG D1",
+        "MR D151",
+        "OA I12",
+        "OB I1",
+        "OC I18",
+        "OE I1",
+        "OF I5",
+        "P K1",
+        "PA K1",
+        "PAA F1 K21",
+        "PAC K17",
+        "PCA K8",
+        "PCC K16",
+        "PE K9",
+        "Q K1",
+        "QA K11",
+        "QC K4",
+        "QE K7",
+        "QF K2",
+        "QG K1",
+        "QI K4",
+        "QK K1",
+        "S I4",
+        "SC I22",
+        "SEA F17",
+        "SEC F18",
+        "SN F11",
+        "SNA F2",
+        "SNC F2",
+        "WA F5",
+        "WAA D12",
+        "WAC F9",
+        "WAE F4",
+        "WC F30",
+        "WCD D18",
+        "WCG F13",
+        "WCN F14",
+        "WE F2",
+        "WY I18 K1",
+    ];
+
+    [Test]
     public async Task LoadAsync_StoredOpenFoodFactsFoodWithNoType_BecomesFoodAndNothingElseChanges()
     {
         await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Brand, Unit, Kcal, ProteinG, CarbsG, FatG, SearchText, Type) VALUES (77, ?, 'b1', 'Mine', 'Br', ?, 10, 1, 2, 3, 'mine br', NULL)", (int)FoodSource.OpenFoodFacts, (int)FoodUnit.Gram);
