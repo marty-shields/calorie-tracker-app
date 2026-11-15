@@ -13,7 +13,8 @@ public enum SeedLoadStatus
 }
 
 /// <param name="Version">The bundled seed's version; 0 when the status is Failed.</param>
-public sealed record SeedLoadResult(SeedLoadStatus Status, int Version, int Inserted, int Updated);
+/// <param name="Deleted">How many CoFID foods the seed no longer has that the load removed; 0 unless Loaded.</param>
+public sealed record SeedLoadResult(SeedLoadStatus Status, int Version, int Inserted, int Updated, int Deleted);
 
 /// <summary>Loads the bundled CoFID seed into the Food table.</summary>
 public interface ISeedLoader
@@ -48,7 +49,7 @@ internal sealed partial class SeedLoader(FoodStore store, ILogger<SeedLoader> lo
             if (stored >= seed.Version)
             {
                 Log.UpToDate(logger, stored.Value, seed.Version);
-                return new SeedLoadResult(SeedLoadStatus.UpToDate, seed.Version, 0, 0);
+                return new SeedLoadResult(SeedLoadStatus.UpToDate, seed.Version, 0, 0, 0);
             }
 
             var inserted = 0;
@@ -60,21 +61,22 @@ internal sealed partial class SeedLoader(FoodStore store, ILogger<SeedLoader> lo
                 updated += result.Updated;
             }
 
+            var deleted = await store.DeleteMissingAsync(FoodSource.CoFID, seed.Foods.Select(f => f.SourceId).ToHashSet());
             await store.SetSeedVersionAsync(FoodSource.CoFID, seed.Version);
-            Log.Loaded(logger, seed.Version, inserted, updated);
-            return new SeedLoadResult(SeedLoadStatus.Loaded, seed.Version, inserted, updated);
+            Log.Loaded(logger, seed.Version, inserted, updated, deleted);
+            return new SeedLoadResult(SeedLoadStatus.Loaded, seed.Version, inserted, updated, deleted);
         }
         catch (Exception ex)
         {
             Log.Failed(logger, ex);
-            return new SeedLoadResult(SeedLoadStatus.Failed, 0, 0, 0);
+            return new SeedLoadResult(SeedLoadStatus.Failed, 0, 0, 0, 0);
         }
     }
 
     private static partial class Log
     {
-        [LoggerMessage((int)CoreEvent.SeedLoaded, LogLevel.Information, "Seed version {Version} loaded: {Inserted} foods inserted, {Updated} updated")]
-        public static partial void Loaded(ILogger logger, int version, int inserted, int updated);
+        [LoggerMessage((int)CoreEvent.SeedLoaded, LogLevel.Information, "Seed version {Version} loaded: {Inserted} foods inserted, {Updated} updated, {Deleted} deleted")]
+        public static partial void Loaded(ILogger logger, int version, int inserted, int updated, int deleted);
 
         [LoggerMessage((int)CoreEvent.SeedUpToDate, LogLevel.Information, "Seed up to date: stored version {Stored}, bundled version {Bundled}")]
         public static partial void UpToDate(ILogger logger, int stored, int bundled);

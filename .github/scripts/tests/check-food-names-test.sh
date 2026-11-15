@@ -9,6 +9,8 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
 # food <sourceId> <name> <originalName> <group>
+# typed <id> <name> <group> <type>: a food with a type, for the base seed
+typed() { printf '{"source":"CoFID","sourceId":"%s","name":"%s","originalName":"%s","foodGroup":"%s","type":"%s"}' "$1" "$2" "$2" "$3" "$4"; }
 food() { printf '{"source":"CoFID","sourceId":"%s","name":"%s","originalName":"%s","foodGroup":"%s"}' "$1" "$2" "$3" "$4"; }
 
 # setup <seed foods, comma-separated> <AA overlay JSON>: a fresh seed and names/AA.json
@@ -126,6 +128,28 @@ base "$bread,
 $milk,
 $(food 10-003 "Eggs" "Eggs" AA)"
 check "--base fails on a removed food" "10-003: in the base seed but not in this one
+exit=1" "$(run --base "$work/base.json")"
+# A removed Dish passes only when seedVersion goes up; any other removal still fails.
+dish=$(typed 10-003 Eggs AA Dish)
+base "$bread,
+$milk,
+$dish" 0
+check "--base passes a removed Dish at a higher seedVersion" "exit=0" "$(run --base "$work/base.json")"
+base "$bread,
+$milk,
+$dish" 1
+check "--base fails a removed Dish at the same seedVersion" "10-003: in the base seed but not in this one
+exit=1" "$(run --base "$work/base.json")"
+base "$bread,
+$milk,
+$(typed 10-003 Eggs AA Food)" 0
+check "--base fails a removed non-Dish food even at a higher seedVersion" "10-003: in the base seed but not in this one
+exit=1" "$(run --base "$work/base.json")"
+base "$bread,
+$milk,
+$dish,
+$(typed 10-004 Cake AA Food)" 0
+check "--base fails when a Dish and a non-Dish food are both removed" "10-004: in the base seed but not in this one
 exit=1" "$(run --base "$work/base.json")"
 base "$bread"
 check "--base fails on an added food" "10-002: not in the base seed

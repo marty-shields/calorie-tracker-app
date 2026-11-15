@@ -74,7 +74,7 @@ public class FoodSearchPageTests : ComponentTestBase
 
         await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
         var searchedWhileLoading = search.Queries.Count;
-        loader.Complete(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0));
+        loader.Complete(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0, 0));
         await load;
         await WaitForRendererAsync();
 
@@ -94,7 +94,7 @@ public class FoodSearchPageTests : ComponentTestBase
         var load = seed.Start();
         var cut = Context.Render<FoodSearchPage>();
 
-        loader.Complete(new SeedLoadResult(SeedLoadStatus.UpToDate, 1, 0, 0));
+        loader.Complete(new SeedLoadResult(SeedLoadStatus.UpToDate, 1, 0, 0, 0));
         await load;
         await WaitForRendererAsync();
 
@@ -105,7 +105,7 @@ public class FoodSearchPageTests : ComponentTestBase
     public async Task SeedAlreadyLoaded_DoesNotLogAWait()
     {
         var load = seed.Start();
-        loader.Complete(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0));
+        loader.Complete(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0, 0));
         await load;
 
         Context.Render<FoodSearchPage>();
@@ -143,7 +143,7 @@ public class FoodSearchPageTests : ComponentTestBase
         await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
 
         await Context.DisposeComponentsAsync();
-        loader.Complete(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0));
+        loader.Complete(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0, 0));
         await load;
         await WaitForRendererAsync();
 
@@ -156,7 +156,7 @@ public class FoodSearchPageTests : ComponentTestBase
         search.Results = [Oats];
         var load = seed.Start();
         var cut = Context.Render<FoodSearchPage>();
-        loader.Complete(new SeedLoadResult(SeedLoadStatus.Failed, 0, 0, 0));
+        loader.Complete(new SeedLoadResult(SeedLoadStatus.Failed, 0, 0, 0, 0));
         await load;
         await WaitForRendererAsync();
         var errorShown = cut.FindAll("[data-testid=food-search-error]").Count;
@@ -164,7 +164,7 @@ public class FoodSearchPageTests : ComponentTestBase
         cut.Find("[data-testid=food-search-retry]").Click();
         await WaitForRendererAsync();
         var loadingShown = cut.FindAll("[data-testid=food-search-loading]").Count;
-        loader.Complete(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0));
+        loader.Complete(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0, 0));
         await seed.Current!;
         await WaitForRendererAsync();
 
@@ -184,7 +184,7 @@ public class FoodSearchPageTests : ComponentTestBase
     public async Task SeedAlreadyFailed_ShowsTheErrorAtOnce()
     {
         var load = seed.Start();
-        loader.Complete(new SeedLoadResult(SeedLoadStatus.Failed, 0, 0, 0));
+        loader.Complete(new SeedLoadResult(SeedLoadStatus.Failed, 0, 0, 0, 0));
         await load;
 
         var cut = Context.Render<FoodSearchPage>();
@@ -289,8 +289,17 @@ public class FoodSearchPageTests : ComponentTestBase
         });
     }
 
+    [Test]
+    public void TypeChips_AreLabelledIngredientsFoodsDrinksAllInThatOrder()
+    {
+        var cut = Context.Render<FoodSearchPage>();
+
+        var labels = cut.FindAll("[data-testid=food-filter] label").Select(l => l.TextContent.Trim());
+
+        Assert.That(labels, Is.EqualTo(new[] { "Ingredients", "Foods", "Drinks", "All" }));
+    }
+
     [TestCase("food-filter-foods", FoodType.Food)]
-    [TestCase("food-filter-dishes", FoodType.Dish)]
     [TestCase("food-filter-drinks", FoodType.Drink)]
     [TestCase("food-filter-all", null)]
     public async Task ChoosingAChip_SearchesAgainWithItsType(string chip, FoodType? expected)
@@ -334,9 +343,9 @@ public class FoodSearchPageTests : ComponentTestBase
         var cut = Context.Render<FoodSearchPage>();
         await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
 
-        await cut.Find("[data-testid=food-filter-dishes]").ChangeAsync(true);
+        await cut.Find("[data-testid=food-filter-drinks]").ChangeAsync(true);
         var searchedWhileLoading = search.Queries.Count;
-        loader.Complete(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0));
+        loader.Complete(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0, 0));
         await load;
         await WaitForRendererAsync();
 
@@ -344,8 +353,8 @@ public class FoodSearchPageTests : ComponentTestBase
         {
             Assert.That(searchedWhileLoading, Is.EqualTo(0));
             Assert.That(search.Queries, Is.EqualTo(new[] { "oat" }));
-            Assert.That(search.Types, Is.EqualTo(new FoodType?[] { FoodType.Dish }));
-            Assert.That(cut.Find("[data-testid=food-filter-dishes]").HasAttribute("checked"), Is.True);
+            Assert.That(search.Types, Is.EqualTo(new FoodType?[] { FoodType.Drink }));
+            Assert.That(cut.Find("[data-testid=food-filter-drinks]").HasAttribute("checked"), Is.True);
         });
     }
 
@@ -371,7 +380,7 @@ public class FoodSearchPageTests : ComponentTestBase
         var load = seed.Start();
         var cut = Context.Render<FoodSearchPage>();
         await cut.Find("[data-testid=food-search-input]").InputAsync(Typed);
-        loader.Complete(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0));
+        loader.Complete(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0, 0));
         await load;
         await WaitForRendererAsync();
 

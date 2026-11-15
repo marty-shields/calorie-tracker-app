@@ -1,6 +1,9 @@
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Seed;
+using CalorieTracker.Core.Summary;
+using CalorieTracker.Core.Targets;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -31,6 +34,11 @@ public class CoreServiceCollectionExtensionsTests
                 (typeof(OpenFoodFactsLookup), (Type?)null, ServiceLifetime.Transient),
                 (typeof(ISeedLoader), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(IFoodSearch), typeof(FoodSearch), ServiceLifetime.Singleton),
+                (typeof(TargetService), (Type?)null, ServiceLifetime.Singleton),
+                (typeof(TargetStore), (Type?)null, ServiceLifetime.Singleton),
+                (typeof(DiaryService), (Type?)null, ServiceLifetime.Singleton),
+                (typeof(DiaryStore), (Type?)null, ServiceLifetime.Singleton),
+                (typeof(DaySummaryService), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(SeedProgress), typeof(SeedProgress), ServiceLifetime.Singleton),
             }));
     }
@@ -65,7 +73,7 @@ public class CoreServiceCollectionExtensionsTests
     {
         var path = TempDatabase.NewPath();
         var handler = new CapturingHandler(System.Net.HttpStatusCode.OK,
-            "{\"code\":\"1\",\"product\":{\"product_name\":\"Oats\",\"nutriments\":{\"energy-kcal_100g\":100,\"proteins_100g\":1,\"carbohydrates_100g\":2,\"fat_100g\":3}},\"status\":1}");
+            "{\"code\":\"1\",\"product\":{\"product_name\":\"Oats\",\"serving_size\":\"1 portion (50 g)\",\"serving_quantity\":50,\"nutriments\":{\"energy-kcal_100g\":100,\"proteins_100g\":1,\"carbohydrates_100g\":2,\"fat_100g\":3}},\"status\":1}");
         var services = new ServiceCollection()
             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
             .AddCore(path);
@@ -150,7 +158,7 @@ public class CoreServiceCollectionExtensionsTests
         Assert.Multiple(() =>
         {
             Assert.That(result.Status, Is.EqualTo(SeedLoadStatus.Loaded));
-            Assert.That(result.Inserted, Is.EqualTo(2853));
+            Assert.That(result.Inserted, Is.EqualTo(2174));
         });
         File.Delete(path);
     }

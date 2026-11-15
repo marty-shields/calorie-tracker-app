@@ -1,7 +1,11 @@
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Seed;
+using CalorieTracker.Core.Summary;
+using CalorieTracker.Core.Targets;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using SQLite;
 
 namespace CalorieTracker.Core;
@@ -26,6 +30,9 @@ public static class CoreServiceCollectionExtensions
         var connection = new SQLiteAsyncConnection(databasePath);
         return services
             .AddSingleton<DatabaseGate>()
+            .AddSingleton(provider => ActivatorUtilities.CreateInstance<TargetStore>(provider, connection))
+            .AddSingleton(provider => ActivatorUtilities.CreateInstance<DiaryStore>(provider, connection))
+            .AddSingleton(provider => ActivatorUtilities.CreateInstance<DaySummaryStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<FoodStore>(provider, connection))
             .AddDecoratedSingleton<IDatabaseInitializer, GatedDatabaseInitializer>(provider =>
                 ActivatorUtilities.CreateInstance<DatabaseInitializer>(provider, connection))
@@ -36,13 +43,21 @@ public static class CoreServiceCollectionExtensions
     private static IServiceCollection AddSchemaUpgrades(this IServiceCollection services) =>
         services
             .AddSingleton<ISchemaUpgrade, FoodBarcodeUpgrade>()
-            .AddSingleton<ISchemaUpgrade, FoodTypeUpgrade>();
+            .AddSingleton<ISchemaUpgrade, FoodTypeUpgrade>()
+            .AddSingleton<ISchemaUpgrade, DropDishesUpgrade>()
+            .AddSingleton<ISchemaUpgrade, FoodServingUpgrade>()
+            .AddSingleton<ISchemaUpgrade, SettingsTableUpgrade>()
+            .AddSingleton<ISchemaUpgrade, DiaryTableUpgrade>()
+            .AddSingleton<ISchemaUpgrade, FoodServingCheckedUpgrade>();
 
     private static IServiceCollection AddServices(this IServiceCollection services)
     {
         services
             .AddSingleton(TimeProvider.System)
             .AddSingleton<IFoodSearch, FoodSearch>()
+            .AddSingleton(provider => new TargetService(provider.GetRequiredService<TargetStore>(), provider.GetRequiredService<ILogger<TargetService>>()))
+            .AddSingleton(provider => new DiaryService(provider.GetRequiredService<DiaryStore>(), provider.GetRequiredService<ILogger<DiaryService>>()))
+            .AddSingleton(provider => new DaySummaryService(provider.GetRequiredService<DaySummaryStore>(), provider.GetRequiredService<ILogger<DaySummaryService>>()))
             .AddSingleton<ISeedLoader>(provider =>
                 ActivatorUtilities.CreateInstance<SeedLoader>(provider, (Func<Stream>)SeedLoader.OpenBundledSeed))
             .AddSingleton<SeedProgress>()

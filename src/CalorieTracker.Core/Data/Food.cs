@@ -15,12 +15,11 @@ public enum FoodUnit
     Millilitre,
 }
 
-/// <summary>The kind of food a search filters by. Stored as its number, so keep the order.</summary>
+/// <summary>The kind of food a search filters by. Stored as its number, so keep the order; schema step 4 removed Dish and renumbered Drink.</summary>
 public enum FoodType
 {
     Ingredient,
     Food,
-    Dish,
     Drink,
 }
 
@@ -62,11 +61,20 @@ public class Food
     public double? SaltG { get; set; }
 
     /// <summary>
-    /// CoFID foods get the seed's type. Open Food Facts foods: when the product has categories, Drink iff they include en:beverages (so oils and sauces sold in ml are Food); only with no usable categories does a millilitre unit make it Drink. Never Ingredient or Dish.
+    /// CoFID foods get the seed's type. Open Food Facts foods: when the product has categories, Drink iff they include en:beverages (so oils and sauces sold in ml are Food); only with no usable categories does a millilitre unit make it Drink. Never Ingredient.
     /// A row stored before types existed is set the same way by schema step 3 (Open Food Facts by its unit, since no categories are stored; a CoFID row is Food until the seed refresh sets its own).
     /// </summary>
     [NotNull]
     public FoodType Type { get; set; }
+
+    /// <summary>How Open Food Facts words one serving, such as "0.5 pizza (201.8 g)". Null when the source gives none (CoFID never does); set together with <see cref="ServingAmount"/>.</summary>
+    public string? ServingLabel { get; set; }
+
+    /// <summary>The serving's weight in grams, or volume in millilitres to match <see cref="Unit"/>. Above zero when set.</summary>
+    public double? ServingAmount { get; set; }
+
+    /// <summary>True once the source was asked for this food's serving and had no usable one (not found, or found without a serving), so it is not asked again. Null while unasked; an offline or rate-limited answer leaves it null.</summary>
+    public bool? ServingChecked { get; set; }
 
     /// <summary>Lowercased text with accents removed that searches match against.</summary>
     [NotNull]

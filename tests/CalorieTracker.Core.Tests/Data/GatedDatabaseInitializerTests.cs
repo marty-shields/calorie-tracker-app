@@ -17,7 +17,7 @@ public class GatedDatabaseInitializerTests
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
         gate = new DatabaseGate();
-        initializer = new GatedDatabaseInitializer(new DatabaseInitializer(connection, [new FoodBarcodeUpgrade(), new FoodTypeUpgrade()], NullLogger<DatabaseInitializer>.Instance), gate);
+        initializer = new GatedDatabaseInitializer(new DatabaseInitializer(connection, SchemaSteps.All(), NullLogger<DatabaseInitializer>.Instance), gate);
     }
 
     [TearDown]

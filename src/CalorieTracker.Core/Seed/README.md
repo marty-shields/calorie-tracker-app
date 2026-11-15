@@ -10,7 +10,7 @@ McCance and Widdowson's Composition of Foods Integrated Dataset 2021, Public Hea
 
 1. Download the CoFID workbook (`.xlsx`) from the source page into a folder outside the repo. `*.xlsx` is git-ignored, so it is never committed.
 2. Run `python3 -I .github/scripts/build-food-seed.py <path to cofid.xlsx> src/CalorieTracker.Core/Seed/cofid-foods.json` (`py -I` on Windows). It needs only Python 3.
-3. The run prints `kept 2853 of 2887 foods` (the 2021 workbook) and a warning for each repeated food code. Every kept food has a row in the Inorganics sheet (no "has no row" warning on the 2021 workbook), so the 41 foods with `saltG` `null` are all `N` or blank sodium; a warning appears if a later workbook breaks that. A rerun on the same workbook is byte-identical.
+3. The run prints `kept 2853 of 2887 foods` and then `dropped 679 Dishes, kept 2174 foods` (the 2021 workbook) and a warning for each repeated food code. Every kept food has a row in the Inorganics sheet (no "has no row" warning on the 2021 workbook), so the 26 foods with `saltG` `null` are all `N` or blank sodium; a warning appears if a later workbook breaks that. A rerun on the same workbook is byte-identical.
 
 Every food has an everyday name. Regenerating keeps them: the script reads `names/*.json` (next to the output file, or `--names <folder>`) and applies them. With no `names/` folder the output is the plain workbook names.
 
@@ -41,7 +41,7 @@ The generator sets `name` from the entry and leaves `originalName` and `sourceId
 | `originalName` | CoFID food name, never edited |
 | `foodGroup` | CoFID group code, such as `AA` |
 | `unit` | `Millilitre` when the group code starts with `Q` (alcoholic drinks, alcohol-free lager included), else `Gram` |
-| `type` | `Ingredient`, `Food`, `Dish` or `Drink`, from the group and the name rules in [Food types](#food-types) |
+| `type` | `Ingredient`, `Food` or `Drink`, from the group and the name rules in [Food types](#food-types) |
 | `energyKcal`, `proteinG`, `carbsG`, `fatG` | Per 100 g or 100 ml; a food with no value for any of these is left out |
 | `fibreG` | AOAC fibre (not NSP); `null` when not measured |
 | `sugarsG`, `saturatesG` | Total sugars and saturated fatty acids per 100 g; `null` when not measured |
@@ -51,13 +51,13 @@ Values are rounded half up to 2 decimal places; `Tr` (trace) is 0; `N` or blank 
 
 ## Food types
 
-Search filters by `type` (the search screen's chips: Ingredients, Foods, Dishes, Drinks, All). The generator gives each food its group's type, then a name rule or a single-food override may move it. The owner approved this table (issue #33); change it in `build-food-seed.py` (`GROUP_TYPES`, `NAME_RULES`, `TYPE_OVERRIDES`), bump `SEED_VERSION` and regenerate. A group with no entry fails the build. Open Food Facts foods get their type when the barcode is looked up, from the product data alone: when `categories_tags` has any tag, `Drink` only if it contains `en:beverages` (case-insensitive), otherwise `Food`, so oils, vinegars and soy sauce sold in ml are `Food`; the `ml` unit makes it `Drink` only when `categories_tags` is missing, empty or malformed. They are never `Ingredient` or `Dish`, since the product data does not say. Totals: Ingredient 1,472, Food 546, Dish 679, Drink 156 (2,853).
+Search filters by `type` (the search screen's chips: Ingredients, Foods, Drinks, All). The generator gives each food its group's type, then a name rule or a single-food override may move it. The owner approved this table (issue #33); change it in `build-food-seed.py` (`GROUP_TYPES`, `NAME_RULES`, `TYPE_OVERRIDES`), bump `SEED_VERSION` and regenerate. A group with no entry fails the build. Open Food Facts foods get their type when the barcode is looked up, from the product data alone: when `categories_tags` has any tag, `Drink` only if it contains `en:beverages` (case-insensitive), otherwise `Food`, so oils, vinegars and soy sauce sold in ml are `Food`; the `ml` unit makes it `Drink` only when `categories_tags` is missing, empty or malformed. They are never `Ingredient`, since the product data does not say. **Dishes are not in the seed.** The generator still works out a Dish from the group and the name rules below, then drops it (seed 6; the 679 Dish values were generic estimates and the noisiest results), so the seed holds 2,174 foods: Ingredient 1,472, Food 546, Drink 156. The 30 foods that only a name rule made Dishes lost their everyday name with the overlay entry, so `TYPE_OVERRIDES` marks them Dish for the generator. Schema step 4 (`DropDishesUpgrade`) deletes the stored Dish rows and renumbers Drink from 3 to 2.
 
 | Type | Groups |
 | --- | --- |
 | Ingredient | A, AA, AC, AD, AF, AG, AO, BJC, BJS, BL, BNE, BTM, CA, D, DA, DAE, DAM, DB, DF, DG, DI, F, FA, G, GA, H, J, JA, JC, JK, JM, MAA, MAC, MAE, MAG, MAI, MCA, MCC, MCE, MCG, MCI, MCK, MCM, MCO, MEA, MEC, MEE, MG, OA, OB, OC, OE, OF, S, SC, WY |
 | Food | AI, AK, AM, AN, AP, BJP, BN, BNH, BNS, BP, CDH, DAP, DAR, JR, MBG, MI, SEA, SEC, SN, SNA, SNC, WA, WAC, WAE, WC, WCG, WCN, WE |
-| Dish | AB, AE, AS, AT, BR, BV, CD, CDE, DR, MIG, MR, WAA, WCD |
+| Dish (dropped) | AB, AE, AS, AT, BR, BV, CD, CDE, DR, MIG, MR, WAA, WCD |
 | Drink | BA, BAB, BAE, BAH, BAK, BAR, BC, BH, FC, P, PA, PAA, PAC, PCA, PCC, PE, Q, QA, QC, QE, QF, QG, QI, QK |
 
 Name rules (case-insensitive, searched in the everyday `name`, applied after the group's type; the first rule of the food's group that matches wins; 168 foods move, 60 of them by the first approved rules and 108 by the review of the Ingredients below):
@@ -102,7 +102,7 @@ Overrides (`TYPE_OVERRIDES`, by `sourceId`, for single foods no name rule captur
 
 The Ingredient review (owner request: foods made up with milk or similar are Dishes; check each Ingredient for Food or Dish): an Ingredient is a single component people cook with (raw or plainly cooked meat, fish, vegetables and fruit, flours, grains, pulses, fats, sugars, herbs, spices, eggs, plain cheese, breads). Plain boiled rice, pasta, beans, potatoes and vegetables stay Ingredients. A food that combines components (porridge made up with milk, fruit stewed or baked with sugar, mashed potato with fat, fish cooked in milk or a sauce, curries, macaroni cheese) is a Dish. A ready-to-eat processed product (canned fruit and baked beans, pickles, jam, spreads, mustard, seasoned nuts, processed cheese, coated fish) is a Food. Unfortified porridge oats (11-788) stay an Ingredient and Cooked porridge oats made up with semi-skimmed milk (11-789) is a Dish.
 
-Judgment calls: BAR milk products stay Ingredients, "Plain pilau rice" stays a Dish, sandwiches are Dishes, breads Ingredients, homemade sauces and soups Dishes (retail ones Foods), yoghurt and ice cream Foods, JR fish products Foods, cereals Foods, milkshakes Drinks, and drink mixes, squash, cordial and juice concentrates Drinks. Every stored food has a type (the column is not null). Schema step 3 (`FoodTypeUpgrade`) gave the foods stored before types existed one: an Open Food Facts food measured in millilitres is `Drink` (no categories are stored, so the unit is all there is), any other food (CoFID rows too) is `Food`; the CoFID rows then get the seed's type on the seed 4 load.
+Judgment calls: BAR milk products stay Ingredients, "Plain pilau rice" stays a Dish, sandwiches are Dishes, breads Ingredients, homemade sauces and soups Dishes (retail ones Foods), yoghurt and ice cream Foods, JR fish products Foods, cereals Foods, milkshakes Drinks, and drink mixes, squash, cordial and juice concentrates Drinks. Every stored food has a type (the column is not null). Schema step 3 (`FoodTypeUpgrade`) gave the foods stored before types existed one: an Open Food Facts food measured in millilitres is `Drink` (no categories are stored, so the unit is all there is), any other food (CoFID rows too) is `Food`; the CoFID rows then get the seed's type on the seed 4 load. Step 4 later removed the Dish type (see above).
 
 ## Repeated food codes
 
@@ -115,6 +115,6 @@ The file is an embedded resource of `CalorieTracker.Core` (`cofid-foods.json`). 
 - The `SeedVersion` table holds the loaded `seedVersion` for each source. It is written only after the last chunk, so a crash part way retries on the next start (the upsert is idempotent).
 - A stored version equal to or higher than the bundled one loads nothing. A missing or lower one loads every food and then stores the bundled version.
 - Foods match on `source` and `sourceId`; an existing row keeps its `Id`. Rows of other sources are never read or written.
-- Foods missing from a newer seed are left in place, never deleted.
+- After the upsert, CoFID foods (and their barcode links) whose `sourceId` is not in the seed are deleted, in one transaction before the version is stored. This is how a database whose Dish rows were not typed Dish (schema step 4 only deletes those) loses them. Rows of other sources are untouched.
 - `originalName` and `foodGroup` are not stored (the Food table has no columns for them).
 - Bump `seedVersion` in `build-food-seed.py` whenever the content or names change, or installed apps will not pick the change up.

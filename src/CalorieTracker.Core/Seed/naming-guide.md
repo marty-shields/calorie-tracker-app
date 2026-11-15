@@ -2,7 +2,7 @@
 
 How to turn a CoFID name (the `originalName`, never edited) into the everyday `name` the app shows. Example: `Potatoes, old, boiled in unsalted water, flesh only` becomes `Boiled potatoes`, and the salted-water twin becomes `Boiled potatoes (salted water)`. Follow the rules mechanically so two people (or agents) naming neighbouring foods land on the same pattern. The seed's file format is in the [Seed README](README.md).
 
-The guide was checked against the 2,853 foods in `cofid-foods.json`. The seed carries group codes only, so the group names below are read off the contents.
+The guide was checked against the 2,853 foods of seed 5 in `cofid-foods.json` (seed 6 dropped the Dishes and holds 2,174). The seed carries group codes only, so the group names below are read off the contents.
 
 ## Shape of a name
 

@@ -4,9 +4,9 @@ namespace CalorieTracker.Core.Tests.Seed;
 
 public class SeedProgressTests
 {
-    private static readonly SeedLoadResult Loaded = new(SeedLoadStatus.Loaded, 1, 3, 0);
-    private static readonly SeedLoadResult UpToDate = new(SeedLoadStatus.UpToDate, 1, 0, 0);
-    private static readonly SeedLoadResult Failed = new(SeedLoadStatus.Failed, 0, 0, 0);
+    private static readonly SeedLoadResult Loaded = new(SeedLoadStatus.Loaded, 1, 3, 0, 0);
+    private static readonly SeedLoadResult UpToDate = new(SeedLoadStatus.UpToDate, 1, 0, 0, 0);
+    private static readonly SeedLoadResult Failed = new(SeedLoadStatus.Failed, 0, 0, 0, 0);
 
     [Test]
     public void BeforeStart_ThereIsNoLoad()

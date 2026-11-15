@@ -20,24 +20,22 @@ Feature: Food search
     Given I have opened Foods
     Then the Ingredients chip is chosen
 
+  Scenario: The type chips are in order
+    Given I have opened Foods
+    Then the type chips read Ingredients, Foods, Drinks, All in that order
+
   Scenario: Typing on Ingredients lists only ingredients
     Given I have opened Foods
     When I search for "potato"
     Then every result is a "Ingredient"
 
-  Scenario: Switching to Dishes shows a dish
-    Given I have opened Foods
-    And I have searched for "potato"
-    When I choose the Dishes chip
-    Then the Dishes chip is chosen
-    And every result is a "Dish"
-    And "potato" is still typed
-
   Scenario: Switching to Drinks shows a drink
     Given I have opened Foods
     And I have searched for "milk"
     When I choose the Drinks chip
-    Then every result is a "Drink"
+    Then the Drinks chip is chosen
+    And every result is a "Drink"
+    And "milk" is still typed
 
   Scenario: All shows every type
     Given I have opened Foods

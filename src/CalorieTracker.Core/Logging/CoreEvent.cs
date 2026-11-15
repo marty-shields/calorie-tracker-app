@@ -2,7 +2,7 @@ namespace CalorieTracker.Core.Logging;
 
 /// <summary>
 /// Event ids of Core's log messages: 1000–1999, a block of 100 per type.
-/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch; the <c>*Block</c> members hold them.
+/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch, 1600 TargetService, 1700 DiaryService, 1800 DaySummaryService; the <c>*Block</c> members hold them.
 /// Ids never change and are never reused; list a retired id here and in <c>CoreEventTests</c>.
 /// </summary>
 internal enum CoreEvent
@@ -73,10 +73,19 @@ internal enum CoreEvent
     /// <summary><see cref="Foods.StoredBarcodeLookup"/>: saving the inner lookup's food failed; the unsaved food was returned.</summary>
     StoredLookupSaveFailed = 1306,
 
+    /// <summary><see cref="Foods.StoredBarcodeLookup"/>: a stored food with no serving got one from a fresh lookup; carries the food id.</summary>
+    StoredLookupServingFilled = 1307,
+
+    /// <summary><see cref="Foods.StoredBarcodeLookup"/>: the lookup for a stored food's serving gave none; carries the food id and the lookup's status.</summary>
+    StoredLookupServingMissing = 1308,
+
+    /// <summary><see cref="Foods.StoredBarcodeLookup"/>: saving a stored food's new serving failed, or the refresh threw; the stored food was returned as it was.</summary>
+    StoredLookupServingFailed = 1309,
+
     /// <summary>Start of the block reserved for the CoFID seed loader.</summary>
     SeedLoaderBlock = 1400,
 
-    /// <summary><see cref="Seed.SeedLoader"/>: a seed was loaded; version, inserted and updated counts.</summary>
+    /// <summary><see cref="Seed.SeedLoader"/>: a seed was loaded; version, inserted, updated and deleted counts.</summary>
     SeedLoaded = 1401,
 
     /// <summary><see cref="Seed.SeedLoader"/>: the stored seed is as new as the bundled one, so nothing was loaded.</summary>
@@ -93,4 +102,67 @@ internal enum CoreEvent
 
     /// <summary><see cref="Foods.FoodSearch"/>: the store failed, so the search returned <see cref="Foods.FoodSearchStatus.Failed"/>.</summary>
     FoodSearchFailed = 1502,
+
+    /// <summary>Start of the block reserved for <see cref="Targets.TargetService"/>.</summary>
+    TargetServiceBlock = 1600,
+
+    /// <summary><see cref="Targets.TargetService"/>: a target was saved; no value is logged.</summary>
+    TargetSaved = 1601,
+
+    /// <summary><see cref="Targets.TargetService"/>: the target was cleared.</summary>
+    TargetCleared = 1602,
+
+    /// <summary><see cref="Targets.TargetService"/>: a value was rejected as not a whole number above zero; the value is not logged.</summary>
+    TargetRejected = 1603,
+
+    /// <summary><see cref="Targets.TargetService"/>: the database failed, so the call returned <see cref="Targets.TargetStatus.Failed"/>.</summary>
+    TargetFailed = 1604,
+
+    /// <summary>Start of the block reserved for <see cref="Diary.DiaryService"/>.</summary>
+    DiaryServiceBlock = 1700,
+
+    /// <summary><see cref="Diary.DiaryService"/>: an entry was added; carries the entry and food ids.</summary>
+    DiaryEntryAdded = 1701,
+
+    /// <summary><see cref="Diary.DiaryService"/>: an entry was updated; carries its id.</summary>
+    DiaryEntryUpdated = 1702,
+
+    /// <summary><see cref="Diary.DiaryService"/>: an entry was removed; carries its id.</summary>
+    DiaryEntryRemoved = 1703,
+
+    /// <summary><see cref="Diary.DiaryService"/>: an entry was restored; carries its id.</summary>
+    DiaryEntryRestored = 1704,
+
+    /// <summary><see cref="Diary.DiaryService"/>: a day was listed; carries the entry count, never the date.</summary>
+    DiaryListed = 1705,
+
+    /// <summary><see cref="Diary.DiaryService"/>: values were rejected; none is logged.</summary>
+    DiaryRejected = 1706,
+
+    /// <summary><see cref="Diary.DiaryService"/>: no entry with the id was in the state the call needs; carries the id.</summary>
+    DiaryEntryNotFound = 1707,
+
+    /// <summary><see cref="Diary.DiaryService"/>: an entry was not added because its food does not exist; carries the food id.</summary>
+    DiaryFoodNotFound = 1708,
+
+    /// <summary><see cref="Diary.DiaryService"/>: the database failed, so the call returned <see cref="Diary.DiaryStatus.Failed"/>.</summary>
+    DiaryFailed = 1709,
+
+    /// <summary>Start of the block reserved for <see cref="Summary.DaySummaryService"/>.</summary>
+    DaySummaryServiceBlock = 1800,
+
+    /// <summary><see cref="Summary.DaySummaryService"/>: a summary was built; carries the entry count, never the date.</summary>
+    DaySummaryBuilt = 1801,
+
+    /// <summary><see cref="Summary.DaySummaryService"/>: an entry's food no longer exists, so the call returned <see cref="Summary.DaySummaryStatus.FoodMissing"/>; carries the entry and food ids.</summary>
+    DaySummaryFoodMissing = 1802,
+
+    /// <summary><see cref="Summary.DaySummaryService"/>: an unexpected failure (the database, say), so the call returned <see cref="Summary.DaySummaryStatus.Failed"/>.</summary>
+    DaySummaryFailed = 1803,
+
+    /// <summary><see cref="Summary.DaySummaryService"/>: an amount or total was too large to work out, so the call returned <see cref="Summary.DaySummaryStatus.Failed"/>.</summary>
+    DaySummaryOverflow = 1804,
+
+    /// <summary><see cref="Summary.DaySummaryService"/>: an entry holds a meal that is not one of the four, so the call returned <see cref="Summary.DaySummaryStatus.Failed"/>; carries the entry id.</summary>
+    DaySummaryMealUnknown = 1805,
 }

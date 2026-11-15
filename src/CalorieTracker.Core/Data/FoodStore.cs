@@ -13,6 +13,20 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             await connection.FindWithQueryAsync<Food>(
                 "SELECT f.* FROM Food f JOIN FoodBarcode b ON b.FoodId = f.Id WHERE b.Barcode = ?", barcode));
 
+    /// <summary>The foods with these ids; an id with no food is left out. Runs on the caller's connection, inside the gate.</summary>
+    internal static List<Food> FindIn(SQLiteConnection db, IReadOnlyCollection<int> ids)
+    {
+        var found = new List<Food>();
+        // Chunked so a long list stays under SQLite's limit on bound variables.
+        foreach (var chunk in ids.Distinct().Chunk(500))
+        {
+            var marks = string.Join(",", chunk.Select(_ => "?"));
+            found.AddRange(db.Query<Food>($"SELECT * FROM Food WHERE Id IN ({marks})", chunk.Cast<object>().ToArray()));
+        }
+
+        return found;
+    }
+
     /// <summary>The characters that split <see cref="Food.SearchText"/> and typed queries into words.</summary>
     internal static readonly char[] Separators = [' ', '\t', '\r', '\n', ',', '(', ')', '/', '-'];
 
@@ -90,6 +104,12 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
                 else
                 {
                     food.Id = existing.Id;
+                    // A lookup that knows nothing about the serving must not undo a check made earlier.
+                    if (food.ServingAmount is null)
+                    {
+                        food.ServingChecked ??= existing.ServingChecked;
+                    }
+
                     db.Update(food);
                 }
 
@@ -109,6 +129,37 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             }
 
             return food;
+        });
+
+    /// <summary>
+    /// Sets the serving and the nutrients (kcal, protein, carbs, fat, fibre, sugars, saturates, salt) of the food with <paramref name="id"/> from <paramref name="fresh"/>, which must have a serving; every other column stays as stored.
+    /// False when no food has that id.
+    /// </summary>
+    public Task<bool> RefreshServingAsync(int id, Food fresh) =>
+        gate.RunAsync(async () =>
+        {
+            var changed = await connection.ExecuteAsync(
+                "UPDATE Food SET ServingLabel = ?, ServingAmount = ?, Kcal = ?, ProteinG = ?, CarbsG = ?, FatG = ?, FibreG = ?, SugarsG = ?, SaturatesG = ?, SaltG = ? WHERE Id = ?",
+                fresh.ServingLabel, fresh.ServingAmount, fresh.Kcal, fresh.ProteinG, fresh.CarbsG, fresh.FatG, fresh.FibreG, fresh.SugarsG, fresh.SaturatesG, fresh.SaltG, id) > 0;
+            if (changed)
+            {
+                Log.Updated(logger, id);
+            }
+
+            return changed;
+        });
+
+    /// <summary>Marks the food as asked for a serving, so it is not asked again (see <see cref="Food.ServingChecked"/>). False when no food has that id.</summary>
+    public Task<bool> MarkServingCheckedAsync(int id) =>
+        gate.RunAsync(async () =>
+        {
+            var changed = await connection.ExecuteAsync("UPDATE Food SET ServingChecked = 1 WHERE Id = ?", id) > 0;
+            if (changed)
+            {
+                Log.Updated(logger, id);
+            }
+
+            return changed;
         });
 
     /// <summary>The seed version last fully loaded for <paramref name="source"/>, or null when none was.</summary>
@@ -163,6 +214,35 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             });
 
             return result;
+        });
+
+    /// <summary>
+    /// Deletes the foods of <paramref name="source"/> whose source id is not in <paramref name="keepSourceIds"/>, with their barcode links, in one transaction. Rows of other sources are not touched.
+    /// A food any <see cref="DiaryEntry"/> points at, removed or not, is kept with its barcodes.
+    /// </summary>
+    /// <returns>How many foods were deleted.</returns>
+    public Task<int> DeleteMissingAsync(FoodSource source, IReadOnlySet<string> keepSourceIds) =>
+        gate.RunAsync(async () =>
+        {
+            var deleted = 0;
+            await connection.RunInTransactionAsync(db =>
+            {
+                var stale = db.Query<IdRow>("SELECT Id, SourceId FROM Food WHERE Source = ? AND Id NOT IN (SELECT FoodId FROM DiaryEntry)", (int)source)
+                    .Where(r => !keepSourceIds.Contains(r.SourceId))
+                    .Select(r => r.Id)
+                    .ToList();
+                foreach (var chunk in stale.Chunk(500))
+                {
+                    var marks = string.Join(",", chunk.Select(_ => "?"));
+                    var args = chunk.Cast<object>().ToArray();
+                    db.Execute($"DELETE FROM FoodBarcode WHERE FoodId IN ({marks})", args);
+                    db.Execute($"DELETE FROM Food WHERE Id IN ({marks})", args);
+                }
+
+                deleted = stale.Count;
+            });
+
+            return deleted;
         });
 
     private static partial class Log

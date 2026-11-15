@@ -9,7 +9,7 @@ A full-width row of 2–4 segments; one is chosen and filled with `--color-selec
 - `data-testid`: `TestId` on the control; each option's `TestId` on its radio.
 
 ## `FilterChips`
-A row of rounded chips that wraps onto more lines when it must; one is chosen and filled with `--color-selected`. For the food search's Ingredients, Foods, Dishes, Drinks and All. Each chip is a radio with a 48px touch target; `Label` names the group for screen readers only.
+A row of rounded chips that wraps onto more lines when it must; one is chosen and filled with `--color-selected`. For the food search's Ingredients, Foods, Drinks and All. Each chip is a radio with a 48px touch target; `Label` names the group for screen readers only.
 - `data-testid`: `TestId` on the group; each option's `TestId` on its radio.
 
 ## `NumberField`

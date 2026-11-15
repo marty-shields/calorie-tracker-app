@@ -171,7 +171,6 @@ public class FoodSearchTests
     public async Task Search_WithAType_FindsOnlyFoodsOfThatType()
     {
         await Add("Potato", "potato", type: FoodType.Ingredient);
-        await Add("Potato salad", "potato salad", type: FoodType.Dish);
         await Add("Potato crisps", "potato crisps", type: FoodType.Food);
         await Add("Potato vodka", "potato vodka", type: FoodType.Drink);
 
@@ -179,10 +178,9 @@ public class FoodSearchTests
         {
             Assert.That(await Names("potato", FoodType.Ingredient), Is.EqualTo(new[] { "Potato" }));
             Assert.That(await Names("potato", FoodType.Food), Is.EqualTo(new[] { "Potato crisps" }));
-            Assert.That(await Names("potato", FoodType.Dish), Is.EqualTo(new[] { "Potato salad" }));
             Assert.That(await Names("potato", FoodType.Drink), Is.EqualTo(new[] { "Potato vodka" }));
-            Assert.That(await Names("potato"), Has.Count.EqualTo(4));
-            Assert.That(await Names("salad", FoodType.Drink), Is.Empty);
+            Assert.That(await Names("potato"), Has.Count.EqualTo(3));
+            Assert.That(await Names("crisps", FoodType.Drink), Is.Empty);
         });
     }
 
@@ -387,12 +385,12 @@ public class FoodSearchTests
     [Test]
     public async Task Logging_SearchWithAType_LogsTheTypeAndCounts()
     {
-        await Add("Distinctive Name", "distinctive name", type: FoodType.Dish);
+        await Add("Distinctive Name", "distinctive name", type: FoodType.Food);
 
-        await search.SearchAsync("Distinctive", FoodType.Dish);
+        await search.SearchAsync("Distinctive", FoodType.Food);
 
         var message = logger.Collector.GetSnapshot()[0].Message;
-        Assert.That(message, Is.EqualTo("Food search with 1 terms and type Dish found 1 foods"));
+        Assert.That(message, Is.EqualTo("Food search with 1 terms and type Food found 1 foods"));
     }
 
     [Test]
