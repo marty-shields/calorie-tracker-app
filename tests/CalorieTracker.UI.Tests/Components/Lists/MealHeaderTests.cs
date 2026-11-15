@@ -43,6 +43,14 @@ public class MealHeaderTests : ComponentTestBase
     }
 
     [Test]
+    public void AddButton_IsTheFilledChip()
+    {
+        var cut = Context.Render<MealHeader>(p => p.Add(x => x.Name, "Lunch").Add(x => x.TestId, "meal"));
+
+        Assert.That(cut.Find("[data-testid=meal-add]").ClassList, Does.Contain("filled"));
+    }
+
+    [Test]
     public void AddButton_ShowsAPlusIcon()
     {
         var cut = Context.Render<MealHeader>(p => p.Add(x => x.Name, "Lunch").Add(x => x.TestId, "meal"));

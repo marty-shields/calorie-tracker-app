@@ -93,4 +93,59 @@ public class IconButtonTests : ComponentTestBase
 
         Assert.That(cut.Find("button").ClassList, Does.Not.Contain("compact"));
     }
+
+    [Test]
+    public void Filled_SetsClass()
+    {
+        var cut = Context.Render<IconButton>(p => p
+            .Add(x => x.Icon, IconName.Plus)
+            .Add(x => x.AriaLabel, "Add to Lunch")
+            .Add(x => x.TestId, "add")
+            .Add(x => x.Style, IconButtonStyle.Filled));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("button").ClassList, Is.EquivalentTo(new[] { "icon-btn", "filled" }));
+            Assert.That(cut.Find("button").GetAttribute("aria-label"), Is.EqualTo("Add to Lunch"));
+            Assert.That(cut.Find("button").GetAttribute("data-testid"), Is.EqualTo("add"));
+        });
+    }
+
+    [Test]
+    public void Filled_IgnoresMutedOnTheIcon()
+    {
+        var cut = Context.Render<IconButton>(p => p
+            .Add(x => x.Icon, IconName.Plus)
+            .Add(x => x.AriaLabel, "Add")
+            .Add(x => x.Muted, true)
+            .Add(x => x.Style, IconButtonStyle.Filled));
+
+        Assert.That(cut.Find("svg").ClassList, Does.Not.Contain("muted"));
+    }
+
+    [Test]
+    public void Plain_IsTheDefaultAndHasNoFilledClass()
+    {
+        var cut = Context.Render<IconButton>(p => p.Add(x => x.Icon, IconName.Plus).Add(x => x.AriaLabel, "Add"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Instance.Style, Is.EqualTo(IconButtonStyle.Plain));
+            Assert.That(cut.Find("button").ClassList, Is.EquivalentTo(new[] { "icon-btn" }));
+        });
+    }
+
+    [Test]
+    public void FilledChip_KeepsTheTouchTargetAndFillsFromTokens()
+    {
+        var root = RepoFiles.Find("*.razor", "src", "CalorieTracker.UI").Single(f => f.EndsWith("IconButton.razor"));
+        var css = File.ReadAllText(root + ".css");
+        var baseRule = css[..css.IndexOf(".compact", StringComparison.Ordinal)];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(baseRule, Does.Contain("min-width: var(--touch-target)").And.Contain("min-height: var(--touch-target)"));
+            Assert.That(css, Does.Contain(".filled").And.Contain("background-color: var(--color-chip)").And.Contain("color: var(--color-on-chip)"));
+        });
+    }
 }
