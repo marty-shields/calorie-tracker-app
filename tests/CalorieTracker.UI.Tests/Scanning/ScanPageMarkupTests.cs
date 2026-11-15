@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Tests.DesignSystem;
 
 namespace CalorieTracker.UI.Tests.Scanning;
@@ -39,19 +40,69 @@ public class ScanPageMarkupTests
     public void ScanPage_UsesNoLiteralColoursInTheMarkup() =>
         Assert.That(ScanXaml(), Does.Not.Match(@"=""#[0-9A-Fa-f]").And.Not.Match(@"(Color|Stroke)=""(?!Transparent"")[A-Za-z]+"""));
 
-    [Test]
-    public void ScanPage_HasNoAppThemeBindingBecauseTheNativePageIsAlwaysDark() =>
-        Assert.That(ScanXaml(), Does.Not.Contain("AppThemeBinding"));
-
     [TestCase("Background", "--color-bg")]
     [TestCase("Text", "--color-text")]
     [TestCase("BorderStrong", "--color-border-strong")]
-    public void AppColours_MatchTheDarkToken(string key, string token) =>
-        Assert.That(AppColour(key), Is.EqualTo(DesignTokens.Colour(token).Dark.ToString()));
+    public void AppColours_MatchTheLightAndDarkToken(string key, string token)
+    {
+        var (light, dark) = DesignTokens.Colour(token);
+        Assert.Multiple(() =>
+        {
+            Assert.That(AppColour(key + "Light"), Is.EqualTo(light.ToString()));
+            Assert.That(AppColour(key + "Dark"), Is.EqualTo(dark.ToString()));
+            Assert.That(light, Is.Not.EqualTo(dark), "a token with one value for both would hide a swapped pair");
+        });
+    }
 
     [Test]
-    public void AppScrim_IsTheDarkScrimAlpha() =>
-        Assert.That(AppColour("Scrim"), Is.EqualTo("#99000000"), "0.6 alpha black, as --color-scrim in dark");
+    public void AppScrim_IsTheTokenAlphaInEachTheme()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(AppColour("ScrimLight"), Is.EqualTo("#73000000"), "0.45 alpha black, as --color-scrim in light");
+            Assert.That(AppColour("ScrimDark"), Is.EqualTo("#99000000"), "0.6 alpha black, as --color-scrim in dark");
+        });
+        Assert.That(TokensCss(), Does.Contain("--color-scrim: light-dark(rgb(0 0 0 / 0.45), rgb(0 0 0 / 0.6));"));
+    }
+
+    [Test]
+    public void OverlayText_IsWhiteSoItShowsOverAnyCameraImage() =>
+        Assert.That(AppColour("OverlayText"), Is.EqualTo("#ffffff"));
+
+    [TestCase("Background")]
+    [TestCase("Text")]
+    [TestCase("BorderStrong")]
+    [TestCase("Scrim")]
+    public void ScanPage_PicksEachThemedColourWithAppThemeBinding(string key) =>
+        Assert.That(ScanXaml(), Does.Contain("{AppThemeBinding Light={StaticResource " + key + "Light}, Dark={StaticResource " + key + "Dark}}"));
+
+    [Test]
+    public void ScanPage_DrawsTheFrameAndHintTextInTheOverlayColourAndTheBarInTheThemedOnes()
+    {
+        var xaml = ScanXaml();
+        Assert.Multiple(() =>
+        {
+            Assert.That(xaml, Does.Match(@"Stroke=""\{StaticResource OverlayText\}"""));
+            Assert.That(xaml, Does.Match(@"<Label[^>]*TextColor=""\{StaticResource OverlayText\}""[^>]*BackgroundColor=""\{AppThemeBinding Light=\{StaticResource ScrimLight\}"));
+            Assert.That(xaml, Does.Match(@"<Grid Grid\.Row=""1""[^>]*BackgroundColor=""\{AppThemeBinding Light=\{StaticResource BackgroundLight\}"));
+            Assert.That(xaml, Does.Match(@"<Button[^>]*BorderColor=""\{AppThemeBinding Light=\{StaticResource BorderStrongLight\}[^>]*TextColor=""\{AppThemeBinding Light=\{StaticResource TextLight\}"));
+        });
+    }
+
+    [TestCase(ThemePreference.Light, "AppTheme.Light")]
+    [TestCase(ThemePreference.Dark, "AppTheme.Dark")]
+    [TestCase(ThemePreference.System, "AppTheme.Unspecified")]
+    public void Scanner_BridgesTheAppThemeToUserAppTheme(ThemePreference preference, string appTheme)
+    {
+        var source = RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "CameraBarcodeScanner.cs");
+        var arm = preference == ThemePreference.System ? "_" : "ThemePreference." + preference;
+        Assert.Multiple(() =>
+        {
+            Assert.That(source, Does.Contain("Application.Current.UserAppTheme = theme switch"));
+            Assert.That(source, Does.Contain(arm + " => " + appTheme + ","));
+            Assert.That(source.IndexOf("UserAppTheme", StringComparison.Ordinal), Is.LessThan(source.IndexOf("new ScanPage(accept)", StringComparison.Ordinal)), "set before the page is built");
+        });
+    }
 
     [Test]
     public void ScanPage_HasTextOnTheCancelButton() =>
@@ -79,6 +130,8 @@ public class ScanPageMarkupTests
 
     private static string AppColour(string key) =>
         Regex.Match(RepoFiles.Read("src", "CalorieTracker.App", "App.xaml"), @"<Color x:Key=""" + key + @""">([^<]+)</Color>").Groups[1].Value;
+
+    private static string TokensCss() => RepoFiles.Read("src", "CalorieTracker.UI", "wwwroot", "css", "tokens.css");
 
     private static string ScanXaml() => RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "ScanPage.xaml");
 

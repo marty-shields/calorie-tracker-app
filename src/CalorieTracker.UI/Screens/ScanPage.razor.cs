@@ -2,9 +2,12 @@ using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.UI.Logging;
 using CalorieTracker.UI.Models.Scan;
+using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Scanning;
+using CalorieTracker.UI.Theme;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
+using Microsoft.JSInterop;
 
 namespace CalorieTracker.UI.Screens;
 
@@ -23,6 +26,9 @@ public partial class ScanPage : IDisposable
 
     [Inject]
     private IBarcodeLookup Lookup { get; set; } = null!;
+
+    [Inject]
+    private ThemeService Theme { get; set; } = null!;
 
     [Inject]
     private ILogger<ScanPage> Logger { get; set; } = null!;
@@ -56,7 +62,7 @@ public partial class ScanPage : IDisposable
         StateHasChanged();
 
         var token = scan.Token;
-        var result = await Scanner.ScanAsync(Accept);
+        var result = await Scanner.ScanAsync(Accept, await SavedThemeAsync());
         if (token.IsCancellationRequested)
         {
             return;
@@ -68,6 +74,8 @@ public partial class ScanPage : IDisposable
                 await LookUpAsync(barcode, token);
                 break;
             case ScanStatus.Cancelled:
+                state = ScanState.Closing;
+                StateHasChanged();
                 await OnBack.InvokeAsync();
                 break;
             case ScanStatus.PermissionDenied or ScanStatus.Unavailable:
@@ -79,6 +87,23 @@ public partial class ScanPage : IDisposable
                 state = ScanState.NotFound;
                 StateHasChanged();
                 break;
+        }
+    }
+
+    /// <summary>The native camera screen follows the app's theme, which only the web view knows. System when it can't be read.</summary>
+    private async Task<ThemePreference> SavedThemeAsync()
+    {
+        try
+        {
+            return await Theme.GetAsync();
+        }
+        catch (JSException)
+        {
+            return ThemePreference.System;
+        }
+        catch (JSDisconnectedException)
+        {
+            return ThemePreference.System;
         }
     }
 

@@ -1,12 +1,14 @@
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.UI.Logging;
+using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Scanning;
 using CalorieTracker.UI.Screens;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
+using Microsoft.JSInterop;
 
 namespace CalorieTracker.UI.Tests.Screens;
 
@@ -24,6 +26,7 @@ public class ScanPageTests : ComponentTestBase
         scanner = new FakeScanner();
         lookup = new FakeLookup();
         logger = new FakeLogger<ScanPage>();
+        Context.JSInterop.Setup<string>("calorieTrackerTheme.get").SetResult("dark");
         Context.Services.AddSingleton<IBarcodeScanner>(scanner);
         Context.Services.AddSingleton<IBarcodeLookup>(lookup);
         Context.Services.AddSingleton<ILogger<ScanPage>>(logger);
@@ -252,6 +255,47 @@ public class ScanPageTests : ComponentTestBase
         Assert.That(backs, Is.EqualTo(1));
     }
 
+    [Test]
+    public async Task Cancelled_ShowsClosingCameraNotOpeningCamera_WhenOnBackIsRaised()
+    {
+        string? markupAtBack = null;
+        IRenderedComponent<ScanPage>? cut = null;
+        cut = Context.Render<ScanPage>(p => p.Add(x => x.OnBack, () => markupAtBack = cut!.Markup));
+
+        scanner.Complete(ScanResult.Cancelled);
+        await WaitForRendererAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(markupAtBack, Does.Contain("scan-closing-camera").And.Contain("Closing camera"));
+            Assert.That(markupAtBack, Does.Not.Contain("scan-opening-camera").And.Not.Contain("Opening camera"));
+            Assert.That(cut.FindAll("[data-testid=scan-closing-camera]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=scan-opening-camera]"), Is.Empty);
+        });
+    }
+
+    [TestCase("light", ThemePreference.Light)]
+    [TestCase("dark", ThemePreference.Dark)]
+    [TestCase("system", ThemePreference.System)]
+    public void Scan_PassesTheSavedThemeToTheScanner(string saved, ThemePreference expected)
+    {
+        Context.JSInterop.Setup<string>("calorieTrackerTheme.get").SetResult(saved);
+
+        Context.Render<ScanPage>();
+
+        Assert.That(scanner.Themes, Is.EqualTo(new[] { expected }));
+    }
+
+    [Test]
+    public void Scan_ThemeCannotBeRead_StillScansWithSystem()
+    {
+        Context.JSInterop.Setup<string>("calorieTrackerTheme.get").SetException(new JSException("storage unavailable"));
+
+        Context.Render<ScanPage>();
+
+        Assert.That(scanner.Themes, Is.EqualTo(new[] { ThemePreference.System }));
+    }
+
     [TestCase(false)]
     [TestCase(true)]
     public async Task ScanResultAfterDispose_IsIgnored(bool cancelled)
@@ -443,8 +487,11 @@ public class ScanPageTests : ComponentTestBase
         /// <summary>When set, a scan runs this at once with the caller's accept and completes with its result.</summary>
         public Func<Func<string, bool>, ScanResult>? Immediate { get; set; }
 
-        public Task<ScanResult> ScanAsync(Func<string, bool> accept)
+        public List<ThemePreference> Themes { get; } = [];
+
+        public Task<ScanResult> ScanAsync(Func<string, bool> accept, ThemePreference theme)
         {
+            Themes.Add(theme);
             if (Immediate is not null)
             {
                 return Task.FromResult(Immediate(accept));

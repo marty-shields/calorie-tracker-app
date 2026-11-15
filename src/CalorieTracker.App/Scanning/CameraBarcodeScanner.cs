@@ -1,5 +1,6 @@
 using BarcodeScanning;
 using CalorieTracker.App.Logging;
+using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Scanning;
 using Microsoft.Extensions.Logging;
 
@@ -10,16 +11,16 @@ internal sealed partial class CameraBarcodeScanner(ILogger<CameraBarcodeScanner>
     // Only touched on the main thread, so a second tap while a scan is open joins it instead of pushing another page.
     private Task<ScanResult>? pending;
 
-    public Task<ScanResult> ScanAsync(Func<string, bool> accept) => MainThread.InvokeOnMainThreadAsync(() => JoinOrOpenAsync(accept));
+    public Task<ScanResult> ScanAsync(Func<string, bool> accept, ThemePreference theme) => MainThread.InvokeOnMainThreadAsync(() => JoinOrOpenAsync(accept, theme));
 
-    private async Task<ScanResult> JoinOrOpenAsync(Func<string, bool> accept)
+    private async Task<ScanResult> JoinOrOpenAsync(Func<string, bool> accept, ThemePreference theme)
     {
         if (pending is not null)
         {
             return await pending;
         }
 
-        pending = OpenAsync(accept);
+        pending = OpenAsync(accept, theme);
         try
         {
             return await pending;
@@ -30,7 +31,7 @@ internal sealed partial class CameraBarcodeScanner(ILogger<CameraBarcodeScanner>
         }
     }
 
-    private async Task<ScanResult> OpenAsync(Func<string, bool> accept)
+    private async Task<ScanResult> OpenAsync(Func<string, bool> accept, ThemePreference theme)
     {
         var result = ScanResult.Unavailable;
         try
@@ -42,6 +43,13 @@ internal sealed partial class CameraBarcodeScanner(ILogger<CameraBarcodeScanner>
             }
             else if (Application.Current?.Windows is [var window, ..] && window.Page?.Navigation is { } navigation)
             {
+                // AppThemeBinding on the camera page follows UserAppTheme, so give it the app's choice rather than the phone's.
+                Application.Current.UserAppTheme = theme switch
+                {
+                    ThemePreference.Light => AppTheme.Light,
+                    ThemePreference.Dark => AppTheme.Dark,
+                    _ => AppTheme.Unspecified,
+                };
                 var page = new ScanPage(accept);
                 await navigation.PushModalAsync(page);
                 result = await page.Result;

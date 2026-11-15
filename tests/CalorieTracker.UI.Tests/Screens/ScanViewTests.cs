@@ -112,6 +112,19 @@ public class ScanViewTests : ComponentTestBase
     }
 
     [Test]
+    public void Closing_ShowsANeutralSpinnerLabelNotOpeningCamera()
+    {
+        var cut = Context.Render<ScanView>(p => p.Add(x => x.State, ScanState.Closing));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=scan-closing-camera]").TextContent, Does.Contain("Closing camera"));
+            Assert.That(cut.FindAll("[data-testid=scan-opening-camera]"), Is.Empty);
+            Assert.That(cut.Markup, Does.Not.Contain("Opening camera"));
+        });
+    }
+
+    [Test]
     public void IsATopLevelScreen_WithScanCurrentInTheNavigationBar()
     {
         var cut = Context.Render<ScanView>(p => p.Add(x => x.State, ScanState.OpeningCamera));

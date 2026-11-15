@@ -10,6 +10,11 @@
                     <Spinner Label="Opening camera…" TestId="scan-opening-camera" />
                 </div>
                 break;
+            case ScanState.Closing:
+                <div class="centre">
+                    <Spinner Label="Closing camera…" TestId="scan-closing-camera" />
+                </div>
+                break;
             case ScanState.LookingUp:
                 <div class="centre">
                     <Spinner Label="Looking up product…" TestId="scan-looking-up" />

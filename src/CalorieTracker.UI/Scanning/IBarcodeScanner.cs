@@ -1,3 +1,5 @@
+using CalorieTracker.UI.Models.Settings;
+
 namespace CalorieTracker.UI.Scanning;
 
 public interface IBarcodeScanner
@@ -7,5 +9,6 @@ public interface IBarcodeScanner
     /// Closes on the first code it accepts and returns it, or returns why it ended without one.
     /// </summary>
     /// <param name="accept">Called with each raw detection, possibly off the UI thread; true closes the scanner with that code.</param>
-    Task<ScanResult> ScanAsync(Func<string, bool> accept);
+    /// <param name="theme">The app's chosen theme, which the native camera screen follows instead of the phone's.</param>
+    Task<ScanResult> ScanAsync(Func<string, bool> accept, ThemePreference theme);
 }
