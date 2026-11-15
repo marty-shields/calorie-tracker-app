@@ -188,10 +188,14 @@
             var result = await Diary.AddAsync(Date, meal, food.Id, grams, servings);
             saveFailed = result.Status != DiaryStatus.Ok;
         }
-        finally
+        catch
         {
             saving = false;
+            throw;
         }
+
+        // After a save the screen is left, so stay busy: a tap between the save and the navigation must not add a second entry.
+        saving = !saveFailed;
 
         if (!saveFailed)
         {

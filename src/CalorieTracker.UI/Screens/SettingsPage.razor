@@ -55,6 +55,9 @@
             return;
         }
 
+        // Let the screen render what was typed before the call can finish. A call that fails before any render would otherwise leave the field
+        // showing the typed text, because putting the saved target back is then no change from what the field last received.
+        await Task.Yield();
         var result = typed is { } kcal ? await Targets.SaveAsync((double)kcal) : await Targets.ClearAsync();
         if (result.Status == TargetStatus.Ok)
         {

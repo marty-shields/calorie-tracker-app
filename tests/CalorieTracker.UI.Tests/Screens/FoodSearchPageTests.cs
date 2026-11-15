@@ -268,8 +268,8 @@ public class FoodSearchPageTests : ComponentTestBase
         var navigated = new List<NavDestination>();
         var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.OnNavigate, navigated.Add));
 
-        cut.Find("[data-testid=dashboard-link]").Click();
         await WaitForRendererAsync();
+        await cut.Find("[data-testid=dashboard-link]").ClickAsync(new());
 
         Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Dashboard }));
     }
