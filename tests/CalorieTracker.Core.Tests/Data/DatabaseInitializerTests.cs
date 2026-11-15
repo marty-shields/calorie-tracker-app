@@ -413,6 +413,22 @@ public class DatabaseInitializerTests
         Assert.That(all, Does.Not.Contain("Food_Barcode"));
     }
 
+    [Test]
+    public async Task FoodServingUpgrade_VersionFourFoodTable_GainsBothNullableServingColumns()
+    {
+        await connection.ExecuteAsync(
+            "CREATE TABLE Food (Id integer primary key autoincrement not null, Source integer not null, SourceId varchar not null, Name varchar not null, Brand varchar, Unit integer not null, Type integer not null, Kcal float, ProteinG float, CarbsG float, FatG float, FibreG float, SugarsG float, SaturatesG float, SaltG float, SearchText varchar not null)");
+        await connection.ExecuteAsync("INSERT INTO Food (Source, SourceId, Name, Unit, Type, SearchText) VALUES (1, 'a', 'A', 0, 0, 'a')");
+
+        using (var db = new SQLiteConnection(databasePath))
+        {
+            new FoodServingUpgrade().Apply(db);
+        }
+
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM pragma_table_info('Food') WHERE name IN ('ServingLabel', 'ServingAmount') AND \"notnull\" = 0"), Is.EqualTo(2));
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM Food WHERE ServingLabel IS NULL AND ServingAmount IS NULL"), Is.EqualTo(1));
+    }
+
     private DatabaseInitializer Initializer(int currentVersion, params ISchemaUpgrade[] steps) =>
         new(connection, steps, logger, currentVersion);
 

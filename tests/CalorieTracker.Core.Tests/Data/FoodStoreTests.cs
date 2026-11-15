@@ -206,6 +206,50 @@ public class FoodStoreTests
     }
 
     [Test]
+    public async Task SetServingAsync_ChangesOnlyTheRowWithThatId()
+    {
+        var target = await store.UpsertAsync(NewFood("1", kcal: 100));
+        var other = await store.UpsertAsync(NewFood("2", kcal: 200));
+
+        var changed = await store.SetServingAsync(target.Id, "1 slice (30 g)", 30);
+
+        Assert.That(changed, Is.True);
+        var rows = await connection.Table<Food>().ToListAsync();
+        var targetRow = rows.Single(r => r.Id == target.Id);
+        var otherRow = rows.Single(r => r.Id == other.Id);
+        Assert.That((targetRow.ServingLabel, targetRow.ServingAmount, targetRow.Kcal), Is.EqualTo(("1 slice (30 g)", 30.0, 100.0)));
+        Assert.That((otherRow.ServingLabel, otherRow.ServingAmount, otherRow.Kcal), Is.EqualTo(((string?)null, (double?)null, 200.0)));
+    }
+
+    [Test]
+    public async Task SetServingAsync_UnknownId_ReturnsFalseAndLogsNothing()
+    {
+        var changed = await store.SetServingAsync(999, "1 slice (30 g)", 30);
+
+        Assert.That(changed, Is.False);
+        Assert.That(LoggedEvents.Of(logger), Is.Empty);
+    }
+
+    [Test]
+    public async Task SetServingAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
+    {
+        var holding = new TaskCompletionSource();
+        var inserted = NewFood("1");
+        var busy = gate.RunAsync(async () =>
+        {
+            await holding.Task;
+            await connection.InsertAsync(inserted);
+        });
+
+        var set = store.SetServingAsync(1, "1 slice (30 g)", 30);
+        holding.SetResult();
+
+        await busy;
+        Assert.That(await set, Is.True);
+        Assert.That((await connection.Table<Food>().FirstAsync()).ServingAmount, Is.EqualTo(30));
+    }
+
+    [Test]
     public async Task Logging_UpsertAndFind_LogsIdsOnlyNeverNameOrBarcode()
     {
         var food = NewFood("SRC-SECRET");

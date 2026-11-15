@@ -120,6 +120,34 @@ public class OpenFoodFactsLookupTests
     }
 
     [Test]
+    public async Task Serving_WithNoUnit_Counts()
+    {
+        var body = Fixture("pizza-5060198643156.json");
+        const string unit = "\"serving_quantity_unit\":\"g\",";
+        Assert.That(body, Does.Contain(unit));
+        handler.Respond(body.Replace(unit, ""));
+
+        var result = await lookup.LookupAsync("5060198643156");
+
+        Assert.That(result.Food!.Unit, Is.EqualTo(FoodUnit.Gram));
+        Assert.That((result.Food.ServingLabel, result.Food.ServingAmount), Is.EqualTo(("0.5 pizza (201.8 g)", 201.8)));
+    }
+
+    [Test]
+    public async Task Serving_WithNoUnitForAMillilitreFood_IsIgnored()
+    {
+        var body = Fixture("drink-5449000000996.json");
+        const string unit = "\"serving_quantity_unit\":\"ml\"";
+        Assert.That(body, Does.Contain(unit));
+        handler.Respond(body.Replace(unit, "\"product_quantity_unit\":\"ml\""));
+
+        var result = await lookup.LookupAsync("5449000000996");
+
+        Assert.That(result.Food!.Unit, Is.EqualTo(FoodUnit.Millilitre));
+        Assert.That((result.Food.ServingLabel, result.Food.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+    }
+
+    [Test]
     public async Task Drink_IsFoundInMillilitres()
     {
         handler.Respond(Fixture("drink-5449000000996.json"));

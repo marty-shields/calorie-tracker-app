@@ -215,14 +215,14 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
     }
 
     /// <summary>
-    /// Both parts or neither: a label, a weight above zero, and a <c>serving_quantity_unit</c> that is the food's unit (or absent).
+    /// Both parts or neither: a label, a weight above zero, and a <c>serving_quantity_unit</c> that is the food's unit (absent counts as grams, as OFF defaults to).
     /// </summary>
     private static (string? Label, double? Amount) ReadServing(JsonElement product, bool millilitre)
     {
         var label = ReadString(product, "serving_size");
         var amount = ReadNumber(product, "serving_quantity");
         var unit = ReadString(product, "serving_quantity_unit");
-        var matches = unit is null || string.Equals(unit, millilitre ? "ml" : "g", StringComparison.OrdinalIgnoreCase);
+        var matches = string.Equals(unit ?? "g", millilitre ? "ml" : "g", StringComparison.OrdinalIgnoreCase);
         return label is not null && amount is > 0 && matches ? (label, amount) : (null, null);
     }
 
