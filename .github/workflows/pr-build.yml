@@ -1,10 +1,11 @@
 # Runs on every PR to main that is not a draft (marking it ready starts the run): the dev pipeline, then the QA pipeline once the build and its tests pass.
+# A PR into an epic branch (epic/**, see docs/epics.md) runs the dev pipeline and the story layout check, not the emulator E2E.
 name: PR build
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    branches: [main]
+    branches: [main, "epic/**"]
 
 permissions:
   contents: read
@@ -64,7 +65,8 @@ jobs:
           path: docs/images/readme/*.png
           if-no-files-found: ignore
 
+  # Only for a PR into main. The epic PR runs it when the epic is done, so the sub-task PRs into an epic branch skip it.
   qa:
-    if: github.event.pull_request.draft == false
+    if: github.event.pull_request.draft == false && github.base_ref == 'main'
     needs: dev
     uses: ./.github/workflows/qa-pipeline.yml
