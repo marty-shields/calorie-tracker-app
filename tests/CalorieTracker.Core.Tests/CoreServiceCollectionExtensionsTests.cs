@@ -1,4 +1,5 @@
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Seed;
 using CalorieTracker.Core.Targets;
@@ -34,6 +35,8 @@ public class CoreServiceCollectionExtensionsTests
                 (typeof(IFoodSearch), typeof(FoodSearch), ServiceLifetime.Singleton),
                 (typeof(TargetService), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(TargetStore), (Type?)null, ServiceLifetime.Singleton),
+                (typeof(DiaryService), (Type?)null, ServiceLifetime.Singleton),
+                (typeof(DiaryStore), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(SeedProgress), typeof(SeedProgress), ServiceLifetime.Singleton),
             }));
     }

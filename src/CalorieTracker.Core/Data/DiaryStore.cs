@@ -31,7 +31,7 @@ internal sealed class DiaryStore(SQLiteAsyncConnection connection, DatabaseGate 
             return added;
         });
 
-    /// <summary>Sets the day, meal, amount and servings of a kept entry, leaving its food and place. False when no kept entry has that id.</summary>
+    /// <summary>Sets the day, meal, amount and servings of a kept entry, leaving its food. A moved entry keeps its original position in the order added (the list orders by id). False when no kept entry has that id.</summary>
     public Task<bool> UpdateAsync(int id, string date, Meal meal, double amount, double? servings) =>
         gate.RunAsync(async () =>
             await connection.ExecuteAsync(

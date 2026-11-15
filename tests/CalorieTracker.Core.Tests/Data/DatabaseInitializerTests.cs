@@ -508,28 +508,46 @@ public class DatabaseInitializerTests
     }
 
     [Test]
-    public void DropDishesUpgrade_Apply_KeepsADishADiaryEntryPointsAtAsAFoodWithItsBarcode()
+    public async Task EveryStep_AppliedToADatabaseWithADiaryEntry_KeepsTheFoodItPointsAtAndItsBarcode()
     {
+        // No step older than step 7 can meet a diary entry in a real upgrade (the table first appears at 7), so this applies every step to the current schema.
+        await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
+        await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Unit, SearchText, Type) VALUES (1, 1, 'a', 'A', 0, 'a', 1)");
+        await connection.ExecuteAsync("INSERT INTO FoodBarcode (Barcode, FoodId) VALUES ('5000000000017', 1)");
+        await connection.ExecuteAsync("INSERT INTO DiaryEntry (Date, Meal, FoodId, Amount, IsRemoved) VALUES ('2031-07-19', 0, 1, 10, 0)");
+        await connection.CloseAsync();
+
         var db = new SQLiteConnection(databasePath);
         try
         {
-            db.Execute(FoodTableSql);
-            db.Execute("CREATE TABLE FoodBarcode (Barcode varchar primary key not null, FoodId integer not null)");
-            new DiaryTableUpgrade().Apply(db);
-            // Types before step 4: Ingredient 0, Food 1, Dish 2, Drink 3.
-            db.Execute("INSERT INTO Food (Id, Source, SourceId, Name, Unit, SearchText, Type) VALUES (1, 0, 'dish-used', 'D', 0, 'd', 2), (2, 0, 'dish-free', 'E', 0, 'e', 2), (3, 0, 'drink', 'F', 1, 'f', 3)");
-            db.Execute("INSERT INTO FoodBarcode (Barcode, FoodId) VALUES ('5000000000017', 1), ('5000000000024', 2)");
-            db.Execute("INSERT INTO DiaryEntry (Date, Meal, FoodId, Amount, IsRemoved) VALUES ('2031-07-19', 0, 1, 10, 1)");
+            foreach (var step in SchemaSteps.All().OrderBy(s => s.Version))
+            {
+                step.Apply(db);
+            }
 
-            new DropDishesUpgrade().Apply(db);
-
-            Assert.That(db.QueryScalars<string>("SELECT Id || ':' || Type FROM Food ORDER BY Id"), Is.EqualTo(new[] { "1:1", "3:2" }));
-            Assert.That(db.QueryScalars<string>("SELECT Barcode FROM FoodBarcode"), Is.EqualTo(new[] { "5000000000017" }));
+            Assert.That(
+                db.QueryScalars<int>("SELECT Id FROM Food WHERE Id IN (SELECT FoodId FROM DiaryEntry) ORDER BY Id"),
+                Is.EqualTo(new[] { 1 }));
+            Assert.That(db.QueryScalars<string>("SELECT Barcode FROM FoodBarcode WHERE FoodId = 1"), Is.EqualTo(new[] { "5000000000017" }));
+            Assert.That(db.ExecuteScalar<int>("SELECT COUNT(*) FROM DiaryEntry"), Is.EqualTo(1));
         }
         finally
         {
             db.Close();
+            connection = new SQLiteAsyncConnection(databasePath);
         }
+    }
+
+    [Test]
+    public async Task InitializeAsync_ExistingCurrentVersionDatabaseWithoutDiaryEntry_CreatesTheDiaryTable()
+    {
+        await connection.ExecuteAsync(FoodTableSql);
+        await SetVersion(DatabaseInitializer.CurrentVersion);
+
+        await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
+
+        Assert.That(await connection.QueryScalarsAsync<string>(DiaryColumns), Is.EqualTo(ExpectedDiaryColumns));
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM DiaryEntry"), Is.Zero);
     }
 
     [Test]

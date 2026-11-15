@@ -4,6 +4,7 @@ namespace CalorieTracker.Core.Data;
 
 /// <summary>
 /// Step 7: creates the <c>DiaryEntry</c> table and its indexes, with no row. Safe on a database that already has them.
+/// No older step can meet a diary entry: the table first appears here, so steps 2 to 6 only ever see a database with none.
 /// </summary>
 internal sealed class DiaryTableUpgrade : ISchemaUpgrade
 {

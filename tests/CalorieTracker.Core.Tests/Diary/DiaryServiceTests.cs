@@ -203,42 +203,42 @@ public class DiaryServiceTests
     [Test]
     public async Task AddAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
     {
-        var (holding, busy) = HoldGate();
+        var (holding, busy) = HoldGate(() => connection.Table<DiaryEntry>().CountAsync());
 
         var add = service.AddAsync(Day, Meal.Lunch, foodId, 10);
-        Assert.That(add.IsCompleted, Is.False);
         holding.SetResult();
 
-        await busy;
+        Assert.That(await busy, Is.Zero);
         Assert.That((await add).Status, Is.EqualTo(DiaryStatus.Ok));
+        Assert.That(await connection.Table<DiaryEntry>().CountAsync(), Is.EqualTo(1));
     }
 
     [Test]
     public async Task UpdateAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
     {
         var id = (await service.AddAsync(Day, Meal.Lunch, foodId, 10)).Entry!.Id;
-        var (holding, busy) = HoldGate();
+        var (holding, busy) = HoldGate(() => connection.ExecuteScalarAsync<double>("SELECT Amount FROM DiaryEntry WHERE Id = ?", id));
 
         var update = service.UpdateAsync(id, Day, Meal.Lunch, 99);
-        Assert.That(update.IsCompleted, Is.False);
         holding.SetResult();
 
-        await busy;
+        Assert.That(await busy, Is.EqualTo(10.0));
         Assert.That((await update).Status, Is.EqualTo(DiaryStatus.Ok));
+        Assert.That(await connection.ExecuteScalarAsync<double>("SELECT Amount FROM DiaryEntry WHERE Id = ?", id), Is.EqualTo(99.0));
     }
 
     [Test]
     public async Task RemoveAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
     {
         var id = (await service.AddAsync(Day, Meal.Lunch, foodId, 10)).Entry!.Id;
-        var (holding, busy) = HoldGate();
+        var (holding, busy) = HoldGate(() => connection.ExecuteScalarAsync<int>("SELECT IsRemoved FROM DiaryEntry WHERE Id = ?", id));
 
         var remove = service.RemoveAsync(id);
-        Assert.That(remove.IsCompleted, Is.False);
         holding.SetResult();
 
-        await busy;
+        Assert.That(await busy, Is.Zero);
         Assert.That((await remove).Status, Is.EqualTo(DiaryStatus.Ok));
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT IsRemoved FROM DiaryEntry WHERE Id = ?", id), Is.EqualTo(1));
     }
 
     [Test]
@@ -246,20 +246,20 @@ public class DiaryServiceTests
     {
         var id = (await service.AddAsync(Day, Meal.Lunch, foodId, 10)).Entry!.Id;
         await service.RemoveAsync(id);
-        var (holding, busy) = HoldGate();
+        var (holding, busy) = HoldGate(() => connection.ExecuteScalarAsync<int>("SELECT IsRemoved FROM DiaryEntry WHERE Id = ?", id));
 
         var restore = service.RestoreAsync(id);
-        Assert.That(restore.IsCompleted, Is.False);
         holding.SetResult();
 
-        await busy;
+        Assert.That(await busy, Is.EqualTo(1));
         Assert.That((await restore).Status, Is.EqualTo(DiaryStatus.Ok));
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT IsRemoved FROM DiaryEntry WHERE Id = ?", id), Is.Zero);
     }
 
     [Test]
     public async Task ListAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
     {
-        var (holding, busy) = HoldGate();
+        var (holding, busy) = HoldGate(() => Task.FromResult(0));
 
         var list = service.ListAsync(Day);
         Assert.That(list.IsCompleted, Is.False);
@@ -270,9 +270,13 @@ public class DiaryServiceTests
         Assert.That((await list).Entries, Has.Count.EqualTo(1));
     }
 
-    private (TaskCompletionSource Holding, Task Busy) HoldGate()
+    private (TaskCompletionSource Holding, Task<T> Busy) HoldGate<T>(Func<Task<T>> readJustBeforeRelease)
     {
         var holding = new TaskCompletionSource();
-        return (holding, gate.RunAsync(() => holding.Task));
+        return (holding, gate.RunAsync(async () =>
+        {
+            await holding.Task;
+            return await readJustBeforeRelease();
+        }));
     }
 }

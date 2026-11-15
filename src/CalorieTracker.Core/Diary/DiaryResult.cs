@@ -11,7 +11,7 @@ public enum DiaryStatus
 }
 
 /// <summary>
-/// The outcome of a diary call. <see cref="Entry"/> is the entry added or changed; <see cref="Entries"/> is the list for a day.
+/// The outcome of a diary call. <see cref="Entry"/> is the entry added; <see cref="Entries"/> is the list for a day.
 /// Each is empty (null, or no entries) unless <see cref="Status"/> is <see cref="DiaryStatus.Ok"/> and the call gives that value.
 /// </summary>
 public sealed record DiaryResult
