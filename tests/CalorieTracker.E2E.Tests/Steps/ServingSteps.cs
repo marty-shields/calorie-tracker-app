@@ -5,7 +5,8 @@ using Reqnroll;
 namespace CalorieTracker.E2E.Tests.Steps;
 
 /// <summary>
-/// The Serving screen. Foods and Scan do not link to it yet, so these steps find a food in Foods and open its route directly.
+/// The Serving screen. Without a preset meal the steps tap through Foods (open a food, Add to diary). A preset meal comes from a meal's +, which
+/// the Dashboard does not have yet, so those steps find a food in Foods and open the route directly.
 /// </summary>
 [Binding]
 public sealed class ServingSteps(ServingScreen serving, FoodSearchScreen foods, Journeys journeys, WebView web)
@@ -22,6 +23,14 @@ public sealed class ServingSteps(ServingScreen serving, FoodSearchScreen foods, 
     {
         journeys.OpenFoods();
         foods.Search(text);
+        if (meal is null)
+        {
+            foods.OpenFirstResult();
+            foods.AddToDiary();
+            serving.WaitUntilOpen();
+            return;
+        }
+
         serving.Open(foods.FirstResultId(), meal);
     }
 

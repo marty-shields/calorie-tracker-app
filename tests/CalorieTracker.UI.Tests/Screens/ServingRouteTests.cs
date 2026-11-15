@@ -14,6 +14,7 @@ public class ServingRouteTests
         {
             Assert.That(ServingRoute.Url(5), Is.EqualTo("/serving/5"));
             Assert.That(ServingRoute.Url(5, Meal.Dinner), Is.EqualTo("/serving/5?meal=Dinner"));
+            Assert.That(ServingRoute.Url(5, Meal.Lunch, backTo: "/foods?meal=Lunch"), Is.EqualTo("/serving/5?meal=Lunch&back=%2Ffoods%3Fmeal%3DLunch"));
             Assert.That(ServingRoute.Url(5, Meal.Snacks, new DateOnly(2031, 7, 4), "/foods"), Is.EqualTo("/serving/5?meal=Snacks&date=2031-07-04&return=%2Ffoods"));
         });
     }

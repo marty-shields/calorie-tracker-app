@@ -57,6 +57,24 @@
         </Template>
     </Story>
 
+    <Story Name="Food selected for the diary">
+        <Template>
+            <FoodSearchView Query="oat" Filter="FoodType.Ingredient" Results="FoodSearchSamples.Ingredients" Selected="FoodSearchSamples.Ingredients[0]" OnQueryChanged="(string _) => { }" OnAdd="(Food _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Add to a meal">
+        <Template>
+            <FoodSearchView Meal="Meal.Lunch" Query="oat" Filter="FoodType.Ingredient" Results="FoodSearchSamples.Ingredients" OnQueryChanged="(string _) => { }" OnFilterChanged="(FoodType? _) => { }" OnSelect="(Food _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Add to a meal with nothing typed">
+        <Template>
+            <FoodSearchView Meal="Meal.Snacks" Filter="FoodType.Ingredient" OnQueryChanged="(string _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
     <Story Name="Search failed">
         <Template>
             <FoodSearchView Query="oat" Filter="FoodType.Ingredient" Failed OnQueryChanged="(string _) => { }" OnRetry="() => { }" OnNavigate="(NavDestination _) => { }" />

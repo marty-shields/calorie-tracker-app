@@ -9,6 +9,20 @@ public sealed class FoodSearchScreen(WebView web)
 
     public const string Title = "Search foods";
 
+    /// <summary>Whether a screen title is food search in add mode ("Add to Lunch").</summary>
+    public static bool IsAddTitle(string title) => title.StartsWith("Add to ", StringComparison.Ordinal);
+
+    /// <summary>Opens search in add mode for a meal through the router, as a meal's + on the Dashboard will, and waits for it. The Dashboard has no + yet.</summary>
+    public void OpenToAdd(string meal)
+    {
+        web.NavigateTo($"/foods?meal={meal}");
+        web.WaitUntil(() => web.Text("screen-title") == $"Add to {meal}", $"search for {meal} didn't show");
+    }
+
+    public string ScreenTitle() => web.Text("screen-title");
+
+    public bool HasNavigationBar() => web.Exists("bottom-nav");
+
     /// <summary>The first launch loads the food list in the background; give it longer than a screen change.</summary>
     private static readonly TimeSpan LoadTime = TimeSpan.FromSeconds(90);
 
@@ -92,6 +106,8 @@ public sealed class FoodSearchScreen(WebView web)
     public string DetailName() => web.Text("food-detail-name");
 
     public string DetailEnergy() => web.Text("food-detail-kcal");
+
+    public void AddToDiary() => web.Tap("food-detail-add");
 
     public void BackToResults() => web.Tap("food-detail-close");
 

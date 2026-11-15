@@ -17,8 +17,9 @@ public static class ServingRoute
     private const string DateFormat = "yyyy-MM-dd";
 
     /// <summary>The route to add a food. Leave <paramref name="meal"/> null to suggest a meal from the time of day, and <paramref name="date"/> null for today.</summary>
-    /// <param name="returnTo">An in-app route such as /foods to go back to; null for the defaults.</param>
-    public static string Url(int foodId, Meal? meal = null, DateOnly? date = null, string? returnTo = null)
+    /// <param name="returnTo">An in-app route such as /foods to go to after Back or a saved entry; null for the defaults. A route here also makes the screen offer "View day" after Add instead of Undo.</param>
+    /// <param name="backTo">An in-app route for Back alone, when it differs from where a saved entry goes; null uses <paramref name="returnTo"/>.</param>
+    public static string Url(int foodId, Meal? meal = null, DateOnly? date = null, string? returnTo = null, string? backTo = null)
     {
         var query = new List<string>();
         if (meal is { } m)
@@ -34,6 +35,11 @@ public static class ServingRoute
         if (returnTo is not null)
         {
             query.Add($"return={Uri.EscapeDataString(returnTo)}");
+        }
+
+        if (backTo is not null)
+        {
+            query.Add($"back={Uri.EscapeDataString(backTo)}");
         }
 
         return $"/serving/{foodId}" + (query.Count == 0 ? "" : "?" + string.Join('&', query));

@@ -4,9 +4,11 @@
 @inject NavigationManager Navigation
 @inject TimeProvider Time
 
-@* Query: meal (preset), date (yyyy-MM-dd, default today), return (an in-app route to go back to). *@
+@* Query: meal (preset), date (yyyy-MM-dd, default today), return (an in-app route for Back and a saved entry), back (an in-app route for Back alone). *@
 <ServingPage FoodId="FoodId" Meal="ServingRoute.ParseMeal(MealText)" Date="ServingRoute.ParseDate(DateText, Today)"
-             OnBack="@(() => Navigation.GoTo(ServingRoute.ReturnOr(ReturnTo, ServingRoute.DefaultBack)))"
+             AfterAdd="@(ReturnTo is null ? AddedFollowUp.Undo : AddedFollowUp.ViewDay)"
+             ViewDay="@(day => { Navigation.GoTo(DashboardRoute.Url(day)); return Task.CompletedTask; })"
+             OnBack="@(() => Navigation.GoTo(ServingRoute.ReturnOr(BackTo, ServingRoute.ReturnOr(ReturnTo, ServingRoute.DefaultBack))))"
              OnAdded="@(() => Navigation.GoTo(ServingRoute.ReturnOr(ReturnTo, ServingRoute.DefaultAfterAdd)))" />
 
 @code {
@@ -21,6 +23,9 @@
 
     [SupplyParameterFromQuery(Name = "return")]
     public string? ReturnTo { get; set; }
+
+    [SupplyParameterFromQuery(Name = "back")]
+    public string? BackTo { get; set; }
 
     private DateOnly Today => DateOnly.FromDateTime(Time.GetLocalNow().DateTime);
 }
