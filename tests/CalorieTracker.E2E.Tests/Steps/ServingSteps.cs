@@ -12,8 +12,13 @@ public sealed class ServingSteps(ServingScreen serving, FoodSearchScreen foods, 
 {
     private const string Meals = "(Breakfast|Lunch|Dinner|Snacks)";
 
-    [Given(@"^I have opened Serving for the first food found by ""(.*)""(?: with " + Meals + " preset)?$")]
-    public void GivenIHaveOpenedServingForTheFirstFoodFoundBy(string text, string? meal)
+    [Given(@"^I have opened Serving for the first food found by ""([^""]*)""$")]
+    public void GivenIHaveOpenedServingForTheFirstFoodFoundBy(string text) => OpenFirstFound(text, null);
+
+    [Given(@"^I have opened Serving for the first food found by ""([^""]*)"" with " + Meals + " preset$")]
+    public void GivenIHaveOpenedServingForTheFirstFoodFoundByWithPreset(string text, string meal) => OpenFirstFound(text, meal);
+
+    private void OpenFirstFound(string text, string? meal)
     {
         journeys.OpenFoods();
         foods.Search(text);
