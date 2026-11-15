@@ -48,6 +48,7 @@ A button that shows an `Icon`, with a 48px touch target.
 - `AriaLabel` names the button.
 - The icon is `--color-text`; on the top bar that is `--color-on-bar`. `Muted` uses `--color-text-muted`.
 - `Active` fills the button with a round `--color-selected` background to show it is on.
+- `Style`: `Plain` (the default) is the icon alone. `Filled` puts it on a round `--color-chip` chip with a `--color-on-chip` icon, for the add action of a section such as `MealHeader`; it ignores `Active` and `Muted`. It keeps the 48px target, focus ring, `AriaLabel` and `TestId`. Each story except Active and Muted (which Filled ignores) has a `Filled` twin, plus `Filled Compact`.
 - `Size`: `Default` is `--font-size-xl`, `Small` is `--font-size-lg`.
 - `data-testid`: `TestId`.
 
