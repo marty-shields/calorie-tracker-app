@@ -2,7 +2,7 @@ namespace CalorieTracker.Core.Logging;
 
 /// <summary>
 /// Event ids of Core's log messages: 1000–1999, a block of 100 per type.
-/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch, 1600 TargetService; the <c>*Block</c> members hold them.
+/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch, 1600 TargetService, 1700 DiaryService; the <c>*Block</c> members hold them.
 /// Ids never change and are never reused; list a retired id here and in <c>CoreEventTests</c>.
 /// </summary>
 internal enum CoreEvent
@@ -117,4 +117,34 @@ internal enum CoreEvent
 
     /// <summary><see cref="Targets.TargetService"/>: the database failed, so the call returned <see cref="Targets.TargetStatus.Failed"/>.</summary>
     TargetFailed = 1604,
+
+    /// <summary>Start of the block reserved for <see cref="Diary.DiaryService"/>.</summary>
+    DiaryServiceBlock = 1700,
+
+    /// <summary><see cref="Diary.DiaryService"/>: an entry was added; carries the entry and food ids.</summary>
+    DiaryEntryAdded = 1701,
+
+    /// <summary><see cref="Diary.DiaryService"/>: an entry was updated; carries its id.</summary>
+    DiaryEntryUpdated = 1702,
+
+    /// <summary><see cref="Diary.DiaryService"/>: an entry was removed; carries its id.</summary>
+    DiaryEntryRemoved = 1703,
+
+    /// <summary><see cref="Diary.DiaryService"/>: an entry was restored; carries its id.</summary>
+    DiaryEntryRestored = 1704,
+
+    /// <summary><see cref="Diary.DiaryService"/>: a day was listed; carries the entry count, never the date.</summary>
+    DiaryListed = 1705,
+
+    /// <summary><see cref="Diary.DiaryService"/>: values were rejected; none is logged.</summary>
+    DiaryRejected = 1706,
+
+    /// <summary><see cref="Diary.DiaryService"/>: no entry with the id was in the state the call needs; carries the id.</summary>
+    DiaryEntryNotFound = 1707,
+
+    /// <summary><see cref="Diary.DiaryService"/>: an entry was not added because its food does not exist; carries the food id.</summary>
+    DiaryFoodNotFound = 1708,
+
+    /// <summary><see cref="Diary.DiaryService"/>: the database failed, so the call returned <see cref="Diary.DiaryStatus.Failed"/>.</summary>
+    DiaryFailed = 1709,
 }

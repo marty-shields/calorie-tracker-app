@@ -53,5 +53,15 @@ public class CoreEventTests
             [CoreEvent.TargetCleared] = 1602,
             [CoreEvent.TargetRejected] = 1603,
             [CoreEvent.TargetFailed] = 1604,
+            [CoreEvent.DiaryServiceBlock] = 1700,
+            [CoreEvent.DiaryEntryAdded] = 1701,
+            [CoreEvent.DiaryEntryUpdated] = 1702,
+            [CoreEvent.DiaryEntryRemoved] = 1703,
+            [CoreEvent.DiaryEntryRestored] = 1704,
+            [CoreEvent.DiaryListed] = 1705,
+            [CoreEvent.DiaryRejected] = 1706,
+            [CoreEvent.DiaryEntryNotFound] = 1707,
+            [CoreEvent.DiaryFoodNotFound] = 1708,
+            [CoreEvent.DiaryFailed] = 1709,
         }));
 }
