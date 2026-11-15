@@ -301,11 +301,22 @@ public class SeedLoaderTests
         var counts = seed.Foods.GroupBy(f => f.Type).ToDictionary(g => g.Key, g => g.Count());
         Assert.That(counts, Is.EqualTo(new Dictionary<FoodType, int>
         {
-            [FoodType.Ingredient] = 1585,
-            [FoodType.Food] = 476,
-            [FoodType.Dish] = 637,
-            [FoodType.Drink] = 155,
+            [FoodType.Ingredient] = 1472,
+            [FoodType.Food] = 546,
+            [FoodType.Dish] = 679,
+            [FoodType.Drink] = 156,
         }));
+    }
+
+    [Test]
+    public void SeedFile_BundledSeed_TypesPreparedAndPlainOatsApart()
+    {
+        using var stream = SeedLoader.OpenBundledSeed();
+
+        var seed = SeedFile.Parse(stream);
+
+        var types = seed.Foods.Where(f => f.SourceId is "11-788" or "11-789").ToDictionary(f => f.SourceId, f => f.Type);
+        Assert.That(types, Is.EqualTo(new Dictionary<string, FoodType> { ["11-788"] = FoodType.Ingredient, ["11-789"] = FoodType.Dish }));
     }
 
     [Test]
@@ -330,13 +341,13 @@ public class SeedLoaderTests
 
     private static readonly string[] ExpectedTypeCountsPerFoodGroup =
     [
-        "A D1 I2",
+        "A D2 I1",
         "AA I29",
         "AB D6",
-        "AC D3 I26",
-        "AD D6 I21",
+        "AC D4 F1 I24",
+        "AD D7 F3 I17",
         "AE D6",
-        "AF I38",
+        "AF F3 I35",
         "AG F1 I4",
         "AI F32",
         "AK F1",
@@ -357,7 +368,7 @@ public class SeedLoaderTests
         "BJC I8",
         "BJP F2",
         "BJS I2",
-        "BL I45",
+        "BL F5 I40",
         "BN F14 K1",
         "BNE I1",
         "BNH F2",
@@ -373,34 +384,34 @@ public class SeedLoaderTests
         "D I1",
         "DA F1 I1",
         "DAE I4",
-        "DAM I14",
+        "DAM D2 I12",
         "DAP F17",
         "DAR F10",
-        "DB I66",
-        "DF I16",
-        "DG I229",
+        "DB D1 F6 I59",
+        "DF F1 I15",
+        "DG F3 I225 K1",
         "DI I5",
         "DR D309",
-        "F I7",
-        "FA I210",
+        "F D1 I6",
+        "FA D28 F14 I168",
         "FC K10",
-        "G I2",
-        "GA I47",
+        "G F1 I1",
+        "GA F9 I38",
         "H I35",
-        "J I8",
-        "JA F31 I120",
-        "JC I53",
+        "J D2 F1 I5",
+        "JA D2 F32 I117",
+        "JC F2 I51",
         "JK F2 I20",
-        "JM I16",
+        "JM D1 F1 I14",
         "JR F35",
-        "MAA I25",
-        "MAC I91",
+        "MAA F1 I24",
+        "MAC F1 I90",
         "MAE I105",
-        "MAG I65",
+        "MAG F1 I64",
         "MAI I4",
         "MBG F11",
         "MCA F5 I59",
-        "MCC I7",
+        "MCC F1 I6",
         "MCE I2",
         "MCG I2",
         "MCI I2",
@@ -410,7 +421,7 @@ public class SeedLoaderTests
         "MEA I2",
         "MEC I3",
         "MEE I2",
-        "MG I40",
+        "MG D1 I39",
         "MI F42",
         "MIG D1",
         "MR D151",
@@ -434,8 +445,8 @@ public class SeedLoaderTests
         "QG K1",
         "QI K4",
         "QK K1",
-        "S I4",
-        "SC I22",
+        "S F1 I3",
+        "SC F8 I14",
         "SEA F17",
         "SEC F18",
         "SN F11",
@@ -450,7 +461,7 @@ public class SeedLoaderTests
         "WCG F13",
         "WCN F14",
         "WE F2",
-        "WY I18 K1",
+        "WY D1 F6 I11 K1",
     ];
 
     private SeedLoader Loader() => new(store, logger, () => new MemoryStream(Encoding.UTF8.GetBytes(seedJson)));
