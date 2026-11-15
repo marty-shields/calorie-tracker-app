@@ -8,7 +8,7 @@ public interface IFoodSearch
     public const int MaxLimit = 200;
 
     /// <summary>
-    /// Finds foods whose words start with every word typed, in any order and either case. Foods whose name starts with the first word typed come first, then the other matches, each by name (ignoring case). Only the first 10 distinct words are used.
+    /// Finds foods whose words start with every word typed, in any order and either case. Foods whose name starts with the whole query (every word, in the order typed) come first, then the other matches, each by name (ignoring case). Only the first 10 distinct words must match, but the ranking uses every word.
     /// A blank query finds nothing.
     /// </summary>
     /// <param name="type">Only foods of this type; null finds every type.</param>

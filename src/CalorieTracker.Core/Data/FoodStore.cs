@@ -20,10 +20,11 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
 
     /// <summary>
     /// Finds foods where every term starts a word of <see cref="Food.SearchText"/>, split on <see cref="Separators"/>. Terms must be lowercase.
-    /// Foods whose text starts with the first term come first, then the other matches, each by name. Scans the table, which is fine at the seed's size.
+    /// Foods whose text starts with <paramref name="phrase"/> come first, then the other matches, each by name. Scans the table, which is fine at the seed's size.
     /// </summary>
-    /// <param name="type">Only foods of this type; null for every type (a food with no type matches only null).</param>
-    public Task<List<Food>> SearchAsync(IReadOnlyList<string> terms, int limit, FoodType? type = null, CancellationToken ct = default) =>
+    /// <param name="phrase">The whole folded query, every word in the order typed, joined by single spaces.</param>
+    /// <param name="type">Only foods of this type; null for every type.</param>
+    public Task<List<Food>> SearchAsync(IReadOnlyList<string> terms, string phrase, int limit, FoodType? type = null, CancellationToken ct = default) =>
         gate.RunAsync(async () =>
         {
             ct.ThrowIfCancellationRequested();
@@ -39,10 +40,10 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
                 args.Add((int)wanted);
             }
 
-            args.Add(escaped[0] + "%");
+            args.Add(" " + phrase.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%");
             args.Add(limit);
             return await connection.QueryAsync<Food>(
-                $"SELECT * FROM Food WHERE {match}{typeClause} ORDER BY CASE WHEN SearchText LIKE ? ESCAPE '\\' THEN 0 ELSE 1 END, Name COLLATE NOCASE, Id LIMIT ?",
+                $"SELECT * FROM Food WHERE {match}{typeClause} ORDER BY CASE WHEN replace(replace({haystack}, '  ', ' '), '  ', ' ') LIKE ? ESCAPE '\\' THEN 0 ELSE 1 END, Name COLLATE NOCASE, Id LIMIT ?",
                 args.ToArray());
         });
 
@@ -150,11 +151,6 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
 
             return result;
         });
-
-    /// <summary>Sets <see cref="FoodType.Food"/> on every Open Food Facts food stored with no type, leaving every other column and row alone. Returns how many rows changed.</summary>
-    public Task<int> BackfillOpenFoodFactsTypeAsync() =>
-        gate.RunAsync(async () =>
-            await connection.ExecuteAsync("UPDATE Food SET Type = ? WHERE Source = ? AND Type IS NULL", (int)FoodType.Food, (int)FoodSource.OpenFoodFacts));
 
     private static partial class Log
     {

@@ -61,8 +61,12 @@ public class Food
 
     public double? SaltG { get; set; }
 
-    /// <summary>Null on a row stored before types existed, until the seed loader sets it: Food for an Open Food Facts row on the next start, the seed's type for a CoFID row on the next seed refresh.</summary>
-    public FoodType? Type { get; set; }
+    /// <summary>
+    /// CoFID foods get the seed's type. Open Food Facts foods are Drink when the product is in the beverages category or measured in millilitres, otherwise Food; never Ingredient or Dish.
+    /// A row stored before types existed is set the same way by schema step 3 (Open Food Facts by its unit; a CoFID row is Food until the seed refresh sets its own).
+    /// </summary>
+    [NotNull]
+    public FoodType Type { get; set; }
 
     /// <summary>Lowercased text with accents removed that searches match against.</summary>
     [NotNull]

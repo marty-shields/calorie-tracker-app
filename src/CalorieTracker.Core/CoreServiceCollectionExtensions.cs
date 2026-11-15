@@ -34,7 +34,9 @@ public static class CoreServiceCollectionExtensions
 
     /// <summary>Registers each numbered schema upgrade step, one for each version after 1.</summary>
     private static IServiceCollection AddSchemaUpgrades(this IServiceCollection services) =>
-        services.AddSingleton<ISchemaUpgrade, FoodBarcodeUpgrade>();
+        services
+            .AddSingleton<ISchemaUpgrade, FoodBarcodeUpgrade>()
+            .AddSingleton<ISchemaUpgrade, FoodTypeUpgrade>();
 
     private static IServiceCollection AddServices(this IServiceCollection services)
     {

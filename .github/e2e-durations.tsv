@@ -1,1 +1,14 @@
 # Median seconds of a passing run per scenario, then its full name. Made by e2e-durations.sh (docs/dev-setup-build.md).
+11	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.ASearchNothingMatchesSaysSo
+18	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.AllShowsEveryType
+12	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.AndroidBackFromAFoodsValuesReturnsToTheResults
+6	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.AndroidBackFromTheResultsReturnsToTheDashboard
+6	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.FoodsOpensFromTheNavigationBar
+6	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.FoodsOpensOnIngredients
+6	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.NothingTypedShowsThePrompt
+20	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.SwitchingToDishesShowsADish
+38	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.SwitchingToDrinksShowsADrink
+17	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.TappingAResultShowsItsValuesAndBackToResultsReturns
+7	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.TheDashboardItemReturnsToTheDashboard
+9	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.TypingListsMatchingFoodsWithTheirEnergy
+15	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.TypingOnIngredientsListsOnlyIngredients

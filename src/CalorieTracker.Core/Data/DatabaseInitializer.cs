@@ -7,7 +7,7 @@ namespace CalorieTracker.Core.Data;
 /// <summary>Upgrades the schema version stored in SQLite <c>user_version</c>, then creates missing tables.</summary>
 internal sealed partial class DatabaseInitializer : IDatabaseInitializer
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     private readonly SQLiteAsyncConnection connection;
     private readonly IReadOnlyList<ISchemaUpgrade> upgrades;

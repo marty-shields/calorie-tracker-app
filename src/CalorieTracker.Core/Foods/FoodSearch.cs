@@ -11,8 +11,9 @@ internal sealed partial class FoodSearch(FoodStore store, ILogger<FoodSearch> lo
 
     public async Task<FoodSearchResult> SearchAsync(string query, FoodType? type = null, int limit = IFoodSearch.DefaultLimit, CancellationToken ct = default)
     {
-        var terms = SearchFolding.Fold(query ?? "")
-            .Split(FoodStore.Separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        var words = SearchFolding.Fold(query ?? "")
+            .Split(FoodStore.Separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var terms = words
             .Distinct()
             .Take(MaxTerms)
             .ToList();
@@ -23,7 +24,7 @@ internal sealed partial class FoodSearch(FoodStore store, ILogger<FoodSearch> lo
 
         try
         {
-            var foods = await store.SearchAsync(terms, Math.Clamp(limit, 1, IFoodSearch.MaxLimit), type, ct).WaitAsync(ct);
+            var foods = await store.SearchAsync(terms, string.Join(' ', words), Math.Clamp(limit, 1, IFoodSearch.MaxLimit), type, ct).WaitAsync(ct);
             Log.Searched(logger, terms.Count, type, foods.Count);
             return FoodSearchResult.Found(foods);
         }

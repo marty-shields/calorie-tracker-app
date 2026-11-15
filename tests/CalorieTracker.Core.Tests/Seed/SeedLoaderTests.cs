@@ -120,14 +120,14 @@ public class SeedLoaderTests
         await Loader().LoadAsync();
 
         var types = (await connection.Table<Food>().ToListAsync()).OrderBy(f => f.SourceId).Select(f => f.Type);
-        Assert.That(types, Is.EqualTo(new FoodType?[] { FoodType.Ingredient, FoodType.Food, FoodType.Dish, FoodType.Drink }));
+        Assert.That(types, Is.EqualTo(new[] { FoodType.Ingredient, FoodType.Food, FoodType.Dish, FoodType.Drink }));
     }
 
     [Test]
-    public async Task LoadAsync_RowStoredWithoutAType_GetsItsTypeAndKeepsIdAndBarcodeLinks()
+    public async Task LoadAsync_RowStoredWithAnotherType_GetsTheSeedsTypeAndKeepsIdAndBarcodeLinks()
     {
         await Loader().LoadAsync();
-        await connection.ExecuteAsync("UPDATE Food SET Type = NULL");
+        await connection.ExecuteAsync("UPDATE Food SET Type = ?", (int)FoodType.Food);
         await store.UpsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "5000000000017", Name = "Off", Unit = FoodUnit.Gram, SearchText = "off", Type = FoodType.Food }, "5000000000017");
         var arrowroot = await connection.Table<Food>().FirstAsync(f => f.SourceId == "11-001");
         await connection.ExecuteAsync("INSERT INTO FoodBarcode (Barcode, FoodId) VALUES (?, ?)", "5000000000024", arrowroot.Id);
@@ -141,7 +141,7 @@ public class SeedLoaderTests
         Assert.Multiple(() =>
         {
             Assert.That(after["11-001"].Id, Is.EqualTo(arrowroot.Id));
-            Assert.That(after.Values.Select(f => f.Type), Is.EqualTo(new FoodType?[] { FoodType.Ingredient, FoodType.Drink, FoodType.Dish }));
+            Assert.That(after.Values.Select(f => f.Type), Is.EqualTo(new[] { FoodType.Ingredient, FoodType.Drink, FoodType.Dish }));
             Assert.That(linked, Is.EqualTo(new[] { arrowroot.Id }));
         });
     }
@@ -288,7 +288,6 @@ public class SeedLoaderTests
             Assert.That(seed.Foods.Select(f => f.Source), Is.All.EqualTo(FoodSource.CoFID));
             Assert.That(seed.Foods.Select(f => f.SourceId), Is.Unique);
             Assert.That(seed.Foods.Select(f => f.Name), Is.All.Not.Empty);
-            Assert.That(seed.Foods.Select(f => f.Type), Is.All.Not.Null);
         });
     }
 
@@ -299,7 +298,7 @@ public class SeedLoaderTests
 
         var seed = SeedFile.Parse(stream);
 
-        var counts = seed.Foods.GroupBy(f => f.Type!.Value).ToDictionary(g => g.Key, g => g.Count());
+        var counts = seed.Foods.GroupBy(f => f.Type).ToDictionary(g => g.Key, g => g.Count());
         Assert.That(counts, Is.EqualTo(new Dictionary<FoodType, int>
         {
             [FoodType.Ingredient] = 1585,
@@ -453,27 +452,6 @@ public class SeedLoaderTests
         "WE F2",
         "WY I18 K1",
     ];
-
-    [Test]
-    public async Task LoadAsync_StoredOpenFoodFactsFoodWithNoType_BecomesFoodAndNothingElseChanges()
-    {
-        await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Brand, Unit, Kcal, ProteinG, CarbsG, FatG, SearchText, Type) VALUES (77, ?, 'b1', 'Mine', 'Br', ?, 10, 1, 2, 3, 'mine br', NULL)", (int)FoodSource.OpenFoodFacts, (int)FoodUnit.Gram);
-        await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Unit, Kcal, ProteinG, CarbsG, FatG, SearchText, Type) VALUES (78, ?, 'b2', 'Typed', ?, 10, 1, 2, 3, 'typed', ?)", (int)FoodSource.OpenFoodFacts, (int)FoodUnit.Gram, (int)FoodType.Drink);
-        var before = await Snapshot(FoodSource.OpenFoodFacts);
-
-        await Loader().LoadAsync();
-
-        var after = await Snapshot(FoodSource.OpenFoodFacts);
-        var foods = (await connection.Table<Food>().Where(f => f.Source == FoodSource.OpenFoodFacts).ToListAsync()).ToDictionary(f => f.Id);
-        Assert.Multiple(() =>
-        {
-            Assert.That(foods[77].Type, Is.EqualTo(FoodType.Food));
-            Assert.That(foods[78].Type, Is.EqualTo(FoodType.Drink));
-            Assert.That(after, Is.EqualTo(before));
-            Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Contain(CoreEvent.SeedTypesBackfilled));
-            Assert.That(logger.Collector.GetSnapshot().Select(r => r.Message), Has.None.Contain("Mine"));
-        });
-    }
 
     private SeedLoader Loader() => new(store, logger, () => new MemoryStream(Encoding.UTF8.GetBytes(seedJson)));
 

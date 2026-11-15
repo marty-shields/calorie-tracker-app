@@ -39,7 +39,7 @@
                 @foreach (var item in Results)
                 {
                     <li>
-                        <ListRow Text="@item.Name" Detail="@Subtitle(item)" Aside="@item.Type?.ToString()"
+                        <ListRow Text="@item.Name" Detail="@Subtitle(item)" Aside="@item.Type.ToString()"
                                  OnClick="@(() => OnSelect.InvokeAsync(item))" TestId="@($"food-result-{item.Id}")" />
                     </li>
                 }

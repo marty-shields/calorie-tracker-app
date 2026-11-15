@@ -42,7 +42,6 @@ public class CoreEventTests
             [CoreEvent.SeedLoaded] = 1401,
             [CoreEvent.SeedUpToDate] = 1402,
             [CoreEvent.SeedLoadFailed] = 1403,
-            [CoreEvent.SeedTypesBackfilled] = 1404,
             [CoreEvent.FoodSearchBlock] = 1500,
             [CoreEvent.FoodSearched] = 1501,
             [CoreEvent.FoodSearchFailed] = 1502,
