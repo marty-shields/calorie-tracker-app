@@ -4,7 +4,7 @@
              x:Class="CalorieTracker.App.App">
     <Application.Resources>
         <!-- The light and dark values of tokens.css for the native camera page, picked with AppThemeBinding.
-             The page follows the app's own theme choice, which Application.UserAppTheme carries over from the web view. -->
+             The page follows the app's own theme choice, which Application.UserAppTheme carries over from the web view while the camera page is open (the scanner puts the previous value back afterwards). -->
         <Color x:Key="BackgroundLight">#f4f8f8</Color>
         <Color x:Key="BackgroundDark">#141819</Color>
         <Color x:Key="TextLight">#373e40</Color>

@@ -3,7 +3,7 @@
 
 <div class="failed">
     <p class="error" role="alert" data-testid="@($"{TestId}-error")">@Message</p>
-    <AppButton @ref="retry" Variant="ButtonVariant.Secondary" FullWidth TestId="@($"{TestId}-retry")" OnClick="OnRetry">Try again</AppButton>
+    <AppButton @ref="retry" FullWidth TestId="@($"{TestId}-retry")" OnClick="OnRetry">Try again</AppButton>
 </div>
 
 @code {

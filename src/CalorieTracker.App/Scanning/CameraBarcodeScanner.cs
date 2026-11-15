@@ -34,6 +34,8 @@ internal sealed partial class CameraBarcodeScanner(ILogger<CameraBarcodeScanner>
     private async Task<ScanResult> OpenAsync(Func<string, bool> accept, ThemePreference theme)
     {
         var result = ScanResult.Unavailable;
+        var app = Application.Current;
+        var previousTheme = app?.UserAppTheme ?? AppTheme.Unspecified;
         try
         {
             if (!await Methods.AskForRequiredPermissionAsync())
@@ -41,10 +43,10 @@ internal sealed partial class CameraBarcodeScanner(ILogger<CameraBarcodeScanner>
                 Log.PermissionDenied(logger);
                 result = ScanResult.PermissionDenied;
             }
-            else if (Application.Current?.Windows is [var window, ..] && window.Page?.Navigation is { } navigation)
+            else if (app?.Windows is [var window, ..] && window.Page?.Navigation is { } navigation)
             {
                 // AppThemeBinding on the camera page follows UserAppTheme, so give it the app's choice rather than the phone's.
-                Application.Current.UserAppTheme = theme switch
+                app.UserAppTheme = theme switch
                 {
                     ThemePreference.Light => AppTheme.Light,
                     ThemePreference.Dark => AppTheme.Dark,
@@ -62,6 +64,14 @@ internal sealed partial class CameraBarcodeScanner(ILogger<CameraBarcodeScanner>
         catch (Exception ex)
         {
             Log.Failed(logger, ex.GetType().Name);
+        }
+        finally
+        {
+            // Runs on the main thread, as ScanAsync marshals the whole scan there.
+            if (app is not null)
+            {
+                app.UserAppTheme = previousTheme;
+            }
         }
 
         Log.Finished(logger, result.Status);

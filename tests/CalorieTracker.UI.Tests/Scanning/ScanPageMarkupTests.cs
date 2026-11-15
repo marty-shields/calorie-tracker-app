@@ -37,6 +37,16 @@ public class ScanPageMarkupTests
         Assert.That(ScanXaml(), Does.Match(@"<Border AutomationId=""scan-native-frame""\s+AutomationProperties\.IsInAccessibleTree=""False"""));
 
     [Test]
+    public void ScanPage_DrawsTheFrameTwiceAsWideAsTall()
+    {
+        var tag = Regex.Match(ScanXaml(), @"<Border\s[^>]*AutomationId=""scan-native-frame""[^>]*>").Value;
+        var width = double.Parse(Regex.Match(tag, @"WidthRequest=""([0-9.]+)""").Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+        var height = double.Parse(Regex.Match(tag, @"HeightRequest=""([0-9.]+)""").Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+
+        Assert.That(width / height, Is.EqualTo(2.0));
+    }
+
+    [Test]
     public void ScanPage_UsesNoLiteralColoursInTheMarkup() =>
         Assert.That(ScanXaml(), Does.Not.Match(@"=""#[0-9A-Fa-f]").And.Not.Match(@"(Color|Stroke)=""(?!Transparent"")[A-Za-z]+"""));
 
@@ -98,9 +108,22 @@ public class ScanPageMarkupTests
         var arm = preference == ThemePreference.System ? "_" : "ThemePreference." + preference;
         Assert.Multiple(() =>
         {
-            Assert.That(source, Does.Contain("Application.Current.UserAppTheme = theme switch"));
+            Assert.That(source, Does.Contain("app.UserAppTheme = theme switch"));
             Assert.That(source, Does.Contain(arm + " => " + appTheme + ","));
             Assert.That(source.IndexOf("UserAppTheme", StringComparison.Ordinal), Is.LessThan(source.IndexOf("new ScanPage(accept)", StringComparison.Ordinal)), "set before the page is built");
+        });
+    }
+
+    [Test]
+    public void Scanner_RestoresThePreviousUserAppThemeInAFinallyAfterTheScan()
+    {
+        var source = RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "CameraBarcodeScanner.cs");
+        var finallyAt = source.IndexOf("finally", source.IndexOf("Task<ScanResult> OpenAsync(", StringComparison.Ordinal), StringComparison.Ordinal);
+        Assert.Multiple(() =>
+        {
+            Assert.That(source, Does.Contain("var previousTheme = app?.UserAppTheme ?? AppTheme.Unspecified;"));
+            Assert.That(finallyAt, Is.GreaterThan(source.IndexOf("await page.Result", StringComparison.Ordinal)), "restored after the page closes, on every path");
+            Assert.That(source.IndexOf("app.UserAppTheme = previousTheme;", StringComparison.Ordinal), Is.GreaterThan(finallyAt));
         });
     }
 

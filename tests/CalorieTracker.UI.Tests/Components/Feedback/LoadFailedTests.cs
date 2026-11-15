@@ -24,6 +24,18 @@ public class LoadFailedTests : ComponentTestBase
     }
 
     [Test]
+    public void TryAgain_IsAPrimaryButtonNotThePaleSecondaryOne()
+    {
+        var classes = Render().Find("[data-testid=dashboard-retry]").ClassList;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(classes, Does.Contain("primary"));
+            Assert.That(classes, Does.Not.Contain("secondary"));
+        });
+    }
+
+    [Test]
     public void TryAgain_RaisesOnRetry()
     {
         var retries = 0;
