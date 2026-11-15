@@ -75,6 +75,18 @@ public sealed class FoodSearchScreen(WebView web)
             return first is not null;
         }, "no result to open");
 
+    /// <summary>The id of the first result, from its test id, once the box holds what was typed and a row shows.</summary>
+    public int FirstResultId()
+    {
+        var id = 0;
+        web.WaitUntil(() =>
+        {
+            var first = lastSearch is null || Typed() == lastSearch ? web.FindAll("[data-testid^=\"food-result-\"]").FirstOrDefault() : null;
+            return first is not null && int.TryParse(first.GetDomAttribute("data-testid")!["food-result-".Length..], out id);
+        }, "no result to read the id of");
+        return id;
+    }
+
     public bool ShowsDetail() => web.Exists("food-detail");
 
     public string DetailName() => web.Text("food-detail-name");

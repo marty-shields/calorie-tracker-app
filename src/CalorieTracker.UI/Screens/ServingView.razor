@@ -1,0 +1,210 @@
+@using System.Globalization
+@using CalorieTracker.Core.Data
+@using CalorieTracker.Core.Diary
+@using CalorieTracker.Core.Foods
+@using CalorieTracker.UI.Components.Feedback
+@using CalorieTracker.UI.Components.Inputs
+@using CalorieTracker.UI.Models.Serving
+<AppScreen Title="@(Food?.Name ?? "Add food")" OnBack="OnBack">
+    <ChildContent>
+        @if (Loading)
+        {
+            <div class="centre">
+                <Spinner Label="Loading food…" TestId="serving-loading" />
+            </div>
+        }
+        else if (LoadFailed)
+        {
+            <LoadFailed Message="Couldn't load this food" TestId="serving-load-failed" OnRetry="OnRetry" />
+        }
+        else if (Food is not { } food)
+        {
+            <div class="centre">
+                <EmptyState Message="Food not found" TestId="serving-not-found" />
+            </div>
+        }
+        else
+        {
+            var mode = HasServing ? Mode : EntryMode.Grams;
+            var servings = mode == EntryMode.Servings;
+            <div class="body">
+                <p class="per" data-testid="serving-per" data-wrap-ok>@PerLine(food)</p>
+                @if (HasServing)
+                {
+                    <section class="section">
+                        <h2 class="heading">Enter as</h2>
+                        <SegmentedControl TValue="EntryMode" Label="Enter as" Options="Modes" Value="mode" ValueChanged="OnModeChanged" TestId="serving-mode" />
+                        @if (servings)
+                        {
+                            <SummaryCard TestId="serving-label"><span class="serving-label" data-wrap-ok>@food.ServingLabel</span></SummaryCard>
+                        }
+                    </section>
+                }
+                <section class="section">
+                    <h2 class="heading">@(servings ? "How many" : "Amount")</h2>
+                    <NumberField Label="@(servings ? "Servings" : "Amount")" Value="Amount" ValueChanged="OnAmountChanged" Unit="@(servings ? "serving" : UnitText(food))" Stepper
+                                 Step="@(servings ? 1 : 10)" Minimum="0" InvalidMessage="@InvalidMessage(food, servings)" TestId="serving-amount" />
+                    @if (servings && Valid)
+                    {
+                        <p class="weight" data-testid="serving-weight">= @Weight(Grams!.Value) @UnitText(food)</p>
+                    }
+                    @if (HasServing && !servings)
+                    {
+                        <AppButton Variant="ButtonVariant.Secondary" FullWidth TestId="serving-use-serving" OnClick="OnUseServing">Use serving: @food.ServingLabel</AppButton>
+                    }
+                </section>
+                <section class="section">
+                    <h2 class="heading">Meal</h2>
+                    <FilterChips TValue="Meal" Label="Meal" Options="Meals" Value="Meal" ValueChanged="OnMealChanged" TestId="serving-meal" />
+                    @if (SuggestedAt is { } at)
+                    {
+                        <p class="suggested" data-testid="serving-suggestion">Suggested from the time: @at.ToString("HH:mm", CultureInfo.InvariantCulture)</p>
+                    }
+                </section>
+                @if (Valid)
+                {
+                    <SummaryCard TestId="serving-adds">
+                        <h2 class="heading">This adds</h2>
+                        <p class="kcal" data-testid="serving-adds-kcal">@Kcal(food) kcal</p>
+                        <p class="detail" data-testid="serving-adds-detail" data-wrap-ok>@AddsDetail(food)</p>
+                    </SummaryCard>
+                }
+            </div>
+        }
+    </ChildContent>
+    <BottomBar>
+        @if (Food is not null && !Loading && !LoadFailed)
+        {
+            <AppButton FullWidth Busy="Saving" Disabled="!Valid" TestId="serving-add" OnClick="OnAdd">@(Saving ? "Adding…" : $"Add to {Meal}")</AppButton>
+        }
+    </BottomBar>
+    <Status>
+        @if (SaveFailed)
+        {
+            <p class="error" role="alert" data-testid="serving-error" data-wrap-ok>Couldn't add this food. Try again.</p>
+        }
+    </Status>
+</AppScreen>
+
+@code {
+    /// <summary>The food to add, with its values per 100 g or ml. Null shows "Food not found" unless <see cref="Loading"/> or <see cref="LoadFailed"/> is set.</summary>
+    [Parameter]
+    public Food? Food { get; set; }
+
+    /// <summary>Shows a spinner instead of the food.</summary>
+    [Parameter]
+    public bool Loading { get; set; }
+
+    /// <summary>Shows a load error with Try again instead of the food.</summary>
+    [Parameter]
+    public bool LoadFailed { get; set; }
+
+    /// <summary>Grams (or ml) or servings. Ignored, and Grams used, when the food has no serving.</summary>
+    [Parameter]
+    public EntryMode Mode { get; set; } = EntryMode.Servings;
+
+    /// <summary>The number in the amount field: grams or ml in <see cref="EntryMode.Grams"/>, a count of servings in <see cref="EntryMode.Servings"/>. Null when empty or not a number.</summary>
+    [Parameter]
+    public decimal? Amount { get; set; }
+
+    /// <summary>The weight (g or ml) the amount comes to, which Add saves and This adds works from. Null, zero, negative or above <see cref="DiaryService.MaxAmount"/> shows the error and disables Add.</summary>
+    [Parameter]
+    public double? Grams { get; set; }
+
+    /// <summary>The chosen meal chip, named on the Add button.</summary>
+    [Parameter]
+    public Meal Meal { get; set; }
+
+    /// <summary>The local time the meal was suggested from. Null (the meal was chosen, not suggested) shows no suggestion line.</summary>
+    [Parameter]
+    public TimeOnly? SuggestedAt { get; set; }
+
+    /// <summary>Shows Add as busy while the entry is saved.</summary>
+    [Parameter]
+    public bool Saving { get; set; }
+
+    /// <summary>Shows the save error above the Add button.</summary>
+    [Parameter]
+    public bool SaveFailed { get; set; }
+
+    /// <summary>Raised with the mode tapped in Enter as.</summary>
+    [Parameter]
+    public EventCallback<EntryMode> OnModeChanged { get; set; }
+
+    /// <summary>Raised on every change of the amount field with the number (null when it isn't one).</summary>
+    [Parameter]
+    public EventCallback<decimal?> OnAmountChanged { get; set; }
+
+    /// <summary>Raised by Use serving, which is shown in grams mode when the food has a serving.</summary>
+    [Parameter]
+    public EventCallback OnUseServing { get; set; }
+
+    /// <summary>Raised with the meal chip tapped.</summary>
+    [Parameter]
+    public EventCallback<Meal> OnMealChanged { get; set; }
+
+    /// <summary>Raised by Add while the amount is valid.</summary>
+    [Parameter]
+    public EventCallback OnAdd { get; set; }
+
+    /// <summary>Raised by Try again on a load error.</summary>
+    [Parameter]
+    public EventCallback OnRetry { get; set; }
+
+    /// <summary>Raised by the back arrow and the Android back button.</summary>
+    [Parameter]
+    public EventCallback OnBack { get; set; }
+
+    private static readonly IReadOnlyList<RadioOption<EntryMode>> Modes =
+    [
+        new(EntryMode.Grams, "Grams", "serving-mode-grams"),
+        new(EntryMode.Servings, "Servings", "serving-mode-servings"),
+    ];
+
+    private static readonly IReadOnlyList<RadioOption<Meal>> Meals =
+    [
+        new(Meal.Breakfast, "Breakfast", "serving-meal-breakfast"),
+        new(Meal.Lunch, "Lunch", "serving-meal-lunch"),
+        new(Meal.Dinner, "Dinner", "serving-meal-dinner"),
+        new(Meal.Snacks, "Snacks", "serving-meal-snacks"),
+    ];
+
+    /// <summary>The serving switch shows only with a label and a weight above zero.</summary>
+    private bool HasServing =>
+        Food is { ServingAmount: > 0 and <= FoodService.MaxServingAmount } food && !string.IsNullOrWhiteSpace(food.ServingLabel);
+
+    private bool Valid => Grams is > 0 and <= DiaryService.MaxAmount;
+
+    private static string UnitText(Food food) => food.Unit == FoodUnit.Millilitre ? "ml" : "g";
+
+    private string? InvalidMessage(Food food, bool servings)
+    {
+        if (Valid)
+        {
+            return null;
+        }
+
+        return Grams is > DiaryService.MaxAmount
+            ? servings
+                ? $"That is over {DiaryService.MaxAmount.ToString("N0", CultureInfo.InvariantCulture)} {UnitText(food)}. Enter fewer servings."
+                : $"Enter an amount of {DiaryService.MaxAmount.ToString("N0", CultureInfo.InvariantCulture)} {UnitText(food)} or less."
+            : "Enter an amount above 0.";
+    }
+
+    private static string PerLine(Food food) =>
+        $"Per 100 {UnitText(food)} · {Number(food.Kcal)} kcal · P {Number(food.ProteinG)} · C {Number(food.CarbsG)} · F {Number(food.FatG)}";
+
+    private string AddsDetail(Food food) =>
+        HasServing
+            ? $"{Weight(Grams!.Value)} {UnitText(food)} of {food.Name}"
+            : $"Protein {Number(Share(food.ProteinG))} g · Carbs {Number(Share(food.CarbsG))} g · Fat {Number(Share(food.FatG))} g";
+
+    private double Share(double per100) => per100 * Grams!.Value / 100;
+
+    private string Kcal(Food food) => Math.Round(Share(food.Kcal), MidpointRounding.AwayFromZero).ToString("0", CultureInfo.InvariantCulture);
+
+    /// <summary>Whole above 100, otherwise one decimal at most.</summary>
+    private static string Weight(double grams) => grams >= 100 ? Math.Round(grams, MidpointRounding.AwayFromZero).ToString("0", CultureInfo.InvariantCulture) : Number(grams);
+
+    private static string Number(double value) => value.ToString("0.#", CultureInfo.InvariantCulture);
+}

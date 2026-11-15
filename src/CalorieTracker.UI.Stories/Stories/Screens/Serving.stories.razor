@@ -1,0 +1,92 @@
+@using CalorieTracker.Core.Data
+@using CalorieTracker.UI.Models.Serving
+@using CalorieTracker.UI.Stories.Stories.Screens
+@attribute [Stories("Screens/Serving")]
+
+<Stories TComponent="ServingView" Layout="typeof(PhoneLayout)">
+
+    <Story Name="Servings">
+        <Template>
+            <ServingView Food="ServingSamples.Pizza" Mode="EntryMode.Servings" Amount="1" Grams="201.8" Meal="Meal.Lunch" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Grams with a serving">
+        <Template>
+            <ServingView Food="ServingSamples.Pizza" Mode="EntryMode.Grams" Amount="150" Grams="150" Meal="Meal.Lunch" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Scanned product with no serving">
+        <Template>
+            <ServingView Food="ServingSamples.Biscuits" Mode="EntryMode.Grams" Amount="30" Grams="30" Meal="Meal.Lunch" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="CoFID ingredient">
+        <Template>
+            <ServingView Food="ServingSamples.Cheddar" Mode="EntryMode.Grams" Amount="30" Grams="30" Meal="Meal.Lunch" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Liquid">
+        <Template>
+            <ServingView Food="ServingSamples.Milk" Mode="EntryMode.Grams" Amount="250" Grams="250" Meal="Meal.Breakfast" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Preset meal">
+        <Template>
+            <ServingView Food="ServingSamples.Cheddar" Mode="EntryMode.Grams" Amount="30" Grams="30" Meal="Meal.Dinner" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Suggested meal">
+        <Template>
+            <ServingView Food="ServingSamples.Cheddar" Mode="EntryMode.Grams" Amount="30" Grams="30" Meal="Meal.Lunch" SuggestedAt="new TimeOnly(12, 40)" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Invalid amount">
+        <Template>
+            <ServingView Food="ServingSamples.Cheddar" Mode="EntryMode.Grams" Amount="0" Grams="0" Meal="Meal.Lunch" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Amount too large">
+        <Template>
+            <ServingView Food="ServingSamples.Cheddar" Mode="EntryMode.Grams" Amount="12000" Grams="12000" Meal="Meal.Lunch" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Saving">
+        <Template>
+            <ServingView Food="ServingSamples.Cheddar" Mode="EntryMode.Grams" Amount="30" Grams="30" Meal="Meal.Lunch" Saving OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Save failed">
+        <Template>
+            <ServingView Food="ServingSamples.Cheddar" Mode="EntryMode.Grams" Amount="30" Grams="30" Meal="Meal.Lunch" SaveFailed OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Loading">
+        <Template>
+            <ServingView Loading OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Load failed">
+        <Template>
+            <ServingView LoadFailed OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Food not found">
+        <Template>
+            <ServingView  OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+</Stories>

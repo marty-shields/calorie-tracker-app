@@ -13,6 +13,10 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             await connection.FindWithQueryAsync<Food>(
                 "SELECT f.* FROM Food f JOIN FoodBarcode b ON b.FoodId = f.Id WHERE b.Barcode = ?", barcode));
 
+    /// <summary>The food with this id as stored, or null when there is none.</summary>
+    public Task<Food?> GetAsync(int id) =>
+        gate.RunAsync<Food?>(async () => await connection.FindAsync<Food>(id));
+
     /// <summary>The foods with these ids; an id with no food is left out. Runs on the caller's connection, inside the gate.</summary>
     internal static List<Food> FindIn(SQLiteConnection db, IReadOnlyCollection<int> ids)
     {
