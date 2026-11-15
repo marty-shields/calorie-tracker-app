@@ -22,6 +22,8 @@
     --color-on-danger: light-dark(#ffffff, #1e2324);
     --color-error: light-dark(#a8231c, #f2b8b5);
     --color-success: light-dark(#2e7d32, #a5d6a7);
+    /* The calorie ring's track. The accent arc keeps 3:1 on it, so it cannot also be 3:1 against the card. */
+    --color-ring-track: light-dark(#c2dddc, #506163);
     /* The energy share bar's segments. */
     --color-protein: light-dark(#2f7f86, #7fc4cc);
     --color-carbs: light-dark(#a35c00, #e0a860);

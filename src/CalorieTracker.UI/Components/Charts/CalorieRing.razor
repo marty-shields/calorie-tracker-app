@@ -22,7 +22,7 @@
     [Parameter]
     public string? TestId { get; set; }
 
-    private int EatenKcal => (int)Math.Round(Eaten, MidpointRounding.AwayFromZero);
+    private int EatenKcal => (int)Math.Round(Math.Max(Eaten, 0), MidpointRounding.AwayFromZero);
 
     private int? TargetKcal => Target is > 0 ? Target : null;
 

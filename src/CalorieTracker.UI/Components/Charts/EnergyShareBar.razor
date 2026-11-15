@@ -1,10 +1,16 @@
 @using System.Globalization
 <div class="share" role="img" aria-label="@Description" data-testid="@TestId">
     <div class="track" aria-hidden="true">
-        @if (TotalKcal > 0)
+        @if (ProteinKcal > 0)
         {
             <span class="segment protein" style="flex-grow: @Grow(ProteinKcal)" data-testid="@Id("protein-segment")"></span>
+        }
+        @if (CarbsKcal > 0)
+        {
             <span class="segment carbs" style="flex-grow: @Grow(CarbsKcal)" data-testid="@Id("carbs-segment")"></span>
+        }
+        @if (FatKcal > 0)
+        {
             <span class="segment fat" style="flex-grow: @Grow(FatKcal)" data-testid="@Id("fat-segment")"></span>
         }
     </div>
@@ -44,15 +50,41 @@
 
     private double TotalKcal => ProteinKcal + CarbsKcal + FatKcal;
 
-    private int Percent(double kcal) => (int)Math.Round(kcal / TotalKcal * 100, MidpointRounding.AwayFromZero);
+    /// <summary>Whole percentages of the calories, largest-remainder rounded so they add up to 100. Ties go to the earlier macro.</summary>
+    private int[] Percents
+    {
+        get
+        {
+            double[] kcal = [ProteinKcal, CarbsKcal, FatKcal];
+            var exact = kcal.Select(k => k / TotalKcal * 100).ToArray();
+            var whole = exact.Select(x => (int)Math.Floor(x)).ToArray();
+            var missing = 100 - whole.Sum();
+            foreach (var i in Enumerable.Range(0, 3).OrderByDescending(i => exact[i] - whole[i]).Take(missing))
+            {
+                whole[i]++;
+            }
 
-    private string Description => TotalKcal > 0
-        ? $"Energy share: protein {Grams(Protein)} g, {Percent(ProteinKcal)}% of calories; carbs {Grams(Carbs)} g, {Percent(CarbsKcal)}%; fat {Grams(Fat)} g, {Percent(FatKcal)}%."
-        : "Energy share: protein 0 g, carbs 0 g, fat 0 g. Nothing eaten yet.";
+            return whole;
+        }
+    }
 
-    private static string Grow(double kcal) => kcal.ToString("0.###", CultureInfo.InvariantCulture);
+    private string Description
+    {
+        get
+        {
+            if (TotalKcal <= 0)
+            {
+                return "Energy share: protein 0 g, carbs 0 g, fat 0 g. Nothing eaten yet.";
+            }
 
-    private static string Grams(double value) => value.ToString("0.#", CultureInfo.InvariantCulture);
+            var percent = Percents;
+            return $"Energy share: protein {Grams(Protein)} g, {percent[0]}% of calories; carbs {Grams(Carbs)} g, {percent[1]}%; fat {Grams(Fat)} g, {percent[2]}%.";
+        }
+    }
+
+    private string Grow(double kcal) => (kcal / TotalKcal * 100).ToString("0.###", CultureInfo.InvariantCulture);
+
+    private static string Grams(double value) => Math.Max(value, 0).ToString("0.#", CultureInfo.InvariantCulture);
 
     private string Id(string part) => $"{TestId}-{part}";
 }

@@ -35,6 +35,39 @@ public class CalorieRingTests : ComponentTestBase
         });
     }
 
+    [TestCase(659, "1", "659")]
+    [TestCase(0, "0", "0")]
+    public void Render_WithNoTarget_FillsOnlyOnceSomethingIsEaten(double eaten, string fill, string value)
+    {
+        var cut = Context.Render<CalorieRing>(p => p.Add(x => x.Eaten, eaten).Add(x => x.TestId, "ring"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=ring]").GetAttribute("style"), Does.Contain($"--fill: {fill}"));
+            Assert.That(cut.Find("[data-testid=ring-value]").TextContent, Is.EqualTo(value));
+        });
+    }
+
+    [Test]
+    public void Render_FractionalEaten_RoundsToTheNearestKcal()
+    {
+        var cut = Context.Render<CalorieRing>(p => p.Add(x => x.Eaten, 659.5).Add(x => x.Target, 2100).Add(x => x.TestId, "ring"));
+
+        Assert.That(cut.Find("[data-testid=ring]").GetAttribute("aria-label"), Does.Contain("Eaten 660 of"));
+    }
+
+    [Test]
+    public void Render_NegativeEaten_NeverShowsMoreThanTheTargetLeft()
+    {
+        var cut = Context.Render<CalorieRing>(p => p.Add(x => x.Eaten, -50).Add(x => x.Target, 2100).Add(x => x.TestId, "ring"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=ring-value]").TextContent, Is.EqualTo("2,100"));
+            Assert.That(cut.Find("[data-testid=ring]").GetAttribute("style"), Does.Contain("--fill: 0"));
+        });
+    }
+
     [Test]
     public void Render_OverTarget_UsesTheErrorTone()
     {
