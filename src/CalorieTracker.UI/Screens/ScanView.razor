@@ -1,3 +1,4 @@
+@using System.Globalization
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Components.Lists
 @using CalorieTracker.UI.Models.Scan
@@ -25,6 +26,10 @@
                     <FoodValues Name="@product.Name" Brand="@product.Brand" IsLiquid="product.IsLiquid" Kcal="(double)product.Kcal" Protein="(double)product.Protein"
                                 Carbs="(double)product.Carbs" Fat="(double)product.Fat" Fibre="(double?)product.Fibre" Sugars="(double?)product.Sugars"
                                 Saturates="(double?)product.Saturates" Salt="(double?)product.Salt" TestId="scan">
+                        @if (product.ServingLabel is not null && product.ServingAmount is { } serving)
+                        {
+                            <p class="serving" data-testid="scan-serving" data-wrap-ok>Serving: @product.ServingLabel (@serving.ToString("0.##", CultureInfo.InvariantCulture) @(product.IsLiquid ? "ml" : "g"))</p>
+                        }
                         @if (product.KcalMismatch)
                         {
                             <p class="warning" role="alert" data-testid="scan-warning" data-wrap-ok>These values don't add up. Check the label before relying on them.</p>
@@ -36,14 +41,23 @@
                 <LoadFailed Message="Couldn't open the camera" TestId="scan-camera-unavailable" OnRetry="OnScanAgain" />
                 break;
             default:
-                <EmptyState Message="Unable to find this product" TestId="scan-not-found" />
+                <EmptyState Message="Unable to find this product" Hint="Try another barcode, or search by name." TestId="scan-not-found" />
                 break;
         }
     </ChildContent>
     <BottomBar>
         @if (State is ScanState.Found or ScanState.NotFound)
         {
-            <AppButton FullWidth TestId="scan-again" OnClick="OnScanAgain">Scan again</AppButton>
+            @if (State == ScanState.Found && Product?.FoodId is not null)
+            {
+                <AppButton FullWidth TestId="scan-add" OnClick="OnAddToDiary">Add to diary</AppButton>
+            }
+            else if (State == ScanState.NotFound || Product is null)
+            {
+                <AppButton FullWidth TestId="scan-search" OnClick="OnSearchByName">Search by name</AppButton>
+            }
+
+            <AppButton FullWidth Variant="ButtonVariant.Secondary" TestId="scan-again" OnClick="OnScanAgain">Scan again</AppButton>
         }
     </BottomBar>
 </AppScreen>
@@ -56,6 +70,14 @@
     /// <summary>The product to show when <see cref="State"/> is Found. Found with null shows the not-found message.</summary>
     [Parameter]
     public ScannedProduct? Product { get; set; }
+
+    /// <summary>Raised by Add to diary, shown when the found product has a <see cref="ScannedProduct.FoodId"/>.</summary>
+    [Parameter]
+    public EventCallback OnAddToDiary { get; set; }
+
+    /// <summary>Raised by Search by name, shown when nothing was found.</summary>
+    [Parameter]
+    public EventCallback OnSearchByName { get; set; }
 
     /// <summary>Raised by Scan again, and by Try again when the camera could not open.</summary>
     [Parameter]
