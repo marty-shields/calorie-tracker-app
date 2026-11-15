@@ -2,7 +2,7 @@ namespace CalorieTracker.Core.Logging;
 
 /// <summary>
 /// Event ids of Core's log messages: 1000–1999, a block of 100 per type.
-/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch; the <c>*Block</c> members hold them.
+/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch, 1600 TargetService; the <c>*Block</c> members hold them.
 /// Ids never change and are never reused; list a retired id here and in <c>CoreEventTests</c>.
 /// </summary>
 internal enum CoreEvent
@@ -102,4 +102,19 @@ internal enum CoreEvent
 
     /// <summary><see cref="Foods.FoodSearch"/>: the store failed, so the search returned <see cref="Foods.FoodSearchStatus.Failed"/>.</summary>
     FoodSearchFailed = 1502,
+
+    /// <summary>Start of the block reserved for <see cref="Targets.TargetService"/>.</summary>
+    TargetServiceBlock = 1600,
+
+    /// <summary><see cref="Targets.TargetService"/>: a target was saved; no value is logged.</summary>
+    TargetSaved = 1601,
+
+    /// <summary><see cref="Targets.TargetService"/>: the target was cleared.</summary>
+    TargetCleared = 1602,
+
+    /// <summary><see cref="Targets.TargetService"/>: a value was rejected as not a whole number above zero; the value is not logged.</summary>
+    TargetRejected = 1603,
+
+    /// <summary><see cref="Targets.TargetService"/>: the database failed, so the call returned <see cref="Targets.TargetStatus.Failed"/>.</summary>
+    TargetFailed = 1604,
 }
