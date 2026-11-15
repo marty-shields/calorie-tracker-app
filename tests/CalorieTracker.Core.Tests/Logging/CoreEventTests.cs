@@ -63,5 +63,9 @@ public class CoreEventTests
             [CoreEvent.DiaryEntryNotFound] = 1707,
             [CoreEvent.DiaryFoodNotFound] = 1708,
             [CoreEvent.DiaryFailed] = 1709,
+            [CoreEvent.DaySummaryServiceBlock] = 1800,
+            [CoreEvent.DaySummaryBuilt] = 1801,
+            [CoreEvent.DaySummaryFoodMissing] = 1802,
+            [CoreEvent.DaySummaryFailed] = 1803,
         }));
 }
