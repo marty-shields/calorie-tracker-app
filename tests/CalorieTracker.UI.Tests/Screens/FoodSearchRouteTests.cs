@@ -54,4 +54,13 @@ public class FoodSearchRouteTests
     [Test]
     public void DashboardRoute_OpensTheDay() =>
         Assert.That(DashboardRoute.Url(new DateOnly(2031, 7, 4)), Is.EqualTo("/?date=2031-07-04"));
+
+    [TestCase("2031-07-04", "2031-07-04")]
+    [TestCase("2031-7-4", null)]
+    [TestCase("04/07/2031", null)]
+    [TestCase("2031-02-30", null)]
+    [TestCase("", null)]
+    [TestCase(null, null)]
+    public void DashboardRoute_ParsesTheDateQueryOrOpensToday(string? text, string? expected) =>
+        Assert.That(DashboardRoute.ParseDate(text)?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), Is.EqualTo(expected));
 }

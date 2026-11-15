@@ -1,11 +1,75 @@
-<DashboardView OnNavigate="OnNavigate" OnSettings="OnSettings" />
+@using CalorieTracker.Core.Summary
+@inject DaySummaryService Summaries
+@inject TimeProvider Time
+
+<DashboardView Date="date" Today="today" Summary="summary" Loading="loading" LoadFailed="loadFailed"
+               OnPrevious="@(() => ShowAsync(date.AddDays(-1)))" OnNext="@(() => ShowAsync(date.AddDays(1)))" OnToday="@(() => ShowAsync(today))"
+               OnAdd="OnAdd" OnRetry="LoadAsync" OnNavigate="OnNavigate" OnSettings="OnSettings" />
 
 @code {
+    private DateOnly date;
+    private DateOnly today;
+    private DaySummary? summary;
+    private bool loading = true;
+    private bool loadFailed;
+    private bool started;
+    private DateOnly? openedWith;
+    private int loadSequence;
+
+    /// <summary>The day to open on the date strip, from the route's <c>date</c>. Null opens today. A change opens that day.</summary>
+    [Parameter]
+    public DateOnly? Date { get; set; }
+
+    /// <summary>Raised with the meal and day when a meal's + is tapped.</summary>
+    [Parameter]
+    public EventCallback<MealAddRequest> OnAdd { get; set; }
+
     /// <summary>Raised with the destination tapped in the bottom navigation bar.</summary>
     [Parameter]
     public EventCallback<NavDestination> OnNavigate { get; set; }
 
-    /// <summary>Raised by the Settings gear.</summary>
+    /// <summary>Raised by the Settings gear and by Set one in Settings.</summary>
     [Parameter]
     public EventCallback OnSettings { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        today = Today();
+        if (started && openedWith == Date)
+        {
+            return;
+        }
+
+        started = true;
+        openedWith = Date;
+        await ShowAsync(Date ?? today);
+    }
+
+    private DateOnly Today() => DateOnly.FromDateTime(Time.GetLocalNow().DateTime);
+
+    private Task ShowAsync(DateOnly day)
+    {
+        date = day;
+        return LoadAsync();
+    }
+
+    /// <summary>Reads the day on the strip. Only the newest read changes the screen, so tapping through days fast shows the last one.</summary>
+    private async Task LoadAsync()
+    {
+        var sequence = ++loadSequence;
+        today = Today();
+        var day = date;
+        loading = true;
+        loadFailed = false;
+        summary = null;
+        var result = await Summaries.GetAsync(day);
+        if (sequence != loadSequence)
+        {
+            return;
+        }
+
+        loading = false;
+        loadFailed = result.Status != DaySummaryStatus.Ok;
+        summary = result.Summary;
+    }
 }

@@ -12,13 +12,6 @@ public sealed class FoodSearchScreen(WebView web)
     /// <summary>Whether a screen title is food search in add mode ("Add to Lunch").</summary>
     public static bool IsAddTitle(string title) => title.StartsWith("Add to ", StringComparison.Ordinal);
 
-    /// <summary>Opens search in add mode for a meal through the router, as a meal's + on the Dashboard will, and waits for it. The Dashboard has no + yet.</summary>
-    public void OpenToAdd(string meal)
-    {
-        web.NavigateTo($"/foods?meal={meal}");
-        web.WaitUntil(() => web.Text("screen-title") == $"Add to {meal}", $"search for {meal} didn't show");
-    }
-
     public string ScreenTitle() => web.Text("screen-title");
 
     public bool HasNavigationBar() => web.Exists("bottom-nav");
@@ -88,18 +81,6 @@ public sealed class FoodSearchScreen(WebView web)
             first?.Click();
             return first is not null;
         }, "no result to open");
-
-    /// <summary>The id of the first result, from its test id, once the box holds what was typed and a row shows.</summary>
-    public int FirstResultId()
-    {
-        var id = 0;
-        web.WaitUntil(() =>
-        {
-            var first = lastSearch is null || Typed() == lastSearch ? web.FindAll("[data-testid^=\"food-result-\"]").FirstOrDefault() : null;
-            return first is not null && int.TryParse(first.GetDomAttribute("data-testid")!["food-result-".Length..], out id);
-        }, "no result to read the id of");
-        return id;
-    }
 
     public bool ShowsDetail() => web.Exists("food-detail");
 

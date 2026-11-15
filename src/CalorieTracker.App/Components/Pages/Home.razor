@@ -1,7 +1,18 @@
 @page "/"
+@using CalorieTracker.UI.Navigation
 @using CalorieTracker.UI.Screens
 @inject NavigationManager Navigation
 
-@* Back has no handler here, so it leaves the app. *@
-<DashboardPage OnNavigate="@(destination => Navigation.GoTo(destination))"
+@* Back has no handler here, so it leaves the app. Query: date (yyyy-MM-dd) opens that day, as the View day link does; without it the Dashboard opens on today.
+   A meal's + opens search to add to that meal and day. *@
+<DashboardPage Date="date"
+               OnAdd="@(request => Navigation.GoTo(FoodSearchRoute.AddUrl(request.Meal, request.Date)))"
+               OnNavigate="@(destination => Navigation.GoTo(destination))"
                OnSettings="@(() => Navigation.GoTo("settings"))" />
+
+@code {
+    [SupplyParameterFromQuery(Name = "date")]
+    public string? DateText { get; set; }
+
+    private DateOnly? date => DashboardRoute.ParseDate(DateText);
+}

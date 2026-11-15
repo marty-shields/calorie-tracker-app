@@ -363,6 +363,34 @@ public class DaySummaryServiceTests
         Assert.That((s.Totals.Kcal, s.TargetKcal, s.Meals.Sum(m => m.Entries.Count)), Is.EqualTo((125, (int?)2000, 1)));
     }
 
+    [Test]
+    public async Task DaySummary_EntryCarriesTheFoodsServingLabel_OrNullWhenItHasNone()
+    {
+        var slice = new Food
+        {
+            Source = FoodSource.OpenFoodFacts,
+            SourceId = "slice",
+            Name = "Cheese slice",
+            Unit = FoodUnit.Gram,
+            Kcal = 300,
+            ServingLabel = "1 slice (20 g)",
+            ServingAmount = 20,
+            SearchText = "cheese slice",
+        };
+        await connection.InsertAsync(slice);
+        await diary.AddAsync(Day, Meal.Lunch, slice.Id, 30, 1.5);
+        await diary.AddAsync(Day, Meal.Lunch, cheddar, 30);
+
+        var entries = (await service.GetAsync(Day)).Summary!.Meals.Single(m => m.Meal == Meal.Lunch).Entries;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(entries[0].ServingLabel, Is.EqualTo("1 slice (20 g)"));
+            Assert.That(entries[0].Servings, Is.EqualTo(1.5));
+            Assert.That(entries[1].ServingLabel, Is.Null);
+        });
+    }
+
     private async Task<int> AddFood(string name, FoodUnit unit, double kcal, double protein, double carbs, double fat)
     {
         var food = new Food
