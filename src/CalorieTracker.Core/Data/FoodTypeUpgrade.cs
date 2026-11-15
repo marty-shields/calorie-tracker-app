@@ -3,8 +3,8 @@ using SQLite;
 namespace CalorieTracker.Core.Data;
 
 /// <summary>
-/// Step 3: gives every stored food a type and makes the column not null. A food stored before types existed is Drink when it is an Open Food Facts food measured in
-/// millilitres, otherwise Food (a CoFID row too, until the seed refresh sets its own). Safe on a database with no Food table.
+/// Step 3: gives every stored food a type: adds the not null column, or fills the nulls of a development build's nullable one. A food stored before types existed is Drink when it is an Open Food Facts food measured in
+/// millilitres (no categories are stored, so the unit is all there is), otherwise Food (a CoFID row too, until the seed refresh sets its own). Safe on a database with no Food table.
 /// </summary>
 internal sealed class FoodTypeUpgrade : ISchemaUpgrade
 {
@@ -22,7 +22,7 @@ internal sealed class FoodTypeUpgrade : ISchemaUpgrade
         var offMillilitre = $"Source = {(int)FoodSource.OpenFoodFacts} AND Unit = {(int)FoodUnit.Millilitre}";
         if (db.ExecuteScalar<int>("SELECT COUNT(*) FROM pragma_table_info('Food') WHERE name = 'Type'") == 0)
         {
-            // The column is added here because sqlite-net can't add a not null column without a default.
+            // SQLite cannot ADD COLUMN NOT NULL without a default, so an upgraded database keeps DEFAULT 1 that a new one (created without it) lacks.
             db.Execute($"ALTER TABLE Food ADD COLUMN \"Type\" integer not null DEFAULT {food}");
             db.Execute($"UPDATE Food SET Type = {drink} WHERE {offMillilitre}");
         }

@@ -159,6 +159,15 @@ public class FoodSearchTests
     }
 
     [Test]
+    public async Task Search_WholeQueryAcrossALongSeparatorRun_StillRanksFirst()
+    {
+        await Add("Baked cola zero", "baked cola zero");
+        await Add("Cola) / (zero", "cola) / (zero");
+
+        Assert.That(await Names("cola zero"), Is.EqualTo(new[] { "Cola) / (zero", "Baked cola zero" }));
+    }
+
+    [Test]
     public async Task Search_WithAType_FindsOnlyFoodsOfThatType()
     {
         await Add("Potato", "potato", type: FoodType.Ingredient);

@@ -62,8 +62,8 @@ public class Food
     public double? SaltG { get; set; }
 
     /// <summary>
-    /// CoFID foods get the seed's type. Open Food Facts foods are Drink when the product is in the beverages category or measured in millilitres, otherwise Food; never Ingredient or Dish.
-    /// A row stored before types existed is set the same way by schema step 3 (Open Food Facts by its unit; a CoFID row is Food until the seed refresh sets its own).
+    /// CoFID foods get the seed's type. Open Food Facts foods: when the product has categories, Drink iff they include en:beverages (so oils and sauces sold in ml are Food); only with no usable categories does a millilitre unit make it Drink. Never Ingredient or Dish.
+    /// A row stored before types existed is set the same way by schema step 3 (Open Food Facts by its unit, since no categories are stored; a CoFID row is Food until the seed refresh sets its own).
     /// </summary>
     [NotNull]
     public FoodType Type { get; set; }

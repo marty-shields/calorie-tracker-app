@@ -198,7 +198,7 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
             Name = name,
             Brand = brand,
             Unit = millilitre ? FoodUnit.Millilitre : FoodUnit.Gram,
-            Type = millilitre || IsBeverage(product) ? FoodType.Drink : FoodType.Food,
+            Type = (IsBeverage(product) ?? millilitre) ? FoodType.Drink : FoodType.Food,
             Kcal = kcal.Value,
             ProteinG = protein.Value,
             CarbsG = carbs.Value,
@@ -214,11 +214,20 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
     private static bool IsAsciiDigits(string text, int minLength, int maxLength) =>
         text.Length >= minLength && text.Length <= maxLength && text.All(char.IsAsciiDigit);
 
-    /// <summary>True when <c>categories_tags</c> has <c>en:beverages</c>. A missing or malformed field is false.</summary>
-    private static bool IsBeverage(JsonElement product) =>
-        product.TryGetProperty("categories_tags", out var tags)
-        && tags.ValueKind == JsonValueKind.Array
-        && tags.EnumerateArray().Any(t => t.ValueKind == JsonValueKind.String && string.Equals(t.GetString(), "en:beverages", StringComparison.OrdinalIgnoreCase));
+    /// <summary>
+    /// Whether <c>categories_tags</c> has <c>en:beverages</c>, when it has any string tag, so oils or soy sauce sold in ml are not drinks.
+    /// Null when the field is missing, empty or malformed, and the unit decides.
+    /// </summary>
+    private static bool? IsBeverage(JsonElement product)
+    {
+        if (!product.TryGetProperty("categories_tags", out var tags) || tags.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        var strings = tags.EnumerateArray().Where(t => t.ValueKind == JsonValueKind.String).Select(t => t.GetString()).ToList();
+        return strings.Count == 0 ? null : strings.Any(t => string.Equals(t, "en:beverages", StringComparison.OrdinalIgnoreCase));
+    }
 
     private static bool IsMillilitre(JsonElement product, string key) =>
         string.Equals(ReadString(product, key), "ml", StringComparison.OrdinalIgnoreCase);

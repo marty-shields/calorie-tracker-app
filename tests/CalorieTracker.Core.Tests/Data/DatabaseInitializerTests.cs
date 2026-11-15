@@ -279,11 +279,12 @@ public class DatabaseInitializerTests
     }
 
     [Test]
-    public async Task InitializeAsync_NewDatabase_HasANotNullTypeColumnLikeAnUpgradedOne()
+    public async Task InitializeAsync_NewDatabase_HasANotNullTypeColumnWithNoDefault()
     {
         await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade()).InitializeAsync();
 
         Assert.That(await connection.ExecuteScalarAsync<int>("SELECT \"notnull\" FROM pragma_table_info('Food') WHERE name = 'Type'"), Is.EqualTo(1));
+        Assert.That(await connection.ExecuteScalarAsync<string?>("SELECT dflt_value FROM pragma_table_info('Food') WHERE name = 'Type'"), Is.Null);
     }
 
     [Test]

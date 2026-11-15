@@ -29,7 +29,7 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
         {
             ct.ThrowIfCancellationRequested();
             var haystack = Haystack;
-            var escaped = terms.Select(t => t.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_")).ToList();
+            var escaped = terms.Select(EscapeLike).ToList();
             var match = string.Join(" AND ", escaped.Select(_ => $"{haystack} LIKE ? ESCAPE '\\'"));
             var args = new List<object>();
             args.AddRange(escaped.Select(t => "% " + t + "%"));
@@ -40,12 +40,25 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
                 args.Add((int)wanted);
             }
 
-            args.Add(" " + phrase.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%");
-            args.Add(limit);
-            return await connection.QueryAsync<Food>(
-                $"SELECT * FROM Food WHERE {match}{typeClause} ORDER BY CASE WHEN replace(replace({haystack}, '  ', ' '), '  ', ' ') LIKE ? ESCAPE '\\' THEN 0 ELSE 1 END, Name COLLATE NOCASE, Id LIMIT ?",
+            var matches = await connection.QueryAsync<Food>(
+                $"SELECT * FROM Food WHERE {match}{typeClause} ORDER BY Name COLLATE NOCASE, Id",
                 args.ToArray());
+            // Done here rather than in SQL because SQL cannot collapse a separator run of any length.
+            var spaced = " " + phrase;
+            return matches
+                .Select(f => (Food: f, First: StartsWithPhrase(f.SearchText, spaced)))
+                .OrderBy(m => m.First ? 0 : 1)
+                .Select(m => m.Food)
+                .Take(limit)
+                .ToList();
         });
+
+    private static string EscapeLike(string text) =>
+        text.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
+
+    private static bool StartsWithPhrase(string searchText, string spacedPhrase) =>
+        (" " + string.Join(' ', searchText.Split(Separators, StringSplitOptions.RemoveEmptyEntries)))
+            .StartsWith(spacedPhrase, StringComparison.OrdinalIgnoreCase);
 
     private static string BuildHaystack()
     {

@@ -51,7 +51,7 @@ Values are rounded half up to 2 decimal places; `Tr` (trace) is 0; `N` or blank 
 
 ## Food types
 
-Search filters by `type` (the search screen's chips: Ingredients, Foods, Dishes, Drinks, All). The generator gives each food its group's type, then a name rule may move it. The owner approved this table (issue #33); change it in `build-food-seed.py` (`GROUP_TYPES`, `NAME_RULES`), bump `SEED_VERSION` and regenerate. A group with no entry fails the build. Open Food Facts foods get their type when the barcode is looked up, from the product data alone: `Drink` when its `categories_tags` contain `en:beverages` or its quantity unit is `ml`, otherwise `Food`. They are never `Ingredient` or `Dish`, since the product data does not say. Totals: Ingredient 1,585, Food 476, Dish 637, Drink 155 (2,853).
+Search filters by `type` (the search screen's chips: Ingredients, Foods, Dishes, Drinks, All). The generator gives each food its group's type, then a name rule may move it. The owner approved this table (issue #33); change it in `build-food-seed.py` (`GROUP_TYPES`, `NAME_RULES`), bump `SEED_VERSION` and regenerate. A group with no entry fails the build. Open Food Facts foods get their type when the barcode is looked up, from the product data alone: when `categories_tags` has any tag, `Drink` only if it contains `en:beverages` (case-insensitive), otherwise `Food`, so oils, vinegars and soy sauce sold in ml are `Food`; the `ml` unit makes it `Drink` only when `categories_tags` is missing, empty or malformed. They are never `Ingredient` or `Dish`, since the product data does not say. Totals: Ingredient 1,585, Food 476, Dish 637, Drink 155 (2,853).
 
 | Type | Groups |
 | --- | --- |
@@ -78,7 +78,7 @@ Name rules (case-insensitive, searched in the everyday `name`, applied after the
 | WY | distilled water | Drink |
 | PAA | soup powder | Food |
 
-Judgment calls: BAR milk products stay Ingredients, "Plain pilau rice" stays a Dish, sandwiches are Dishes, breads Ingredients, homemade sauces and soups Dishes (retail ones Foods), yoghurt and ice cream Foods, JR fish products Foods, cereals Foods, milkshakes Drinks, and drink mixes, squash, cordial and juice concentrates Drinks. Every stored food has a type (the column is not null). Schema step 3 (`FoodTypeUpgrade`) gave the foods stored before types existed one: an Open Food Facts food measured in millilitres is `Drink`, any other food (CoFID rows too) is `Food`; the CoFID rows then get the seed's type on the seed 4 load.
+Judgment calls: BAR milk products stay Ingredients, "Plain pilau rice" stays a Dish, sandwiches are Dishes, breads Ingredients, homemade sauces and soups Dishes (retail ones Foods), yoghurt and ice cream Foods, JR fish products Foods, cereals Foods, milkshakes Drinks, and drink mixes, squash, cordial and juice concentrates Drinks. Every stored food has a type (the column is not null). Schema step 3 (`FoodTypeUpgrade`) gave the foods stored before types existed one: an Open Food Facts food measured in millilitres is `Drink` (no categories are stored, so the unit is all there is), any other food (CoFID rows too) is `Food`; the CoFID rows then get the seed's type on the seed 4 load.
 
 ## Repeated food codes
 

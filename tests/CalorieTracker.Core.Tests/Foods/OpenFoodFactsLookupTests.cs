@@ -107,12 +107,16 @@ public class OpenFoodFactsLookupTests
     [TestCase("[\"en:beverages\"]", "\"g\"", FoodType.Drink)]
     [TestCase("[\"en:Beverages\"]", null, FoodType.Drink)]
     [TestCase("[\"en:breakfasts\",\"en:spreads\"]", "\"g\"", FoodType.Food)]
-    [TestCase("[\"en:breakfasts\"]", "\"ml\"", FoodType.Drink)]
+    [TestCase("[\"en:oils\",\"en:vegetable-oils\"]", "\"ml\"", FoodType.Food)]
+    [TestCase("[\"en:beverages\"]", "\"ml\"", FoodType.Drink)]
+    [TestCase(null, "\"ml\"", FoodType.Drink)]
+    [TestCase("[]", "\"ml\"", FoodType.Drink)]
+    [TestCase("[1,null,{}]", "\"ml\"", FoodType.Drink)]
     [TestCase("[]", null, FoodType.Food)]
     [TestCase(null, null, FoodType.Food)]
     [TestCase("\"en:beverages\"", null, FoodType.Food)]
     [TestCase("[1,null,{}]", null, FoodType.Food)]
-    public async Task Type_IsDrinkForBeveragesOrMillilitresOtherwiseFood(string? categories, string? servingUnit, FoodType expected)
+    public async Task Type_FollowsTheCategoriesWhenThereAreAnyElseTheUnit(string? categories, string? servingUnit, FoodType expected)
     {
         handler.Respond(Body("Thing", null, AllRequired(), servingUnit: servingUnit, categories: categories));
 

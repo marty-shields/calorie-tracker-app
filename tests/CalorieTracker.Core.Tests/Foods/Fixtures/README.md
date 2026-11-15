@@ -1,6 +1,6 @@
 # Open Food Facts fixtures
 
-Saved responses of `GET https://world.openfoodfacts.org/api/v2/product/{barcode}?fields=product_name,brands,nutriments,product_quantity_unit,serving_quantity_unit,categories_tags`, captured 2026-11-14 with one request each (the solid and drink files again 2026-11-15, after `categories_tags` was added to the request). Tests never call the live service.
+Saved responses of `GET https://world.openfoodfacts.org/api/v2/product/{barcode}?fields=product_name,brands,nutriments,product_quantity_unit,serving_quantity_unit,categories_tags`, captured 2026-11-14 with one request each (the solid and drink files again 2026-11-15, after `categories_tags` was added to the request). Tests never call the live service. The type comes from `categories_tags` when it has tags (`en:beverages` means Drink), and from the `ml` unit only when it has none.
 
 | File | Barcode | Notes |
 | --- | --- | --- |
