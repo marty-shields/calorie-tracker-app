@@ -22,6 +22,8 @@ public class ContrastTests
         ("--color-on-primary", "--color-primary", Text),
         ("--color-on-secondary", "--color-secondary", Text),
         ("--color-on-danger", "--color-danger", Text),
+        ("--color-on-inverse-surface", "--color-inverse-surface", Text),
+        ("--color-inverse-primary", "--color-inverse-surface", Text),
         ("--color-accent", "--color-surface", LargeTextOrControl),
         ("--color-border-strong", "--color-bg", LargeTextOrControl),
         ("--color-border-strong", "--color-surface", LargeTextOrControl),

@@ -1,3 +1,4 @@
+using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Lifecycle;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Theme;
@@ -20,6 +21,7 @@ public class UiServiceCollectionExtensionsTests
             (typeof(AppLifecycle), typeof(AppLifecycle), ServiceLifetime.Singleton),
             (typeof(IAppStart), (Type?)null, ServiceLifetime.Singleton),
             (typeof(IAppLifecycle), (Type?)null, ServiceLifetime.Singleton),
+            (typeof(SnackbarService), typeof(SnackbarService), ServiceLifetime.Singleton),
             (typeof(ThemeService), typeof(ThemeService), ServiceLifetime.Scoped),
             (typeof(SystemBarInsetWriter), typeof(SystemBarInsetWriter), ServiceLifetime.Scoped),
         }));
