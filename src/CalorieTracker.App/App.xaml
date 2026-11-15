@@ -3,14 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CalorieTracker.App.App">
     <Application.Resources>
-        <!-- Mirrors the UI project's tokens.css (light and dark) for the native camera page. -->
-        <Color x:Key="BackgroundLight">#f4f8f8</Color>
-        <Color x:Key="BackgroundDark">#141819</Color>
-        <Color x:Key="TextLight">#373e40</Color>
-        <Color x:Key="TextDark">#e4ecec</Color>
-        <Color x:Key="BorderStrongLight">#77878b</Color>
-        <Color x:Key="BorderStrongDark">#7f9093</Color>
-        <Color x:Key="OverlayText">#ffffff</Color>
+        <!-- The dark values of tokens.css for the native camera page, which is always dark: the app's theme choice lives in the web view. -->
+        <Color x:Key="Background">#141819</Color>
+        <Color x:Key="Text">#e4ecec</Color>
+        <Color x:Key="BorderStrong">#7f9093</Color>
         <Color x:Key="Scrim">#99000000</Color>
     </Application.Resources>
 </Application>

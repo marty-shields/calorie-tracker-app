@@ -16,7 +16,7 @@
                 HeightRequest="140"
                 HorizontalOptions="Center"
                 VerticalOptions="Center"
-                Stroke="{StaticResource OverlayText}"
+                Stroke="{StaticResource Text}"
                 StrokeThickness="3"
                 StrokeShape="RoundRectangle 12"
                 BackgroundColor="Transparent" />
@@ -28,21 +28,20 @@
                Margin="16"
                Padding="16,8"
                FontSize="16"
-               TextColor="{StaticResource OverlayText}"
+               TextColor="{StaticResource Text}"
                BackgroundColor="{StaticResource Scrim}" />
         <Grid Grid.Row="1" Padding="16"
-              BackgroundColor="{AppThemeBinding Light={StaticResource BackgroundLight}, Dark={StaticResource BackgroundDark}}">
+              BackgroundColor="{StaticResource Background}">
             <Button AutomationId="scan-native-cancel"
                     Text="Cancel"
-                    SemanticProperties.Description="Cancel scanning"
                     Clicked="OnCancelClicked"
                     HeightRequest="48"
                     CornerRadius="12"
                     FontAttributes="Bold"
                     BackgroundColor="Transparent"
                     BorderWidth="1"
-                    BorderColor="{AppThemeBinding Light={StaticResource BorderStrongLight}, Dark={StaticResource BorderStrongDark}}"
-                    TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}" />
+                    BorderColor="{StaticResource BorderStrong}"
+                    TextColor="{StaticResource Text}" />
         </Grid>
     </Grid>
 

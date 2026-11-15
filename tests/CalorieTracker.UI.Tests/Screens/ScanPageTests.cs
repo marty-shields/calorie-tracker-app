@@ -44,8 +44,9 @@ public class ScanPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task ScanAgain_ShowsOpeningCameraAgain()
+    public async Task ScanAgain_AfterAFoundProduct_ShowsOpeningCameraAgain()
     {
+        lookup.Result = BarcodeLookupResult.Found(Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8));
         var cut = Context.Render<ScanPage>();
         scanner.Complete(ScanResult.Scanned(Barcode));
         await WaitForRendererAsync();
