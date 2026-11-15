@@ -39,6 +39,12 @@ internal enum UiEvent
     /// <summary><see cref="Screens.SettingsPage"/>: storage refused the chosen theme, so it is lost at the next start.</summary>
     ThemeNotSaved = 3405,
 
+    /// <summary><see cref="Screens.SettingsPage"/>: reading the daily target failed, so the field shows empty.</summary>
+    TargetLoadFailed = 3406,
+
+    /// <summary><see cref="Screens.SettingsPage"/>: saving or clearing the daily target failed, so the last saved one stays.</summary>
+    TargetSaveFailed = 3407,
+
     /// <summary><see cref="Screens.FoodSearchPage"/>: the search waited for the food seed, with how it ended.</summary>
     FoodSeedWaited = 3501,
 

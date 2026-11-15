@@ -38,8 +38,11 @@ public static class ScreenStates
             .Add(x => x.OnNavigate, (NavDestination _) => { })).FindAll("*")),
 
         new("Screens/Settings", "Default", c => Settings(c, version: "1.0.0")),
-        new("Screens/Settings", "Dark chosen", c => Settings(c, version: "1.0.0", theme: ThemePreference.Dark)),
+        new("Screens/Settings", "Dark chosen", c => Settings(c, version: "1.0.0", theme: ThemePreference.Dark, target: 2100)),
         new("Screens/Settings", "No version", c => Settings(c)),
+        new("Screens/Settings", "Target set", c => Settings(c, version: "1.0.0", target: 2100)),
+        new("Screens/Settings", "Target not set", c => Settings(c, version: "1.0.0")),
+        new("Screens/Settings", "Invalid target", c => Settings(c, version: "1.0.0", target: 0, targetInvalidMessage: "Enter a whole number above 0, or clear the field.")),
 
         new("Screens/FoodSearch", "Loading", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, loading: true)),
         new("Screens/FoodSearch", "Nothing typed", c => FoodSearch(c, filter: FoodType.Ingredient)),
@@ -88,10 +91,13 @@ public static class ScreenStates
             .Add(x => x.OnNavigate, (NavDestination _) => { }))
             .FindAll("*");
 
-    private static IReadOnlyList<IElement> Settings(BunitContext context, string? version = null, ThemePreference theme = ThemePreference.System) =>
+    private static IReadOnlyList<IElement> Settings(BunitContext context, string? version = null, ThemePreference theme = ThemePreference.System, decimal? target = null, string? targetInvalidMessage = null) =>
         context.Render<SettingsView>(p => p
             .Add(x => x.Version, version)
             .Add(x => x.Theme, theme)
+            .Add(x => x.Target, target)
+            .Add(x => x.TargetInvalidMessage, targetInvalidMessage)
+            .Add(x => x.OnTargetChanged, (decimal? _) => { })
             .Add(x => x.OnThemeChanged, (ThemePreference _) => { })
             .Add(x => x.OnBack, () => { }))
             .FindAll("*");

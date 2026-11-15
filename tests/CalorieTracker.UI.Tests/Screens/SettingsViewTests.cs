@@ -56,6 +56,57 @@ public class SettingsViewTests : ComponentTestBase
     }
 
     [Test]
+    public void Target_ShowsTheNumberUnitAndHelper()
+    {
+        var cut = Context.Render<SettingsView>(p => p.Add(x => x.Target, 2100m).Add(x => x.OnBack, () => { }));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=settings-target]").GetAttribute("value"), Is.EqualTo("2100"));
+            Assert.That(cut.Find("[data-testid=settings-target-unit]").TextContent, Is.EqualTo("kcal"));
+            Assert.That(cut.Find("[data-testid=settings-target-hint]").TextContent, Is.EqualTo("Shown on the dashboard. Leave it empty for no target."));
+            Assert.That(cut.FindAll("[data-testid=settings-target-error]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public void Target_WhenNull_ShowsAnEmptyField()
+    {
+        var cut = Render();
+
+        Assert.That(cut.Find("[data-testid=settings-target]").GetAttribute("value"), Is.EqualTo(""));
+    }
+
+    [Test]
+    public void Target_Invalid_ShowsTheMessageInPlaceOfTheHelper()
+    {
+        var cut = Context.Render<SettingsView>(p => p
+            .Add(x => x.Target, 0m)
+            .Add(x => x.TargetInvalidMessage, "Enter a whole number above 0, or clear the field.")
+            .Add(x => x.OnBack, () => { }));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=settings-target-error]").TextContent, Is.EqualTo("Enter a whole number above 0, or clear the field."));
+            Assert.That(cut.FindAll("[data-testid=settings-target-hint]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public void Target_Typed_RaisesOnTargetChanged()
+    {
+        var typed = new List<decimal?>();
+        var cut = Context.Render<SettingsView>(p => p
+            .Add(x => x.OnTargetChanged, v => typed.Add(v))
+            .Add(x => x.OnBack, () => { }));
+
+        cut.Find("[data-testid=settings-target]").Input("1800");
+        cut.Find("[data-testid=settings-target]").Input("");
+
+        Assert.That(typed, Is.EqualTo(new decimal?[] { 1800m, null }));
+    }
+
+    [Test]
     public void Back_RaisesOnBack()
     {
         var back = false;

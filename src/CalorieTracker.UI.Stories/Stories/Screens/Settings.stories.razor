@@ -5,19 +5,37 @@
 
     <Story Name="Default">
         <Template>
-            <SettingsView Version="1.0.0" OnThemeChanged="(ThemePreference _) => { }" OnBack="() => { }" />
+            <SettingsView Version="1.0.0" OnTargetChanged="(decimal? _) => { }" OnThemeChanged="(ThemePreference _) => { }" OnBack="() => { }" />
         </Template>
     </Story>
 
     <Story Name="Dark chosen">
         <Template>
-            <SettingsView Version="1.0.0" Theme="ThemePreference.Dark" OnThemeChanged="(ThemePreference _) => { }" OnBack="() => { }" />
+            <SettingsView Version="1.0.0" Theme="ThemePreference.Dark" Target="2100" OnTargetChanged="(decimal? _) => { }" OnThemeChanged="(ThemePreference _) => { }" OnBack="() => { }" />
         </Template>
     </Story>
 
     <Story Name="No version">
         <Template>
-            <SettingsView OnThemeChanged="(ThemePreference _) => { }" OnBack="() => { }" />
+            <SettingsView OnTargetChanged="(decimal? _) => { }" OnThemeChanged="(ThemePreference _) => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Target set">
+        <Template>
+            <SettingsView Version="1.0.0" Target="2100" OnTargetChanged="(decimal? _) => { }" OnThemeChanged="(ThemePreference _) => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Target not set">
+        <Template>
+            <SettingsView Version="1.0.0" OnTargetChanged="(decimal? _) => { }" OnThemeChanged="(ThemePreference _) => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Invalid target">
+        <Template>
+            <SettingsView Version="1.0.0" Target="0" TargetInvalidMessage="Enter a whole number above 0, or clear the field." OnTargetChanged="(decimal? _) => { }" OnThemeChanged="(ThemePreference _) => { }" OnBack="() => { }" />
         </Template>
     </Story>
 

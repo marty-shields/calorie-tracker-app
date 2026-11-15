@@ -36,6 +36,8 @@ public partial class EventIdTests
             [UiEvent.ThemeLoadFailed] = 3403,
             [UiEvent.ThemeSaveFailed] = 3404,
             [UiEvent.ThemeNotSaved] = 3405,
+            [UiEvent.TargetLoadFailed] = 3406,
+            [UiEvent.TargetSaveFailed] = 3407,
             [UiEvent.FoodSeedWaited] = 3501,
             [UiEvent.FoodSeedRetried] = 3503,
             [UiEvent.ScanLookupStarted] = 3601,

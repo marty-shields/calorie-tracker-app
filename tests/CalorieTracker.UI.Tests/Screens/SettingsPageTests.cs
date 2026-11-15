@@ -1,4 +1,7 @@
+using CalorieTracker.Core;
+using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Services;
+using CalorieTracker.Core.Targets;
 using CalorieTracker.UI.Components.Inputs;
 using CalorieTracker.UI.Logging;
 using CalorieTracker.UI.Models.Settings;
@@ -14,14 +17,158 @@ public class SettingsPageTests : ComponentTestBase
 {
     private FakeLogger<SettingsPage> logger = null!;
 
+    private const string InvalidMessage = "Enter a whole number above 0, or clear the field.";
+
+    private string databasePath = null!;
+    private ServiceProvider core = null!;
+    private TargetService targets = null!;
+
     [SetUp]
-    public void SetUp()
+    public async Task SetUp()
     {
+        databasePath = Path.Combine(Path.GetTempPath(), $"settings-page-{Guid.NewGuid():N}.db3");
+        core = new ServiceCollection().AddLogging().AddCore(databasePath).BuildServiceProvider();
+        await core.GetRequiredService<IDatabaseInitializer>().InitializeAsync();
+        targets = core.GetRequiredService<TargetService>();
+        Context.Services.AddSingleton(targets);
         Context.Services.AddSingleton<IAppEnvironment>(new FakeEnvironment());
         logger = new FakeLogger<SettingsPage>();
         Context.Services.AddSingleton<ILogger<SettingsPage>>(logger);
         Context.JSInterop.Setup<string>("calorieTrackerTheme.get", _ => true).SetResult("system");
         Context.JSInterop.Setup<bool>("calorieTrackerTheme.set", _ => true).SetResult(true);
+    }
+
+    [TearDown]
+    public async Task TearDown()
+    {
+        await core.DisposeAsync();
+        File.Delete(databasePath);
+    }
+
+    private string TargetValue(IRenderedComponent<SettingsPage> cut) => cut.Find("[data-testid=settings-target]").GetAttribute("value")!;
+
+    /// <summary>Types into the field and waits for the page's save to finish: the database runs calls in order, so a read made now ends after it.</summary>
+    private async Task TypeAsync(IRenderedComponent<SettingsPage> cut, string text, TargetService? service = null)
+    {
+        await cut.Find("[data-testid=settings-target]").InputAsync(text);
+        await (service ?? targets).GetAsync();
+        await WaitForRendererAsync();
+    }
+
+    /// <summary>Renders the page and waits until its first target read has finished: the database runs calls in order, so a call made now ends after it.</summary>
+    private async Task<IRenderedComponent<SettingsPage>> RenderLoadedAsync(TargetService service)
+    {
+        var cut = Context.Render<SettingsPage>();
+        await service.GetAsync();
+        await WaitForRendererAsync();
+        return cut;
+    }
+
+    [Test]
+    public async Task Target_NoneSaved_ShowsAnEmptyField()
+    {
+        var cut = await RenderLoadedAsync(targets);
+
+        Assert.That(TargetValue(cut), Is.EqualTo(""));
+    }
+
+    [Test]
+    public async Task Target_Saved_ShowsIt()
+    {
+        await targets.SaveAsync(2100);
+        var cut = await RenderLoadedAsync(targets);
+        Assert.That(TargetValue(cut), Is.EqualTo("2100"));
+    }
+
+    [Test]
+    public async Task Target_Typed_IsSaved()
+    {
+        var cut = await RenderLoadedAsync(targets);
+
+        await TypeAsync(cut, "1800");
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That((await targets.GetAsync()).Kcal, Is.EqualTo(1800));
+            Assert.That(cut.FindAll("[data-testid=settings-target-error]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task Target_Emptied_ClearsIt()
+    {
+        await targets.SaveAsync(2100);
+        var cut = await RenderLoadedAsync(targets);
+        Assert.That(TargetValue(cut), Is.EqualTo("2100"));
+
+        await TypeAsync(cut, "");
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That((await targets.GetAsync()).Kcal, Is.Null);
+            Assert.That(cut.FindAll("[data-testid=settings-target-error]"), Is.Empty);
+        });
+    }
+
+    [TestCase("0")]
+    [TestCase("-5")]
+    [TestCase("1.5")]
+    [TestCase("10001")]
+    public async Task Target_NotAWholeNumberAboveZero_ShowsTheMessageAndSavesNothing(string typed)
+    {
+        await targets.SaveAsync(2100);
+        var cut = await RenderLoadedAsync(targets);
+        Assert.That(TargetValue(cut), Is.EqualTo("2100"));
+
+        await TypeAsync(cut, typed);
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That(cut.Find("[data-testid=settings-target-error]").TextContent, Is.EqualTo(InvalidMessage));
+            Assert.That(TargetValue(cut), Is.EqualTo(typed));
+            Assert.That((await targets.GetAsync()).Kcal, Is.EqualTo(2100));
+        });
+    }
+
+    [Test]
+    public async Task Target_ValidAfterInvalid_HidesTheMessage()
+    {
+        var cut = await RenderLoadedAsync(targets);
+        await TypeAsync(cut, "0");
+
+        await TypeAsync(cut, "1500");
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That(cut.FindAll("[data-testid=settings-target-error]"), Is.Empty);
+            Assert.That((await targets.GetAsync()).Kcal, Is.EqualTo(1500));
+        });
+    }
+
+    [Test]
+    public async Task Target_DatabaseFails_ShowsEmptyOnLoadAndKeepsTheLastValueOnSave_LogsNoNumber()
+    {
+        // Without the schema every target call fails.
+        var broken = new ServiceCollection().AddLogging().AddCore(Path.Combine(Path.GetTempPath(), $"settings-page-{Guid.NewGuid():N}.db3")).BuildServiceProvider();
+        var brokenTargets = broken.GetRequiredService<TargetService>();
+        Context.Services.AddSingleton(brokenTargets);
+        var cut = await RenderLoadedAsync(targets);
+
+        await TypeAsync(cut, "1234", brokenTargets);
+
+        cut.WaitForAssertion(() => Assert.That(TargetValue(cut), Is.EqualTo("")));
+        Assert.Multiple(() =>
+        {
+            Assert.That(LoggedEvents.Of(logger), Is.EqualTo(new[]
+            {
+                (UiEvent.TargetLoadFailed, LogLevel.Warning, "Reading the daily target failed"),
+                (UiEvent.TargetSaveFailed, LogLevel.Warning, "Saving the daily target failed; the last saved target stays"),
+            }));
+            Assert.That(logger.Collector.GetSnapshot().Select(r => r.Message), Has.None.Contain("1234"));
+            Assert.That(TargetValue(cut), Is.EqualTo(""));
+            Assert.That(cut.FindAll("[data-testid=settings-target-error]"), Is.Empty);
+        });
+        await broken.DisposeAsync();
     }
 
     [Test]

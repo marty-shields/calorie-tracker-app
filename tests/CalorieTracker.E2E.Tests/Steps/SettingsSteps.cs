@@ -49,6 +49,32 @@ public sealed class SettingsSteps(DashboardScreen dashboard, SettingsScreen sett
     [Then(@"^the status bar icons are light$")]
     public void ThenTheStatusBarIconsAreLight() => web.Eventually(Native.StatusBarIcons, Is.EqualTo("light"), "status bar icons");
 
+    [Given(@"^I have set the daily target to (\d+)$")]
+    [When(@"^I set the daily target to (\d+)$")]
+    public void WhenISetTheDailyTargetTo(string kcal)
+    {
+        settings.TypeTarget(kcal);
+        web.Eventually(settings.TargetError, Is.Null, "no message under the daily target");
+    }
+
+    [When(@"^I type (\d+) as the daily target$")]
+    public void WhenITypeAsTheDailyTarget(string kcal) => settings.TypeTarget(kcal);
+
+    [When(@"^I clear the daily target$")]
+    public void WhenIClearTheDailyTarget() => settings.ClearTarget();
+
+    [Then(@"^the daily target is (\d+)$")]
+    public void ThenTheDailyTargetIs(string kcal) =>
+        web.Eventually(settings.TargetValue, Is.EqualTo(kcal), "daily target shown");
+
+    [Then(@"^the daily target is empty$")]
+    public void ThenTheDailyTargetIsEmpty() =>
+        web.Eventually(settings.TargetValue, Is.EqualTo(""), "daily target shown");
+
+    [Then(@"^Settings asks for ""(.*)""$")]
+    public void ThenSettingsAsksFor(string message) =>
+        web.Eventually(settings.TargetError, Is.EqualTo(message), "message under the daily target");
+
     [Then(@"^the app version is listed on Settings$")]
     public void ThenTheAppVersionIsListedOnSettings() => Assert.That(settings.Version(), Is.EqualTo($"Version {AppiumSetup.Adb.VersionName(AppiumSetup.App.Package)}"), "the version Settings shows against the installed package's versionName");
 }
