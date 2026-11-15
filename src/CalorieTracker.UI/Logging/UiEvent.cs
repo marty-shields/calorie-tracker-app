@@ -56,6 +56,9 @@ internal enum UiEvent
     /// <summary><see cref="Screens.ScanPage"/>: the scanner ended without a barcode because the camera is unavailable.</summary>
     ScanCameraUnavailable = 3603,
 
+    /// <summary><see cref="Components.Inputs.NumberField"/>: focusing the field when it first showed failed.</summary>
+    NumberFieldFocusFailed = 3701,
+
     /// <summary><see cref="Components.Layout.AppScreen"/>: setting up pull to refresh failed, so the screen can't be pulled.</summary>
     PullRefreshFailed = 4001,
 }
