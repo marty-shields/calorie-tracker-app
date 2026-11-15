@@ -9,7 +9,40 @@
                          HandlerProperties.DisconnectPolicy="Manual"
                          BarcodeSymbologies="Ean13, Ean8, Upca"
                          OnDetectionFinished="OnDetectionFinished" />
-        <Button Grid.Row="1" Text="Cancel" Clicked="OnCancelClicked" />
+        <Border AutomationId="scan-native-frame"
+                AutomationProperties.IsInAccessibleTree="False"
+                InputTransparent="True"
+                WidthRequest="280"
+                HeightRequest="140"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Stroke="{StaticResource OverlayText}"
+                StrokeThickness="3"
+                StrokeShape="RoundRectangle 12"
+                BackgroundColor="Transparent" />
+        <Label AutomationId="scan-native-hint"
+               Text="Point the camera at a barcode"
+               InputTransparent="True"
+               HorizontalOptions="Center"
+               VerticalOptions="End"
+               Margin="16"
+               Padding="16,8"
+               FontSize="16"
+               TextColor="{StaticResource OverlayText}"
+               BackgroundColor="{AppThemeBinding Light={StaticResource ScrimLight}, Dark={StaticResource ScrimDark}}" />
+        <Grid Grid.Row="1" Padding="16"
+              BackgroundColor="{AppThemeBinding Light={StaticResource BackgroundLight}, Dark={StaticResource BackgroundDark}}">
+            <Button AutomationId="scan-native-cancel"
+                    Text="Cancel"
+                    Clicked="OnCancelClicked"
+                    HeightRequest="48"
+                    CornerRadius="12"
+                    FontAttributes="Bold"
+                    BackgroundColor="Transparent"
+                    BorderWidth="1"
+                    BorderColor="{AppThemeBinding Light={StaticResource BorderStrongLight}, Dark={StaticResource BorderStrongDark}}"
+                    TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}" />
+        </Grid>
     </Grid>
 
 </ContentPage>

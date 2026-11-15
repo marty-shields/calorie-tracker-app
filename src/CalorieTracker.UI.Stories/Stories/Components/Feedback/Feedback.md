@@ -9,7 +9,7 @@ A turning ring with a label under it, for work in progress. The ring is `--color
 - `data-testid`: `TestId`.
 
 ## `LoadFailed`
-A load error with **Try again**, in place of the content that didn't load. The message is bold `--color-error` text in a `--color-error` box (`role="alert"`); Try again is a Secondary full-width `AppButton` under it. Focus moves to Try again when it shows. A failed focus logs Warning 3301 and the error stays.
+A load error with **Try again**, in place of the content that didn't load. The message is bold `--color-error` text in a `--color-error` box (`role="alert"`); Try again is a Primary full-width `AppButton` under it. Focus moves to Try again when it shows. A failed focus logs Warning 3301 and the error stays.
 - `data-testid`: `{TestId}-error` on the message, `{TestId}-retry` on Try again.
 
 

@@ -2,4 +2,18 @@
 <Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CalorieTracker.App.App">
+    <Application.Resources>
+        <!-- The light and dark values of tokens.css for the native camera page, picked with AppThemeBinding.
+             The page follows the app's own theme choice, which Application.UserAppTheme carries over from the web view while the camera page is open (the scanner puts the previous value back afterwards). -->
+        <Color x:Key="BackgroundLight">#f4f8f8</Color>
+        <Color x:Key="BackgroundDark">#141819</Color>
+        <Color x:Key="TextLight">#373e40</Color>
+        <Color x:Key="TextDark">#e4ecec</Color>
+        <Color x:Key="BorderStrongLight">#77878b</Color>
+        <Color x:Key="BorderStrongDark">#7f9093</Color>
+        <Color x:Key="ScrimLight">#73000000</Color>
+        <Color x:Key="ScrimDark">#99000000</Color>
+        <!-- Drawn over the live camera image, not over a theme surface, so the same white in both themes: the scrim sits behind it. -->
+        <Color x:Key="OverlayText">#ffffff</Color>
+    </Application.Resources>
 </Application>
