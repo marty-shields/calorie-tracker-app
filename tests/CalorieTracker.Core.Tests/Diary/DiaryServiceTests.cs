@@ -131,6 +131,29 @@ public class DiaryServiceTests
     }
 
     [Test]
+    public async Task AddAndUpdateAsync_AmountAtTheCap_Saves()
+    {
+        var id = (await service.AddAsync(Day, Meal.Lunch, foodId, 10_000)).Entry!.Id;
+
+        Assert.That((await service.UpdateAsync(id, Day, Meal.Lunch, 10)).Status, Is.EqualTo(DiaryStatus.Ok));
+        Assert.That((await service.UpdateAsync(id, Day, Meal.Lunch, 10_000)).Status, Is.EqualTo(DiaryStatus.Ok));
+        Assert.That((await service.ListAsync(Day)).Entries.Single().Amount, Is.EqualTo(10_000));
+    }
+
+    [TestCase(10_000.01)]
+    [TestCase(10_001.0)]
+    [TestCase(1e300)]
+    public async Task AddAndUpdateAsync_AmountOverTheCap_AreInvalidAndChangeNothing(double tooMuch)
+    {
+        var id = (await service.AddAsync(Day, Meal.Lunch, foodId, 10)).Entry!.Id;
+
+        Assert.That((await service.AddAsync(Day, Meal.Lunch, foodId, tooMuch)).Status, Is.EqualTo(DiaryStatus.Invalid));
+        Assert.That((await service.UpdateAsync(id, Day, Meal.Lunch, tooMuch)).Status, Is.EqualTo(DiaryStatus.Invalid));
+        var entries = (await service.ListAsync(Day)).Entries;
+        Assert.That(entries.Select(e => e.Amount), Is.EqualTo(new[] { 10.0 }));
+    }
+
+    [Test]
     public async Task AddAndUpdateAsync_UndefinedMeal_AreInvalid()
     {
         var id = (await service.AddAsync(Day, Meal.Lunch, foodId, 10)).Entry!.Id;

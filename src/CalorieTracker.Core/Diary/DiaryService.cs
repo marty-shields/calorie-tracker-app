@@ -1,4 +1,3 @@
-using System.Globalization;
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Logging;
 using Microsoft.Extensions.Logging;
@@ -20,8 +19,11 @@ public sealed partial class DiaryService
         this.logger = logger;
     }
 
+    /// <summary>The largest amount an entry can hold, in grams or millilitres.</summary>
+    public const double MaxAmount = 10_000;
+
     /// <summary>
-    /// Adds an entry of a food. <paramref name="amount"/> (grams or millilitres) must be finite and above zero, <paramref name="servings"/> when given the same, and <paramref name="meal"/> a defined meal;
+    /// Adds an entry of a food. <paramref name="amount"/> (grams or millilitres) must be finite and above zero, up to <see cref="MaxAmount"/>, <paramref name="servings"/> when given the same, and <paramref name="meal"/> a defined meal;
     /// otherwise <see cref="DiaryStatus.Invalid"/>. <see cref="DiaryStatus.NotFound"/> when no food has the id. Nothing is added unless Ok.
     /// </summary>
     public async Task<DiaryResult> AddAsync(DateOnly date, Meal meal, int foodId, double amount, double? servings = null)
@@ -34,7 +36,7 @@ public sealed partial class DiaryService
 
         try
         {
-            var added = await store.AddAsync(new DiaryEntry { Date = Format(date), Meal = meal, FoodId = foodId, Amount = amount, Servings = servings });
+            var added = await store.AddAsync(new DiaryEntry { Date = DiaryEntry.FormatDate(date), Meal = meal, FoodId = foodId, Amount = amount, Servings = servings });
             if (added is null)
             {
                 Log.FoodNotFound(logger, foodId);
@@ -63,7 +65,7 @@ public sealed partial class DiaryService
             return DiaryResult.Invalid();
         }
 
-        return await ChangeAsync(id, () => store.UpdateAsync(id, Format(date), meal, amount, servings), Log.Updated);
+        return await ChangeAsync(id, () => store.UpdateAsync(id, DiaryEntry.FormatDate(date), meal, amount, servings), Log.Updated);
     }
 
     /// <summary>Removes a kept entry so <see cref="RestoreAsync"/> can bring it back. <see cref="DiaryStatus.NotFound"/> when no kept entry has the id.</summary>
@@ -77,7 +79,7 @@ public sealed partial class DiaryService
     {
         try
         {
-            var entries = await store.ListAsync(Format(date));
+            var entries = await store.ListAsync(DiaryEntry.FormatDate(date));
             Log.Listed(logger, entries.Count);
             return DiaryResult.Listed(entries);
         }
@@ -108,10 +110,8 @@ public sealed partial class DiaryService
         }
     }
 
-    private static string Format(DateOnly date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-
     private static bool IsValid(Meal meal, double amount, double? servings) =>
-        Enum.IsDefined(meal) && IsPositive(amount) && (servings is null || IsPositive(servings.Value));
+        Enum.IsDefined(meal) && IsPositive(amount) && amount <= MaxAmount && (servings is null || IsPositive(servings.Value));
 
     private static bool IsPositive(double value) => double.IsFinite(value) && value > 0;
 

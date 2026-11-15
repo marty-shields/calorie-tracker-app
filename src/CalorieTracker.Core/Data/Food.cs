@@ -73,6 +73,9 @@ public class Food
     /// <summary>The serving's weight in grams, or volume in millilitres to match <see cref="Unit"/>. Above zero when set.</summary>
     public double? ServingAmount { get; set; }
 
+    /// <summary>True once the source was asked for this food's serving and had no usable one (not found, or found without a serving), so it is not asked again. Null while unasked; an offline or rate-limited answer leaves it null.</summary>
+    public bool? ServingChecked { get; set; }
+
     /// <summary>Lowercased text with accents removed that searches match against.</summary>
     [NotNull]
     public string SearchText { get; set; } = "";

@@ -428,13 +428,16 @@ public class DatabaseInitializerTests
     private const string FoodTableSql =
         "CREATE TABLE Food (Id integer primary key autoincrement not null, Source integer not null, SourceId varchar not null, Name varchar not null, Brand varchar, Unit integer not null, Kcal float, ProteinG float, CarbsG float, FatG float, FibreG float, SugarsG float, SaturatesG float, SaltG float, ServingLabel varchar, ServingAmount float, SearchText varchar not null, Type integer not null)";
 
+    private const string DiaryTableSql =
+        "CREATE TABLE DiaryEntry (Id integer not null primary key autoincrement, Date varchar not null, Meal integer not null, FoodId integer not null, Amount float not null, Servings float, IsRemoved integer not null)";
+
     [Test]
     public async Task InitializeAsync_NewDatabase_CreatesTheDiaryTable()
     {
         await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
 
         Assert.That(await connection.QueryScalarsAsync<string>(DiaryColumns), Is.EqualTo(ExpectedDiaryColumns));
-        Assert.That(await Version(), Is.EqualTo(7));
+        Assert.That(await Version(), Is.EqualTo(DatabaseInitializer.CurrentVersion));
     }
 
     [Test]
@@ -450,7 +453,7 @@ public class DatabaseInitializerTests
 
         await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
 
-        Assert.That(await Version(), Is.EqualTo(7));
+        Assert.That(await Version(), Is.EqualTo(DatabaseInitializer.CurrentVersion));
         Assert.That(LoggedEvents.Of(logger).Select(e => e.Message), Does.Contain("Schema upgrade step 7 applied"));
         Assert.That(await connection.QueryScalarsAsync<string>(DiaryColumns), Is.EqualTo(ExpectedDiaryColumns));
         Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM DiaryEntry"), Is.Zero);
@@ -500,6 +503,105 @@ public class DatabaseInitializerTests
             Assert.That(
                 db.QueryScalars<string>("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'DiaryEntry' AND sql IS NOT NULL ORDER BY name"),
                 Is.EqualTo(new[] { "DiaryEntry_Date", "DiaryEntry_FoodId" }));
+        }
+        finally
+        {
+            db.Close();
+        }
+    }
+
+    private const string ServingCheckedColumn = "SELECT name || ':' || type || ':' || \"notnull\" || ':' || pk FROM pragma_table_info('Food') WHERE name = 'ServingChecked'";
+
+    [Test]
+    public async Task InitializeAsync_NewDatabase_CreatesTheServingCheckedColumnEmpty()
+    {
+        await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
+
+        Assert.That(DatabaseInitializer.CurrentVersion, Is.EqualTo(8));
+        Assert.That(await connection.QueryScalarsAsync<string>(ServingCheckedColumn), Is.EqualTo(new[] { "ServingChecked:INTEGER:0:0" }));
+        await connection.InsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "a", Name = "A", SearchText = "a" });
+        Assert.That((await connection.Table<Food>().FirstAsync()).ServingChecked, Is.Null);
+    }
+
+    [Test]
+    public async Task InitializeAsync_VersionSevenDatabaseWithData_GetsTheServingCheckedColumnEmptyAndKeepsItsData()
+    {
+        await connection.ExecuteAsync(FoodTableSql);
+        await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Unit, Kcal, ServingLabel, ServingAmount, SearchText, Type) VALUES (1, 1, 'a', 'A', 0, 120, '1 slice (30 g)', 30, 'a', 1), (2, 1, 'b', 'B', 1, 40, NULL, NULL, 'b', 2)");
+        await connection.ExecuteAsync("CREATE TABLE FoodBarcode (Barcode varchar primary key not null, FoodId integer not null)");
+        await connection.ExecuteAsync("INSERT INTO FoodBarcode (Barcode, FoodId) VALUES ('5000000000017', 2)");
+        await connection.ExecuteAsync("CREATE TABLE AppSettings (Id integer not null primary key, DailyTargetKcal integer)");
+        await connection.ExecuteAsync("INSERT INTO AppSettings (Id, DailyTargetKcal) VALUES (1, 2100)");
+        await connection.ExecuteAsync(DiaryTableSql);
+        await connection.ExecuteAsync("INSERT INTO DiaryEntry (Date, Meal, FoodId, Amount, Servings, IsRemoved) VALUES ('2031-07-19', 1, 1, 30, 1, 0)");
+        await SetVersion(7);
+
+        await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
+
+        Assert.That(await Version(), Is.EqualTo(8));
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Message), Does.Contain("Schema upgrade step 8 applied"));
+        var foods = await connection.Table<Food>().OrderBy(f => f.Id).ToListAsync();
+        Assert.That(foods.Select(f => (f.Name, f.Kcal, f.ServingLabel, f.ServingAmount, f.ServingChecked)),
+            Is.EqualTo(new[] { ("A", 120.0, (string?)"1 slice (30 g)", (double?)30, (bool?)null), ("B", 40.0, null, null, null) }));
+        Assert.That(await connection.ExecuteScalarAsync<string>("SELECT Barcode FROM FoodBarcode"), Is.EqualTo("5000000000017"));
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT DailyTargetKcal FROM AppSettings"), Is.EqualTo(2100));
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM DiaryEntry"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task InitializeAsync_VersionSevenDatabase_GetsTheSameFoodSchemaAsANewDatabase()
+    {
+        await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
+        var created = await FoodSchema();
+        await connection.CloseAsync();
+        File.Delete(databasePath);
+
+        databasePath = TempDatabase.NewPath();
+        connection = new SQLiteAsyncConnection(databasePath);
+        await connection.ExecuteAsync(FoodTableSql);
+        await SetVersion(7);
+        await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
+
+        Assert.That(await FoodSchema(), Is.EqualTo(created));
+        Assert.That(created, Does.Contain("ServingChecked:INTEGER:0:0"));
+    }
+
+    private async Task<List<string>> FoodSchema() =>
+        await connection.QueryScalarsAsync<string>(
+            "SELECT name || ':' || type || ':' || \"notnull\" || ':' || pk FROM pragma_table_info('Food') ORDER BY name");
+
+    [Test]
+    public void FoodServingCheckedUpgrade_Apply_AddsTheColumnOnceAndKeepsItsValues()
+    {
+        // Runs the step alone: the initializer's later CreateTableAsync would hide a broken step.
+        var db = new SQLiteConnection(databasePath);
+        try
+        {
+            db.Execute(FoodTableSql);
+            db.Execute("INSERT INTO Food (Id, Source, SourceId, Name, Unit, SearchText, Type) VALUES (1, 1, 'a', 'A', 0, 'a', 1)");
+
+            new FoodServingCheckedUpgrade().Apply(db);
+            db.Execute("UPDATE Food SET ServingChecked = 1");
+            new FoodServingCheckedUpgrade().Apply(db);
+
+            Assert.That(db.QueryScalars<string>(ServingCheckedColumn), Is.EqualTo(new[] { "ServingChecked:INTEGER:0:0" }));
+            Assert.That(db.ExecuteScalar<int>("SELECT ServingChecked FROM Food"), Is.EqualTo(1));
+        }
+        finally
+        {
+            db.Close();
+        }
+    }
+
+    [Test]
+    public void FoodServingCheckedUpgrade_Apply_WithNoFoodTable_DoesNothing()
+    {
+        var db = new SQLiteConnection(databasePath);
+        try
+        {
+            new FoodServingCheckedUpgrade().Apply(db);
+
+            Assert.That(db.ExecuteScalar<int>("SELECT COUNT(*) FROM sqlite_master WHERE name = 'Food'"), Is.Zero);
         }
         finally
         {

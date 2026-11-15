@@ -30,13 +30,16 @@ public sealed partial class TargetService
         }
     }
 
+    /// <summary>The largest target that can be saved, in kcal.</summary>
+    public const int MaxKcal = 10_000;
+
     /// <summary>
-    /// Saves the target, replacing any earlier one. The value must be a whole number above zero that fits an int;
+    /// Saves the target, replacing any earlier one. The value must be a whole number from 1 to <see cref="MaxKcal"/>;
     /// anything else (zero, negative, fractional, NaN, infinite, too large) returns <see cref="TargetStatus.Invalid"/> and changes nothing.
     /// </summary>
     public async Task<TargetResult> SaveAsync(double kcal)
     {
-        if (!double.IsFinite(kcal) || kcal < 1 || kcal > int.MaxValue || kcal != Math.Floor(kcal))
+        if (!double.IsFinite(kcal) || kcal < 1 || kcal > MaxKcal || kcal != Math.Floor(kcal))
         {
             Log.Rejected(logger);
             return TargetResult.Invalid();

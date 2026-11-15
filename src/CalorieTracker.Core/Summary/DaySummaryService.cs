@@ -1,28 +1,22 @@
 using CalorieTracker.Core.Data;
-using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Logging;
-using CalorieTracker.Core.Targets;
 using Microsoft.Extensions.Logging;
 
 namespace CalorieTracker.Core.Summary;
 
 /// <summary>
-/// Builds a day's totals, macro shares, meals, entries and target position from <see cref="DiaryService"/>, <see cref="FoodStore"/> and <see cref="TargetService"/>.
+/// Builds a day's totals, macro shares, meals, entries and target position from the target, the entries and the foods, read together by <see cref="DaySummaryStore"/> in one transaction.
 /// Nothing throws: a failing database gives <see cref="DaySummaryStatus.Failed"/>, and an entry whose food is gone gives <see cref="DaySummaryStatus.FoodMissing"/> for the whole day.
 /// Logs carry entry ids, food ids and counts only, never a date, amount, name or calories.
 /// </summary>
 public sealed partial class DaySummaryService
 {
-    private readonly DiaryService diary;
-    private readonly TargetService targets;
-    private readonly FoodStore foods;
+    private readonly DaySummaryStore store;
     private readonly ILogger<DaySummaryService> logger;
 
-    internal DaySummaryService(DiaryService diary, TargetService targets, FoodStore foods, ILogger<DaySummaryService> logger)
+    internal DaySummaryService(DaySummaryStore store, ILogger<DaySummaryService> logger)
     {
-        this.diary = diary;
-        this.targets = targets;
-        this.foods = foods;
+        this.store = store;
         this.logger = logger;
     }
 
@@ -34,24 +28,13 @@ public sealed partial class DaySummaryService
     {
         try
         {
-            var listed = await diary.ListAsync(date);
-            if (listed.Status != DiaryStatus.Ok)
-            {
-                return DaySummaryResult.Failed(); // DiaryService logged it
-            }
-
-            var target = await targets.GetAsync();
-            if (target.Status != TargetStatus.Ok)
-            {
-                return DaySummaryResult.Failed(); // TargetService logged it
-            }
-
-            var ids = listed.Entries.Select(e => e.FoodId).Distinct().ToList();
-            var found = ids.Count == 0 ? [] : (await foods.FindAsync(ids)).ToDictionary(f => f.Id);
+            var read = await store.ReadDayAsync(DiaryEntry.FormatDate(date));
+            var found = read.Foods;
+            var targetKcal = read.TargetKcal;
 
             var byMeal = Enum.GetValues<Meal>().ToDictionary(m => m, _ => new List<SummaryEntry>());
             decimal protein = 0, carbs = 0, fat = 0;
-            foreach (var entry in listed.Entries)
+            foreach (var entry in read.Entries)
             {
                 if (!found.TryGetValue(entry.FoodId, out var food))
                 {
@@ -88,10 +71,10 @@ public sealed partial class DaySummaryService
                 totals,
                 SharesOf(protein, carbs, fat),
                 meals,
-                target.Kcal,
-                checked(target.Kcal - totals.Kcal),
-                target.Kcal is { } goal && totals.Kcal > goal);
-            Log.Built(logger, listed.Entries.Count);
+                targetKcal,
+                checked(targetKcal - totals.Kcal),
+                targetKcal is { } goal && totals.Kcal > goal);
+            Log.Built(logger, read.Entries.Count);
             return DaySummaryResult.Ok(summary);
         }
         catch (OverflowException)

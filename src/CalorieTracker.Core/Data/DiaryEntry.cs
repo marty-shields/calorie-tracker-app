@@ -20,6 +20,9 @@ public class DiaryEntry
     [PrimaryKey, AutoIncrement]
     public int Id { get; set; }
 
+    /// <summary>The <see cref="Date"/> text of a day, so every writer and reader of the column agrees.</summary>
+    internal static string FormatDate(DateOnly date) => date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+
     /// <summary>The local calendar day as <c>yyyy-MM-dd</c>, with no time zone.</summary>
     [NotNull, Indexed]
     public string Date { get; set; } = "";

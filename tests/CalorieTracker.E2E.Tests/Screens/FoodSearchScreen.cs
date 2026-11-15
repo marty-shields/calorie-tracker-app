@@ -36,6 +36,13 @@ public sealed class FoodSearchScreen(WebView web)
     /// <summary>Whether a type chip (ingredients, foods, dishes, drinks or all) is the chosen one.</summary>
     public bool IsTypeChosen(string chip) => web.Find($"food-filter-{chip}").Selected;
 
+    /// <summary>The labels of the type chips, in the order they show.</summary>
+    public IReadOnlyList<string> TypeChipLabels()
+    {
+        web.WaitUntil(() => web.Exists("food-filter"), "the type chips didn't show");
+        return web.FindAll("[data-testid=\"food-filter\"] .chip").Select(chip => chip.Text.Trim()).ToList();
+    }
+
     public string PromptText() => web.Text("food-search-idle-message");
 
     public string NoneText() => web.Text("food-search-none");

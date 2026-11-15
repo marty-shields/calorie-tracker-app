@@ -47,6 +47,10 @@ internal sealed class DiaryStore(SQLiteAsyncConnection connection, DatabaseGate 
 
     /// <summary>The kept entries of the day in the order added.</summary>
     public Task<List<DiaryEntry>> ListAsync(string date) =>
-        gate.RunAsync(() => connection.QueryAsync<DiaryEntry>(
-            "SELECT * FROM DiaryEntry WHERE Date = ? AND IsRemoved = 0 ORDER BY Id", date));
+        gate.RunAsync(() => connection.QueryAsync<DiaryEntry>(ListDaySql, date));
+
+    private const string ListDaySql = "SELECT * FROM DiaryEntry WHERE Date = ? AND IsRemoved = 0 ORDER BY Id";
+
+    /// <summary>The kept entries of the day in the order added, on the caller's connection, inside the gate.</summary>
+    internal static List<DiaryEntry> ListDay(SQLiteConnection db, string date) => db.Query<DiaryEntry>(ListDaySql, date);
 }
