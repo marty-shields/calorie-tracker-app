@@ -150,7 +150,7 @@ public class CoreServiceCollectionExtensionsTests
         Assert.Multiple(() =>
         {
             Assert.That(result.Status, Is.EqualTo(SeedLoadStatus.Loaded));
-            Assert.That(result.Inserted, Is.EqualTo(2853));
+            Assert.That(result.Inserted, Is.EqualTo(2174));
         });
         File.Delete(path);
     }

@@ -165,6 +165,34 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             return result;
         });
 
+    /// <summary>
+    /// Deletes the foods of <paramref name="source"/> whose source id is not in <paramref name="keepSourceIds"/>, with their barcode links, in one transaction. Rows of other sources are not touched.
+    /// </summary>
+    /// <returns>How many foods were deleted.</returns>
+    public Task<int> DeleteMissingAsync(FoodSource source, IReadOnlySet<string> keepSourceIds) =>
+        gate.RunAsync(async () =>
+        {
+            var deleted = 0;
+            await connection.RunInTransactionAsync(db =>
+            {
+                var stale = db.Query<IdRow>("SELECT Id, SourceId FROM Food WHERE Source = ?", (int)source)
+                    .Where(r => !keepSourceIds.Contains(r.SourceId))
+                    .Select(r => r.Id)
+                    .ToList();
+                foreach (var chunk in stale.Chunk(500))
+                {
+                    var marks = string.Join(",", chunk.Select(_ => "?"));
+                    var args = chunk.Cast<object>().ToArray();
+                    db.Execute($"DELETE FROM FoodBarcode WHERE FoodId IN ({marks})", args);
+                    db.Execute($"DELETE FROM Food WHERE Id IN ({marks})", args);
+                }
+
+                deleted = stale.Count;
+            });
+
+            return deleted;
+        });
+
     private static partial class Log
     {
         [LoggerMessage((int)CoreEvent.FoodInserted, LogLevel.Debug, "Food {FoodId} inserted")]

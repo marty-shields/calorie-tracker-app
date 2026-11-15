@@ -23,8 +23,7 @@ public static class ScreenStates
     [
         new() { Id = 1, Name = "Oats, rolled", Type = FoodType.Ingredient, Unit = FoodUnit.Gram, Kcal = 375, ProteinG = 11, CarbsG = 60, FatG = 9, FibreG = 8.5, SugarsG = 1, SaturatesG = 1.6, SaltG = 0 },
         new() { Id = 2, Name = "Porridge oats", Brand = "Quaker", Type = FoodType.Food, Unit = FoodUnit.Gram, Kcal = 372, ProteinG = 11, CarbsG = 60, FatG = 8.5 },
-        new() { Id = 3, Name = "Oat porridge, made with milk", Type = FoodType.Dish, Unit = FoodUnit.Gram, Kcal = 116, ProteinG = 4.8, CarbsG = 13, FatG = 5 },
-        new() { Id = 4, Name = "Oat drink", Brand = "Oatly", Type = FoodType.Drink, Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 1, CarbsG = 6.7, FatG = 1.5 },
+        new() { Id = 3, Name = "Oat drink", Brand = "Oatly", Type = FoodType.Drink, Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 1, CarbsG = 6.7, FatG = 1.5 },
     ];
 
     private static readonly IReadOnlyList<Food> Ingredients = SampleFoods.Where(f => f.Type == FoodType.Ingredient).ToList();
@@ -46,7 +45,6 @@ public static class ScreenStates
         new("Screens/FoodSearch", "Nothing typed", c => FoodSearch(c, filter: FoodType.Ingredient)),
         new("Screens/FoodSearch", "Results", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, results: Ingredients)),
         new("Screens/FoodSearch", "Foods filter", c => FoodSearch(c, query: "oat", filter: FoodType.Food, results: SampleFoods.Where(f => f.Type == FoodType.Food).ToList())),
-        new("Screens/FoodSearch", "Dishes filter", c => FoodSearch(c, query: "oat", filter: FoodType.Dish, results: SampleFoods.Where(f => f.Type == FoodType.Dish).ToList())),
         new("Screens/FoodSearch", "Drinks filter", c => FoodSearch(c, query: "oat", filter: FoodType.Drink, results: SampleFoods.Where(f => f.Type == FoodType.Drink).ToList())),
         new("Screens/FoodSearch", "All filter", c => FoodSearch(c, query: "oat", results: SampleFoods)),
         new("Screens/FoodSearch", "No results", c => FoodSearch(c, query: "zzz", filter: FoodType.Ingredient)),
