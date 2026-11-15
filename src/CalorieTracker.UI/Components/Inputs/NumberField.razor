@@ -1,8 +1,10 @@
 @using System.Globalization
 @using CalorieTracker.UI.Components.Actions
+@using Microsoft.Extensions.Logging
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
-<div class="field @(invalid ? "invalid" : null)">
+@inject ILogger<NumberField> Logger
+<div class="field @(Invalid ? "invalid" : null)">
     <div class="row">
         @if (Stepper)
         {
@@ -23,8 +25,8 @@
                    class="input"
                    value="@text"
                    disabled="@Disabled"
-                   aria-invalid="@(invalid ? "true" : null)"
-                   aria-describedby="@(invalid ? messageId : null)"
+                   aria-invalid="@(Invalid ? "true" : null)"
+                   aria-describedby="@(Invalid ? messageId : null)"
                    data-testid="@InputTestId"
                    @oninput="OnInput" />
             @if (!string.IsNullOrEmpty(Unit))
@@ -44,7 +46,7 @@
             </button>
         }
     </div>
-    @if (invalid)
+    @if (Invalid)
     {
         <p class="message" id="@messageId" role="alert" data-testid="@StepTestId("error")" data-wrap-ok>@InvalidMessage</p>
     }
@@ -55,7 +57,7 @@
     private const int FocusAttempts = 30;
     private ElementReference input;
     private string text = "";
-    private bool invalid => !string.IsNullOrEmpty(InvalidMessage);
+    private bool Invalid => !string.IsNullOrEmpty(InvalidMessage);
     private bool AtMinimum => Minimum is { } min && Value is { } v && v <= min;
     private string InputTestId => TestId ?? "number-field";
     private string StepTestId(string part) => $"{InputTestId}-{part}";
@@ -81,11 +83,15 @@
             catch (JSDisconnectedException)
             {
             }
+            catch (Exception exception)
+            {
+                Log.AutoFocusFailed(Logger, exception);
+            }
         }
     }
 
     private static decimal? Parse(string text) =>
-        decimal.TryParse(text.Trim().Replace(',', '.'), NumberStyles.Number, CultureInfo.InvariantCulture, out var number) ? number : null;
+        decimal.TryParse(text.Trim().Replace(',', '.'), NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var number) ? number : null;
 
     private async Task OnInput(ChangeEventArgs e)
     {
@@ -93,22 +99,15 @@
         await ValueChanged.InvokeAsync(Parse(text));
     }
 
-    private Task Decrease()
-    {
-        var next = (Value ?? Minimum ?? 0) - Step;
-        return Raise(Minimum is { } min && next < min ? min : next);
-    }
+    private Task Decrease() => StepBy(-Step);
 
-    private Task Increase()
-    {
-        var next = (Value ?? Minimum ?? 0) + Step;
-        return Raise(Minimum is { } min && next < min ? min : next);
-    }
+    private Task Increase() => StepBy(Step);
 
-    private Task Raise(decimal value)
+    // The parent's value is shown through OnParametersSet, so a parent that doesn't take it keeps the field as it was.
+    private Task StepBy(decimal delta)
     {
-        text = value.ToString(CultureInfo.InvariantCulture);
-        return ValueChanged.InvokeAsync(value);
+        var next = (Value ?? Minimum ?? 0) + delta;
+        return ValueChanged.InvokeAsync(Minimum is { } min && next < min ? min : next);
     }
 
     /// <summary>What the number measures, e.g. Amount. Names the field for screen readers and is not shown.</summary>

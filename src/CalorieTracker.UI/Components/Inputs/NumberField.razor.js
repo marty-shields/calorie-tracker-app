@@ -4,12 +4,12 @@ export function focusWhenReady(input, attempts) {
     return new Promise((resolve) => {
         const attempt = (left) => {
             if (!input.isConnected) {
-                resolve(false);
+                resolve();
                 return;
             }
             input.focus();
             if (document.activeElement === input || left <= 0) {
-                resolve(document.activeElement === input);
+                resolve();
                 return;
             }
             requestAnimationFrame(() => attempt(left - 1));

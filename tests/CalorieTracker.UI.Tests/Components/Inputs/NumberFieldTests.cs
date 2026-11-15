@@ -1,4 +1,9 @@
 using CalorieTracker.UI.Components.Inputs;
+using CalorieTracker.UI.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
+using Microsoft.JSInterop;
 
 namespace CalorieTracker.UI.Tests.Components.Inputs;
 
@@ -91,7 +96,7 @@ public class NumberFieldTests : ComponentTestBase
     }
 
     [Test]
-    public void Stepper_FromEmpty_StartsAtTheMinimumOrZero()
+    public void Stepper_Plus_FromEmpty_GoesToTheMinimumPlusTheStep()
     {
         var changed = new List<decimal?>();
         var cut = Render(p => p
@@ -189,6 +194,103 @@ public class NumberFieldTests : ComponentTestBase
         Render(p => p.Add(x => x.AutoFocus, true));
 
         Assert.That(module.Invocations["focusWhenReady"], Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public void Typing_AGroupedNumber_IsNotANumber()
+    {
+        var changed = new List<decimal?>();
+        var cut = Render(p => p.Add(x => x.ValueChanged, (decimal? v) => changed.Add(v)));
+
+        cut.Find("[data-testid=num]").Input("1,000.5");
+        cut.Find("[data-testid=num]").Input("1.000,5");
+        cut.Find("[data-testid=num]").Input("1 000");
+        cut.Find("[data-testid=num]").Input("-2.5");
+
+        Assert.That(changed, Is.EqualTo(new decimal?[] { null, null, null, -2.5m }));
+    }
+
+    [Test]
+    public void Stepper_Plus_FromBelowTheMinimum_GoesToTheMinimum()
+    {
+        var changed = new List<decimal?>();
+        var cut = Render(p => p
+            .Add(x => x.Stepper, true)
+            .Add(x => x.Minimum, 5m)
+            .Add(x => x.Value, 2m)
+            .Add(x => x.ValueChanged, (decimal? v) => changed.Add(v)));
+
+        cut.Find("[data-testid=num-plus]").Click();
+
+        Assert.That(changed, Is.EqualTo(new decimal?[] { 5m }));
+    }
+
+    [Test]
+    public void Stepper_Minus_FromEmptyWithALowMinimum_StepsDownFromTheMinimumAndStopsAtIt()
+    {
+        var changed = new List<decimal?>();
+        var cut = Render(p => p
+            .Add(x => x.Stepper, true)
+            .Add(x => x.Minimum, -100m)
+            .Add(x => x.Step, 10m)
+            .Add(x => x.ValueChanged, (decimal? v) => changed.Add(v)));
+
+        cut.Find("[data-testid=num-minus]").Click();
+
+        Assert.That(changed, Is.EqualTo(new decimal?[] { -100m }));
+    }
+
+    [Test]
+    public void Stepper_BelowTheMinimum_DisablesMinus()
+    {
+        var cut = Render(p => p.Add(x => x.Stepper, true).Add(x => x.Minimum, 5m).Add(x => x.Value, 3m));
+
+        Assert.That(cut.Find("[data-testid=num-minus]").HasAttribute("disabled"), Is.True);
+    }
+
+    [Test]
+    public void Stepper_WhenTheParentDoesNotTakeTheValue_KeepsShowingTheParentsValue()
+    {
+        var cut = Render(p => p.Add(x => x.Stepper, true).Add(x => x.Value, 5m));
+
+        cut.Find("[data-testid=num-plus]").Click();
+
+        Assert.That(cut.Find("[data-testid=num]").GetAttribute("value"), Is.EqualTo("5"));
+    }
+
+    [Test]
+    public void Stepper_WhenTheParentTakesTheValue_ShowsIt()
+    {
+        decimal? value = 5m;
+        var cut = Context.Render<NumberField>(p => p
+            .Add(x => x.Label, "Amount")
+            .Add(x => x.TestId, "num")
+            .Add(x => x.Stepper, true)
+            .Add(x => x.Value, value)
+            .Add(x => x.ValueChanged, (decimal? v) => value = v));
+
+        cut.Find("[data-testid=num-plus]").Click();
+        cut.Render(p => p.Add(x => x.Value, value));
+
+        Assert.That(cut.Find("[data-testid=num]").GetAttribute("value"), Is.EqualTo("6"));
+    }
+
+    [Test]
+    public void AutoFocusFails_LogsAWarningWithoutTheTypedTextAndShowsTheField()
+    {
+        var logger = new FakeLogger<NumberField>();
+        Context.Services.AddSingleton<ILogger<NumberField>>(logger);
+        Context.JSInterop.SetupModule("./_content/CalorieTracker.UI/Components/Inputs/NumberField.razor.js")
+            .SetupVoid("focusWhenReady", _ => true).SetException(new JSException("Focus failed"));
+
+        var cut = Render(p => p.Add(x => x.AutoFocus, true).Add(x => x.Value, 123.45m));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=num]"), Has.Count.EqualTo(1));
+            Assert.That(LoggedEvents.Of(logger), Is.EqualTo(new[] { (UiEvent.NumberFieldFocusFailed, LogLevel.Warning, "Focusing the number field failed") }));
+            Assert.That(logger.LatestRecord.Exception, Is.TypeOf<JSException>());
+        });
     }
 
     [Test]
