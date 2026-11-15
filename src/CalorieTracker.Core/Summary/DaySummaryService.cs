@@ -37,19 +37,17 @@ public sealed partial class DaySummaryService
             var listed = await diary.ListAsync(date);
             if (listed.Status != DiaryStatus.Ok)
             {
-                Log.Failed(logger);
-                return DaySummaryResult.Failed();
+                return DaySummaryResult.Failed(); // DiaryService logged it
             }
-
-            var ids = listed.Entries.Select(e => e.FoodId).Distinct().ToList();
-            var found = ids.Count == 0 ? [] : (await foods.FindAsync(ids)).ToDictionary(f => f.Id);
 
             var target = await targets.GetAsync();
             if (target.Status != TargetStatus.Ok)
             {
-                Log.Failed(logger);
-                return DaySummaryResult.Failed();
+                return DaySummaryResult.Failed(); // TargetService logged it
             }
+
+            var ids = listed.Entries.Select(e => e.FoodId).Distinct().ToList();
+            var found = ids.Count == 0 ? [] : (await foods.FindAsync(ids)).ToDictionary(f => f.Id);
 
             var byMeal = Enum.GetValues<Meal>().ToDictionary(m => m, _ => new List<SummaryEntry>());
             decimal protein = 0, carbs = 0, fat = 0;
@@ -61,6 +59,12 @@ public sealed partial class DaySummaryService
                     return DaySummaryResult.FoodMissing(entry.Id);
                 }
 
+                if (!byMeal.TryGetValue(entry.Meal, out var mealEntries))
+                {
+                    Log.MealUnknown(logger, entry.Id);
+                    return DaySummaryResult.Failed();
+                }
+
                 var scale = (decimal)entry.Amount / 100m;
                 var p = (decimal)food.ProteinG * scale;
                 var c = (decimal)food.CarbsG * scale;
@@ -70,10 +74,10 @@ public sealed partial class DaySummaryService
                 fat += f;
                 var nutrition = new Nutrition(
                     (int)Math.Round((decimal)food.Kcal * scale, MidpointRounding.AwayFromZero),
-                    Nutrition.Round((double)p),
-                    Nutrition.Round((double)c),
-                    Nutrition.Round((double)f));
-                byMeal[entry.Meal].Add(new SummaryEntry(entry.Id, food.Id, food.Name, food.Brand, food.Unit, entry.Amount, entry.Servings, nutrition));
+                    Nutrition.Round(p),
+                    Nutrition.Round(c),
+                    Nutrition.Round(f));
+                mealEntries.Add(new SummaryEntry(entry.Id, food.Id, food.Name, food.Brand, food.Unit, entry.Amount, entry.Servings, nutrition));
             }
 
             var meals = byMeal
@@ -85,10 +89,15 @@ public sealed partial class DaySummaryService
                 SharesOf(protein, carbs, fat),
                 meals,
                 target.Kcal,
-                target.Kcal - totals.Kcal,
+                checked(target.Kcal - totals.Kcal),
                 target.Kcal is { } goal && totals.Kcal > goal);
             Log.Built(logger, listed.Entries.Count);
             return DaySummaryResult.Ok(summary);
+        }
+        catch (OverflowException)
+        {
+            Log.Overflow(logger);
+            return DaySummaryResult.Failed();
         }
         catch (Exception)
         {
@@ -115,6 +124,12 @@ public sealed partial class DaySummaryService
 
         [LoggerMessage((int)CoreEvent.DaySummaryFoodMissing, LogLevel.Warning, "Day summary not built, entry {EntryId} points at missing food {FoodId}")]
         public static partial void FoodMissing(ILogger logger, int entryId, int foodId);
+
+        [LoggerMessage((int)CoreEvent.DaySummaryOverflow, LogLevel.Warning, "Day summary not built, a figure was too large")]
+        public static partial void Overflow(ILogger logger);
+
+        [LoggerMessage((int)CoreEvent.DaySummaryMealUnknown, LogLevel.Warning, "Day summary not built, entry {EntryId} has a meal that does not exist")]
+        public static partial void MealUnknown(ILogger logger, int entryId);
 
         [LoggerMessage((int)CoreEvent.DaySummaryFailed, LogLevel.Warning, "Day summary call failed")]
         public static partial void Failed(ILogger logger);

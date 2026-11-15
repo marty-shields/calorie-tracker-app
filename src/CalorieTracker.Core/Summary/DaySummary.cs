@@ -11,9 +11,13 @@ public sealed record Nutrition(int Kcal, double ProteinG, double CarbsG, double 
     public static Nutrition Zero { get; } = new(0, 0, 0, 0);
 
     internal Nutrition Plus(Nutrition other) =>
-        new(Kcal + other.Kcal, Round(ProteinG + other.ProteinG), Round(CarbsG + other.CarbsG), Round(FatG + other.FatG));
+        new(
+            checked(Kcal + other.Kcal),
+            Round((decimal)ProteinG + (decimal)other.ProteinG),
+            Round((decimal)CarbsG + (decimal)other.CarbsG),
+            Round((decimal)FatG + (decimal)other.FatG));
 
-    internal static double Round(double grams) => Math.Round(grams, 1, MidpointRounding.AwayFromZero);
+    internal static double Round(decimal grams) => (double)Math.Round(grams, 1, MidpointRounding.AwayFromZero);
 }
 
 /// <summary>Each macro's share of the day's calories as a whole percent (protein and carbs 4 kcal a gram, fat 9). They are zero on an empty day and may add up to 99 or 101.</summary>

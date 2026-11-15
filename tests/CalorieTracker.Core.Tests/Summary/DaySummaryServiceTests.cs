@@ -68,6 +68,41 @@ public class DaySummaryServiceTests
     }
 
     [Test]
+    public async Task DaySummary_ExactMidpoints_RoundHalfAwayFromZero()
+    {
+        var food = await AddFood("Midpoints", FoodUnit.Gram, 45, 2.5, 1.5, 0);
+        await diary.AddAsync(Day, Meal.Lunch, food, 10);
+
+        var s = (await service.GetAsync(Day)).Summary!;
+
+        Assert.That(s.Totals, Is.EqualTo(new Nutrition(5, 0.3, 0.2, 0.0)));
+    }
+
+    [Test]
+    public async Task DaySummary_CarbHeavyMix_SharesRoundUpAndCountCarbsAtFourKcalAGram()
+    {
+        // 30 g cheddar and 330 ml cola: 30.48 + 140.04 + 94.23 = 264.75 kcal from macros, shares 11.51, 52.89, 35.59.
+        await diary.AddAsync(Day, Meal.Lunch, cheddar, 30);
+        await diary.AddAsync(Day, Meal.Lunch, cola, 330);
+
+        var s = (await service.GetAsync(Day)).Summary!;
+
+        Assert.That(s.Shares, Is.EqualTo(new MacroShares(12, 53, 36)));
+    }
+
+    [Test]
+    public async Task DaySummary_ShareOfExactlyAHalf_RoundsAwayFromZero()
+    {
+        // 7 g protein and 1 g carbs give 28 and 4 kcal: 87.5 and 12.5 percent.
+        var food = await AddFood("Halves", FoodUnit.Gram, 32, 7, 1, 0);
+        await diary.AddAsync(Day, Meal.Lunch, food, 100);
+
+        var s = (await service.GetAsync(Day)).Summary!;
+
+        Assert.That(s.Shares, Is.EqualTo(new MacroShares(88, 13, 0)));
+    }
+
+    [Test]
     public async Task DaySummary_PerHundredMillilitres_ScalesLikePerHundredGrams()
     {
         var sameValuesPerGram = await AddFood("Same as cola but per gram", FoodUnit.Gram, 42, 0, 10.6, 0);
@@ -194,7 +229,40 @@ public class DaySummaryServiceTests
         await connection.CreateTableAsync<DiaryEntry>();
         await connection.ExecuteAsync("DROP TABLE AppSettings");
         Assert.That((await service.GetAsync(Day)).Status, Is.EqualTo(DaySummaryStatus.Failed));
-        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.All.EqualTo(CoreEvent.DaySummaryFailed));
+        Assert.That(LoggedEvents.Of(logger), Is.Empty, "the diary and target services already logged these");
+
+        await connection.CreateTableAsync<AppSettings>();
+        await diary.AddAsync(Day, Meal.Lunch, cheddar, 30);
+        await connection.ExecuteAsync("DROP TABLE Food");
+        Assert.That((await service.GetAsync(Day)).Status, Is.EqualTo(DaySummaryStatus.Failed));
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { CoreEvent.DaySummaryFailed }));
+    }
+
+    [Test]
+    public async Task DaySummary_TotalsTooLargeForAnInt_ReturnFailedAndLogOverflow()
+    {
+        await diary.AddAsync(Day, Meal.Lunch, cheddar, 5e8);
+        await diary.AddAsync(Day, Meal.Dinner, cheddar, 5e8);
+        await targets.SaveAsync(2100);
+
+        var result = await service.GetAsync(Day);
+
+        Assert.That(result.Status, Is.EqualTo(DaySummaryStatus.Failed));
+        var line = LoggedEvents.Of(logger).Single();
+        Assert.That((line.Id, line.Message), Is.EqualTo((CoreEvent.DaySummaryOverflow, "Day summary not built, a figure was too large")));
+    }
+
+    [Test]
+    public async Task DaySummary_AStoredMealThatDoesNotExist_ReturnsFailedAndLogsTheEntryId()
+    {
+        var entry = (await diary.AddAsync(Day, Meal.Lunch, cheddar, 30)).Entry!.Id;
+        await connection.ExecuteAsync("UPDATE DiaryEntry SET Meal = 9 WHERE Id = ?", entry);
+
+        var result = await service.GetAsync(Day);
+
+        Assert.That(result.Status, Is.EqualTo(DaySummaryStatus.Failed));
+        var line = LoggedEvents.Of(logger).Single();
+        Assert.That((line.Id, line.Message), Is.EqualTo((CoreEvent.DaySummaryMealUnknown, $"Day summary not built, entry {entry} has a meal that does not exist")));
     }
 
     [Test]
@@ -214,7 +282,7 @@ public class DaySummaryServiceTests
         await service.GetAsync(date);
         await connection.ExecuteAsync("DELETE FROM Food WHERE Id = ?", cheddar);
         await service.GetAsync(date);
-        await connection.ExecuteAsync("DROP TABLE DiaryEntry");
+        await connection.ExecuteAsync("DROP TABLE Food");
         await service.GetAsync(date);
 
         var lines = LoggedEvents.Of(logger);
@@ -222,7 +290,7 @@ public class DaySummaryServiceTests
         var text = string.Join("\n", lines.Select(l => l.Message))
             + "\n" + string.Join("\n", logger.Collector.GetSnapshot().SelectMany(r => r.StructuredState ?? []).Select(p => $"{p.Key}={p.Value}"));
         Assert.That(text, Does.Not.Contain("2047").And.Not.Contain("03-29").And.Not.Contain("7531").And.Not.Contain("8642")
-            .And.Not.Contain("Cheddar").And.Not.Contain("Snacks").And.Not.Contain("31320").And.Not.Contain("kcal"));
+            .And.Not.Contain("Cheddar").And.Not.Contain("Snacks").And.Not.Contain("31330").And.Not.Contain("22688").And.Not.Contain("kcal"));
         Assert.That(lines[0].Message, Does.Contain("from 1 entries"));
     }
 

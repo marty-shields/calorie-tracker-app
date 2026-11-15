@@ -186,6 +186,67 @@ public class FoodStoreTests
     }
 
     [Test]
+    public async Task FindAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
+    {
+        var kept = NewFood("1");
+        await connection.InsertAsync(kept);
+        var holding = new TaskCompletionSource();
+        var busy = gate.RunAsync(async () =>
+        {
+            await holding.Task;
+            return await connection.ExecuteAsync("DELETE FROM Food WHERE Id = ?", kept.Id);
+        });
+
+        var find = store.FindAsync([kept.Id]);
+        Assert.That(find.IsCompleted, Is.False);
+        holding.SetResult();
+
+        Assert.That(await busy, Is.EqualTo(1));
+        Assert.That(await find, Is.Empty);
+    }
+
+    [Test]
+    public async Task FindAsync_SeveralIds_ReturnsEachFoodOnce()
+    {
+        var a = NewFood("1");
+        var b = NewFood("2");
+        var other = NewFood("3");
+        await connection.InsertAllAsync(new List<Food> { a, b, other });
+
+        var found = await store.FindAsync([a.Id, b.Id, a.Id]);
+
+        Assert.That(found.Select(f => f.Id).Order(), Is.EqualTo(new[] { a.Id, b.Id }.Order()));
+    }
+
+    [Test]
+    public async Task FindAsync_UnknownId_IsLeftOut()
+    {
+        var a = NewFood("1");
+        await connection.InsertAsync(a);
+
+        var found = await store.FindAsync([a.Id, a.Id + 1000]);
+
+        Assert.That(found.Select(f => f.Id), Is.EqualTo(new[] { a.Id }));
+    }
+
+    [Test]
+    public async Task FindAsync_MoreIdsThanOneChunk_ReturnsEveryFood()
+    {
+        var foods = Enumerable.Range(1, 1500).Select(i => NewFood(i.ToString())).ToList();
+        await connection.InsertAllAsync(foods);
+
+        var found = await store.FindAsync(foods.Select(f => f.Id).ToList());
+
+        Assert.That(found.Select(f => f.Id).Order(), Is.EqualTo(foods.Select(f => f.Id).Order()));
+    }
+
+    [Test]
+    public async Task FindAsync_NoIds_ReturnsNothing()
+    {
+        Assert.That(await store.FindAsync([]), Is.Empty);
+    }
+
+    [Test]
     public async Task UpsertAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
     {
         var holding = new TaskCompletionSource();

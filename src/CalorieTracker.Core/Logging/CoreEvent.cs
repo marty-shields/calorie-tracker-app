@@ -157,6 +157,12 @@ internal enum CoreEvent
     /// <summary><see cref="Summary.DaySummaryService"/>: an entry's food no longer exists, so the call returned <see cref="Summary.DaySummaryStatus.FoodMissing"/>; carries the entry and food ids.</summary>
     DaySummaryFoodMissing = 1802,
 
-    /// <summary><see cref="Summary.DaySummaryService"/>: the database failed, so the call returned <see cref="Summary.DaySummaryStatus.Failed"/>.</summary>
+    /// <summary><see cref="Summary.DaySummaryService"/>: an unexpected failure (the database, say), so the call returned <see cref="Summary.DaySummaryStatus.Failed"/>.</summary>
     DaySummaryFailed = 1803,
+
+    /// <summary><see cref="Summary.DaySummaryService"/>: an amount or total was too large to work out, so the call returned <see cref="Summary.DaySummaryStatus.Failed"/>.</summary>
+    DaySummaryOverflow = 1804,
+
+    /// <summary><see cref="Summary.DaySummaryService"/>: an entry holds a meal that is not one of the four, so the call returned <see cref="Summary.DaySummaryStatus.Failed"/>; carries the entry id.</summary>
+    DaySummaryMealUnknown = 1805,
 }

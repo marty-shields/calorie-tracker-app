@@ -67,5 +67,7 @@ public class CoreEventTests
             [CoreEvent.DaySummaryBuilt] = 1801,
             [CoreEvent.DaySummaryFoodMissing] = 1802,
             [CoreEvent.DaySummaryFailed] = 1803,
+            [CoreEvent.DaySummaryOverflow] = 1804,
+            [CoreEvent.DaySummaryMealUnknown] = 1805,
         }));
 }
