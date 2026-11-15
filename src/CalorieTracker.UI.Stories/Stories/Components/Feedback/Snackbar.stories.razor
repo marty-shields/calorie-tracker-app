@@ -5,23 +5,21 @@
 
     <Story Name="Message only">
         <Template>
-            <Snackbar Service="messageOnly" />
+            @{ var service = Posted("Entry added to Lunch"); }
+            <Snackbar Service="service" />
         </Template>
     </Story>
 
     <Story Name="With action">
         <Template>
-            <Snackbar Service="withAction" />
+            @{ var service = Posted("Entry deleted", "Undo"); }
+            <Snackbar Service="service" />
         </Template>
     </Story>
 
 </Stories>
 
 @code {
-    private static readonly SnackbarService messageOnly = Posted("Entry added to Lunch");
-
-    private static readonly SnackbarService withAction = Posted("Entry deleted", "Undo");
-
     private static SnackbarService Posted(string text, string? actionLabel = null)
     {
         var service = new SnackbarService(TimeProvider.System);

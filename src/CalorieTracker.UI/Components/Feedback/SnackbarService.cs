@@ -38,7 +38,12 @@ public sealed class SnackbarService : IDisposable
     /// <param name="duration"><see cref="DefaultDuration"/> when null; <see cref="Timeout.InfiniteTimeSpan"/> keeps it until dismissed.</param>
     public void Show(string text, string? actionLabel = null, Func<Task>? onAction = null, TimeSpan? duration = null)
     {
-        var hasAction = actionLabel is not null && onAction is not null;
+        if (duration is { } d && d != Timeout.InfiniteTimeSpan && d < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(duration), duration, "A duration can't be negative.");
+        }
+
+        var hasAction = !string.IsNullOrWhiteSpace(actionLabel) && onAction is not null;
         var message = new SnackbarMessage(text, hasAction ? actionLabel : null, hasAction ? onAction : null);
         lock (gate)
         {
@@ -54,13 +59,13 @@ public sealed class SnackbarService : IDisposable
     public void Dismiss() => DismissOnly(null);
 
     /// <summary>
-    /// Dismisses the message showing, then runs its action. A second call for the same message does nothing, so the action
-    /// runs once.
+    /// Dismisses <paramref name="message"/> if it is still the one showing, then runs its action. A call for a message
+    /// already gone or replaced does nothing, so the action runs once. The message is gone before the action runs, so an
+    /// exception from the action reaches the caller: actions must not throw.
     /// </summary>
-    public async Task InvokeActionAsync()
+    public async Task InvokeActionAsync(SnackbarMessage message)
     {
-        var message = Take(null);
-        if (message is null)
+        if (Take(message) is null)
         {
             return;
         }

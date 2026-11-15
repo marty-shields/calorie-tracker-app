@@ -7,7 +7,7 @@
         <span class="text" data-testid="snackbar-message">@message.Text</span>
         @if (message.ActionLabel is not null)
         {
-            <button type="button" class="action" data-testid="snackbar-action" @onclick="Source.InvokeActionAsync">@message.ActionLabel</button>
+            <button type="button" class="action" data-testid="snackbar-action" @onclick="() => Source.InvokeActionAsync(message)">@message.ActionLabel</button>
         }
     </div>
 }

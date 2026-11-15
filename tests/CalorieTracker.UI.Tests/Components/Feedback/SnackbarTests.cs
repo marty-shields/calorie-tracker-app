@@ -45,12 +45,13 @@ public class SnackbarTests : ComponentTestBase
             fired++;
             return Task.CompletedTask;
         }));
+        var shown = Service.Current!;
         var action = cut.Find("[data-testid=snackbar-action]");
 
         Assert.That(action.TextContent, Is.EqualTo("Undo"));
         action.Click();
         await WaitForRendererAsync();
-        await Service.InvokeActionAsync();
+        await Service.InvokeActionAsync(shown);
 
         Assert.Multiple(() =>
         {
@@ -116,6 +117,72 @@ public class SnackbarTests : ComponentTestBase
             Assert.That(cut.FindAll("[data-testid=snackbar-message]").Select(e => e.TextContent), Is.EqualTo(new[] { "Second" }));
             Assert.That(cut.FindAll("[data-testid=snackbar-action]"), Is.Empty);
             Assert.That(oldFired, Is.Zero);
+        });
+
+        Clock.Advance(TimeSpan.FromSeconds(1));
+        cut.WaitForState(() => cut.FindAll("[data-testid=snackbar]").Count == 0);
+
+        Assert.That(Service.Current, Is.Null);
+    }
+
+    [Test]
+    public async Task ClickOnAReplacedMessage_DoesNothingToTheNewOne()
+    {
+        var oldFired = 0;
+        var newFired = 0;
+        await Context.Renderer.Dispatcher.InvokeAsync(() => Service.Show("First", "Undo", () =>
+        {
+            oldFired++;
+            return Task.CompletedTask;
+        }));
+        var stale = Service.Current!;
+        await Context.Renderer.Dispatcher.InvokeAsync(() => Service.Show("Second", "Redo", () =>
+        {
+            newFired++;
+            return Task.CompletedTask;
+        }));
+
+        await Service.InvokeActionAsync(stale);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(oldFired, Is.Zero);
+            Assert.That(newFired, Is.Zero);
+            Assert.That(Service.Current?.Text, Is.EqualTo("Second"));
+        });
+    }
+
+    [Test]
+    public void NegativeDuration_ThrowsAndLeavesTheShowingMessage()
+    {
+        Service.Show("First", duration: Timeout.InfiniteTimeSpan);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => Service.Show("Second", duration: TimeSpan.FromSeconds(-1)));
+
+        Assert.That(Service.Current?.Text, Is.EqualTo("First"));
+    }
+
+    [Test]
+    public void WhitespaceLabel_DropsTheAction()
+    {
+        Service.Show("Entry added", "  ", () => Task.CompletedTask);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Service.Current!.ActionLabel, Is.Null);
+            Assert.That((object?)Service.Current.OnAction, Is.Null);
+        });
+    }
+
+    [Test]
+    public void LabelWithoutAHandler_DropsTheAction()
+    {
+        Service.Show("Entry added", "Undo");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Service.Current!.ActionLabel, Is.Null);
+            Assert.That((object?)Service.Current.OnAction, Is.Null);
         });
     }
 
