@@ -73,6 +73,15 @@ internal enum CoreEvent
     /// <summary><see cref="Foods.StoredBarcodeLookup"/>: saving the inner lookup's food failed; the unsaved food was returned.</summary>
     StoredLookupSaveFailed = 1306,
 
+    /// <summary><see cref="Foods.StoredBarcodeLookup"/>: a stored food with no serving got one from a fresh lookup; carries the food id.</summary>
+    StoredLookupServingFilled = 1307,
+
+    /// <summary><see cref="Foods.StoredBarcodeLookup"/>: the lookup for a stored food's serving gave none; carries the food id and the lookup's status.</summary>
+    StoredLookupServingMissing = 1308,
+
+    /// <summary><see cref="Foods.StoredBarcodeLookup"/>: saving a stored food's new serving failed, or the refresh threw; the stored food was returned as it was.</summary>
+    StoredLookupServingFailed = 1309,
+
     /// <summary>Start of the block reserved for the CoFID seed loader.</summary>
     SeedLoaderBlock = 1400,
 

@@ -111,6 +111,14 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             return food;
         });
 
+    /// <summary>Sets only the serving of the food with <paramref name="id"/>, leaving its nutrients as stored.</summary>
+    public Task SetServingAsync(int id, string label, double amount) =>
+        gate.RunAsync(async () =>
+        {
+            await connection.ExecuteAsync("UPDATE Food SET ServingLabel = ?, ServingAmount = ? WHERE Id = ?", label, amount, id);
+            Log.Updated(logger, id);
+        });
+
     /// <summary>The seed version last fully loaded for <paramref name="source"/>, or null when none was.</summary>
     public Task<int?> GetSeedVersionAsync(FoodSource source) =>
         gate.RunAsync<int?>(async () =>
