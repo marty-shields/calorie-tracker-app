@@ -75,6 +75,34 @@ public class FoodStoreTests
     }
 
     [Test]
+    public async Task UpsertAsync_FreshLookupWithNoServing_KeepsAStoredServingChecked()
+    {
+        var first = NewFood("1");
+        first.ServingChecked = true;
+        await store.UpsertAsync(first);
+
+        await store.UpsertAsync(NewFood("1", kcal: 250));
+
+        var row = await connection.Table<Food>().FirstAsync();
+        Assert.That((row.ServingChecked, row.Kcal), Is.EqualTo(((bool?)true, 250.0)));
+    }
+
+    [Test]
+    public async Task UpsertAsync_FreshLookupWithAServing_ReplacesServingChecked()
+    {
+        var first = NewFood("1");
+        first.ServingChecked = true;
+        await store.UpsertAsync(first);
+        var fresh = NewFood("1");
+        fresh.ServingLabel = "1 slice";
+        fresh.ServingAmount = 30;
+
+        await store.UpsertAsync(fresh);
+
+        Assert.That((await connection.Table<Food>().FirstAsync()).ServingChecked, Is.Null);
+    }
+
+    [Test]
     public async Task UpsertAsync_SameSourceIdUnderAnotherSource_IsASeparateRow()
     {
         var cofid = await store.UpsertAsync(NewFood("1", FoodSource.CoFID));
@@ -185,65 +213,53 @@ public class FoodStoreTests
         Assert.That((await find)?.SourceId, Is.EqualTo("1"));
     }
 
-    [Test]
-    public async Task FindAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
-    {
-        var kept = NewFood("1");
-        await connection.InsertAsync(kept);
-        var holding = new TaskCompletionSource();
-        var busy = gate.RunAsync(async () =>
+    private Task<List<Food>> FindIn(IReadOnlyCollection<int> ids) =>
+        gate.RunAsync(async () =>
         {
-            await holding.Task;
-            return await connection.ExecuteAsync("DELETE FROM Food WHERE Id = ?", kept.Id);
+            var found = new List<Food>();
+            await connection.RunInTransactionAsync(db => found = FoodStore.FindIn(db, ids));
+            return found;
         });
 
-        var find = store.FindAsync([kept.Id]);
-        Assert.That(find.IsCompleted, Is.False);
-        holding.SetResult();
-
-        Assert.That(await busy, Is.EqualTo(1));
-        Assert.That(await find, Is.Empty);
-    }
-
     [Test]
-    public async Task FindAsync_SeveralIds_ReturnsEachFoodOnce()
+    public async Task FindIn_SeveralIds_ReturnsEachFoodOnce()
     {
         var a = NewFood("1");
         var b = NewFood("2");
         var other = NewFood("3");
         await connection.InsertAllAsync(new List<Food> { a, b, other });
 
-        var found = await store.FindAsync([a.Id, b.Id, a.Id]);
+        var found = await FindIn([a.Id, b.Id, a.Id]);
 
         Assert.That(found.Select(f => f.Id).Order(), Is.EqualTo(new[] { a.Id, b.Id }.Order()));
     }
 
     [Test]
-    public async Task FindAsync_UnknownId_IsLeftOut()
+    public async Task FindIn_UnknownId_IsLeftOut()
     {
         var a = NewFood("1");
         await connection.InsertAsync(a);
 
-        var found = await store.FindAsync([a.Id, a.Id + 1000]);
+        var found = await FindIn([a.Id, a.Id + 1000]);
 
         Assert.That(found.Select(f => f.Id), Is.EqualTo(new[] { a.Id }));
     }
 
     [Test]
-    public async Task FindAsync_MoreIdsThanOneChunk_ReturnsEveryFood()
+    public async Task FindIn_MoreIdsThanOneChunk_ReturnsEveryFood()
     {
         var foods = Enumerable.Range(1, 1500).Select(i => NewFood(i.ToString())).ToList();
         await connection.InsertAllAsync(foods);
 
-        var found = await store.FindAsync(foods.Select(f => f.Id).ToList());
+        var found = await FindIn(foods.Select(f => f.Id).ToList());
 
         Assert.That(found.Select(f => f.Id).Order(), Is.EqualTo(foods.Select(f => f.Id).Order()));
     }
 
     [Test]
-    public async Task FindAsync_NoIds_ReturnsNothing()
+    public async Task FindIn_NoIds_ReturnsNothing()
     {
-        Assert.That(await store.FindAsync([]), Is.Empty);
+        Assert.That(await FindIn([]), Is.Empty);
     }
 
     [Test]
@@ -371,6 +387,21 @@ public class FoodStoreTests
         var row = rows.Single(r => r.Id == target.Id);
         Assert.That((row.ServingChecked, row.ServingAmount, row.Kcal, row.Name), Is.EqualTo(((bool?)true, (double?)null, 100.0, "Oats")));
         Assert.That(rows.Single(r => r.Id == other.Id).ServingChecked, Is.Null);
+    }
+
+    [Test]
+    public async Task MarkServingCheckedAsync_LogsTheIdOnly_AndNothingForAnUnknownId()
+    {
+        var target = await store.UpsertAsync(NewFood("SRC-SECRET"));
+        var afterInsert = LoggedEvents.Of(logger).Count;
+
+        await store.MarkServingCheckedAsync(999);
+        Assert.That(LoggedEvents.Of(logger).Count, Is.EqualTo(afterInsert));
+        await store.MarkServingCheckedAsync(target.Id);
+
+        var last = logger.Collector.GetSnapshot()[^1];
+        Assert.That(LoggedEvents.Of(logger).Last().Id, Is.EqualTo(CoreEvent.FoodUpdated));
+        Assert.That(last.Message, Does.Not.Contain("SRC-SECRET"));
     }
 
     [Test]

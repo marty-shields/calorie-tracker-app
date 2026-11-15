@@ -10,20 +10,12 @@ internal sealed class DaySummaryStore(SQLiteAsyncConnection connection, Database
         gate.RunAsync(async () =>
         {
             DayRead? read = null;
+            // The transaction is the read-consistency backstop: the gate already keeps other writers out, but a write that bypassed it must not split the three reads.
             await connection.RunInTransactionAsync(db =>
             {
-                var target = db.Find<AppSettings>(AppSettings.RowId)?.DailyTargetKcal;
-                var entries = db.Query<DiaryEntry>("SELECT * FROM DiaryEntry WHERE Date = ? AND IsRemoved = 0 ORDER BY Id", date);
-                var foods = new Dictionary<int, Food>();
-                // Chunked so a long list stays under SQLite's limit on bound variables.
-                foreach (var chunk in entries.Select(e => e.FoodId).Distinct().Chunk(500))
-                {
-                    var marks = string.Join(",", chunk.Select(_ => "?"));
-                    foreach (var food in db.Query<Food>($"SELECT * FROM Food WHERE Id IN ({marks})", chunk.Cast<object>().ToArray()))
-                    {
-                        foods[food.Id] = food;
-                    }
-                }
+                var target = TargetStore.Get(db);
+                var entries = DiaryStore.ListDay(db, date);
+                var foods = FoodStore.FindIn(db, entries.Select(e => e.FoodId).ToList()).ToDictionary(f => f.Id);
 
                 read = new DayRead(target, entries, foods);
             });

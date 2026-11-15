@@ -1,4 +1,3 @@
-using System.Globalization;
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Logging;
 using Microsoft.Extensions.Logging;
@@ -37,7 +36,7 @@ public sealed partial class DiaryService
 
         try
         {
-            var added = await store.AddAsync(new DiaryEntry { Date = Format(date), Meal = meal, FoodId = foodId, Amount = amount, Servings = servings });
+            var added = await store.AddAsync(new DiaryEntry { Date = DiaryEntry.FormatDate(date), Meal = meal, FoodId = foodId, Amount = amount, Servings = servings });
             if (added is null)
             {
                 Log.FoodNotFound(logger, foodId);
@@ -66,7 +65,7 @@ public sealed partial class DiaryService
             return DiaryResult.Invalid();
         }
 
-        return await ChangeAsync(id, () => store.UpdateAsync(id, Format(date), meal, amount, servings), Log.Updated);
+        return await ChangeAsync(id, () => store.UpdateAsync(id, DiaryEntry.FormatDate(date), meal, amount, servings), Log.Updated);
     }
 
     /// <summary>Removes a kept entry so <see cref="RestoreAsync"/> can bring it back. <see cref="DiaryStatus.NotFound"/> when no kept entry has the id.</summary>
@@ -80,7 +79,7 @@ public sealed partial class DiaryService
     {
         try
         {
-            var entries = await store.ListAsync(Format(date));
+            var entries = await store.ListAsync(DiaryEntry.FormatDate(date));
             Log.Listed(logger, entries.Count);
             return DiaryResult.Listed(entries);
         }
@@ -110,8 +109,6 @@ public sealed partial class DiaryService
             return DiaryResult.Failed();
         }
     }
-
-    private static string Format(DateOnly date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
     private static bool IsValid(Meal meal, double amount, double? servings) =>
         Enum.IsDefined(meal) && IsPositive(amount) && amount <= MaxAmount && (servings is null || IsPositive(servings.Value));

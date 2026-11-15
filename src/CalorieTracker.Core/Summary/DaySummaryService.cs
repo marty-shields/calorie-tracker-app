@@ -1,4 +1,3 @@
-using System.Globalization;
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Logging;
 using Microsoft.Extensions.Logging;
@@ -29,7 +28,7 @@ public sealed partial class DaySummaryService
     {
         try
         {
-            var read = await store.ReadDayAsync(date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+            var read = await store.ReadDayAsync(DiaryEntry.FormatDate(date));
             var found = read.Foods;
             var targetKcal = read.TargetKcal;
 

@@ -183,6 +183,22 @@ public class StoredBarcodeLookupTests
     }
 
     [Test]
+    public async Task Lookup_FoundAnswerWithAmountButNoLabel_KeepsTheRowAsIsAndMarksItChecked()
+    {
+        await store.UpsertAsync(NoServing("1"), Barcode);
+        var fresh = NoServing("1");
+        fresh.ServingAmount = 50;
+        fresh.Kcal = 999;
+        inner.Enqueue(BarcodeLookupResult.Found(fresh));
+
+        await lookup.LookupAsync(Barcode);
+        await lookup.RefreshesIdle().WaitAsync(Bound);
+
+        var row = await connection.Table<Food>().FirstAsync();
+        Assert.That((row.ServingLabel, row.ServingAmount, row.Kcal, row.ServingChecked), Is.EqualTo(((string?)null, (double?)null, 100.0, (bool?)true)));
+    }
+
+    [Test]
     public async Task Lookup_StoredFoodTheSourceNoLongerHas_IsMarkedCheckedAndNotAskedAgainEvenAfterARestart()
     {
         await store.UpsertAsync(NoServing("1"), Barcode);
