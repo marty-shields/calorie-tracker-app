@@ -55,13 +55,29 @@ public sealed class SettingsSteps(DashboardScreen dashboard, SettingsScreen sett
     {
         settings.TypeTarget(kcal);
         web.Eventually(settings.TargetError, Is.Null, "no message under the daily target");
+        ReopenSettingsUntil(kcal);
     }
 
     [When(@"^I type (\d+) as the daily target$")]
     public void WhenITypeAsTheDailyTarget(string kcal) => settings.TypeTarget(kcal);
 
     [When(@"^I clear the daily target$")]
-    public void WhenIClearTheDailyTarget() => settings.ClearTarget();
+    public void WhenIClearTheDailyTarget()
+    {
+        settings.ClearTarget();
+        ReopenSettingsUntil("");
+    }
+
+    /// <summary>
+    /// Saves run as the user types and nothing on screen says when the last one ended. Settings reads the target after them (the database runs calls in order),
+    /// so leaving and reopening it until it shows the expected value means the save is done before the app restarts.
+    /// </summary>
+    private void ReopenSettingsUntil(string expected)
+    {
+        settings.Back();
+        journeys.OpenSettings();
+        web.Eventually(settings.TargetValue, Is.EqualTo(expected), "daily target saved");
+    }
 
     [Then(@"^the daily target is (\d+)$")]
     public void ThenTheDailyTargetIs(string kcal) =>

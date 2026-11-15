@@ -37,7 +37,7 @@ public static class ScreenStates
             .Add(x => x.OnSettings, () => { })
             .Add(x => x.OnNavigate, (NavDestination _) => { })).FindAll("*")),
 
-        new("Screens/Settings", "Default", c => Settings(c, version: "1.0.0")),
+        new("Screens/Settings", "Default", c => Settings(c, version: "1.0.0", target: 2100)),
         new("Screens/Settings", "Dark chosen", c => Settings(c, version: "1.0.0", theme: ThemePreference.Dark, target: 2100)),
         new("Screens/Settings", "No version", c => Settings(c)),
         new("Screens/Settings", "Target set", c => Settings(c, version: "1.0.0", target: 2100)),
