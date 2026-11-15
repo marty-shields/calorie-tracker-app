@@ -5,6 +5,10 @@ public class ContrastTests
     private const double Text = 4.5;
     private const double LargeTextOrControl = 3.0;
 
+    // The ring track cannot be 3:1 against the card and also hold the accent arc at 3:1, so the arc wins and the track only
+    // has to stay visible.
+    private const double VisibleTrack = 1.4;
+
     // Minimums are WCAG AA contrast ratios.
     private static readonly (string Foreground, string Background, double Minimum)[] Pairs =
     [
@@ -17,6 +21,12 @@ public class ContrastTests
         ("--color-error", "--color-surface", Text),
         ("--color-success", "--color-bg", Text),
         ("--color-success", "--color-surface", Text),
+        ("--color-protein", "--color-bg", LargeTextOrControl),
+        ("--color-protein", "--color-surface", LargeTextOrControl),
+        ("--color-carbs", "--color-bg", LargeTextOrControl),
+        ("--color-carbs", "--color-surface", LargeTextOrControl),
+        ("--color-fat", "--color-bg", LargeTextOrControl),
+        ("--color-fat", "--color-surface", LargeTextOrControl),
         ("--color-on-bar", "--color-bar", Text),
         ("--color-on-bar-muted", "--color-bar", Text),
         ("--color-on-primary", "--color-primary", Text),
@@ -25,6 +35,9 @@ public class ContrastTests
         ("--color-on-inverse-surface", "--color-inverse-surface", Text),
         ("--color-inverse-primary", "--color-inverse-surface", Text),
         ("--color-accent", "--color-surface", LargeTextOrControl),
+        ("--color-accent", "--color-ring-track", LargeTextOrControl),
+        ("--color-error", "--color-ring-track", LargeTextOrControl),
+        ("--color-ring-track", "--color-surface", VisibleTrack),
         ("--color-border-strong", "--color-bg", LargeTextOrControl),
         ("--color-border-strong", "--color-surface", LargeTextOrControl),
         ("--color-focus", "--color-bg", LargeTextOrControl),

@@ -22,6 +22,12 @@
     --color-on-danger: light-dark(#ffffff, #1e2324);
     --color-error: light-dark(#a8231c, #f2b8b5);
     --color-success: light-dark(#2e7d32, #a5d6a7);
+    /* The calorie ring's track. The accent arc keeps 3:1 on it, so it cannot also be 3:1 against the card. */
+    --color-ring-track: light-dark(#c2dddc, #506163);
+    /* The energy share bar's segments. */
+    --color-protein: light-dark(#2f7f86, #7fc4cc);
+    --color-carbs: light-dark(#a35c00, #e0a860);
+    --color-fat: light-dark(#7a5aa6, #c3a8e8);
     /* The inverse colours: dark on a light screen, light on a dark one, so it stands out from the cards under it. */
     --color-inverse-surface: light-dark(#373e40, #e4ecec);
     --color-on-inverse-surface: light-dark(#f4f8f8, #141819);
@@ -72,6 +78,9 @@
     --pull-refresh-threshold: 64px;
     --pull-refresh-return-duration: 200ms;
     --snackbar-enter-duration: 150ms;
+    --ring-size: 8.75rem;
+    --ring-width: 0.875rem;
+    --share-bar-height: 0.75rem;
     --radio-size: 1.5rem;
     --radio-dot-size: 0.75rem;
     --nav-indicator-width: 4rem;
