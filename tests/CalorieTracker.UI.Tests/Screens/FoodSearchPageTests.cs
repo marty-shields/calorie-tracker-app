@@ -289,6 +289,16 @@ public class FoodSearchPageTests : ComponentTestBase
         });
     }
 
+    [Test]
+    public void TypeChips_AreLabelledIngredientsFoodsDrinksAllInThatOrder()
+    {
+        var cut = Context.Render<FoodSearchPage>();
+
+        var labels = cut.FindAll("[data-testid=food-filter] label").Select(l => l.TextContent.Trim());
+
+        Assert.That(labels, Is.EqualTo(new[] { "Ingredients", "Foods", "Drinks", "All" }));
+    }
+
     [TestCase("food-filter-foods", FoodType.Food)]
     [TestCase("food-filter-drinks", FoodType.Drink)]
     [TestCase("food-filter-all", null)]

@@ -105,6 +105,8 @@ TYPE_OVERRIDES = {
     "18-490": (FOOD, "crispy Chinese style duck is a prepared product"),
     "19-496": (FOOD, "sliced ham is a processed meat product (bacon and gammon stay Ingredients)"),
     # Dishes whose NAME_RULES match read the everyday name, which left names/ with the Dishes; without a name they would come back.
+    # Guard: SeedLoader tests (SeedFile_BundledSeed_HasNoneOfTheThirtyNamedDishes) fail if one of these ids is in the seed.
+    # If another Dish turns up (a Dish rule matched only by a name that is now gone), add its id here, regenerate and add it to that test.
     **dict.fromkeys(
         "11-881 13-484 14-027 14-028 14-032 14-049 14-054 14-063 14-064 14-079 14-080 14-093 14-101 14-113 14-114 14-134 "
         "14-169 14-233 14-234 14-245 14-250 14-253 14-269 14-314 14-316 14-332 14-344 14-345 14-349 14-367".split(), (DISH, "dropped: its Dish rule read an everyday name that left names/ with the Dishes")),
@@ -345,7 +347,9 @@ def apply_types(foods):
         if found is None:
             fail(f"food {food['sourceId']} is in group {food['foodGroup']}, which has no type in GROUP_TYPES")
         food["type"] = TYPE_OVERRIDES.get(food["sourceId"], (found,))[0]
+    before = len(foods)
     foods[:] = [food for food in foods if food["type"] != DISH]
+    print(f"dropped {before - len(foods)} Dishes, kept {len(foods)} foods", file=sys.stderr)
 
 
 class Raw(str):

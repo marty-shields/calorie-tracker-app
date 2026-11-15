@@ -308,6 +308,63 @@ public class SeedLoaderTests
     }
 
     [Test]
+    public void SeedFile_BundledSeed_HasNoneOfTheThirtyNamedDishes()
+    {
+        // The ids build-food-seed.py marks Dish in TYPE_OVERRIDES; one coming back means its Dish rule matched again.
+        string[] dishes = ("11-881 13-484 14-027 14-028 14-032 14-049 14-054 14-063 14-064 14-079 14-080 14-093 14-101 14-113 14-114 14-134 "
+            + "14-169 14-233 14-234 14-245 14-250 14-253 14-269 14-314 14-316 14-332 14-344 14-345 14-349 14-367").Split(' ');
+        using var stream = SeedLoader.OpenBundledSeed();
+
+        var seed = SeedFile.Parse(stream);
+
+        Assert.That(dishes, Has.Length.EqualTo(30));
+        Assert.That(seed.Foods.Select(f => f.SourceId).Intersect(dishes), Is.Empty);
+    }
+
+    [Test]
+    public async Task LoadAsync_NewerSeedWithoutSomeCoFidFoods_DeletesThemAndTheirBarcodesButNotOtherSources()
+    {
+        await store.UpsertAsync(new Food { Source = FoodSource.CoFID, SourceId = "old-dish", Name = "Old dish", SearchText = "old dish" }, "5000000000017");
+        await store.UpsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "old-dish", Name = "Scanned", SearchText = "scanned" }, "5000000000024");
+        await Loader().LoadAsync();
+        seedJson = Wrap(2, [Row("11-001", "Arrowroot", 355)]);
+
+        var result = await Loader().LoadAsync();
+
+        var foods = await connection.Table<Food>().ToListAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(SeedLoadStatus.Loaded));
+            Assert.That(foods.Select(f => (f.Source, f.SourceId)), Is.EquivalentTo(new[] { (FoodSource.CoFID, "11-001"), (FoodSource.OpenFoodFacts, "old-dish") }));
+        });
+        Assert.That(await connection.QueryScalarsAsync<string>("SELECT Barcode FROM FoodBarcode"), Is.EqualTo(new[] { "5000000000024" }));
+    }
+
+    [Test]
+    public async Task LoadAsync_SchemaTwoDatabaseWithSeedThreeDishesStoredAsFood_EndsWithNoDishes()
+    {
+        await connection.CloseAsync();
+        File.Delete(databasePath);
+        databasePath = TempDatabase.NewPath();
+        connection = new SQLiteAsyncConnection(databasePath);
+        await connection.ExecuteAsync(
+            "CREATE TABLE Food (Id integer primary key autoincrement not null, Source integer not null, SourceId varchar not null, Name varchar not null, Brand varchar, Unit integer not null, Kcal float, ProteinG float, CarbsG float, FatG float, FibreG float, SugarsG float, SaturatesG float, SaltG float, SearchText varchar not null)");
+        await connection.ExecuteAsync("CREATE UNIQUE INDEX UX_Food_Source_SourceId ON Food(Source, SourceId)");
+        await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Unit, SearchText) VALUES (1, 0, '11-001', 'Arrowroot', 0, 'arrowroot'), (2, 0, '14-027', 'Stew', 0, 'stew')");
+        await connection.ExecuteAsync("CREATE TABLE SeedVersion (Source integer primary key not null, Version integer not null)");
+        await connection.ExecuteAsync("INSERT INTO SeedVersion (Source, Version) VALUES (0, 3)");
+        await connection.ExecuteAsync("PRAGMA user_version = 2");
+        await new DatabaseInitializer(connection, [new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade()], new FakeLogger<DatabaseInitializer>(), DatabaseInitializer.CurrentVersion).InitializeAsync();
+        store = new FoodStore(connection, new DatabaseGate(), new FakeLogger<FoodStore>());
+        seedJson = Wrap(6, [Row("11-001", "Arrowroot", 355)]);
+
+        await Loader().LoadAsync();
+
+        var foods = await connection.QueryAsync<Food>("SELECT SourceId, Type FROM Food");
+        Assert.That(foods.Select(f => (f.SourceId, f.Type)), Is.EqualTo(new[] { ("11-001", FoodType.Ingredient) }));
+    }
+
+    [Test]
     public void SeedFile_BundledSeed_KeepsPlainOatsAndDropsPreparedOats()
     {
         using var stream = SeedLoader.OpenBundledSeed();

@@ -10,7 +10,7 @@ McCance and Widdowson's Composition of Foods Integrated Dataset 2021, Public Hea
 
 1. Download the CoFID workbook (`.xlsx`) from the source page into a folder outside the repo. `*.xlsx` is git-ignored, so it is never committed.
 2. Run `python3 -I .github/scripts/build-food-seed.py <path to cofid.xlsx> src/CalorieTracker.Core/Seed/cofid-foods.json` (`py -I` on Windows). It needs only Python 3.
-3. The run prints `kept 2853 of 2887 foods` (the 2021 workbook; the Dishes are dropped after that count, leaving 2,174) and a warning for each repeated food code. Every kept food has a row in the Inorganics sheet (no "has no row" warning on the 2021 workbook), so the 41 foods with `saltG` `null` are all `N` or blank sodium; a warning appears if a later workbook breaks that. A rerun on the same workbook is byte-identical.
+3. The run prints `kept 2853 of 2887 foods` and then `dropped 679 Dishes, kept 2174 foods` (the 2021 workbook) and a warning for each repeated food code. Every kept food has a row in the Inorganics sheet (no "has no row" warning on the 2021 workbook), so the 26 foods with `saltG` `null` are all `N` or blank sodium; a warning appears if a later workbook breaks that. A rerun on the same workbook is byte-identical.
 
 Every food has an everyday name. Regenerating keeps them: the script reads `names/*.json` (next to the output file, or `--names <folder>`) and applies them. With no `names/` folder the output is the plain workbook names.
 
@@ -115,6 +115,6 @@ The file is an embedded resource of `CalorieTracker.Core` (`cofid-foods.json`). 
 - The `SeedVersion` table holds the loaded `seedVersion` for each source. It is written only after the last chunk, so a crash part way retries on the next start (the upsert is idempotent).
 - A stored version equal to or higher than the bundled one loads nothing. A missing or lower one loads every food and then stores the bundled version.
 - Foods match on `source` and `sourceId`; an existing row keeps its `Id`. Rows of other sources are never read or written.
-- Foods missing from a newer seed are left in place, never deleted.
+- After the upsert, CoFID foods (and their barcode links) whose `sourceId` is not in the seed are deleted, in one transaction before the version is stored. This is how a database whose Dish rows were not typed Dish (schema step 4 only deletes those) loses them. Rows of other sources are untouched.
 - `originalName` and `foodGroup` are not stored (the Food table has no columns for them).
 - Bump `seedVersion` in `build-food-seed.py` whenever the content or names change, or installed apps will not pick the change up.

@@ -4,6 +4,7 @@ namespace CalorieTracker.Core.Data;
 
 /// <summary>
 /// Step 4: the Dish type is gone. Deletes the foods stored as Dish (type 2) and their barcodes, then renumbers Drink from 3 to 2.
+/// A database whose CoFID rows were never typed Dish keeps them; the seed load removes CoFID foods the bundled seed no longer has.
 /// Must run before any diary entry points at a food. Safe on a database with no Food or FoodBarcode table.
 /// </summary>
 internal sealed class DropDishesUpgrade : ISchemaUpgrade
@@ -11,6 +12,7 @@ internal sealed class DropDishesUpgrade : ISchemaUpgrade
     // The numbers the types had before this step: Ingredient 0, Food 1, Dish 2, Drink 3.
     private const int OldDish = 2;
     private const int OldDrink = 3;
+    private const int NewDrink = 2;
 
     public int Version => 4;
 
@@ -27,6 +29,6 @@ internal sealed class DropDishesUpgrade : ISchemaUpgrade
         }
 
         db.Execute($"DELETE FROM Food WHERE Type = {OldDish}");
-        db.Execute($"UPDATE Food SET Type = {(int)FoodType.Drink} WHERE Type = {OldDrink}");
+        db.Execute($"UPDATE Food SET Type = {NewDrink} WHERE Type = {OldDrink}");
     }
 }

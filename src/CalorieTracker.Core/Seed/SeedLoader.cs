@@ -60,6 +60,7 @@ internal sealed partial class SeedLoader(FoodStore store, ILogger<SeedLoader> lo
                 updated += result.Updated;
             }
 
+            await store.DeleteMissingAsync(FoodSource.CoFID, seed.Foods.Select(f => f.SourceId).ToHashSet());
             await store.SetSeedVersionAsync(FoodSource.CoFID, seed.Version);
             Log.Loaded(logger, seed.Version, inserted, updated);
             return new SeedLoadResult(SeedLoadStatus.Loaded, seed.Version, inserted, updated);

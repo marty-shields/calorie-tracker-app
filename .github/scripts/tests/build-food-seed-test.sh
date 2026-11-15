@@ -165,6 +165,7 @@ check "the summary, a warning for each repeat of a code and for a food missing f
 warning: food code 13-669 is repeated; 'Watercress, raw' (row 15) gets sourceId 13-669#2
 warning: food code 13-669 is repeated; 'Third with the code' (row 16) gets sourceId 13-669#3
 kept 10 of 14 foods, dropped 4
+dropped 0 Dishes, kept 10 foods
 exit=0" "$(seed ok)"
 
 # Sorted by code then repeat number (not sheet order); Tr is 0; 0.125 rounds half up; float noise is gone; the NSP column
