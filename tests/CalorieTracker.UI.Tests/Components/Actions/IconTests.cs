@@ -51,4 +51,30 @@ public class IconTests : ComponentTestBase
 
         Assert.That(cut.Find("svg").ClassList, Does.Contain("small"));
     }
+
+    [Test]
+    public void NewIcons_RenderInEveryToneAndSize(
+        [Values(IconName.Plus, IconName.Minus, IconName.ChevronLeft)] IconName name,
+        [Values] IconTone tone,
+        [Values] IconSize size)
+    {
+        var cut = Context.Render<Icon>(p => p.Add(x => x.Name, name).Add(x => x.Tone, tone).Add(x => x.Size, size));
+
+        var expected = new List<string> { "icon" };
+        if (tone != IconTone.Default)
+        {
+            expected.Add(tone.ToString().ToLowerInvariant());
+        }
+
+        if (size == IconSize.Small)
+        {
+            expected.Add("small");
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("svg").ClassList, Is.EquivalentTo(expected));
+            Assert.That(cut.Find("path").GetAttribute("d"), Is.Not.Empty);
+        });
+    }
 }
