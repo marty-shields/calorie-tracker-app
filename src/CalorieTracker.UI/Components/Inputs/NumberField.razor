@@ -1,0 +1,147 @@
+@using System.Globalization
+@using CalorieTracker.UI.Components.Actions
+<div class="field @(invalid ? "invalid" : null)">
+    <div class="row">
+        @if (Stepper)
+        {
+            <button type="button"
+                    class="step"
+                    aria-label="@($"Decrease {Label}")"
+                    data-testid="@StepTestId("minus")"
+                    disabled="@(Disabled || AtMinimum)"
+                    @onclick="Decrease">
+                <Icon Name="IconName.Minus" />
+            </button>
+        }
+        <label class="box">
+            <span class="visually-hidden">@Label</span>
+            <input @ref="input"
+                   type="text"
+                   inputmode="decimal"
+                   class="input"
+                   value="@text"
+                   disabled="@Disabled"
+                   aria-invalid="@(invalid ? "true" : null)"
+                   aria-describedby="@(invalid ? messageId : null)"
+                   data-testid="@InputTestId"
+                   @oninput="OnInput" />
+            @if (!string.IsNullOrEmpty(Unit))
+            {
+                <span class="unit" data-testid="@StepTestId("unit")">@Unit</span>
+            }
+        </label>
+        @if (Stepper)
+        {
+            <button type="button"
+                    class="step"
+                    aria-label="@($"Increase {Label}")"
+                    data-testid="@StepTestId("plus")"
+                    disabled="@Disabled"
+                    @onclick="Increase">
+                <Icon Name="IconName.Plus" />
+            </button>
+        }
+    </div>
+    @if (invalid)
+    {
+        <p class="message" id="@messageId" role="alert" data-testid="@StepTestId("error")" data-wrap-ok>@InvalidMessage</p>
+    }
+</div>
+
+@code {
+    private readonly string messageId = $"number-field-{Guid.NewGuid():N}";
+    private ElementReference input;
+    private string text = "";
+    private bool invalid => !string.IsNullOrEmpty(InvalidMessage);
+    private bool AtMinimum => Minimum is { } min && Value is { } v && v <= min;
+    private string InputTestId => TestId ?? "number-field";
+    private string StepTestId(string part) => $"{InputTestId}-{part}";
+
+    protected override void OnParametersSet()
+    {
+        // Keep what the user is typing (such as "1.") unless the parent set a different number.
+        if (Parse(text) != Value)
+        {
+            text = Value is { } v ? v.ToString(CultureInfo.InvariantCulture) : "";
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && AutoFocus && !Disabled)
+        {
+            await input.FocusAsync();
+        }
+    }
+
+    private static decimal? Parse(string text) =>
+        decimal.TryParse(text.Trim().Replace(',', '.'), NumberStyles.Number, CultureInfo.InvariantCulture, out var number) ? number : null;
+
+    private async Task OnInput(ChangeEventArgs e)
+    {
+        text = e.Value?.ToString() ?? "";
+        await ValueChanged.InvokeAsync(Parse(text));
+    }
+
+    private Task Decrease()
+    {
+        var next = (Value ?? Minimum ?? 0) - Step;
+        return Raise(Minimum is { } min && next < min ? min : next);
+    }
+
+    private Task Increase()
+    {
+        var next = (Value ?? Minimum ?? 0) + Step;
+        return Raise(Minimum is { } min && next < min ? min : next);
+    }
+
+    private Task Raise(decimal value)
+    {
+        text = value.ToString(CultureInfo.InvariantCulture);
+        return ValueChanged.InvokeAsync(value);
+    }
+
+    /// <summary>What the number measures, e.g. Amount. Names the field for screen readers and is not shown.</summary>
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    /// <summary>The number. Null when empty or when the typed text is not a number.</summary>
+    [Parameter]
+    public decimal? Value { get; set; }
+
+    /// <summary>Raised on every keystroke with the typed number (null when it isn't one), and by the stepper with the new value.</summary>
+    [Parameter]
+    public EventCallback<decimal?> ValueChanged { get; set; }
+
+    /// <summary>Shown after the number, e.g. g or kcal.</summary>
+    [Parameter]
+    public string? Unit { get; set; }
+
+    /// <summary>Shows the − and + buttons.</summary>
+    [Parameter]
+    public bool Stepper { get; set; }
+
+    /// <summary>How far − and + move the number.</summary>
+    [Parameter]
+    public decimal Step { get; set; } = 1;
+
+    /// <summary>Lowest number the stepper gives. The − button is off at it. Typing below it is allowed; the parent decides if that is invalid. Null means no lowest.</summary>
+    [Parameter]
+    public decimal? Minimum { get; set; }
+
+    /// <summary>Error shown under the field in the error tone and announced. Null or empty means the field is valid.</summary>
+    [Parameter]
+    public string? InvalidMessage { get; set; }
+
+    /// <summary>Greys out the input and both buttons.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>Puts the cursor in the field when it first appears.</summary>
+    [Parameter]
+    public bool AutoFocus { get; set; }
+
+    /// <summary>Value of the data-testid attribute on the input. The buttons, unit and message add -minus, -plus, -unit and -error.</summary>
+    [Parameter]
+    public string? TestId { get; set; }
+}

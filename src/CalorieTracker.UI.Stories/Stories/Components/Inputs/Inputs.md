@@ -12,4 +12,8 @@ A full-width row of 2–4 segments; one is chosen and filled with `--color-selec
 A row of rounded chips that wraps onto more lines when it must; one is chosen and filled with `--color-selected`. For the food search's Ingredients, Foods, Dishes, Drinks and All. Each chip is a radio with a 48px touch target; `Label` names the group for screen readers only.
 - `data-testid`: `TestId` on the group; each option's `TestId` on its radio.
 
-Stories: [SegmentedControl](./?path=/docs/components-inputs-segmentedcontrol--docs) · [FilterChips](./?path=/docs/components-inputs-filterchips--docs)
+## `NumberField`
+A numeric input for amounts and the daily target. `Unit` (e.g. *g*, *kcal*) sits after the number. `Stepper` adds − and + buttons that move the number by `Step`; they never go below `Minimum`, and − is off once the number reaches it. Typing is not clamped: the field raises `ValueChanged` on every keystroke with the typed number (null when the text isn't one) and the parent decides whether it is valid. A phone shows the numeric keypad. `InvalidMessage` shows an error under the field in the error tone (`--color-error`, a thicker border) and is announced to screen readers (`role="alert"`, `aria-invalid`, `aria-describedby`). `Disabled` greys out the input and both buttons. `AutoFocus` puts the cursor in the field when it first appears. `Label` names the field for screen readers only. The input and each button have a 48px touch target.
+- `data-testid`: `TestId` on the input; the buttons, unit and message add `-minus`, `-plus`, `-unit` and `-error`.
+
+Stories: [SegmentedControl](./?path=/docs/components-inputs-segmentedcontrol--docs) · [FilterChips](./?path=/docs/components-inputs-filterchips--docs) · [NumberField](./?path=/docs/components-inputs-numberfield--docs)

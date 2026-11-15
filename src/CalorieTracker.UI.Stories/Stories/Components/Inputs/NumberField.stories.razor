@@ -1,0 +1,41 @@
+@attribute [Stories("Components/Inputs/NumberField")]
+
+<Stories TComponent="NumberField" Layout="typeof(ThemeLayout)">
+
+    <Story Name="Default">
+        <Template>
+            <NumberField Label="Daily target" Unit="kcal" Value="@((decimal?)2000)" ValueChanged="(decimal? _) => { }" TestId="example-number" />
+        </Template>
+    </Story>
+
+    <Story Name="Focused">
+        <Template>
+            <NumberField Label="Daily target" Unit="kcal" Value="@((decimal?)2000)" ValueChanged="(decimal? _) => { }" AutoFocus="true" TestId="example-number" />
+        </Template>
+    </Story>
+
+    <Story Name="With stepper">
+        <Template>
+            <NumberField Label="Amount" Unit="g" Value="@((decimal?)150)" ValueChanged="(decimal? _) => { }" Stepper="true" Step="10" Minimum="10" TestId="example-number" />
+        </Template>
+    </Story>
+
+    <Story Name="At the minimum">
+        <Template>
+            <NumberField Label="Amount" Unit="g" Value="@((decimal?)10)" ValueChanged="(decimal? _) => { }" Stepper="true" Step="10" Minimum="10" TestId="example-number" />
+        </Template>
+    </Story>
+
+    <Story Name="Invalid">
+        <Template>
+            <NumberField Label="Amount" Unit="g" Value="@((decimal?)null)" ValueChanged="(decimal? _) => { }" Stepper="true" Step="10" Minimum="10" InvalidMessage="Enter an amount of 10 g or more." TestId="example-number" />
+        </Template>
+    </Story>
+
+    <Story Name="Disabled">
+        <Template>
+            <NumberField Label="Amount" Unit="g" Value="@((decimal?)150)" ValueChanged="(decimal? _) => { }" Stepper="true" Step="10" Minimum="10" Disabled="true" TestId="example-number" />
+        </Template>
+    </Story>
+
+</Stories>
