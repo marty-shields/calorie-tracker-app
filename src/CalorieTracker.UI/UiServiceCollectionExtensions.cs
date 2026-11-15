@@ -1,3 +1,4 @@
+using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Lifecycle;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Theme;
@@ -14,6 +15,7 @@ public static class UiServiceCollectionExtensions
             .AddSingleton<AppLifecycle>()
             .AddSingleton<IAppStart>(s => s.GetRequiredService<AppLifecycle>())
             .AddSingleton<IAppLifecycle>(s => s.GetRequiredService<AppLifecycle>())
+            .AddSingleton<SnackbarService>()
             .AddScoped<ThemeService>()
             .AddScoped<SystemBarInsetWriter>();
 }

@@ -1,0 +1,26 @@
+<div class="meal-header" data-testid="@TestId">
+    <h2 class="name" data-testid="@($"{TestId}-name")" data-wrap-ok>@Name</h2>
+    @if (Calories is not null)
+    {
+        <span class="calories" data-testid="@($"{TestId}-calories")">@Calories kcal</span>
+    }
+    <IconButton Style="IconButtonStyle.Filled" Icon="IconName.Plus" AriaLabel="@($"Add to {Name}")" TestId="@($"{TestId}-add")" OnClick="OnAdd" />
+</div>
+
+@code {
+    /// <summary>Meal name, such as Lunch. The add button is labelled "Add to" and this.</summary>
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = "";
+
+    /// <summary>Total energy of the meal's entries, in kcal. Null (an empty meal) shows no total.</summary>
+    [Parameter]
+    public int? Calories { get; set; }
+
+    /// <summary>Raised when the add button is tapped.</summary>
+    [Parameter]
+    public EventCallback OnAdd { get; set; }
+
+    /// <summary>Prefix of the data-testid attributes: the header itself, then <c>-name</c>, <c>-calories</c> and <c>-add</c>.</summary>
+    [Parameter]
+    public string? TestId { get; set; }
+}

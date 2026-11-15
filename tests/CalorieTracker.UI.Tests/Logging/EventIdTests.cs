@@ -41,6 +41,7 @@ public partial class EventIdTests
             [UiEvent.ScanLookupStarted] = 3601,
             [UiEvent.ScanLookupFinished] = 3602,
             [UiEvent.ScanCameraUnavailable] = 3603,
+            [UiEvent.NumberFieldFocusFailed] = 3701,
             [UiEvent.PullRefreshFailed] = 4001,
         }));
 

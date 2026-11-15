@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using CalorieTracker.UI.Components.Actions;
 
 namespace CalorieTracker.UI.Tests.Components.Actions;
@@ -92,5 +93,109 @@ public class IconButtonTests : ComponentTestBase
             .Add(x => x.AriaLabel, "Edit"));
 
         Assert.That(cut.Find("button").ClassList, Does.Not.Contain("compact"));
+    }
+
+    [Test]
+    public void Filled_SetsClass()
+    {
+        var cut = Context.Render<IconButton>(p => p
+            .Add(x => x.Icon, IconName.Plus)
+            .Add(x => x.AriaLabel, "Add to Lunch")
+            .Add(x => x.TestId, "add")
+            .Add(x => x.Style, IconButtonStyle.Filled));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("button").ClassList, Is.EquivalentTo(new[] { "icon-btn", "filled" }));
+            Assert.That(cut.Find("button").GetAttribute("aria-label"), Is.EqualTo("Add to Lunch"));
+            Assert.That(cut.Find("button").GetAttribute("data-testid"), Is.EqualTo("add"));
+        });
+    }
+
+    [Test]
+    public void Filled_IgnoresMutedOnTheIcon()
+    {
+        var cut = Context.Render<IconButton>(p => p
+            .Add(x => x.Icon, IconName.Plus)
+            .Add(x => x.AriaLabel, "Add")
+            .Add(x => x.Muted, true)
+            .Add(x => x.Style, IconButtonStyle.Filled));
+
+        Assert.That(cut.Find("svg").ClassList, Does.Not.Contain("muted"));
+    }
+
+    [Test]
+    public void Filled_IgnoresActive()
+    {
+        var cut = Context.Render<IconButton>(p => p
+            .Add(x => x.Icon, IconName.Plus)
+            .Add(x => x.AriaLabel, "Add")
+            .Add(x => x.Active, true)
+            .Add(x => x.Style, IconButtonStyle.Filled));
+
+        Assert.That(cut.Find("button").ClassList, Is.EquivalentTo(new[] { "icon-btn", "filled" }));
+    }
+
+    [Test]
+    public void Plain_IsTheDefaultAndHasNoFilledClass()
+    {
+        var cut = Context.Render<IconButton>(p => p.Add(x => x.Icon, IconName.Plus).Add(x => x.AriaLabel, "Add"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Instance.Style, Is.EqualTo(IconButtonStyle.Plain));
+            Assert.That(cut.Find("button").ClassList, Is.EquivalentTo(new[] { "icon-btn" }));
+        });
+    }
+
+    [Test]
+    public void FilledChip_KeepsTheTouchTargetAndFillsFromTokens()
+    {
+        var root = RepoFiles.Find("*.razor", "src", "CalorieTracker.UI").Single(f => f.EndsWith("IconButton.razor"));
+        var css = File.ReadAllText(root + ".css");
+        var baseRule = css[..css.IndexOf(".compact", StringComparison.Ordinal)];
+        var start = css.IndexOf(".filled {", StringComparison.Ordinal);
+        var filledBlock = css[start..css.IndexOf('}', start)];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(baseRule, Does.Contain("min-width: var(--touch-target)").And.Contain("min-height: var(--touch-target)"));
+            Assert.That(start, Is.GreaterThanOrEqualTo(0));
+            Assert.That(filledBlock, Does.Contain("background-color: var(--color-chip);").And.Contain("color: var(--color-on-chip);"));
+        });
+    }
+
+    [Test]
+    public void Css_SetsNoOutline_SoTheGlobalFocusRingShows()
+    {
+        var css = File.ReadAllText(RepoFiles.PathOf("src", "CalorieTracker.UI", "Components", "Actions", "IconButton.razor.css"));
+        var baseCss = RepoFiles.Read("src", "CalorieTracker.UI", "wwwroot", "css", "base.css");
+        var ring = baseCss[baseCss.IndexOf(":focus-visible {", StringComparison.Ordinal)..];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(css, Does.Not.Contain("outline"));
+            Assert.That(ring[..ring.IndexOf('}', StringComparison.Ordinal)], Does.Contain("outline:"));
+        });
+    }
+
+    // Filled ignores Active and Muted, so those stories have no Filled twin.
+    private static readonly string[] StoriesWithoutFilledTwin = ["Active", "Muted"];
+
+    [Test]
+    public void Stories_HaveAFilledTwinForEachPlainStory_ExceptThoseFilledIgnores()
+    {
+        var stories = RepoFiles.Read("src", "CalorieTracker.UI.Stories", "Stories", "Components", "Actions", "IconButton.stories.razor");
+        var names = Regex.Matches(stories, "<Story Name=\"([^\"]+)\"").Select(m => m.Groups[1].Value).ToList();
+        var plain = names.Where(n => !n.StartsWith("Filled ", StringComparison.Ordinal) && !StoriesWithoutFilledTwin.Contains(n));
+        var missing = plain.Where(n => !names.Contains("Filled " + n)).ToList();
+        var filledStories = Regex.Matches(stories, "<Story Name=\"Filled [^\"]+\">(.*?)</Story>", RegexOptions.Singleline);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(missing, Is.Empty);
+            Assert.That(filledStories, Is.Not.Empty);
+            Assert.That(filledStories.Select(m => m.Groups[1].Value), Has.All.Contain("IconButtonStyle.Filled"));
+        });
     }
 }

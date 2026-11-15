@@ -30,6 +30,8 @@ A Material Symbols Outlined icon (weight 400), drawn as an SVG and hidden from s
 - Edit (pencil) and Check (tick): used by `IconButton`.
 - Home: the Dashboard item in `BottomNav`.
 - Scan: the Scan item in `BottomNav`.
+- Plus and Minus: add or remove, e.g. a stepper or a meal's add button.
+- ChevronLeft: the previous item in a sequence, such as the previous day; Chevron points right. Back is for leaving a screen.
 
 ## `IconButton`
 A button that shows an `Icon`, with a 48px touch target.
@@ -46,6 +48,7 @@ A button that shows an `Icon`, with a 48px touch target.
 - `AriaLabel` names the button.
 - The icon is `--color-text`; on the top bar that is `--color-on-bar`. `Muted` uses `--color-text-muted`.
 - `Active` fills the button with a round `--color-selected` background to show it is on.
+- `Style`: `Plain` (the default) is the icon alone. `Filled` puts it on a round `--color-chip` chip with a `--color-on-chip` icon, for the add action of a section such as `MealHeader`; it ignores `Active` and `Muted`. It keeps the 48px target, focus ring, `AriaLabel` and `TestId`. Each story except Active and Muted (which Filled ignores) has a `Filled` twin, plus `Filled Compact`.
 - `Size`: `Default` is `--font-size-xl`, `Small` is `--font-size-lg`.
 - `data-testid`: `TestId`.
 
