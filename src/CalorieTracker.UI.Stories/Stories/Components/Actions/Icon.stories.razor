@@ -40,40 +40,40 @@
 
     <Story Name="Plus">
         <Template>
-            <Icon Name="IconName.Plus" Tone="IconTone.Default" Size="IconSize.Default" />
-            <Icon Name="IconName.Plus" Tone="IconTone.Muted" Size="IconSize.Default" />
-            <Icon Name="IconName.Plus" Tone="IconTone.Success" Size="IconSize.Default" />
-            <Icon Name="IconName.Plus" Tone="IconTone.Error" Size="IconSize.Default" />
-            <Icon Name="IconName.Plus" Tone="IconTone.Default" Size="IconSize.Small" />
-            <Icon Name="IconName.Plus" Tone="IconTone.Muted" Size="IconSize.Small" />
-            <Icon Name="IconName.Plus" Tone="IconTone.Success" Size="IconSize.Small" />
-            <Icon Name="IconName.Plus" Tone="IconTone.Error" Size="IconSize.Small" />
+            @foreach (var size in Enum.GetValues<IconSize>())
+            {
+                foreach (var tone in Enum.GetValues<IconTone>())
+                {
+                    @($"{size} {tone}")
+                    <Icon Name="IconName.Plus" Tone="tone" Size="size" />
+                }
+            }
         </Template>
     </Story>
 
     <Story Name="Minus">
         <Template>
-            <Icon Name="IconName.Minus" Tone="IconTone.Default" Size="IconSize.Default" />
-            <Icon Name="IconName.Minus" Tone="IconTone.Muted" Size="IconSize.Default" />
-            <Icon Name="IconName.Minus" Tone="IconTone.Success" Size="IconSize.Default" />
-            <Icon Name="IconName.Minus" Tone="IconTone.Error" Size="IconSize.Default" />
-            <Icon Name="IconName.Minus" Tone="IconTone.Default" Size="IconSize.Small" />
-            <Icon Name="IconName.Minus" Tone="IconTone.Muted" Size="IconSize.Small" />
-            <Icon Name="IconName.Minus" Tone="IconTone.Success" Size="IconSize.Small" />
-            <Icon Name="IconName.Minus" Tone="IconTone.Error" Size="IconSize.Small" />
+            @foreach (var size in Enum.GetValues<IconSize>())
+            {
+                foreach (var tone in Enum.GetValues<IconTone>())
+                {
+                    @($"{size} {tone}")
+                    <Icon Name="IconName.Minus" Tone="tone" Size="size" />
+                }
+            }
         </Template>
     </Story>
 
     <Story Name="ChevronLeft">
         <Template>
-            <Icon Name="IconName.ChevronLeft" Tone="IconTone.Default" Size="IconSize.Default" />
-            <Icon Name="IconName.ChevronLeft" Tone="IconTone.Muted" Size="IconSize.Default" />
-            <Icon Name="IconName.ChevronLeft" Tone="IconTone.Success" Size="IconSize.Default" />
-            <Icon Name="IconName.ChevronLeft" Tone="IconTone.Error" Size="IconSize.Default" />
-            <Icon Name="IconName.ChevronLeft" Tone="IconTone.Default" Size="IconSize.Small" />
-            <Icon Name="IconName.ChevronLeft" Tone="IconTone.Muted" Size="IconSize.Small" />
-            <Icon Name="IconName.ChevronLeft" Tone="IconTone.Success" Size="IconSize.Small" />
-            <Icon Name="IconName.ChevronLeft" Tone="IconTone.Error" Size="IconSize.Small" />
+            @foreach (var size in Enum.GetValues<IconSize>())
+            {
+                foreach (var tone in Enum.GetValues<IconTone>())
+                {
+                    @($"{size} {tone}")
+                    <Icon Name="IconName.ChevronLeft" Tone="tone" Size="size" />
+                }
+            }
         </Template>
     </Story>
 

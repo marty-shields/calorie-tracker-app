@@ -31,7 +31,7 @@ A Material Symbols Outlined icon (weight 400), drawn as an SVG and hidden from s
 - Home: the Dashboard item in `BottomNav`.
 - Scan: the Scan item in `BottomNav`.
 - Plus and Minus: add or remove, e.g. a stepper or a meal's add button.
-- ChevronLeft: a step back, e.g. the previous day; Chevron points right.
+- ChevronLeft: the previous item in a sequence, such as the previous day; Chevron points right. Back is for leaving a screen.
 
 ## `IconButton`
 A button that shows an `Icon`, with a 48px touch target.

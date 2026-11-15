@@ -53,17 +53,25 @@ public class IconTests : ComponentTestBase
     }
 
     [Test]
-    public void NewIcons_RenderInEveryToneAndSize(
-        [Values(IconName.Plus, IconName.Minus, IconName.ChevronLeft)] IconName name,
+    public void EveryIcon_RendersInEveryToneAndSize(
+        [ValueSource(nameof(AllIcons))] IconName name,
         [Values] IconTone tone,
         [Values] IconSize size)
     {
         var cut = Context.Render<Icon>(p => p.Add(x => x.Name, name).Add(x => x.Tone, tone).Add(x => x.Size, size));
 
         var expected = new List<string> { "icon" };
-        if (tone != IconTone.Default)
+        switch (tone)
         {
-            expected.Add(tone.ToString().ToLowerInvariant());
+            case IconTone.Muted:
+                expected.Add("muted");
+                break;
+            case IconTone.Success:
+                expected.Add("success");
+                break;
+            case IconTone.Error:
+                expected.Add("error");
+                break;
         }
 
         if (size == IconSize.Small)
@@ -77,4 +85,6 @@ public class IconTests : ComponentTestBase
             Assert.That(cut.Find("path").GetAttribute("d"), Is.Not.Empty);
         });
     }
+
+    private static IEnumerable<IconName> AllIcons => Enum.GetValues<IconName>();
 }
