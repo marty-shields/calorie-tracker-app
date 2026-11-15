@@ -18,8 +18,8 @@
     --color-selected: light-dark(#b7d5d4, #2b4444);
     /* The filled icon button's chip and the icon on it. Its own token, not --color-selected or --color-secondary,
        so retuning those does not change the chip. */
-    --color-chip: light-dark(#b7d5d4, #2b4444);
-    --color-on-chip: light-dark(#373e40, #e4ecec);
+    --color-chip: light-dark(#6a9594, #587a7a);
+    --color-on-chip: light-dark(#141819, #ffffff);
     --color-accent: light-dark(#29494c, #acd5d2);
     --color-focus: light-dark(#488286, #8cc4c1);
     --color-danger: light-dark(#a8231c, #f2b8b5);

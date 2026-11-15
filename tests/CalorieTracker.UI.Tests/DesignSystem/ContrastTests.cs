@@ -24,6 +24,8 @@ public class ContrastTests
         ("--color-fat", "--color-bg", LargeTextOrControl),
         ("--color-fat", "--color-surface", LargeTextOrControl),
         ("--color-on-chip", "--color-chip", Text),
+        ("--color-chip", "--color-bg", LargeTextOrControl),
+        ("--color-chip", "--color-surface", LargeTextOrControl),
         ("--color-on-bar", "--color-bar", Text),
         ("--color-on-bar-muted", "--color-bar", Text),
         ("--color-on-primary", "--color-primary", Text),
