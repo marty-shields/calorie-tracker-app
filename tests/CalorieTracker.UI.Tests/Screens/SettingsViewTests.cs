@@ -107,12 +107,12 @@ public class SettingsViewTests : ComponentTestBase
     }
 
     [Test]
-    public void Back_RaisesOnBack()
+    public async Task Back_RaisesOnBack()
     {
         var back = false;
         var cut = Context.Render<SettingsView>(p => p.Add(x => x.OnBack, () => back = true));
 
-        cut.Find("[data-testid=back]").Click();
+        await cut.Find("[data-testid=back]").ClickAsync(new());
 
         Assert.That(back, Is.True);
     }

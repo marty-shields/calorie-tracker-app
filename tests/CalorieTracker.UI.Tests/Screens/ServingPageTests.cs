@@ -484,12 +484,12 @@ public class ServingPageTests : ComponentTestBase
     }
 
     [Test]
-    public void Back_RaisesOnBack()
+    public async Task Back_RaisesOnBack()
     {
         var back = false;
         var cut = Render(cheddarId, Meal.Lunch, more: p => p.Add(x => x.OnBack, () => back = true));
 
-        cut.Find("[data-testid=back]").Click();
+        await cut.Find("[data-testid=back]").ClickAsync(new());
 
         Assert.That(back, Is.True);
     }

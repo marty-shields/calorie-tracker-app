@@ -435,7 +435,7 @@ public class ScanPageTests : ComponentTestBase
         var cut = Context.Render<ScanPage>(p => p.Add(x => x.OnNavigate, navigated.Add));
         await WaitForRendererAsync();
 
-        cut.Find("[data-testid=dashboard-link]").Click();
+        await cut.Find("[data-testid=dashboard-link]").ClickAsync(new());
 
         Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Dashboard }));
     }

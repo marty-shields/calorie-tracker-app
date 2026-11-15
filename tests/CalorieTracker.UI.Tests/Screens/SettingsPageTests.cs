@@ -213,14 +213,20 @@ public class SettingsPageTests : ComponentTestBase
 
             await TypeAsync(cut, "1234", brokenTargets);
 
-            cut.WaitForAssertion(() => Assert.That(TargetValue(cut), Is.EqualTo("")));
+            // The field reads "" before the load, and shows "1234" until the failed save puts the saved target back and the page re-renders,
+            // so wait for both the two log lines and the restored field.
+            var expected = new[]
+            {
+                (UiEvent.TargetLoadFailed, LogLevel.Warning, "Reading the daily target failed"),
+                (UiEvent.TargetSaveFailed, LogLevel.Warning, "Saving the daily target failed; the last saved target stays"),
+            };
+            cut.WaitForAssertion(() =>
+            {
+                Assert.That(LoggedEvents.Of(logger), Is.EqualTo(expected));
+                Assert.That(TargetValue(cut), Is.EqualTo(""));
+            });
             Assert.Multiple(() =>
             {
-                Assert.That(LoggedEvents.Of(logger), Is.EqualTo(new[]
-                {
-                    (UiEvent.TargetLoadFailed, LogLevel.Warning, "Reading the daily target failed"),
-                    (UiEvent.TargetSaveFailed, LogLevel.Warning, "Saving the daily target failed; the last saved target stays"),
-                }));
                 Assert.That(logger.Collector.GetSnapshot().Select(r => r.Message), Has.None.Contain("1234"));
                 Assert.That(cut.FindAll("[data-testid=settings-target-error]"), Is.Empty);
             });
@@ -298,7 +304,7 @@ public class SettingsPageTests : ComponentTestBase
         var cut = Context.Render<SettingsPage>();
         await WaitForRendererAsync();
 
-        cut.Find("[data-testid=settings-theme-light]").Change(true);
+        await cut.Find("[data-testid=settings-theme-light]").ChangeAsync(true);
 
         Assert.Multiple(() =>
         {
@@ -334,7 +340,7 @@ public class SettingsPageTests : ComponentTestBase
 
         var control = cut.FindComponent<SegmentedControl<ThemePreference>>();
         var renders = control.RenderCount;
-        cut.Find("[data-testid=settings-theme-light]").Change(true);
+        await cut.Find("[data-testid=settings-theme-light]").ChangeAsync(true);
 
         cut.WaitForAssertion(() => Assert.That(LoggedEvents.Of(logger), Is.EqualTo(new[] { (UiEvent.ThemeSaveFailed, LogLevel.Warning, "Saving the theme failed") })));
         Assert.Multiple(() =>
@@ -353,19 +359,20 @@ public class SettingsPageTests : ComponentTestBase
         var cut = Context.Render<SettingsPage>();
         await WaitForRendererAsync();
 
-        cut.Find("[data-testid=settings-theme-light]").Change(true);
+        await cut.Find("[data-testid=settings-theme-light]").ChangeAsync(true);
 
         cut.WaitForAssertion(() => Assert.That(LoggedEvents.Of(logger), Is.EqualTo(new[] { (UiEvent.ThemeNotSaved, LogLevel.Warning, "Storage refused the saved theme; it applies until the app closes") })));
         Assert.That(cut.Find("[data-testid=settings-theme-light]").HasAttribute("checked"), Is.True);
     }
 
     [Test]
-    public void Back_RaisesOnBack()
+    public async Task Back_RaisesOnBack()
     {
         var backs = 0;
         var cut = Context.Render<SettingsPage>(p => p.Add(x => x.OnBack, () => backs++));
+        await WaitForRendererAsync();
 
-        cut.Find("[data-testid=back]").Click();
+        await cut.Find("[data-testid=back]").ClickAsync(new());
 
         Assert.That(backs, Is.EqualTo(1));
     }
