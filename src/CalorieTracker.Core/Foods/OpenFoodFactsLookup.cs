@@ -14,7 +14,7 @@ namespace CalorieTracker.Core.Foods;
 /// <remarks>The client must have its <c>BaseAddress</c> set; the request path is relative.</remarks>
 internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
 {
-    private const string Fields = "product_name,brands,nutriments,product_quantity_unit,serving_quantity_unit,categories_tags";
+    private const string Fields = "product_name,brands,nutriments,product_quantity_unit,serving_quantity_unit,categories_tags,serving_size,serving_quantity";
     private const int MaxAttempts = 3;
     private const double KcalPerKj = 1 / 4.184;
 
@@ -190,6 +190,7 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
         var brand = ReadString(product, "brands")?.Split(',')[0].Trim();
         brand = string.IsNullOrEmpty(brand) ? null : brand;
         var millilitre = IsMillilitre(product, "product_quantity_unit") || IsMillilitre(product, "serving_quantity_unit");
+        var (servingLabel, servingAmount) = ReadServing(product, millilitre);
 
         return new Food
         {
@@ -207,8 +208,22 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
             SugarsG = Nutrient("sugars_100g"),
             SaturatesG = Nutrient("saturated-fat_100g"),
             SaltG = Nutrient("salt_100g"),
+            ServingLabel = servingLabel,
+            ServingAmount = servingAmount,
             SearchText = SearchFolding.Fold($"{name} {brand}".Trim()),
         };
+    }
+
+    /// <summary>
+    /// Both parts or neither: a label, a weight above zero, and a <c>serving_quantity_unit</c> that is the food's unit (absent counts as grams, as OFF defaults to).
+    /// </summary>
+    private static (string? Label, double? Amount) ReadServing(JsonElement product, bool millilitre)
+    {
+        var label = ReadString(product, "serving_size");
+        var amount = ReadNumber(product, "serving_quantity");
+        var unit = ReadString(product, "serving_quantity_unit");
+        var matches = string.Equals(unit ?? "g", millilitre ? "ml" : "g", StringComparison.OrdinalIgnoreCase);
+        return label is not null && amount is > 0 && matches ? (label, amount) : (null, null);
     }
 
     private static bool IsAsciiDigits(string text, int minLength, int maxLength) =>

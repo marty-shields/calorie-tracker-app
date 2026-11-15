@@ -67,6 +67,12 @@ public class Food
     [NotNull]
     public FoodType Type { get; set; }
 
+    /// <summary>How Open Food Facts words one serving, such as "0.5 pizza (201.8 g)". Null when the source gives none (CoFID never does); set together with <see cref="ServingAmount"/>.</summary>
+    public string? ServingLabel { get; set; }
+
+    /// <summary>The serving's weight in grams, or volume in millilitres to match <see cref="Unit"/>. Above zero when set.</summary>
+    public double? ServingAmount { get; set; }
+
     /// <summary>Lowercased text with accents removed that searches match against.</summary>
     [NotNull]
     public string SearchText { get; set; } = "";

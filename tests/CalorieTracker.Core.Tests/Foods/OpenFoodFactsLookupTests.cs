@@ -71,6 +71,83 @@ public class OpenFoodFactsLookupTests
     }
 
     [Test]
+    public async Task Pizza_HasItsServingLabelAndWeight()
+    {
+        handler.Respond(Fixture("pizza-5060198643156.json"));
+
+        var result = await lookup.LookupAsync("5060198643156");
+
+        Assert.That(result.Food!.ServingLabel, Is.EqualTo("0.5 pizza (201.8 g)"));
+        Assert.That(result.Food.ServingAmount, Is.EqualTo(201.8));
+    }
+
+    [Test]
+    public async Task Drink_HasAServingInMillilitres()
+    {
+        handler.Respond(Fixture("drink-5449000000996.json"));
+
+        var result = await lookup.LookupAsync("5449000000996");
+
+        Assert.That((result.Food!.ServingLabel, result.Food.ServingAmount), Is.EqualTo(("1 portion (330 ml)", 330.0)));
+    }
+
+    [Test]
+    public async Task ProductWithNoServing_HasNullServing()
+    {
+        handler.Respond(Fixture("solid-3017620422003.json"));
+
+        var result = await lookup.LookupAsync(Barcode);
+
+        Assert.That((result.Food!.ServingLabel, result.Food.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+    }
+
+    [TestCase("\"serving_quantity\":330", "\"serving_quantity\":0", TestName = "Serving_WithZeroWeight_IsIgnored")]
+    [TestCase("\"serving_quantity\":330", "\"serving_quantity\":-5", TestName = "Serving_WithNegativeWeight_IsIgnored")]
+    [TestCase("\"serving_quantity\":330", "\"serving_quantity\":null", TestName = "Serving_WithNoWeight_IsIgnored")]
+    [TestCase("\"serving_size\":\"1 portion (330 ml)\"", "\"serving_size\":\" \"", TestName = "Serving_WithBlankLabel_IsIgnored")]
+    [TestCase("\"serving_quantity_unit\":\"ml\"", "\"serving_quantity_unit\":\"g\",\"product_quantity_unit\":\"ml\"", TestName = "Serving_InGramsForAMillilitreFood_IsIgnored")]
+    public async Task Serving_ThatDoesNotCount_GivesNulls(string find, string replace)
+    {
+        var body = Fixture("drink-5449000000996.json");
+        Assert.That(body, Does.Contain(find));
+        handler.Respond(body.Replace(find, replace));
+
+        var result = await lookup.LookupAsync("5449000000996");
+
+        Assert.That(result.Status, Is.EqualTo(BarcodeLookupStatus.Found));
+        Assert.That(result.Food!.Unit, Is.EqualTo(FoodUnit.Millilitre));
+        Assert.That((result.Food.ServingLabel, result.Food.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+    }
+
+    [Test]
+    public async Task Serving_WithNoUnit_Counts()
+    {
+        var body = Fixture("pizza-5060198643156.json");
+        const string unit = "\"serving_quantity_unit\":\"g\",";
+        Assert.That(body, Does.Contain(unit));
+        handler.Respond(body.Replace(unit, ""));
+
+        var result = await lookup.LookupAsync("5060198643156");
+
+        Assert.That(result.Food!.Unit, Is.EqualTo(FoodUnit.Gram));
+        Assert.That((result.Food.ServingLabel, result.Food.ServingAmount), Is.EqualTo(("0.5 pizza (201.8 g)", 201.8)));
+    }
+
+    [Test]
+    public async Task Serving_WithNoUnitForAMillilitreFood_IsIgnored()
+    {
+        var body = Fixture("drink-5449000000996.json");
+        const string unit = "\"serving_quantity_unit\":\"ml\"";
+        Assert.That(body, Does.Contain(unit));
+        handler.Respond(body.Replace(unit, "\"product_quantity_unit\":\"ml\""));
+
+        var result = await lookup.LookupAsync("5449000000996");
+
+        Assert.That(result.Food!.Unit, Is.EqualTo(FoodUnit.Millilitre));
+        Assert.That((result.Food.ServingLabel, result.Food.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+    }
+
+    [Test]
     public async Task Drink_IsFoundInMillilitres()
     {
         handler.Respond(Fixture("drink-5449000000996.json"));
@@ -388,7 +465,7 @@ public class OpenFoodFactsLookupTests
         {
             Assert.That(request.Method, Is.EqualTo(HttpMethod.Get));
             Assert.That(request.Uri.GetLeftPart(UriPartial.Path), Is.EqualTo("https://world.openfoodfacts.org/api/v2/product/" + Barcode));
-            Assert.That(request.Uri.Query, Is.EqualTo("?fields=product_name,brands,nutriments,product_quantity_unit,serving_quantity_unit,categories_tags"));
+            Assert.That(request.Uri.Query, Is.EqualTo("?fields=product_name,brands,nutriments,product_quantity_unit,serving_quantity_unit,categories_tags,serving_size,serving_quantity"));
         });
     }
 
