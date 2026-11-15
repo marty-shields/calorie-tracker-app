@@ -1,3 +1,4 @@
+using System.Globalization;
 using CalorieTracker.Core.Data;
 
 namespace CalorieTracker.Core.Summary;
@@ -13,9 +14,15 @@ public sealed record Nutrition(int Kcal, double ProteinG, double CarbsG, double 
     internal Nutrition Plus(Nutrition other) =>
         new(
             checked(Kcal + other.Kcal),
-            Round((decimal)ProteinG + (decimal)other.ProteinG),
-            Round((decimal)CarbsG + (decimal)other.CarbsG),
-            Round((decimal)FatG + (decimal)other.FatG));
+            Round(ToDecimal(ProteinG) + ToDecimal(other.ProteinG)),
+            Round(ToDecimal(CarbsG) + ToDecimal(other.CarbsG)),
+            Round(ToDecimal(FatG) + ToDecimal(other.FatG)));
+
+    // Via the shortest round-trip text, so 1.45 is 1.45 and not its binary neighbour 1.4499999999999999556, matching what the app shows. A non-finite or too large value overflows.
+    internal static decimal ToDecimal(double value) =>
+        double.IsFinite(value)
+            ? decimal.Parse(value.ToString("R", CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture)
+            : throw new OverflowException();
 
     internal static double Round(decimal grams) => (double)Math.Round(grams, 1, MidpointRounding.AwayFromZero);
 }

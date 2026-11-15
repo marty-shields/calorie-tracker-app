@@ -79,6 +79,30 @@ public class DaySummaryServiceTests
     }
 
     [Test]
+    public async Task DaySummary_TwoDecimalPerHundredValues_RoundAsTheFoodListShowsThem()
+    {
+        var food = await AddFood("Two decimals", FoodUnit.Gram, 100, 1.45, 0.15, 0.35);
+        await diary.AddAsync(Day, Meal.Lunch, food, 100);
+
+        var s = (await service.GetAsync(Day)).Summary!;
+
+        Assert.That(s.Totals, Is.EqualTo(new Nutrition(100, 1.5, 0.2, 0.4)));
+    }
+
+    [Test]
+    public async Task DaySummary_AStoredInfiniteMacro_ReturnsFailedAndLogsOverflow()
+    {
+        var food = await AddFood("Infinite", FoodUnit.Gram, 100, 1, 1, 1);
+        await connection.ExecuteAsync("UPDATE Food SET ProteinG = 1e999 WHERE Id = ?", food);
+        await diary.AddAsync(Day, Meal.Lunch, food, 100);
+
+        var result = await service.GetAsync(Day);
+
+        Assert.That(result.Status, Is.EqualTo(DaySummaryStatus.Failed));
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { CoreEvent.DaySummaryOverflow }));
+    }
+
+    [Test]
     public async Task DaySummary_CarbHeavyMix_SharesRoundUpAndCountCarbsAtFourKcalAGram()
     {
         // 30 g cheddar and 330 ml cola: 30.48 + 140.04 + 94.23 = 264.75 kcal from macros, shares 11.51, 52.89, 35.59.

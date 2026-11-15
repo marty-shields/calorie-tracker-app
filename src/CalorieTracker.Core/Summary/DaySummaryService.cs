@@ -66,14 +66,14 @@ public sealed partial class DaySummaryService
                 }
 
                 var scale = (decimal)entry.Amount / 100m;
-                var p = (decimal)food.ProteinG * scale;
-                var c = (decimal)food.CarbsG * scale;
-                var f = (decimal)food.FatG * scale;
+                var p = Nutrition.ToDecimal(food.ProteinG) * scale;
+                var c = Nutrition.ToDecimal(food.CarbsG) * scale;
+                var f = Nutrition.ToDecimal(food.FatG) * scale;
                 protein += p;
                 carbs += c;
                 fat += f;
                 var nutrition = new Nutrition(
-                    (int)Math.Round((decimal)food.Kcal * scale, MidpointRounding.AwayFromZero),
+                    (int)Math.Round(Nutrition.ToDecimal(food.Kcal) * scale, MidpointRounding.AwayFromZero),
                     Nutrition.Round(p),
                     Nutrition.Round(c),
                     Nutrition.Round(f));
