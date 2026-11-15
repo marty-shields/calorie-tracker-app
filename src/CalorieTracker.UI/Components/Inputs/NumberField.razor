@@ -1,5 +1,7 @@
 @using System.Globalization
 @using CalorieTracker.UI.Components.Actions
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
 <div class="field @(invalid ? "invalid" : null)">
     <div class="row">
         @if (Stepper)
@@ -50,6 +52,7 @@
 
 @code {
     private readonly string messageId = $"number-field-{Guid.NewGuid():N}";
+    private const int FocusAttempts = 30;
     private ElementReference input;
     private string text = "";
     private bool invalid => !string.IsNullOrEmpty(InvalidMessage);
@@ -70,7 +73,14 @@
     {
         if (firstRender && AutoFocus && !Disabled)
         {
-            await input.FocusAsync();
+            try
+            {
+                await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/CalorieTracker.UI/Components/Inputs/NumberField.razor.js");
+                await module.InvokeVoidAsync("focusWhenReady", input, FocusAttempts);
+            }
+            catch (JSDisconnectedException)
+            {
+            }
         }
     }
 

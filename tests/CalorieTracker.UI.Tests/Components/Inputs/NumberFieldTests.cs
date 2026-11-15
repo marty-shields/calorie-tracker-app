@@ -180,6 +180,25 @@ public class NumberFieldTests : ComponentTestBase
         });
     }
 
+    [Test]
+    public void AutoFocus_AsksTheModuleToFocusTheInputUntilItHasFocus()
+    {
+        var module = Context.JSInterop.SetupModule("./_content/CalorieTracker.UI/Components/Inputs/NumberField.razor.js");
+        module.SetupVoid("focusWhenReady", _ => true);
+
+        Render(p => p.Add(x => x.AutoFocus, true));
+
+        Assert.That(module.Invocations["focusWhenReady"], Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public void WithoutAutoFocus_NoScriptRuns()
+    {
+        Render();
+
+        Assert.That(Context.JSInterop.Invocations, Is.Empty);
+    }
+
     private IRenderedComponent<NumberField> Render(Action<ComponentParameterCollectionBuilder<NumberField>>? configure = null) =>
         Context.Render<NumberField>(p =>
         {
