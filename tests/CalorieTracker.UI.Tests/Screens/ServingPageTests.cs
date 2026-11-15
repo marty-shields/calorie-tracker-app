@@ -169,15 +169,15 @@ public class ServingPageTests : ComponentTestBase
     {
         var cut = Render(pizzaId, Meal.Lunch);
 
-        cut.Find("[data-testid=serving-mode-grams]").Change(true);
+        await cut.Find("[data-testid=serving-mode-grams]").ChangeAsync(true);
         var gramsShown = cut.Find("[data-testid=serving-amount]").GetAttribute("value");
         var kcalInGrams = Text(cut, "serving-adds-kcal");
         await cut.Find("[data-testid=serving-amount]").InputAsync("150");
-        cut.Find("[data-testid=serving-mode-servings]").Change(true);
+        await cut.Find("[data-testid=serving-mode-servings]").ChangeAsync(true);
         var servingsShown = cut.Find("[data-testid=serving-amount]").GetAttribute("value");
         var weightInServings = Text(cut, "serving-weight");
         var kcalInServings = Text(cut, "serving-adds-kcal");
-        cut.Find("[data-testid=serving-mode-grams]").Change(true);
+        await cut.Find("[data-testid=serving-mode-grams]").ChangeAsync(true);
 
         Assert.Multiple(() =>
         {
@@ -196,9 +196,9 @@ public class ServingPageTests : ComponentTestBase
         var cut = Render(pizzaId, Meal.Lunch);
         await cut.Find("[data-testid=serving-amount]").InputAsync("70000000000000000000000000000");
 
-        cut.Find("[data-testid=serving-mode-grams]").Change(true);
+        await cut.Find("[data-testid=serving-mode-grams]").ChangeAsync(true);
         var afterGrams = AddDisabled(cut);
-        cut.Find("[data-testid=serving-mode-servings]").Change(true);
+        await cut.Find("[data-testid=serving-mode-servings]").ChangeAsync(true);
 
         Assert.Multiple(() =>
         {
@@ -223,12 +223,14 @@ public class ServingPageTests : ComponentTestBase
     }
 
     [Test]
-    public void UseServing_FromGrams_SwitchesToOneServing()
+    public async Task UseServing_FromGrams_SwitchesToOneServing()
     {
         var cut = Render(pizzaId, Meal.Lunch);
-        cut.Find("[data-testid=serving-mode-grams]").Change(true);
+        await cut.Find("[data-testid=serving-mode-grams]").ChangeAsync(true);
 
-        cut.Find("[data-testid=serving-use-serving]").Click();
+        cut.WaitForAssertion(() => cut.Find("[data-testid=serving-use-serving]"));
+        await cut.Find("[data-testid=serving-use-serving]").ClickAsync(new());
+        cut.WaitForAssertion(() => Assert.That(cut.Find("[data-testid=serving-mode-servings]").HasAttribute("checked"), Is.True));
 
         Assert.Multiple(() =>
         {
@@ -382,11 +384,11 @@ public class ServingPageTests : ComponentTestBase
     }
 
     [Test]
-    public void ChoosingAnotherMeal_ChangesTheAddButton()
+    public async Task ChoosingAnotherMeal_ChangesTheAddButton()
     {
         var cut = Render(cheddarId, Meal.Lunch);
 
-        cut.Find("[data-testid=serving-meal-snacks]").Change(true);
+        await cut.Find("[data-testid=serving-meal-snacks]").ChangeAsync(true);
 
         Assert.That(Text(cut, "serving-add"), Is.EqualTo("Add to Snacks"));
     }
@@ -425,7 +427,7 @@ public class ServingPageTests : ComponentTestBase
     public async Task Add_InGramsModeOfAFoodWithAServing_SavesNoServings()
     {
         var cut = Render(pizzaId, Meal.Lunch);
-        cut.Find("[data-testid=serving-mode-grams]").Change(true);
+        await cut.Find("[data-testid=serving-mode-grams]").ChangeAsync(true);
         await cut.Find("[data-testid=serving-amount]").InputAsync("150");
 
         await cut.Find("[data-testid=serving-add]").ClickAsync(new());
@@ -438,9 +440,9 @@ public class ServingPageTests : ComponentTestBase
     public async Task Add_AfterSwitchingBackToServings_SavesTheExactWeightAndTheRoundedCount()
     {
         var cut = Render(pizzaId, Meal.Lunch);
-        cut.Find("[data-testid=serving-mode-grams]").Change(true);
+        await cut.Find("[data-testid=serving-mode-grams]").ChangeAsync(true);
         await cut.Find("[data-testid=serving-amount]").InputAsync("150");
-        cut.Find("[data-testid=serving-mode-servings]").Change(true);
+        await cut.Find("[data-testid=serving-mode-servings]").ChangeAsync(true);
 
         await cut.Find("[data-testid=serving-add]").ClickAsync(new());
 
