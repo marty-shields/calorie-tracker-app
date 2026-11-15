@@ -17,6 +17,6 @@
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-bold);
     text-align: center;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
     cursor: pointer;
 }

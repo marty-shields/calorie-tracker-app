@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using CalorieTracker.UI.Components.Inputs;
 
 namespace CalorieTracker.UI.Tests.Components.Inputs;
@@ -34,16 +35,17 @@ public class DateStripTests : ComponentTestBase
     [Test]
     public void Targets_AreAtLeast48px()
     {
-        var iconButton = File.ReadAllText(RepoFiles.Find("IconButton.razor.css", "src", "CalorieTracker.UI").Single());
-        var strip = File.ReadAllText(RepoFiles.Find("DateStrip.razor.css", "src", "CalorieTracker.UI").Single());
-        var tokens = File.ReadAllText(RepoFiles.Find("tokens.css", "src", "CalorieTracker.UI").Single());
+        var iconButton = CssWithoutComments("IconButton.razor.css");
+        var tokens = CssWithoutComments("tokens.css");
+        var label = Rule(CssWithoutComments("DateStrip.razor.css"), "label");
         var cut = Render(Today);
 
         Assert.Multiple(() =>
         {
-            Assert.That(tokens, Does.Contain("--touch-target: 48px;"));
-            Assert.That(iconButton, Does.Contain("min-width: var(--touch-target);").And.Contain("min-height: var(--touch-target);"));
-            Assert.That(strip, Does.Contain("min-height: var(--touch-target);"));
+            Assert.That(tokens, Does.Match(@"--touch-target\s*:\s*48px\s*;"));
+            Assert.That(iconButton, Does.Match(@"min-width\s*:\s*var\(--touch-target\)"));
+            Assert.That(iconButton, Does.Match(@"min-height\s*:\s*var\(--touch-target\)"));
+            Assert.That(label, Does.Match(@"min-height\s*:\s*var\(--touch-target\)"));
             Assert.That(cut.FindAll("button.icon-btn"), Has.Count.EqualTo(2));
             Assert.That(cut.FindAll("button.icon-btn.compact"), Is.Empty);
             Assert.That(cut.Find("button.label"), Is.Not.Null);
@@ -53,15 +55,35 @@ public class DateStripTests : ComponentTestBase
     [Test]
     public void Label_WrapsInsteadOfTruncating()
     {
-        var strip = File.ReadAllText(RepoFiles.Find("DateStrip.razor.css", "src", "CalorieTracker.UI").Single());
+        var strip = CssWithoutComments("DateStrip.razor.css");
+        var label = Rule(strip, "label");
         var cut = Render(Today);
 
         Assert.Multiple(() =>
         {
             Assert.That(strip, Does.Not.Contain("text-overflow"));
-            Assert.That(strip, Does.Not.Contain("nowrap"));
+            Assert.That(strip, Does.Not.Match(@"white-space\s*:\s*nowrap"));
+            Assert.That(label, Does.Match(@"overflow-wrap\s*:\s*break-word"));
             Assert.That(cut.Find("button.label").HasAttribute("data-wrap-ok"), Is.True);
         });
+    }
+
+    [Test]
+    public void Label_OnNewYearsDay_NamesTomorrowWithItsYear()
+    {
+        var cut = Context.Render<DateStrip>(p => p
+            .Add(x => x.Date, new DateOnly(2027, 1, 1))
+            .Add(x => x.Today, new DateOnly(2026, 12, 31)));
+
+        Assert.That(cut.Find("[data-testid=date-strip-label]").TextContent.Trim(), Is.EqualTo("Tomorrow, 1 Jan 2027"));
+    }
+
+    [Test]
+    public void Label_ForAPastYear_ShowsTheYearBeforeAnyClick()
+    {
+        var cut = Render(new DateOnly(2025, 10, 11));
+
+        Assert.That(cut.Find("[data-testid=date-strip-label]").TextContent.Trim(), Is.EqualTo("Sat, 11 Oct 2025"));
     }
 
     [Test]
@@ -111,6 +133,16 @@ public class DateStripTests : ComponentTestBase
 
         Assert.That(cut.FindAll("[data-testid]").Select(e => e.GetAttribute("data-testid")),
             Is.EqualTo(new[] { "diary-date", "diary-date-previous", "diary-date-label", "diary-date-next" }));
+    }
+
+    private static string CssWithoutComments(string file) =>
+        Regex.Replace(File.ReadAllText(RepoFiles.Find(file, "src", "CalorieTracker.UI").Single()), @"/\*.*?\*/", "", RegexOptions.Singleline);
+
+    private static string Rule(string css, string className)
+    {
+        var match = Regex.Match(css, @"(?:^|[},\s])\." + Regex.Escape(className) + @"\s*\{(?<body>[^}]*)\}");
+        Assert.That(match.Success, Is.True, $"no .{className} rule");
+        return match.Groups["body"].Value;
     }
 
     private IRenderedComponent<DateStrip> Render(DateOnly date, Action? onPrevious = null, Action? onNext = null, Action? onToday = null) =>
