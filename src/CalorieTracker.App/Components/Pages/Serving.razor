@@ -1,0 +1,26 @@
+@page "/serving/{FoodId:int}"
+@using CalorieTracker.UI.Navigation
+@using CalorieTracker.UI.Screens
+@inject NavigationManager Navigation
+@inject TimeProvider Time
+
+@* Query: meal (preset), date (yyyy-MM-dd, default today), return (an in-app route to go back to). *@
+<ServingPage FoodId="FoodId" Meal="ServingRoute.ParseMeal(MealText)" Date="ServingRoute.ParseDate(DateText, Today)"
+             OnBack="@(() => Navigation.GoTo(ServingRoute.ReturnOr(ReturnTo, ServingRoute.DefaultBack)))"
+             OnAdded="@(() => Navigation.GoTo(ServingRoute.ReturnOr(ReturnTo, ServingRoute.DefaultAfterAdd)))" />
+
+@code {
+    [Parameter]
+    public int FoodId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "meal")]
+    public string? MealText { get; set; }
+
+    [SupplyParameterFromQuery(Name = "date")]
+    public string? DateText { get; set; }
+
+    [SupplyParameterFromQuery(Name = "return")]
+    public string? ReturnTo { get; set; }
+
+    private DateOnly Today => DateOnly.FromDateTime(Time.GetLocalNow().DateTime);
+}

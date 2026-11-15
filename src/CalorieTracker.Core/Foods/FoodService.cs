@@ -1,0 +1,115 @@
+using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Logging;
+using Microsoft.Extensions.Logging;
+
+namespace CalorieTracker.Core.Foods;
+
+/// <summary>
+/// Reads one food by id for the screens that show or multiply its values. The stored serving and optional nutrients are not bounded when saved,
+/// so they are bounded here: a value out of range is dropped (no serving, or an unknown nutrient) instead of being shown or multiplied.
+/// A failing database gives <see cref="FoodStatus.Failed"/>, never an exception. Logs carry ids and counts only.
+/// </summary>
+public sealed partial class FoodService
+{
+    /// <summary>Longest serving label kept, in characters after trimming.</summary>
+    public const int MaxServingLabelLength = 60;
+
+    /// <summary>Largest serving weight or volume kept, in g or ml.</summary>
+    public const double MaxServingAmount = 10_000;
+
+    /// <summary>Largest value kept for each optional nutrient (fibre, sugars, saturates, salt), in g per 100 g or 100 ml. A nutrient cannot exceed its own food.</summary>
+    public const double MaxNutrientPer100 = 100;
+
+    private readonly FoodStore store;
+    private readonly ILogger<FoodService> logger;
+
+    internal FoodService(FoodStore store, ILogger<FoodService> logger)
+    {
+        this.store = store;
+        this.logger = logger;
+    }
+
+    /// <summary>
+    /// The food with this id. A serving needs both a label (not blank, at most <see cref="MaxServingLabelLength"/> characters) and a weight that is finite, above zero and at most <see cref="MaxServingAmount"/>;
+    /// otherwise both come back null. Each optional nutrient that is not finite or outside 0 to <see cref="MaxNutrientPer100"/> comes back null.
+    /// </summary>
+    public async Task<FoodResult> GetAsync(int id)
+    {
+        Food? food;
+        try
+        {
+            food = await store.GetAsync(id);
+        }
+        catch (Exception)
+        {
+            Log.Failed(logger);
+            return FoodResult.Failed();
+        }
+
+        if (food is null)
+        {
+            Log.NotFound(logger, id);
+            return FoodResult.NotFound();
+        }
+
+        Bound(food);
+        return FoodResult.Found(food);
+    }
+
+    private void Bound(Food food)
+    {
+        var label = food.ServingLabel?.Trim();
+        var hasServing = !string.IsNullOrEmpty(label) && label.Length <= MaxServingLabelLength
+            && food.ServingAmount is { } amount && double.IsFinite(amount) && amount > 0 && amount <= MaxServingAmount;
+        if (hasServing)
+        {
+            food.ServingLabel = label;
+        }
+        else
+        {
+            if (food.ServingLabel is not null || food.ServingAmount is not null)
+            {
+                Log.ServingOutOfRange(logger, food.Id);
+            }
+
+            food.ServingLabel = null;
+            food.ServingAmount = null;
+        }
+
+        var dropped = 0;
+        food.FibreG = Nutrient(food.FibreG, ref dropped);
+        food.SugarsG = Nutrient(food.SugarsG, ref dropped);
+        food.SaturatesG = Nutrient(food.SaturatesG, ref dropped);
+        food.SaltG = Nutrient(food.SaltG, ref dropped);
+        if (dropped > 0)
+        {
+            Log.NutrientsOutOfRange(logger, food.Id, dropped);
+        }
+    }
+
+    private static double? Nutrient(double? value, ref int dropped)
+    {
+        if (value is not { } v || (double.IsFinite(v) && v >= 0 && v <= MaxNutrientPer100))
+        {
+            return value;
+        }
+
+        dropped++;
+        return null;
+    }
+
+    private static partial class Log
+    {
+        [LoggerMessage((int)CoreEvent.FoodServingOutOfRange, LogLevel.Debug, "Food {FoodId} has a serving out of range, so it has none")]
+        public static partial void ServingOutOfRange(ILogger logger, int foodId);
+
+        [LoggerMessage((int)CoreEvent.FoodNutrientsOutOfRange, LogLevel.Debug, "Food {FoodId} has {Count} optional nutrients out of range, so they are unknown")]
+        public static partial void NutrientsOutOfRange(ILogger logger, int foodId, int count);
+
+        [LoggerMessage((int)CoreEvent.FoodNotFound, LogLevel.Debug, "Food {FoodId} not found")]
+        public static partial void NotFound(ILogger logger, int foodId);
+
+        [LoggerMessage((int)CoreEvent.FoodReadFailed, LogLevel.Warning, "Food read failed")]
+        public static partial void Failed(ILogger logger);
+    }
+}

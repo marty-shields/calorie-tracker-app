@@ -1,0 +1,201 @@
+@using System.Globalization
+@using CalorieTracker.Core.Data
+@using CalorieTracker.Core.Diary
+@using CalorieTracker.Core.Foods
+@using CalorieTracker.UI.Models.Serving
+@inject FoodService Foods
+@inject DiaryService Diary
+@inject TimeProvider Time
+
+<ServingView Food="food" Loading="loading" LoadFailed="loadFailed" Mode="mode" Amount="amount" Grams="Grams" Meal="meal" SuggestedAt="suggestedAt"
+             Saving="saving" SaveFailed="saveFailed" OnModeChanged="ChangeMode" OnAmountChanged="ChangeAmount" OnUseServing="UseServing"
+             OnMealChanged="ChangeMeal" OnAdd="AddAsync" OnRetry="LoadAsync" OnBack="OnBack" />
+
+@code {
+    private Food? food;
+    private bool loading = true;
+    private bool loadFailed;
+    private EntryMode mode = EntryMode.Servings;
+    private decimal? amount;
+
+    /// <summary>Set when switching from grams to servings so the weight stays exactly as it was, until the amount is edited.</summary>
+    private double? lockedGrams;
+    private Meal meal;
+    private TimeOnly? suggestedAt;
+    private bool saving;
+    private bool saveFailed;
+    private int loadedId = -1;
+    private Meal? loadedMeal;
+
+    /// <summary>Largest weight carried across a mode switch. A typed number can be astronomically large; it is invalid anyway, and this keeps the conversion within a decimal.</summary>
+    private const double CarryLimit = 1_000_000;
+
+    /// <summary>Id of the food to add.</summary>
+    [Parameter, EditorRequired]
+    public int FoodId { get; set; }
+
+    /// <summary>The meal chosen before coming here, such as from a meal's +. Null suggests one from the time of day and shows the time it was suggested from.</summary>
+    [Parameter]
+    public Meal? Meal { get; set; }
+
+    /// <summary>The day the entry is added to.</summary>
+    [Parameter]
+    public DateOnly Date { get; set; }
+
+    /// <summary>Raised once the entry is saved.</summary>
+    [Parameter]
+    public EventCallback OnAdded { get; set; }
+
+    /// <summary>Raised by the back arrow and the Android back button.</summary>
+    [Parameter]
+    public EventCallback OnBack { get; set; }
+
+    private bool HasServing => ServingRules.HasServing(food);
+
+    private double? Grams =>
+        mode == EntryMode.Servings && HasServing
+            ? lockedGrams ?? (amount is { } count ? (double)count * food!.ServingAmount!.Value : null)
+            : amount is { } typed ? (double)typed : null;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var foodChanged = FoodId != loadedId;
+        if (!foodChanged && Meal == loadedMeal)
+        {
+            return;
+        }
+
+        loadedMeal = Meal;
+        if (Meal is { } preset)
+        {
+            meal = preset;
+            suggestedAt = null;
+        }
+        else
+        {
+            var now = TimeOnly.FromDateTime(Time.GetLocalNow().DateTime);
+            meal = MealSuggestion.For(now);
+            suggestedAt = now;
+        }
+
+        saveFailed = false;
+        if (foodChanged)
+        {
+            loadedId = FoodId;
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        var requested = FoodId;
+        loading = true;
+        loadFailed = false;
+        var result = await Foods.GetAsync(requested);
+        if (requested != FoodId)
+        {
+            return;
+        }
+
+        loading = false;
+        loadFailed = result.Status == FoodStatus.Failed;
+        food = result.Food;
+        if (food is null)
+        {
+            return;
+        }
+
+        if (HasServing)
+        {
+            mode = EntryMode.Servings;
+            amount = 1;
+        }
+        else
+        {
+            mode = EntryMode.Grams;
+            amount = 100;
+        }
+
+        lockedGrams = null;
+        saveFailed = false;
+    }
+
+    private void ChangeMode(EntryMode next)
+    {
+        if (next == mode || !HasServing)
+        {
+            return;
+        }
+
+        var grams = Grams is { } raw ? Math.Min(raw, CarryLimit) : (double?)null;
+        mode = next;
+        saveFailed = false;
+        if (next == EntryMode.Grams)
+        {
+            amount = grams is { } g ? ToDecimal(g) : null;
+            lockedGrams = null;
+        }
+        else
+        {
+            var weight = food!.ServingAmount!.Value;
+            amount = grams is { } g ? Math.Round((decimal)(g / weight), 2) : null;
+            lockedGrams = grams;
+        }
+    }
+
+    /// <summary>The weight as a decimal without the binary noise of a double (201.8, not 201.80000000000001).</summary>
+    private static decimal ToDecimal(double value) =>
+        decimal.Parse(value.ToString("0.####", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+
+    private void UseServing()
+    {
+        if (!HasServing)
+        {
+            return;
+        }
+
+        mode = EntryMode.Servings;
+        amount = 1;
+        lockedGrams = null;
+        saveFailed = false;
+    }
+
+    private void ChangeAmount(decimal? value)
+    {
+        amount = value;
+        lockedGrams = null;
+        saveFailed = false;
+    }
+
+    private void ChangeMeal(Meal value)
+    {
+        meal = value;
+        saveFailed = false;
+    }
+
+    private async Task AddAsync()
+    {
+        if (saving || food is null || Grams is not { } grams || !ServingRules.IsValidGrams(grams))
+        {
+            return;
+        }
+
+        double? servings = mode == EntryMode.Servings && HasServing && amount is { } count ? (double)count : null;
+        saving = true;
+        saveFailed = false;
+        try
+        {
+            var result = await Diary.AddAsync(Date, meal, food.Id, grams, servings);
+            saveFailed = result.Status != DiaryStatus.Ok;
+        }
+        finally
+        {
+            saving = false;
+        }
+
+        if (!saveFailed)
+        {
+            await OnAdded.InvokeAsync();
+        }
+    }
+}

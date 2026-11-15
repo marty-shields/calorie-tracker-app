@@ -1,6 +1,7 @@
 using AngleSharp.Dom;
 using CalorieTracker.Core.Data;
 using CalorieTracker.UI.Models.Scan;
+using CalorieTracker.UI.Models.Serving;
 using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Screens;
@@ -25,6 +26,58 @@ public static class ScreenStates
         new() { Id = 2, Name = "Porridge oats", Brand = "Quaker", Type = FoodType.Food, Unit = FoodUnit.Gram, Kcal = 372, ProteinG = 11, CarbsG = 60, FatG = 8.5 },
         new() { Id = 3, Name = "Oat drink", Brand = "Oatly", Type = FoodType.Drink, Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 1, CarbsG = 6.7, FatG = 1.5 },
     ];
+
+    internal static readonly Food Pizza = new()
+    {
+        Id = 11,
+        Name = "Margherita pizza",
+        Brand = "Casa Roma",
+        Type = FoodType.Food,
+        Unit = FoodUnit.Gram,
+        Kcal = 258,
+        ProteinG = 11.2,
+        CarbsG = 31.5,
+        FatG = 9.9,
+        ServingLabel = "½ pizza (201.8 g)",
+        ServingAmount = 201.8,
+    };
+
+    internal static readonly Food Biscuits = new()
+    {
+        Id = 12,
+        Name = "Digestive biscuits",
+        Brand = "Morning Mill",
+        Type = FoodType.Food,
+        Unit = FoodUnit.Gram,
+        Kcal = 487,
+        ProteinG = 7,
+        CarbsG = 62,
+        FatG = 22,
+    };
+
+    internal static readonly Food Cheddar = new()
+    {
+        Id = 13,
+        Name = "Cheddar cheese",
+        Type = FoodType.Ingredient,
+        Unit = FoodUnit.Gram,
+        Kcal = 416,
+        ProteinG = 25.4,
+        CarbsG = 0.1,
+        FatG = 34.9,
+    };
+
+    internal static readonly Food Milk = new()
+    {
+        Id = 14,
+        Name = "Semi-skimmed milk",
+        Type = FoodType.Drink,
+        Unit = FoodUnit.Millilitre,
+        Kcal = 47,
+        ProteinG = 3.5,
+        CarbsG = 4.8,
+        FatG = 1.7,
+    };
 
     private static readonly IReadOnlyList<Food> Ingredients = SampleFoods.Where(f => f.Type == FoodType.Ingredient).ToList();
 
@@ -64,6 +117,21 @@ public static class ScreenStates
         new("Screens/Scan", "Not found", c => Scan(c, ScanState.NotFound)),
         new("Screens/Scan", "Camera unavailable", c => Scan(c, ScanState.CameraUnavailable)),
 
+        new("Screens/Serving", "Servings", c => Serving(c, Pizza, EntryMode.Servings, 1, 201.8, Meal.Lunch)),
+        new("Screens/Serving", "Grams with a serving", c => Serving(c, Pizza, EntryMode.Grams, 150, 150, Meal.Lunch)),
+        new("Screens/Serving", "Scanned product with no serving", c => Serving(c, Biscuits, EntryMode.Grams, 30, 30, Meal.Lunch)),
+        new("Screens/Serving", "CoFID ingredient", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch)),
+        new("Screens/Serving", "Liquid", c => Serving(c, Milk, EntryMode.Grams, 250, 250, Meal.Breakfast)),
+        new("Screens/Serving", "Preset meal", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Dinner)),
+        new("Screens/Serving", "Suggested meal", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, suggestedAt: new TimeOnly(12, 40))),
+        new("Screens/Serving", "Invalid amount", c => Serving(c, Cheddar, EntryMode.Grams, 0, 0, Meal.Lunch)),
+        new("Screens/Serving", "Amount too large", c => Serving(c, Cheddar, EntryMode.Grams, 12000, 12000, Meal.Lunch)),
+        new("Screens/Serving", "Saving", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, saving: true)),
+        new("Screens/Serving", "Save failed", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, saveFailed: true)),
+        new("Screens/Serving", "Loading", c => Serving(c, null, loading: true)),
+        new("Screens/Serving", "Load failed", c => Serving(c, null, loadFailed: true)),
+        new("Screens/Serving", "Food not found", c => Serving(c, null)),
+
         new("Screens/Error", "Error", c => c.Render<ErrorView>(p => p.Add(x => x.OnRestart, () => { })).FindAll("*")),
     ];
 
@@ -81,6 +149,28 @@ public static class ScreenStates
             .Add(x => x.OnClearSelection, () => { })
             .Add(x => x.OnRetry, () => { })
             .Add(x => x.OnNavigate, (NavDestination _) => { }))
+            .FindAll("*");
+
+    internal static IReadOnlyList<IElement> Serving(BunitContext context, Food? food, EntryMode mode = EntryMode.Servings, decimal? amount = null, double? grams = null, Meal meal = Meal.Breakfast,
+        TimeOnly? suggestedAt = null, bool saving = false, bool saveFailed = false, bool loading = false, bool loadFailed = false) =>
+        context.Render<ServingView>(p => p
+            .Add(x => x.Food, food)
+            .Add(x => x.Mode, mode)
+            .Add(x => x.Amount, amount)
+            .Add(x => x.Grams, grams)
+            .Add(x => x.Meal, meal)
+            .Add(x => x.SuggestedAt, suggestedAt)
+            .Add(x => x.Saving, saving)
+            .Add(x => x.SaveFailed, saveFailed)
+            .Add(x => x.Loading, loading)
+            .Add(x => x.LoadFailed, loadFailed)
+            .Add(x => x.OnModeChanged, (EntryMode _) => { })
+            .Add(x => x.OnAmountChanged, (decimal? _) => { })
+            .Add(x => x.OnUseServing, () => { })
+            .Add(x => x.OnMealChanged, (Meal _) => { })
+            .Add(x => x.OnAdd, () => { })
+            .Add(x => x.OnRetry, () => { })
+            .Add(x => x.OnBack, () => { }))
             .FindAll("*");
 
     private static IReadOnlyList<IElement> Scan(BunitContext context, ScanState state, ScannedProduct? product = null) =>

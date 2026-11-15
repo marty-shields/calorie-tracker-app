@@ -69,5 +69,10 @@ public class CoreEventTests
             [CoreEvent.DaySummaryFailed] = 1803,
             [CoreEvent.DaySummaryOverflow] = 1804,
             [CoreEvent.DaySummaryMealUnknown] = 1805,
+            [CoreEvent.FoodServiceBlock] = 1900,
+            [CoreEvent.FoodServingOutOfRange] = 1901,
+            [CoreEvent.FoodNutrientsOutOfRange] = 1902,
+            [CoreEvent.FoodNotFound] = 1903,
+            [CoreEvent.FoodReadFailed] = 1904,
         }));
 }

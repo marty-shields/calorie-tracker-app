@@ -1,0 +1,30 @@
+---
+$attribute: CustomPage("Screens/Serving/Overview")
+---
+
+# Serving
+
+Choose an amount and a meal, then add the food to a day. Opened from a food (route `/serving/<food id>`; the Foods and Scan screens link to it in a later change). View: `ServingView`; page: `ServingPage`; route page: `Serving.razor` in the App.
+
+Query parameters: `meal` (Breakfast, Lunch, Dinner or Snacks; a preset, such as from a meal's +), `date` (yyyy-MM-dd; today when missing or not a date), `return` (an in-app route such as `/foods`; Back and a saved entry go there). Without `return`, Back goes to Foods and a saved entry to the Dashboard.
+
+| Part | Content |
+|---|---|
+| Top bar | Back arrow; the food's name as the title. |
+| Per line | Muted "Per 100 g · 258 kcal" for a food with a serving. A grams-only food adds macros: "Per 100 g · 416 kcal · P 25.4 · C 0.1 · F 34.9" ("Per 100 ml" for a liquid). |
+| Enter as | Only when the food has a serving label and a weight above zero: the heading ENTER AS, a `SegmentedControl` Grams / Servings (Servings by default) and, in Servings mode, a card with the serving label. Foods without a serving show no switch, only grams (or ml). |
+| Amount | Heading AMOUNT (Grams) or HOW MANY (Servings). A `NumberField` with the stepper: grams or ml in steps of 10, or a count of servings in steps of 1 (unit "serving"). Any positive number can be typed. In Servings mode a muted "= 202 g" shows the weight it comes to. In Grams mode a food with a serving shows **Use serving: <label>**, which switches to 1 serving. |
+| Modes | Switching modes keeps the same weight: 150 g becomes 0.74 servings of a 201.8 g serving and back to exactly 150 g, until the number is edited. |
+| Invalid amount | Zero, below zero, empty or not a number shows "Enter an amount above 0."; above 10,000 g or ml (`DiaryService.MaxAmount`) shows "Enter an amount of 10,000 g or less." The error shows in the error tone, the This adds card is hidden and Add is disabled. |
+| Meal | Heading MEAL and `FilterChips` Breakfast, Lunch, Dinner, Snacks. A preset meal is selected. With none preset the meal is suggested from the local time (Breakfast before 11:00, Lunch from 11:00, Dinner from 15:00, Snacks from 21:00) and "Suggested from the time: 12:40" shows under the chips. |
+| This adds | A card: the kcal for the amount in large text (whole kcal) and a line. For a food with a serving the line is "202 g of Margherita pizza"; otherwise "Protein 7.6 g · Carbs 0 g · Fat 10.5 g" for the amount. |
+| Add | Bottom bar, primary: "Add to Lunch" (the selected meal). Saves the grams or ml; in Servings mode also the count of servings. While saving it shows "Adding…" busy. A failed save keeps the screen and shows "Couldn't add this food. Try again." above the button. |
+| Not shown | A spinner while the food loads; "Couldn't load this food" with Try again when the read fails; "Food not found" for an unknown id. |
+
+A food's serving label (at most 60 characters), serving weight (above 0, at most 10,000) and optional nutrients (fibre, sugars, saturates, salt: 0 to 100 g per 100 g or ml) are bounded by `FoodService` before the screen sees them; a serving out of range shows as no serving, a nutrient out of range as unknown.
+
+Back: the `return` route, or Foods.
+
+States: [Servings](./?path=/story/screens-serving--servings) · [Grams with a serving](./?path=/story/screens-serving--grams-with-a-serving) · [Scanned product with no serving](./?path=/story/screens-serving--scanned-product-with-no-serving) · [CoFID ingredient](./?path=/story/screens-serving--cofid-ingredient) · [Liquid](./?path=/story/screens-serving--liquid) · [Preset meal](./?path=/story/screens-serving--preset-meal) · [Suggested meal](./?path=/story/screens-serving--suggested-meal) · [Invalid amount](./?path=/story/screens-serving--invalid-amount) · [Amount too large](./?path=/story/screens-serving--amount-too-large) · [Saving](./?path=/story/screens-serving--saving) · [Save failed](./?path=/story/screens-serving--save-failed) · [Loading](./?path=/story/screens-serving--loading) · [Load failed](./?path=/story/screens-serving--load-failed) · [Food not found](./?path=/story/screens-serving--food-not-found)
+
+`data-testid`: `back`, `serving-per`, `serving-mode`, `serving-mode-grams`, `serving-mode-servings`, `serving-label`, `serving-amount`, `serving-amount-minus`, `serving-amount-plus`, `serving-amount-unit`, `serving-amount-error`, `serving-weight`, `serving-use-serving`, `serving-meal`, `serving-meal-breakfast`, `serving-meal-lunch`, `serving-meal-dinner`, `serving-meal-snacks`, `serving-suggestion`, `serving-adds`, `serving-adds-kcal`, `serving-adds-detail`, `serving-add`, `serving-error`, `serving-loading`, `serving-load-failed-error`, `serving-load-failed-retry`, `serving-not-found`.
