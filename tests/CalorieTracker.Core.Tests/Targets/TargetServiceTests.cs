@@ -111,7 +111,21 @@ public class TargetServiceTests
         Assert.That((await service.GetAsync()).Status, Is.EqualTo(TargetStatus.Failed));
         Assert.That((await service.SaveAsync(2000)).Status, Is.EqualTo(TargetStatus.Failed));
         Assert.That((await service.ClearAsync()).Status, Is.EqualTo(TargetStatus.Failed));
-        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.All.EqualTo(CoreEvent.TargetFailed));
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { CoreEvent.TargetFailed, CoreEvent.TargetFailed, CoreEvent.TargetFailed }));
+    }
+
+    [Test]
+    public async Task SaveAsyncAndClearAsync_ChangeOnlyTheTargetColumn()
+    {
+        await connection.ExecuteAsync("ALTER TABLE AppSettings ADD COLUMN Other integer");
+        await connection.ExecuteAsync("INSERT INTO AppSettings (Id, Other) VALUES (?, 42)", AppSettings.RowId);
+
+        await service.SaveAsync(2000);
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT Other FROM AppSettings"), Is.EqualTo(42));
+
+        await service.ClearAsync();
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT Other FROM AppSettings"), Is.EqualTo(42));
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM AppSettings"), Is.EqualTo(1));
     }
 
     [Test]

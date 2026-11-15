@@ -3,6 +3,7 @@ using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Seed;
 using CalorieTracker.Core.Targets;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using SQLite;
 
 namespace CalorieTracker.Core;
@@ -48,7 +49,7 @@ public static class CoreServiceCollectionExtensions
         services
             .AddSingleton(TimeProvider.System)
             .AddSingleton<IFoodSearch, FoodSearch>()
-            .AddSingleton<ITargetService, TargetService>()
+            .AddSingleton(provider => new TargetService(provider.GetRequiredService<TargetStore>(), provider.GetRequiredService<ILogger<TargetService>>()))
             .AddSingleton<ISeedLoader>(provider =>
                 ActivatorUtilities.CreateInstance<SeedLoader>(provider, (Func<Stream>)SeedLoader.OpenBundledSeed))
             .AddSingleton<SeedProgress>()

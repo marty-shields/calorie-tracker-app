@@ -354,7 +354,7 @@ public class SeedLoaderTests
         await connection.ExecuteAsync("CREATE TABLE SeedVersion (Source integer primary key not null, Version integer not null)");
         await connection.ExecuteAsync("INSERT INTO SeedVersion (Source, Version) VALUES (0, 3)");
         await connection.ExecuteAsync("PRAGMA user_version = 2");
-        await new DatabaseInitializer(connection, [new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()], new FakeLogger<DatabaseInitializer>(), DatabaseInitializer.CurrentVersion).InitializeAsync();
+        await new DatabaseInitializer(connection, SchemaSteps.All(), new FakeLogger<DatabaseInitializer>(), DatabaseInitializer.CurrentVersion).InitializeAsync();
         store = new FoodStore(connection, new DatabaseGate(), new FakeLogger<FoodStore>());
         seedJson = Wrap(6, [Row("11-001", "Arrowroot", 355)]);
 

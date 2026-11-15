@@ -5,8 +5,18 @@ using Microsoft.Extensions.Logging;
 namespace CalorieTracker.Core.Targets;
 
 /// <summary>Stores the daily calorie target in <see cref="AppSettings"/> through <see cref="TargetStore"/>. A failing database gives <see cref="TargetStatus.Failed"/>, never an exception. Logs never carry the value.</summary>
-internal sealed partial class TargetService(TargetStore store, ILogger<TargetService> logger) : ITargetService
+public sealed partial class TargetService
 {
+    private readonly TargetStore store;
+    private readonly ILogger<TargetService> logger;
+
+    internal TargetService(TargetStore store, ILogger<TargetService> logger)
+    {
+        this.store = store;
+        this.logger = logger;
+    }
+
+    /// <summary>The saved target, or <see cref="TargetResult.Kcal"/> null when none is set (the default).</summary>
     public async Task<TargetResult> GetAsync()
     {
         try
@@ -20,6 +30,10 @@ internal sealed partial class TargetService(TargetStore store, ILogger<TargetSer
         }
     }
 
+    /// <summary>
+    /// Saves the target, replacing any earlier one. The value must be a whole number above zero that fits an int;
+    /// anything else (zero, negative, fractional, NaN, infinite, too large) returns <see cref="TargetStatus.Invalid"/> and changes nothing.
+    /// </summary>
     public async Task<TargetResult> SaveAsync(double kcal)
     {
         if (!double.IsFinite(kcal) || kcal < 1 || kcal > int.MaxValue || kcal != Math.Floor(kcal))
@@ -42,6 +56,7 @@ internal sealed partial class TargetService(TargetStore store, ILogger<TargetSer
         }
     }
 
+    /// <summary>Removes the target, so none is set. Clearing when none is set succeeds.</summary>
     public async Task<TargetResult> ClearAsync()
     {
         try
