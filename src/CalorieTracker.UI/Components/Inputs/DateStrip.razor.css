@@ -17,8 +17,6 @@
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-bold);
     text-align: center;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
     cursor: pointer;
 }

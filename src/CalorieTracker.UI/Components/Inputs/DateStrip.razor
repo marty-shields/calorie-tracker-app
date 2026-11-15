@@ -3,6 +3,7 @@
     <IconButton Icon="IconName.ChevronLeft" AriaLabel="Previous day" TestId="@($"{Id}-previous")" OnClick="OnPrevious" />
     <button type="button"
             class="label"
+            data-wrap-ok
             aria-label="@($"{LabelText}, go to today")"
             data-testid="@($"{Id}-label")"
             @onclick="OnToday">

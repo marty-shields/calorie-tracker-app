@@ -51,6 +51,20 @@ public class DateStripTests : ComponentTestBase
     }
 
     [Test]
+    public void Label_WrapsInsteadOfTruncating()
+    {
+        var strip = File.ReadAllText(RepoFiles.Find("DateStrip.razor.css", "src", "CalorieTracker.UI").Single());
+        var cut = Render(Today);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(strip, Does.Not.Contain("text-overflow"));
+            Assert.That(strip, Does.Not.Contain("nowrap"));
+            Assert.That(cut.Find("button.label").HasAttribute("data-wrap-ok"), Is.True);
+        });
+    }
+
+    [Test]
     public void Previous_RaisesOnPrevious()
     {
         var raised = 0;
