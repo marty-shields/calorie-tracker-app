@@ -74,20 +74,44 @@ public class MealHeaderTests : ComponentTestBase
     }
 
     [Test]
-    public void Stories_ShowEntriesEmptyAndLongName()
+    public void Stories_ShowEntriesEmptyAndLargeTotal()
     {
         var stories = RepoFiles.Read("src", "CalorieTracker.UI.Stories", "Stories", "Components", "Lists", "MealHeader.stories.razor");
 
         var withEntries = StoryMarkup(stories, "With entries");
         var empty = StoryMarkup(stories, "Empty");
-        var longName = StoryMarkup(stories, "Long name");
-        var name = Regex.Match(longName, "Name=\"([^\"]*)\"").Groups[1].Value;
+        var largeTotal = StoryMarkup(stories, "Large total");
 
         Assert.Multiple(() =>
         {
             Assert.That(withEntries, Does.Contain("Calories=\""));
             Assert.That(empty, Does.Not.Contain("Calories="));
-            Assert.That(name.Length, Is.GreaterThan(30));
+            Assert.That(largeTotal, Does.Contain("Name=\"Snacks\"").And.Contain("Calories=\"1234\""));
+        });
+    }
+
+    [Test]
+    public void Render_VeryLongName_WrapsAndKeepsAddButtonATouchTarget()
+    {
+        var longName = string.Join(' ', Enumerable.Repeat("Late night snacks and second helpings", 4));
+        var cut = Context.Render<MealHeader>(p => p
+            .Add(x => x.Name, longName)
+            .Add(x => x.Calories, 1234)
+            .Add(x => x.TestId, "meal"));
+        var css = RepoFiles.Read("src", "CalorieTracker.UI", "Components", "Lists", "MealHeader.razor.css");
+        var buttonCss = RepoFiles.Read("src", "CalorieTracker.UI", "Components", "Actions", "IconButton.razor.css");
+        var name = css.Split(".name {")[1].Split('}')[0];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=meal-name]").TextContent, Is.EqualTo(longName));
+            Assert.That(cut.Find("[data-testid=meal-name]").HasAttribute("data-wrap-ok"), Is.True);
+            Assert.That(name, Does.Contain("min-width: 0").And.Contain("flex: 1"));
+            Assert.That(name, Does.Not.Contain("nowrap").And.Not.Contain("ellipsis"));
+            Assert.That(cut.Find("[data-testid=meal-add]").GetAttribute("aria-label"), Is.EqualTo($"Add to {longName}"));
+            Assert.That(buttonCss.Split(".icon-btn {")[1].Split('}')[0],
+                Does.Contain("min-width: var(--touch-target)").And.Contain("min-height: var(--touch-target)"));
+            Assert.That(cut.Find("[data-testid=meal-add]").ClassList, Does.Not.Contain("compact"));
         });
     }
 

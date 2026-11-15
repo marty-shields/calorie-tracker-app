@@ -23,7 +23,7 @@ One row of a list: `Text`, an optional muted `Detail` line under it, and an opti
 Stories: [ListRow](./?path=/docs/components-lists-listrow--docs)
 
 ## `MealHeader`
-The heading of a meal group: the meal `Name` in small bold capitals, its total `Calories` in kcal (left out when null, for an empty meal) and a round `+` `IconButton` labelled "Add to {Name}" that raises `OnAdd`. A long name wraps.
+The heading of a meal group: the meal `Name` in small bold capitals, its total `Calories` in kcal (left out when null, for an empty meal) and a round `+` `IconButton` labelled "Add to {Name}" that raises `OnAdd`. A long name wraps. Stories: with entries, empty and a large total.
 - `data-testid`: the prefix `TestId` gives the header, `{TestId}-name`, `-calories` and `-add`.
 
 Stories: [MealHeader](./?path=/docs/components-lists-mealheader--docs)
