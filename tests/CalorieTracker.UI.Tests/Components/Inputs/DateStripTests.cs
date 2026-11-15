@@ -135,6 +135,16 @@ public class DateStripTests : ComponentTestBase
             Is.EqualTo(new[] { "diary-date", "diary-date-previous", "diary-date-label", "diary-date-next" }));
     }
 
+    [Test]
+    public void Stories_AreTodayYesterdayTomorrowAndFarDate()
+    {
+        var stories = File.ReadAllText(RepoFiles.Find("DateStrip.stories.razor", "src", "CalorieTracker.UI.Stories").Single());
+
+        var names = Regex.Matches(stories, @"<Story\s+Name=""(?<name>[^""]+)""").Select(m => m.Groups["name"].Value);
+
+        Assert.That(names, Is.EqualTo(new[] { "Today", "Yesterday", "Tomorrow", "Far date" }));
+    }
+
     private static string CssWithoutComments(string file) =>
         Regex.Replace(File.ReadAllText(RepoFiles.Find(file, "src", "CalorieTracker.UI").Single()), @"/\*.*?\*/", "", RegexOptions.Singleline);
 
