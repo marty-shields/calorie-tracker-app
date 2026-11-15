@@ -1,4 +1,5 @@
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Seed;
 using CalorieTracker.Core.Targets;
@@ -29,6 +30,7 @@ public static class CoreServiceCollectionExtensions
         return services
             .AddSingleton<DatabaseGate>()
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<TargetStore>(provider, connection))
+            .AddSingleton(provider => ActivatorUtilities.CreateInstance<DiaryStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<FoodStore>(provider, connection))
             .AddDecoratedSingleton<IDatabaseInitializer, GatedDatabaseInitializer>(provider =>
                 ActivatorUtilities.CreateInstance<DatabaseInitializer>(provider, connection))
@@ -42,7 +44,8 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<ISchemaUpgrade, FoodTypeUpgrade>()
             .AddSingleton<ISchemaUpgrade, DropDishesUpgrade>()
             .AddSingleton<ISchemaUpgrade, FoodServingUpgrade>()
-            .AddSingleton<ISchemaUpgrade, SettingsTableUpgrade>();
+            .AddSingleton<ISchemaUpgrade, SettingsTableUpgrade>()
+            .AddSingleton<ISchemaUpgrade, DiaryTableUpgrade>();
 
     private static IServiceCollection AddServices(this IServiceCollection services)
     {
@@ -50,6 +53,7 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton(TimeProvider.System)
             .AddSingleton<IFoodSearch, FoodSearch>()
             .AddSingleton(provider => new TargetService(provider.GetRequiredService<TargetStore>(), provider.GetRequiredService<ILogger<TargetService>>()))
+            .AddSingleton(provider => new DiaryService(provider.GetRequiredService<DiaryStore>(), provider.GetRequiredService<ILogger<DiaryService>>()))
             .AddSingleton<ISeedLoader>(provider =>
                 ActivatorUtilities.CreateInstance<SeedLoader>(provider, (Func<Stream>)SeedLoader.OpenBundledSeed))
             .AddSingleton<SeedProgress>()

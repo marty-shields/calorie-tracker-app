@@ -20,6 +20,7 @@ public class FoodStoreTests
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
         await connection.CreateTableAsync<FoodBarcode>();
+        await connection.CreateTableAsync<DiaryEntry>();
         await connection.CreateTableAsync<SeedVersion>();
         gate = new DatabaseGate();
         logger = new FakeLogger<FoodStore>();
@@ -338,6 +339,24 @@ public class FoodStoreTests
 
         Assert.That(await store.GetSeedVersionAsync(FoodSource.CoFID), Is.EqualTo(2));
         Assert.That(await store.GetSeedVersionAsync(FoodSource.OpenFoodFacts), Is.Null);
+    }
+
+    [Test]
+    public async Task DeleteMissingAsync_SkipsFoodsADiaryEntryPointsAtIncludingARemovedOne_AndDeletesTheRest()
+    {
+        var kept = await store.UpsertAsync(NewFood("kept"), "5000000000017");
+        var removedOnly = await store.UpsertAsync(NewFood("removed"), "5000000000024");
+        var stale = await store.UpsertAsync(NewFood("stale"), "5000000000031");
+        var listed = await store.UpsertAsync(NewFood("listed"));
+        await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = kept.Id, Amount = 10 });
+        await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = removedOnly.Id, Amount = 10, IsRemoved = true });
+
+        var deleted = await store.DeleteMissingAsync(FoodSource.CoFID, new HashSet<string> { "listed" });
+
+        Assert.That(deleted, Is.EqualTo(1));
+        Assert.That((await connection.Table<Food>().ToListAsync()).Select(f => f.Id), Is.EquivalentTo(new[] { kept.Id, removedOnly.Id, listed.Id }));
+        Assert.That(await connection.QueryScalarsAsync<string>("SELECT Barcode FROM FoodBarcode ORDER BY Barcode"), Is.EqualTo(new[] { "5000000000017", "5000000000024" }));
+        Assert.That(stale.Id, Is.Not.Zero);
     }
 
     private static Food NewFood(string sourceId, FoodSource source = FoodSource.CoFID, double kcal = 100) => new()

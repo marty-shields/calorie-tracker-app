@@ -414,10 +414,170 @@ public class DatabaseInitializerTests
 
         await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
 
-        Assert.That(await Version(), Is.EqualTo(6));
+        Assert.That(await Version(), Is.EqualTo(DatabaseInitializer.CurrentVersion));
         Assert.That(LoggedEvents.Of(logger).Select(e => e.Message), Does.Contain("Schema upgrade step 6 applied"));
         Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM AppSettings"), Is.Zero);
         Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(1));
+    }
+
+    private const string DiaryColumns = "SELECT name || ':' || type || ':' || \"notnull\" || ':' || pk FROM pragma_table_info('DiaryEntry') ORDER BY cid";
+
+    private static readonly string[] ExpectedDiaryColumns =
+        ["Id:INTEGER:1:1", "Date:varchar:1:0", "Meal:INTEGER:1:0", "FoodId:INTEGER:1:0", "Amount:float:1:0", "Servings:float:0:0", "IsRemoved:INTEGER:1:0"];
+
+    private const string FoodTableSql =
+        "CREATE TABLE Food (Id integer primary key autoincrement not null, Source integer not null, SourceId varchar not null, Name varchar not null, Brand varchar, Unit integer not null, Kcal float, ProteinG float, CarbsG float, FatG float, FibreG float, SugarsG float, SaturatesG float, SaltG float, ServingLabel varchar, ServingAmount float, SearchText varchar not null, Type integer not null)";
+
+    [Test]
+    public async Task InitializeAsync_NewDatabase_CreatesTheDiaryTable()
+    {
+        await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
+
+        Assert.That(await connection.QueryScalarsAsync<string>(DiaryColumns), Is.EqualTo(ExpectedDiaryColumns));
+        Assert.That(await Version(), Is.EqualTo(7));
+    }
+
+    [Test]
+    public async Task InitializeAsync_VersionSixDatabaseWithData_GetsTheDiaryTableAndKeepsItsData()
+    {
+        await connection.ExecuteAsync(FoodTableSql);
+        await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Unit, SearchText, Type) VALUES (1, 1, 'a', 'A', 0, 'a', 1)");
+        await connection.ExecuteAsync("CREATE TABLE FoodBarcode (Barcode varchar primary key not null, FoodId integer not null)");
+        await connection.ExecuteAsync("INSERT INTO FoodBarcode (Barcode, FoodId) VALUES ('5000000000017', 1)");
+        await connection.ExecuteAsync("CREATE TABLE AppSettings (Id integer not null primary key, DailyTargetKcal integer)");
+        await connection.ExecuteAsync("INSERT INTO AppSettings (Id, DailyTargetKcal) VALUES (1, 2100)");
+        await SetVersion(6);
+
+        await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
+
+        Assert.That(await Version(), Is.EqualTo(7));
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Message), Does.Contain("Schema upgrade step 7 applied"));
+        Assert.That(await connection.QueryScalarsAsync<string>(DiaryColumns), Is.EqualTo(ExpectedDiaryColumns));
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM DiaryEntry"), Is.Zero);
+        Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(1));
+        Assert.That(await connection.ExecuteScalarAsync<string>("SELECT Barcode FROM FoodBarcode"), Is.EqualTo("5000000000017"));
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT DailyTargetKcal FROM AppSettings"), Is.EqualTo(2100));
+    }
+
+    [Test]
+    public async Task InitializeAsync_VersionSixDatabase_GetsTheSameDiarySchemaAsANewDatabase()
+    {
+        await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
+        var created = await DiarySchema();
+        await connection.CloseAsync();
+        File.Delete(databasePath);
+
+        databasePath = TempDatabase.NewPath();
+        connection = new SQLiteAsyncConnection(databasePath);
+        await connection.ExecuteAsync(FoodTableSql);
+        await SetVersion(6);
+        await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
+
+        Assert.That(await DiarySchema(), Is.EqualTo(created));
+        Assert.That(created, Has.Count.EqualTo(ExpectedDiaryColumns.Length + 2));
+    }
+
+    private async Task<List<string>> DiarySchema()
+    {
+        var columns = await connection.QueryScalarsAsync<string>(DiaryColumns);
+        var indexes = await connection.QueryScalarsAsync<string>(
+            "SELECT i.name || ':' || i.\"unique\" || ':' || (SELECT group_concat(c.name) FROM pragma_index_info(i.name) c) FROM pragma_index_list('DiaryEntry') i WHERE i.origin = 'c' ORDER BY i.name");
+        return [.. columns, .. indexes];
+    }
+
+    [Test]
+    public void DiaryTableUpgrade_Apply_CreatesTheTableWithNoRowAndItsIndexes()
+    {
+        // Runs the step alone: the initializer's later CreateTableAsync would hide a broken step.
+        var db = new SQLiteConnection(databasePath);
+        try
+        {
+            new DiaryTableUpgrade().Apply(db);
+            new DiaryTableUpgrade().Apply(db);
+
+            Assert.That(db.ExecuteScalar<int>("SELECT COUNT(*) FROM DiaryEntry"), Is.Zero);
+            Assert.That(db.QueryScalars<string>(DiaryColumns), Is.EqualTo(ExpectedDiaryColumns));
+            Assert.That(
+                db.QueryScalars<string>("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'DiaryEntry' AND sql IS NOT NULL ORDER BY name"),
+                Is.EqualTo(new[] { "DiaryEntry_Date", "DiaryEntry_FoodId" }));
+        }
+        finally
+        {
+            db.Close();
+        }
+    }
+
+    [Test]
+    public async Task EveryStepFromTheDiaryTableOn_AppliedToADatabaseWithDiaryEntries_KeepsEveryFoodItsBarcodeAndTheEntries()
+    {
+        // Only steps from the diary table's version on can meet a diary entry in a real upgrade, so only those run, on the current schema.
+        // A later step that deletes foods fails this test.
+        await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
+        var foodIds = new List<int>();
+        var id = 0;
+        foreach (var type in Enum.GetValues<FoodType>())
+        {
+            foreach (var source in Enum.GetValues<FoodSource>())
+            {
+                foreach (var unit in Enum.GetValues<FoodUnit>())
+                {
+                    id++;
+                    foodIds.Add(id);
+                    await connection.ExecuteAsync($"INSERT INTO Food (Id, Source, SourceId, Name, Unit, SearchText, Type) VALUES ({id}, {(int)source}, 'f{id}', 'F{id}', {(int)unit}, 'f{id}', {(int)type})");
+                    await connection.ExecuteAsync($"INSERT INTO FoodBarcode (Barcode, FoodId) VALUES ('50000000{id:D5}', {id})");
+                    await connection.ExecuteAsync($"INSERT INTO DiaryEntry (Date, Meal, FoodId, Amount, IsRemoved) VALUES ('2031-07-19', 0, {id}, 10, 0)");
+                }
+            }
+        }
+
+        await connection.CloseAsync();
+
+        var db = new SQLiteConnection(databasePath);
+        try
+        {
+            var diaryVersion = new DiaryTableUpgrade().Version;
+            foreach (var step in SchemaSteps.All().Where(s => s.Version >= diaryVersion).OrderBy(s => s.Version))
+            {
+                step.Apply(db);
+            }
+
+            Assert.That(db.QueryScalars<int>("SELECT Id FROM Food ORDER BY Id"), Is.EqualTo(foodIds));
+            Assert.That(db.QueryScalars<int>("SELECT FoodId FROM FoodBarcode ORDER BY FoodId"), Is.EqualTo(foodIds));
+            Assert.That(db.QueryScalars<int>("SELECT FoodId FROM DiaryEntry ORDER BY FoodId"), Is.EqualTo(foodIds));
+        }
+        finally
+        {
+            db.Close();
+            connection = new SQLiteAsyncConnection(databasePath);
+        }
+    }
+
+    [Test]
+    public void EveryStepThatDeletesFoods_IsOlderThanTheDiaryTable()
+    {
+        // Add any new step that deletes foods to this list.
+        var foodDeletingSteps = new ISchemaUpgrade[] { new DropDishesUpgrade() };
+        var diaryVersion = new DiaryTableUpgrade().Version;
+
+        foreach (var step in foodDeletingSteps)
+        {
+            Assert.That(
+                step.Version,
+                Is.LessThan(diaryVersion),
+                $"{step.GetType().Name} deletes foods, so it must be older than the diary table (step {diaryVersion}): no step older than the diary table may meet a diary entry, and a diary entry must never lose its food.");
+        }
+    }
+
+    [Test]
+    public async Task InitializeAsync_ExistingCurrentVersionDatabaseWithoutDiaryEntry_CreatesTheDiaryTable()
+    {
+        await connection.ExecuteAsync(FoodTableSql);
+        await SetVersion(DatabaseInitializer.CurrentVersion);
+
+        await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
+
+        Assert.That(await connection.QueryScalarsAsync<string>(DiaryColumns), Is.EqualTo(ExpectedDiaryColumns));
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM DiaryEntry"), Is.Zero);
     }
 
     [Test]

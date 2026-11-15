@@ -22,6 +22,7 @@ public class SeedLoaderTests
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
         await connection.CreateTableAsync<FoodBarcode>();
+        await connection.CreateTableAsync<DiaryEntry>();
         await connection.CreateTableAsync<SeedVersion>();
         store = new FoodStore(connection, new DatabaseGate(), new FakeLogger<FoodStore>());
         logger = new FakeLogger<SeedLoader>();
@@ -338,6 +339,25 @@ public class SeedLoaderTests
             Assert.That(foods.Select(f => (f.Source, f.SourceId)), Is.EquivalentTo(new[] { (FoodSource.CoFID, "11-001"), (FoodSource.OpenFoodFacts, "old-dish") }));
         });
         Assert.That(await connection.QueryScalarsAsync<string>("SELECT Barcode FROM FoodBarcode"), Is.EqualTo(new[] { "5000000000024" }));
+    }
+
+    [Test]
+    public async Task LoadAsync_NewerSeedWithoutAFoodADiaryEntryPointsAt_KeepsThatFoodAndItsBarcode()
+    {
+        var kept = await store.UpsertAsync(new Food { Source = FoodSource.CoFID, SourceId = "old-kept", Name = "Kept", SearchText = "kept" }, "5000000000017");
+        var removedOnly = await store.UpsertAsync(new Food { Source = FoodSource.CoFID, SourceId = "old-removed", Name = "Removed", SearchText = "removed" }, "5000000000024");
+        var unused = await store.UpsertAsync(new Food { Source = FoodSource.CoFID, SourceId = "old-unused", Name = "Unused", SearchText = "unused" }, "5000000000031");
+        await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = kept.Id, Amount = 10 });
+        await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = removedOnly.Id, Amount = 10, IsRemoved = true });
+        await Loader().LoadAsync();
+        seedJson = Wrap(2, [Row("11-001", "Arrowroot", 355)]);
+
+        await Loader().LoadAsync();
+
+        var foods = await connection.Table<Food>().ToListAsync();
+        Assert.That(foods.Select(f => f.SourceId), Is.EquivalentTo(new[] { "11-001", "old-kept", "old-removed" }));
+        Assert.That(await connection.QueryScalarsAsync<string>("SELECT Barcode FROM FoodBarcode ORDER BY Barcode"), Is.EqualTo(new[] { "5000000000017", "5000000000024" }));
+        Assert.That(unused.Id, Is.Not.Zero);
     }
 
     [Test]
