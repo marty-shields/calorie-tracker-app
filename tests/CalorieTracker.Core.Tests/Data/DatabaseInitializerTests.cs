@@ -41,7 +41,7 @@ public class DatabaseInitializerTests
     [Test]
     public async Task InitializeAsync_NewDatabaseAtTheAppsVersion_NeedsNoSteps()
     {
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
 
         Assert.That(await Version(), Is.EqualTo(DatabaseInitializer.CurrentVersion));
     }
@@ -184,7 +184,7 @@ public class DatabaseInitializerTests
     [Test]
     public async Task InitializeAsync_NewDatabase_CreatesTheFoodTableAndIndexes()
     {
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
 
         await AssertFoodTableAndIndexes();
     }
@@ -194,7 +194,7 @@ public class DatabaseInitializerTests
     {
         await SetVersion(1);
 
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
 
         await AssertFoodTableAndIndexes();
     }
@@ -202,7 +202,7 @@ public class DatabaseInitializerTests
     [Test]
     public async Task InitializeAsync_NewDatabase_CreatesTheSeedVersionTable()
     {
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
 
         Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'SeedVersion'"), Is.EqualTo(1));
     }
@@ -212,7 +212,7 @@ public class DatabaseInitializerTests
     {
         await SetVersion(1);
 
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
 
         Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'SeedVersion'"), Is.EqualTo(1));
     }
@@ -220,7 +220,7 @@ public class DatabaseInitializerTests
     [Test]
     public async Task InitializeAsync_NewDatabase_CreatesTheFoodBarcodeTableWithoutTheOldColumn()
     {
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
 
         Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'FoodBarcode'"), Is.EqualTo(1));
         Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM pragma_table_info('Food') WHERE name = 'Barcode'"), Is.Zero);
@@ -236,7 +236,7 @@ public class DatabaseInitializerTests
         await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Barcode, Unit, SearchText) VALUES (1, 1, 'a', 'A', '5000000000017', 0, 'a'), (2, 1, 'b', 'B', NULL, 0, 'b'), (3, 1, 'c', 'C', '5000000000017', 0, 'c'), (4, 1, 'd', 'D', '12345670', 0, 'd')");
         await SetVersion(1);
 
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
 
         var links = await connection.QueryAsync<FoodBarcode>("SELECT Barcode, FoodId FROM FoodBarcode ORDER BY Barcode");
         Assert.That(links.Select(l => (l.Barcode, l.FoodId)), Is.EqualTo(new[] { ("12345670", 4), ("5000000000017", 1) }));
@@ -255,7 +255,7 @@ public class DatabaseInitializerTests
         await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Unit, SearchText) VALUES (1, 0, 'a', 'Cofid gram', 0, 'a'), (2, 0, 'b', 'Cofid ml', 1, 'b'), (3, 1, 'c', 'Off gram', 0, 'c'), (4, 1, 'd', 'Off ml', 1, 'd')");
         await SetVersion(2);
 
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
 
         var types = await connection.QueryScalarsAsync<int>("SELECT Type FROM Food ORDER BY Id");
         Assert.That(types, Is.EqualTo(new[] { (int)FoodType.Food, (int)FoodType.Food, (int)FoodType.Food, (int)FoodType.Drink }));
@@ -272,7 +272,7 @@ public class DatabaseInitializerTests
         await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Unit, SearchText, Type) VALUES (1, 0, 'a', 'A', 0, 'a', NULL), (2, 1, 'b', 'B', 1, 'b', NULL), (3, 1, 'c', 'C', 0, 'c', NULL), (4, 1, 'd', 'D', 1, 'd', 2)");
         await SetVersion(2);
 
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
 
         var types = await connection.QueryScalarsAsync<int>("SELECT Type FROM Food ORDER BY Id");
         Assert.That(types, Is.EqualTo(new[] { (int)FoodType.Food, (int)FoodType.Drink, (int)FoodType.Food }));
@@ -290,7 +290,7 @@ public class DatabaseInitializerTests
         await connection.ExecuteAsync("INSERT INTO FoodBarcode (Barcode, FoodId) VALUES ('5000000000017', 2), ('5000000000024', 4)");
         await SetVersion(3);
 
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
 
         var foods = await connection.QueryAsync<Food>("SELECT Id, Type FROM Food ORDER BY Id");
         Assert.That(foods.Select(f => (f.Id, f.Type)), Is.EqualTo(new[] { (1, FoodType.Ingredient), (3, FoodType.Food), (4, FoodType.Drink) }));
@@ -304,7 +304,7 @@ public class DatabaseInitializerTests
     {
         await SetVersion(3);
 
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
 
         Assert.That(await Version(), Is.EqualTo(DatabaseInitializer.CurrentVersion));
     }
@@ -318,7 +318,7 @@ public class DatabaseInitializerTests
         await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Unit, SearchText, Type) VALUES (1, 1, 'a', 'A', 0, 'a', 1), (2, 0, 'b', 'B', 1, 'b', 2)");
         await SetVersion(4);
 
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
 
         var foods = await connection.QueryAsync<Food>("SELECT * FROM Food ORDER BY Id");
         Assert.That(foods.Select(f => f.Name), Is.EqualTo(new[] { "A", "B" }));
@@ -331,7 +331,7 @@ public class DatabaseInitializerTests
     {
         await SetVersion(4);
 
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
 
         Assert.That(await Version(), Is.EqualTo(DatabaseInitializer.CurrentVersion));
     }
@@ -344,16 +344,51 @@ public class DatabaseInitializerTests
         await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Unit, ServingLabel, ServingAmount, SearchText, Type) VALUES (1, 1, 'a', 'A', 0, '1 slice (30 g)', 30, 'a', 1)");
         await SetVersion(4);
 
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
 
         var food = (await connection.QueryAsync<Food>("SELECT * FROM Food")).Single();
         Assert.That((food.ServingLabel, food.ServingAmount), Is.EqualTo(("1 slice (30 g)", 30.0)));
     }
 
     [Test]
+    public void SettingsTableUpgrade_Apply_CreatesTheTableWithNoRow()
+    {
+        // Runs the step alone: the initializer's later CreateTableAsync would hide a broken step.
+        var db = new SQLiteConnection(databasePath);
+        try
+        {
+            new SettingsTableUpgrade().Apply(db);
+            new SettingsTableUpgrade().Apply(db);
+
+            Assert.That(db.ExecuteScalar<int>("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'AppSettings'"), Is.EqualTo(1));
+            Assert.That(db.ExecuteScalar<int>("SELECT COUNT(*) FROM AppSettings"), Is.Zero);
+        }
+        finally
+        {
+            db.Close();
+        }
+    }
+
+    [Test]
+    public async Task InitializeAsync_VersionFiveDatabaseWithFoods_GetsTheSettingsTableWithNoTargetAndKeepsItsFoods()
+    {
+        await connection.ExecuteAsync(
+            "CREATE TABLE Food (Id integer primary key autoincrement not null, Source integer not null, SourceId varchar not null, Name varchar not null, Brand varchar, Unit integer not null, Kcal float, ProteinG float, CarbsG float, FatG float, FibreG float, SugarsG float, SaturatesG float, SaltG float, ServingLabel varchar, ServingAmount float, SearchText varchar not null, Type integer not null)");
+        await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Unit, SearchText, Type) VALUES (1, 1, 'a', 'A', 0, 'a', 1)");
+        await SetVersion(5);
+
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
+
+        Assert.That(await Version(), Is.EqualTo(6));
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Message), Does.Contain("Schema upgrade step 6 applied"));
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM AppSettings"), Is.Zero);
+        Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(1));
+    }
+
+    [Test]
     public async Task InitializeAsync_NewDatabase_HasNullableServingColumns()
     {
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
 
         Assert.That(await connection.QueryScalarsAsync<int>("SELECT \"notnull\" FROM pragma_table_info('Food') WHERE name IN ('ServingLabel', 'ServingAmount')"), Is.EqualTo(new[] { 0, 0 }));
     }
@@ -361,7 +396,7 @@ public class DatabaseInitializerTests
     [Test]
     public async Task InitializeAsync_NewDatabase_HasANotNullTypeColumnWithNoDefault()
     {
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
 
         Assert.That(await connection.ExecuteScalarAsync<int>("SELECT \"notnull\" FROM pragma_table_info('Food') WHERE name = 'Type'"), Is.EqualTo(1));
         Assert.That(await connection.ExecuteScalarAsync<string?>("SELECT dflt_value FROM pragma_table_info('Food') WHERE name = 'Type'"), Is.Null);
@@ -370,7 +405,7 @@ public class DatabaseInitializerTests
     [Test]
     public async Task InitializeAsync_VersionOneDatabase_GetsTheSameFoodBarcodeSchemaAsANewDatabase()
     {
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
         var created = await FoodBarcodeSchema();
         await connection.CloseAsync();
         File.Delete(databasePath);
@@ -381,7 +416,7 @@ public class DatabaseInitializerTests
             "CREATE TABLE Food (Id integer primary key autoincrement not null, Source integer not null, SourceId varchar not null, Name varchar not null, Brand varchar, Barcode varchar, Unit integer not null, Kcal float, ProteinG float, CarbsG float, FatG float, FibreG float, SugarsG float, SaturatesG float, SaltG float, SearchText varchar not null)");
         await connection.ExecuteAsync("CREATE UNIQUE INDEX UX_Food_Source_SourceId ON Food(Source, SourceId)");
         await SetVersion(1);
-        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade()).InitializeAsync();
+        await Initializer(DatabaseInitializer.CurrentVersion, new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade()).InitializeAsync();
 
         Assert.That(await FoodBarcodeSchema(), Is.EqualTo(created));
     }

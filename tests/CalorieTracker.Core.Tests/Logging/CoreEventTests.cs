@@ -48,5 +48,10 @@ public class CoreEventTests
             [CoreEvent.FoodSearchBlock] = 1500,
             [CoreEvent.FoodSearched] = 1501,
             [CoreEvent.FoodSearchFailed] = 1502,
+            [CoreEvent.TargetServiceBlock] = 1600,
+            [CoreEvent.TargetSaved] = 1601,
+            [CoreEvent.TargetCleared] = 1602,
+            [CoreEvent.TargetRejected] = 1603,
+            [CoreEvent.TargetFailed] = 1604,
         }));
 }
