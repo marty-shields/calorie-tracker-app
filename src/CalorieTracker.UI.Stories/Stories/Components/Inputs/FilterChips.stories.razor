@@ -9,9 +9,9 @@
         </Template>
     </Story>
 
-    <Story Name="Dishes chosen">
+    <Story Name="Drinks chosen">
         <Template>
-            <FilterChips TValue="FoodType?" Label="Type" Options="Options" Value="FoodType.Dish" ValueChanged="(FoodType? _) => { }" TestId="example-filter" />
+            <FilterChips TValue="FoodType?" Label="Type" Options="Options" Value="FoodType.Drink" ValueChanged="(FoodType? _) => { }" TestId="example-filter" />
         </Template>
     </Story>
 
@@ -28,7 +28,6 @@
     [
         new(FoodType.Ingredient, "Ingredients", "example-filter-ingredients"),
         new(FoodType.Food, "Foods", "example-filter-foods"),
-        new(FoodType.Dish, "Dishes", "example-filter-dishes"),
         new(FoodType.Drink, "Drinks", "example-filter-drinks"),
         new(null, "All", "example-filter-all"),
     ];

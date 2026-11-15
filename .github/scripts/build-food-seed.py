@@ -7,7 +7,8 @@ Everyday names: each <folder>/<foodGroup>.json (default: the "names" folder besi
 {"11-001":"Arrowroot",...}, one entry per line, sorted by sourceId. It sets that food's "name"; originalName and sourceId stay as
 the workbook has them. Exits 1 on an entry whose sourceId is not in the output, whose food is in another group than the file name,
 or whose name is empty, and on a repeated sourceId key in a file. Names are stripped of surrounding spaces once.
-Types: each food gets a "type" (Ingredient, Food, Dish or Drink) from its CoFID group (GROUP_TYPES), then NAME_RULES may move it by its everyday name and TYPE_OVERRIDES by its sourceId (an override whose sourceId is not in the output exits 1).
+Types: each food gets a "type" (Ingredient, Food or Drink) from its CoFID group (GROUP_TYPES), then NAME_RULES may move it by its everyday name and TYPE_OVERRIDES by its sourceId (an override whose sourceId is not in the output exits 1).
+A food whose type comes out as Dish is dropped from the output (the app has no Dish type). The names are applied first, because the name rules read them, so delete the overlay entry of a dropped food (check-food-names.py fails on one).
 Exits 1 on a food whose group has no type. Seed/README.md holds the table as the decision record.
 Writes {"seedVersion", "source", "foods"} with one food per line, sorted by sourceId, so a rerun is byte-identical.
 A food with no value (N or blank) for energy, protein, carbohydrate or fat is dropped; the other values become null.
@@ -23,8 +24,8 @@ import zipfile
 import xml.etree.ElementTree as ET
 from decimal import Decimal
 
-# Bumped by hand when the seed's content is revised (for example by the everyday-names edit or the food types).
-SEED_VERSION = 5
+# Bumped by hand when the seed's content is revised (for example by the everyday-names edit, the food types or dropping the Dishes).
+SEED_VERSION = 6
 SOURCE_NAME = "CoFID 2021"
 SOURCE = "CoFID"
 PROXIMATES = "1.3 Proximates"
@@ -44,6 +45,7 @@ PROXIMATE_TAGS = {
 SODIUM_TAG = "NA"
 # CoFID group codes of alcoholic drinks all start with Q (beer, cider, wine, spirits, liqueurs, alcohol-free lager included).
 ALCOHOL_GROUP_PREFIX = "Q"
+# DISH is a rule-time marker only: apply_types drops every food that ends up a Dish, so the seed never holds one.
 INGREDIENT, FOOD, DISH, DRINK = "Ingredient", "Food", "Dish", "Drink"
 # CoFID group code -> food type. Every group in the workbook needs an entry.
 GROUP_TYPES = {
@@ -102,6 +104,10 @@ TYPE_OVERRIDES = {
     "18-216": (FOOD, "pork crackling is a ready-to-eat snack"),
     "18-490": (FOOD, "crispy Chinese style duck is a prepared product"),
     "19-496": (FOOD, "sliced ham is a processed meat product (bacon and gammon stay Ingredients)"),
+    # Dishes whose NAME_RULES match read the everyday name, which left names/ with the Dishes; without a name they would come back.
+    **dict.fromkeys(
+        "11-881 13-484 14-027 14-028 14-032 14-049 14-054 14-063 14-064 14-079 14-080 14-093 14-101 14-113 14-114 14-134 "
+        "14-169 14-233 14-234 14-245 14-250 14-253 14-269 14-314 14-316 14-332 14-344 14-345 14-349 14-367".split(), (DISH, "dropped: its Dish rule read an everyday name that left names/ with the Dishes")),
 }
 NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 REL_NS = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
@@ -328,7 +334,8 @@ def food_type(group, name):
 
 
 def apply_types(foods):
-    """Sets each food's type from its group, everyday name and override; run after apply_names."""
+    """Sets each food's type from its group, everyday name and override, then removes the Dishes from the list; run after
+    apply_names (the name rules read the everyday name)."""
     known = {food["sourceId"] for food in foods}
     for source_id in TYPE_OVERRIDES:
         if source_id not in known:
@@ -338,6 +345,7 @@ def apply_types(foods):
         if found is None:
             fail(f"food {food['sourceId']} is in group {food['foodGroup']}, which has no type in GROUP_TYPES")
         food["type"] = TYPE_OVERRIDES.get(food["sourceId"], (found,))[0]
+    foods[:] = [food for food in foods if food["type"] != DISH]
 
 
 class Raw(str):

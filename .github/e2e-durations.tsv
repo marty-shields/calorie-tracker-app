@@ -6,7 +6,6 @@
 6	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.FoodsOpensFromTheNavigationBar
 6	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.FoodsOpensOnIngredients
 6	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.NothingTypedShowsThePrompt
-20	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.SwitchingToDishesShowsADish
 38	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.SwitchingToDrinksShowsADrink
 17	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.TappingAResultShowsItsValuesAndBackToResultsReturns
 7	CalorieTracker.E2E.Tests.Features.FoodSearchFeature.TheDashboardItemReturnsToTheDashboard

@@ -17,8 +17,9 @@ internal sealed class FoodTypeUpgrade : ISchemaUpgrade
             return;
         }
 
-        var food = (int)FoodType.Food;
-        var drink = (int)FoodType.Drink;
+        // The numbers the types had at this step (Dish was 2, so Drink was 3); step 4 renumbers them.
+        const int food = 1;
+        const int drink = 3;
         var offMillilitre = $"Source = {(int)FoodSource.OpenFoodFacts} AND Unit = {(int)FoodUnit.Millilitre}";
         if (db.ExecuteScalar<int>("SELECT COUNT(*) FROM pragma_table_info('Food') WHERE name = 'Type'") == 0)
         {

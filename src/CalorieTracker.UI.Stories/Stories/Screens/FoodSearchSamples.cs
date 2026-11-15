@@ -17,16 +17,10 @@ public static class FoodSearchSamples
         new() { Id = 4, Name = "Oat cereal bar", Type = FoodType.Food, Unit = FoodUnit.Gram, Kcal = 430, ProteinG = 6, CarbsG = 64, FatG = 16 },
     ];
 
-    public static IReadOnlyList<Food> Dishes { get; } =
-    [
-        new() { Id = 5, Name = "Oat porridge, made with milk", Type = FoodType.Dish, Unit = FoodUnit.Gram, Kcal = 116, ProteinG = 4.8, CarbsG = 13, FatG = 5 },
-        new() { Id = 6, Name = "Oat flapjack", Type = FoodType.Dish, Unit = FoodUnit.Gram, Kcal = 484, ProteinG = 5.4, CarbsG = 60, FatG = 26 },
-    ];
-
     public static IReadOnlyList<Food> Drinks { get; } =
     [
-        new() { Id = 7, Name = "Oat drink", Brand = "Oatly", Type = FoodType.Drink, Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 1, CarbsG = 6.7, FatG = 1.5 },
+        new() { Id = 5, Name = "Oat drink", Brand = "Oatly", Type = FoodType.Drink, Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 1, CarbsG = 6.7, FatG = 1.5 },
     ];
 
-    public static IReadOnlyList<Food> All { get; } = [.. Ingredients, .. Foods, .. Dishes, .. Drinks];
+    public static IReadOnlyList<Food> All { get; } = [.. Ingredients, .. Foods, .. Drinks];
 }

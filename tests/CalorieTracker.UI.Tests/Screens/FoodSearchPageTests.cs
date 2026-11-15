@@ -290,7 +290,6 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [TestCase("food-filter-foods", FoodType.Food)]
-    [TestCase("food-filter-dishes", FoodType.Dish)]
     [TestCase("food-filter-drinks", FoodType.Drink)]
     [TestCase("food-filter-all", null)]
     public async Task ChoosingAChip_SearchesAgainWithItsType(string chip, FoodType? expected)
@@ -334,7 +333,7 @@ public class FoodSearchPageTests : ComponentTestBase
         var cut = Context.Render<FoodSearchPage>();
         await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
 
-        await cut.Find("[data-testid=food-filter-dishes]").ChangeAsync(true);
+        await cut.Find("[data-testid=food-filter-drinks]").ChangeAsync(true);
         var searchedWhileLoading = search.Queries.Count;
         loader.Complete(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0));
         await load;
@@ -344,8 +343,8 @@ public class FoodSearchPageTests : ComponentTestBase
         {
             Assert.That(searchedWhileLoading, Is.EqualTo(0));
             Assert.That(search.Queries, Is.EqualTo(new[] { "oat" }));
-            Assert.That(search.Types, Is.EqualTo(new FoodType?[] { FoodType.Dish }));
-            Assert.That(cut.Find("[data-testid=food-filter-dishes]").HasAttribute("checked"), Is.True);
+            Assert.That(search.Types, Is.EqualTo(new FoodType?[] { FoodType.Drink }));
+            Assert.That(cut.Find("[data-testid=food-filter-drinks]").HasAttribute("checked"), Is.True);
         });
     }
 

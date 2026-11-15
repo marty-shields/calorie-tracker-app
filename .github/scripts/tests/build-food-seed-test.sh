@@ -170,7 +170,7 @@ exit=0" "$(seed ok)"
 # Sorted by code then repeat number (not sheet order); Tr is 0; 0.125 rounds half up; float noise is gone; the NSP column
 # (9 for Bread) is not the fibre; Na 400 mg is 1 g salt; Na 2/37 mg are 0.01/0.09 g (half up); each repeat of a code takes the
 # sodium of its own name; salt is null for N or a missing Na and for a food absent from 1.4.
-check "the seed file" '{"seedVersion":5,"source":"CoFID 2021","foods":[
+check "the seed file" '{"seedVersion":6,"source":"CoFID 2021","foods":[
 {"source":"CoFID","sourceId":"10-001","name":"Bread, white","originalName":"Bread, white","foodGroup":"AA","unit":"Gram","type":"Ingredient","energyKcal":100,"proteinG":0.07,"carbsG":4.6,"fatG":0.13,"fibreG":2.5,"sugarsG":0,"saturatesG":0.5,"saltG":1},
 {"source":"CoFID","sourceId":"10-006","name":"Nothing optional","originalName":"Nothing optional","foodGroup":"AA","unit":"Gram","type":"Ingredient","energyKcal":5,"proteinG":1,"carbsG":1,"fatG":1,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":null},
 {"source":"CoFID","sourceId":"10-007","name":"Trace sodium","originalName":"Trace sodium","foodGroup":"AA","unit":"Gram","type":"Ingredient","energyKcal":5,"proteinG":1,"carbsG":1,"fatG":1,"fibreG":null,"sugarsG":0.05,"saturatesG":null,"saltG":0},
@@ -189,18 +189,17 @@ check "the group must start with Q to be a Millilitre food (AQ is not)" "3" "$(g
 # The type is the group's, moved by the group's name rule (case-insensitive; "uncoated" is not "coated").
 seed types > /dev/null
 check "a food's type comes from its group, then the group's name rule" '10-001 Ingredient
-20-001 Dish
 20-002 Food
 20-003 Ingredient
 20-004 Ingredient
-20-005 Drink
-20-006 Dish' "$(python3 -I -c '
+20-005 Drink' "$(python3 -I -c '
 import json
 import sys
 foods = {f["sourceId"]: f for f in json.load(open(sys.argv[1]))["foods"]}
-for key in ("10-001", "20-001", "20-002", "20-003", "20-004", "20-005", "20-006"):
+for key in ("10-001", "20-002", "20-003", "20-004", "20-005"):
     print(key, foods[key]["type"])
 ' "$work/out.json")"
+check "a Dish by name rule (20-001) or by group (20-006) is dropped, and no food is a Dish" "0 0" "$(grep -c -E '"sourceId":"20-00[16]"' "$work/out.json" | tr '\n' ' ')$(grep -c '"type":"Dish"' "$work/out.json")"
 # A type override beats the name rule (20-001 is a Pizza, so a Dish by rule) and the group.
 with_overrides "$work/bin/override.py" '"20-001": ("Drink", "test"), "10-001": ("Food", "test")'
 python3 -I "$work/mkbook.py" "$work/book.xlsx" types
@@ -344,7 +343,7 @@ WY|Salt|Ingredient
 PAA|Soup powder|Food
 RULES
 seed rules > /dev/null
-check "every alternative of every name rule sets its type" "$(cut -d'|' -f3 "$work/rules.txt")" "$(python3 -I -c '
+check "every alternative of every name rule sets its type, and a Dish is dropped" "$(cut -d'|' -f3 "$work/rules.txt" | grep -v '^Dish$')" "$(python3 -I -c '
 import json
 import sys
 foods = json.load(open(sys.argv[1]))["foods"]
