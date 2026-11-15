@@ -1,0 +1,29 @@
+@using CalorieTracker.UI.Components.Feedback
+@attribute [Stories("Components/Feedback/Snackbar")]
+
+<Stories TComponent="Snackbar" Layout="typeof(ThemeLayout)">
+
+    <Story Name="Message only">
+        <Template>
+            @{ var service = Posted("Entry added to Lunch"); }
+            <Snackbar Service="service" />
+        </Template>
+    </Story>
+
+    <Story Name="With action">
+        <Template>
+            @{ var service = Posted("Entry deleted", "Undo"); }
+            <Snackbar Service="service" />
+        </Template>
+    </Story>
+
+</Stories>
+
+@code {
+    private static SnackbarService Posted(string text, string? actionLabel = null)
+    {
+        var service = new SnackbarService(TimeProvider.System);
+        service.Show(text, actionLabel, () => Task.CompletedTask, Timeout.InfiniteTimeSpan);
+        return service;
+    }
+}

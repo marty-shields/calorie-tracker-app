@@ -58,13 +58,18 @@ Derived from the palette:
 | Secondary buttons | Aqua `#b7d5d4` | `#2b4444` |
 | Text on secondary buttons | Dark teal `#305252` | `#d4e8e7` |
 | Focus and stat numbers | Teal `#488286` | `#8cc4c1` |
-| Errors and danger buttons | `#a8231c` | `#f2b8b5` |
+| Danger buttons | `#a8231c` | `#f2b8b5` |
+| Error text and the over-target ring | `#841c16` | `#f4c1be` |
+| Accent (spinner, ring arc) | `#29494c` | `#acd5d2` |
+| Ring track | `#829493` | `#667476` |
+
+The accent is a darkened teal used for the ring and spinner arcs, and error is darker in light and lighter in dark so the over-target ring keeps 3:1 on the track.
 
 Text and controls meet WCAG AA in both themes.
 
 ### Other tokens
 - Most colour tokens are `light-dark()` pairs. `data-theme="light"` or `"dark"` forces a theme on an element; component and screen stories have a System / Light / Dark switch.
-- Danger buttons are filled red, the same red as errors.
+- Danger buttons are filled red; error text uses a deeper red (lighter in dark) so the over-target ring keeps 3:1 on the track.
 - System font; body 16px, number and duration inputs 20px; radius 8 / 12 / 20px, plus round; spacing 4–32px.
 - Some components override tokens inside them: the top bar sets text, muted text and focus.
 

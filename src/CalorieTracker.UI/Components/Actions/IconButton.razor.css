@@ -20,3 +20,8 @@
 .active {
     background-color: var(--color-selected);
 }
+
+.filled {
+    background-color: var(--color-chip);
+    color: var(--color-on-chip);
+}

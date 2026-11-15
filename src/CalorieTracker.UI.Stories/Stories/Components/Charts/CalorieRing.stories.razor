@@ -1,0 +1,36 @@
+@using CalorieTracker.UI.Components.Charts
+@attribute [Stories("Components/Charts/CalorieRing")]
+
+<Stories TComponent="CalorieRing" Layout="typeof(ThemeLayout)">
+
+    <Story Name="Empty">
+        <Template>
+            <CalorieRing Eaten="0" Target="2100" TestId="ring" />
+        </Template>
+    </Story>
+
+    <Story Name="Partial">
+        <Template>
+            <CalorieRing Eaten="659" Target="2100" TestId="ring" />
+        </Template>
+    </Story>
+
+    <Story Name="Exactly at target">
+        <Template>
+            <CalorieRing Eaten="2100" Target="2100" TestId="ring" />
+        </Template>
+    </Story>
+
+    <Story Name="Over target">
+        <Template>
+            <CalorieRing Eaten="2359" Target="2100" TestId="ring" />
+        </Template>
+    </Story>
+
+    <Story Name="No target">
+        <Template>
+            <CalorieRing Eaten="659" TestId="ring" />
+        </Template>
+    </Story>
+
+</Stories>

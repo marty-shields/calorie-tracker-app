@@ -1,0 +1,23 @@
+@attribute [Stories("Components/Lists/MealHeader")]
+
+<Stories TComponent="MealHeader" Layout="typeof(ThemeLayout)">
+
+    <Story Name="With entries">
+        <Template>
+            <MealHeader Name="Breakfast" Calories="240" TestId="meal" />
+        </Template>
+    </Story>
+
+    <Story Name="Empty">
+        <Template>
+            <MealHeader Name="Lunch" TestId="meal" />
+        </Template>
+    </Story>
+
+    <Story Name="Large total">
+        <Template>
+            <MealHeader Name="Snacks" Calories="1234" TestId="meal" />
+        </Template>
+    </Story>
+
+</Stories>
