@@ -265,12 +265,13 @@ public class ServingPageTests : ComponentTestBase
         Assert.That(AddDisabled(cut), Is.False);
     }
 
-    [Test]
-    public async Task ZeroAmount_Add_SavesNothing()
+    [TestCase("0")]
+    [TestCase("10000.5")]
+    public async Task InvalidAmount_Add_SavesNothing_AndShowsNoSaveError(string typed)
     {
         var added = false;
         var cut = Render(cheddarId, Meal.Lunch, () => added = true);
-        await cut.Find("[data-testid=serving-amount]").InputAsync("0");
+        await cut.Find("[data-testid=serving-amount]").InputAsync(typed);
 
         await cut.Find("[data-testid=serving-add]").ClickAsync(new());
 
@@ -278,7 +279,64 @@ public class ServingPageTests : ComponentTestBase
         {
             Assert.That(await Entries(), Is.Empty);
             Assert.That(added, Is.False);
+            Assert.That(Exists(cut, "serving-error"), Is.False);
         });
+    }
+
+    [Test]
+    public async Task DoubleTapOnAdd_SavesOneEntry()
+    {
+        var cut = Render(cheddarId, Meal.Lunch);
+        var add = cut.Find("[data-testid=serving-add]");
+
+        await Task.WhenAll(add.ClickAsync(new()), add.ClickAsync(new()));
+
+        Assert.That(await Entries(), Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public async Task TryAgainAfterALoadFailure_ReloadsAndShowsTheFood()
+    {
+        await connection.ExecuteAsync("ALTER TABLE Food RENAME TO FoodAway");
+        var cut = Render(pizzaId, Meal.Lunch);
+        Assert.That(Exists(cut, "serving-load-failed-error"), Is.True);
+        await connection.ExecuteAsync("ALTER TABLE FoodAway RENAME TO Food");
+
+        await cut.Find("[data-testid=serving-load-failed-retry]").ClickAsync(new());
+        cut.WaitForState(() => Exists(cut, "serving-add"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "screen-title"), Is.EqualTo("Margherita pizza"));
+            Assert.That(Exists(cut, "serving-load-failed-error"), Is.False);
+        });
+    }
+
+    [Test]
+    public void ChangedMealParameter_ForTheSameFood_ReappliesThePreset()
+    {
+        var cut = Render(cheddarId);
+        Assert.That(Exists(cut, "serving-suggestion"), Is.True);
+
+        cut.Render(p => p.Add(x => x.FoodId, cheddarId).Add(x => x.Meal, Meal.Dinner).Add(x => x.Date, Day));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=serving-meal-dinner]").HasAttribute("checked"), Is.True);
+            Assert.That(Text(cut, "serving-add"), Is.EqualTo("Add to Dinner"));
+            Assert.That(Exists(cut, "serving-suggestion"), Is.False);
+        });
+    }
+
+    [Test]
+    public void ChangedFood_LoadsTheNewFood()
+    {
+        var cut = Render(pizzaId, Meal.Lunch);
+
+        cut.Render(p => p.Add(x => x.FoodId, cheddarId).Add(x => x.Meal, Meal.Lunch).Add(x => x.Date, Day));
+        cut.WaitForState(() => Exists(cut, "serving-add") && !Exists(cut, "serving-mode"));
+
+        Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("100"));
     }
 
     [Test]

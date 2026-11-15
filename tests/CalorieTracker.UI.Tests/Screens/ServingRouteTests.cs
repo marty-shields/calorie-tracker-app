@@ -53,6 +53,8 @@ public class ServingRouteTests
     [TestCase("//evil.example", "/fallback")]
     [TestCase("https://evil.example", "/fallback")]
     [TestCase("/\\evil.example", "/fallback")]
+    [TestCase("/\t/evil.example", "/fallback")]
+    [TestCase("/\r\nevil", "/fallback")]
     public void ReturnOr_OnlyAnInAppPathIsKept(string? returnTo, string expected) =>
         Assert.That(ServingRoute.ReturnOr(returnTo, "/fallback"), Is.EqualTo(expected));
 

@@ -170,10 +170,9 @@
     ];
 
     /// <summary>The serving switch shows only with a label and a weight above zero.</summary>
-    private bool HasServing =>
-        Food is { ServingAmount: > 0 and <= FoodService.MaxServingAmount } food && !string.IsNullOrWhiteSpace(food.ServingLabel);
+    private bool HasServing => ServingRules.HasServing(Food);
 
-    private bool Valid => Grams is > 0 and <= DiaryService.MaxAmount;
+    private bool Valid => ServingRules.IsValidGrams(Grams);
 
     private static string UnitText(Food food) => food.Unit == FoodUnit.Millilitre ? "ml" : "g";
 

@@ -25,6 +25,7 @@
     private bool saving;
     private bool saveFailed;
     private int loadedId = -1;
+    private Meal? loadedMeal;
 
     /// <summary>Largest weight carried across a mode switch. A typed number can be astronomically large; it is invalid anyway, and this keeps the conversion within a decimal.</summary>
     private const double CarryLimit = 1_000_000;
@@ -49,7 +50,7 @@
     [Parameter]
     public EventCallback OnBack { get; set; }
 
-    private bool HasServing => food is { ServingAmount: > 0 } && !string.IsNullOrWhiteSpace(food.ServingLabel);
+    private bool HasServing => ServingRules.HasServing(food);
 
     private double? Grams =>
         mode == EntryMode.Servings && HasServing
@@ -58,12 +59,13 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (FoodId == loadedId)
+        var foodChanged = FoodId != loadedId;
+        if (!foodChanged && Meal == loadedMeal)
         {
             return;
         }
 
-        loadedId = FoodId;
+        loadedMeal = Meal;
         if (Meal is { } preset)
         {
             meal = preset;
@@ -76,14 +78,25 @@
             suggestedAt = now;
         }
 
-        await LoadAsync();
+        saveFailed = false;
+        if (foodChanged)
+        {
+            loadedId = FoodId;
+            await LoadAsync();
+        }
     }
 
     private async Task LoadAsync()
     {
+        var requested = FoodId;
         loading = true;
         loadFailed = false;
-        var result = await Foods.GetAsync(FoodId);
+        var result = await Foods.GetAsync(requested);
+        if (requested != FoodId)
+        {
+            return;
+        }
+
         loading = false;
         loadFailed = result.Status == FoodStatus.Failed;
         food = result.Food;
@@ -162,7 +175,7 @@
 
     private async Task AddAsync()
     {
-        if (saving || food is null || Grams is not { } grams || grams <= 0 || grams > DiaryService.MaxAmount)
+        if (saving || food is null || Grams is not { } grams || !ServingRules.IsValidGrams(grams))
         {
             return;
         }

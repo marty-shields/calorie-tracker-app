@@ -47,7 +47,7 @@ public static class ServingRoute
     public static DateOnly ParseDate(string? text, DateOnly today) =>
         DateOnly.TryParseExact(text, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date) ? date : today;
 
-    /// <summary>The return route when it is an in-app path (starts with one slash), otherwise <paramref name="fallback"/>.</summary>
+    /// <summary>The return route when it is an in-app path (starts with one slash, no backslash or control character), otherwise <paramref name="fallback"/>.</summary>
     public static string ReturnOr(string? returnTo, string fallback) =>
-        returnTo is { Length: > 0 } && returnTo[0] == '/' && !returnTo.StartsWith("//", StringComparison.Ordinal) && !returnTo.Contains('\\') ? returnTo : fallback;
+        returnTo is { Length: > 0 } && returnTo[0] == '/' && !returnTo.StartsWith("//", StringComparison.Ordinal) && !returnTo.Contains('\\') && !returnTo.Any(char.IsControl) ? returnTo : fallback;
 }
