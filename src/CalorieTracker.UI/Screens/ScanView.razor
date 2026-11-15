@@ -5,10 +5,9 @@
     <ChildContent>
         @switch (State)
         {
-            case ScanState.Scanning:
-                <div class="viewfinder" data-testid="scan-camera">
-                    <div class="frame" aria-hidden="true"></div>
-                    <p class="hint" data-testid="scan-hint" data-wrap-ok>Point the camera at a barcode</p>
+            case ScanState.OpeningCamera:
+                <div class="centre">
+                    <Spinner Label="Opening camera…" TestId="scan-opening-camera" />
                 </div>
                 break;
             case ScanState.LookingUp:

@@ -14,7 +14,7 @@ public partial class ScanPage : IDisposable
     /// <summary>Largest nutrient value shown; anything above is not a real product and keeps decimal arithmetic far from overflow.</summary>
     private const double MaxValue = 1e12;
 
-    private ScanState state = ScanState.Scanning;
+    private ScanState state = ScanState.OpeningCamera;
     private ScannedProduct? product;
     private CancellationTokenSource? cancellation;
 
@@ -52,7 +52,7 @@ public partial class ScanPage : IDisposable
         var scan = cancellation = new CancellationTokenSource();
 
         product = null;
-        state = ScanState.Scanning;
+        state = ScanState.OpeningCamera;
         StateHasChanged();
 
         var token = scan.Token;

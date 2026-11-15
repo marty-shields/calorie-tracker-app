@@ -37,7 +37,27 @@ public class ScanPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(scanner.Scans, Has.Count.EqualTo(1));
-            Assert.That(cut.FindAll("[data-testid=scan-camera]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=scan-opening-camera]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=scan-camera]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=scan-hint]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task ScanAgain_ShowsOpeningCameraAgain()
+    {
+        var cut = Context.Render<ScanPage>();
+        scanner.Complete(ScanResult.Scanned(Barcode));
+        await WaitForRendererAsync();
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-again]"), Has.Count.EqualTo(1)));
+
+        cut.Find("[data-testid=scan-again]").Click();
+        await WaitForRendererAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(scanner.Scans, Has.Count.EqualTo(2));
+            Assert.That(cut.FindAll("[data-testid=scan-opening-camera]"), Has.Count.EqualTo(1));
         });
     }
 
@@ -104,7 +124,7 @@ public class ScanPageTests : ComponentTestBase
         {
             Assert.That(accepted, Is.False);
             Assert.That(lookup.Barcodes, Is.Empty);
-            Assert.That(cut.FindAll("[data-testid=scan-camera]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=scan-opening-camera]"), Has.Count.EqualTo(1));
         });
     }
 
@@ -269,7 +289,7 @@ public class ScanPageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(cut.FindAll("[data-testid=scan-camera]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=scan-opening-camera]"), Has.Count.EqualTo(1));
             Assert.That(cut.FindAll("[data-testid=scan-product]"), Is.Empty);
             Assert.That(cut.FindAll("[data-testid=scan-not-found]"), Is.Empty);
         });
@@ -289,7 +309,7 @@ public class ScanPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(scanner.Scans, Has.Count.EqualTo(2));
-            Assert.That(cut.FindAll("[data-testid=scan-camera]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=scan-opening-camera]"), Has.Count.EqualTo(1));
             Assert.That(cut.FindAll("[data-testid=scan-camera-unavailable-error]"), Is.Empty);
         });
     }
@@ -340,7 +360,7 @@ public class ScanPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(scanner.Scans, Has.Count.EqualTo(2));
-            Assert.That(cut.FindAll("[data-testid=scan-camera]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=scan-opening-camera]"), Has.Count.EqualTo(1));
         });
 
         scanner.Detect(Barcode);

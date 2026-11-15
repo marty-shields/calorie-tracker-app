@@ -45,7 +45,7 @@ public static class ScreenStates
         new("Screens/FoodSearch", "No results", c => FoodSearch(c, query: "zzz")),
         new("Screens/FoodSearch", "Food selected", c => FoodSearch(c, query: "oat", results: SampleFoods, selected: SampleFoods[0])),
         new("Screens/FoodSearch", "Search failed", c => FoodSearch(c, query: "oat", failed: true)),
-        new("Screens/Scan", "Scanning", c => Scan(c, ScanState.Scanning)),
+        new("Screens/Scan", "Opening camera", c => Scan(c, ScanState.OpeningCamera)),
         new("Screens/Scan", "Looking up", c => Scan(c, ScanState.LookingUp)),
         new("Screens/Scan", "Found", c => Scan(c, ScanState.Found, new("Porridge oats", "Morning Mill", 372, 11, 60, 8))),
         new("Screens/Scan", "Found liquid", c => Scan(c, ScanState.Found, new("Semi-skimmed milk", null, 47, 3.5m, 4.8m, 1.7m, IsLiquid: true))),

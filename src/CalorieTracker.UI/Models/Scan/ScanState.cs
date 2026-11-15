@@ -3,8 +3,8 @@ namespace CalorieTracker.UI.Models.Scan;
 /// <summary>What the scan screen is showing.</summary>
 public enum ScanState
 {
-    /// <summary>The camera is open, waiting for a barcode.</summary>
-    Scanning,
+    /// <summary>The moment before the native camera covers the screen.</summary>
+    OpeningCamera,
 
     /// <summary>A barcode was detected and is being looked up.</summary>
     LookingUp,
