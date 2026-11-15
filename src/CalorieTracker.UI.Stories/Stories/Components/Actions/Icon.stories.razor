@@ -38,4 +38,43 @@
         </Template>
     </Story>
 
+    <Story Name="Plus">
+        <Template>
+            @foreach (var size in Enum.GetValues<IconSize>())
+            {
+                foreach (var tone in Enum.GetValues<IconTone>())
+                {
+                    @($"{size} {tone}")
+                    <Icon Name="IconName.Plus" Tone="tone" Size="size" />
+                }
+            }
+        </Template>
+    </Story>
+
+    <Story Name="Minus">
+        <Template>
+            @foreach (var size in Enum.GetValues<IconSize>())
+            {
+                foreach (var tone in Enum.GetValues<IconTone>())
+                {
+                    @($"{size} {tone}")
+                    <Icon Name="IconName.Minus" Tone="tone" Size="size" />
+                }
+            }
+        </Template>
+    </Story>
+
+    <Story Name="ChevronLeft">
+        <Template>
+            @foreach (var size in Enum.GetValues<IconSize>())
+            {
+                foreach (var tone in Enum.GetValues<IconTone>())
+                {
+                    @($"{size} {tone}")
+                    <Icon Name="IconName.ChevronLeft" Tone="tone" Size="size" />
+                }
+            }
+        </Template>
+    </Story>
+
 </Stories>

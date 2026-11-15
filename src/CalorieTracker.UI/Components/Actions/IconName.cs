@@ -38,4 +38,13 @@ public enum IconName
 
     /// <summary>Barcode in scanner corners (<c>barcode_scanner</c>).</summary>
     Scan,
+
+    /// <summary>Plus sign (<c>add</c>).</summary>
+    Plus,
+
+    /// <summary>Minus sign (<c>remove</c>).</summary>
+    Minus,
+
+    /// <summary>Left-pointing chevron (<c>chevron_left</c>).</summary>
+    ChevronLeft,
 }
