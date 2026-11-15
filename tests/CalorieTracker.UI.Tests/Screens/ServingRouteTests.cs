@@ -20,6 +20,10 @@ public class ServingRouteTests
         });
     }
 
+    [Test]
+    public void Url_WithBackTo_AddsBackAlone() =>
+        Assert.That(ServingRoute.Url(5, backTo: "/"), Is.EqualTo("/serving/5?back=%2F"));
+
     [TestCase("Lunch", Meal.Lunch)]
     [TestCase("lunch", Meal.Lunch)]
     [TestCase("Snacks", Meal.Snacks)]
@@ -64,6 +68,8 @@ public class ServingRouteTests
     [TestCase(null, "/return", "/return")]
     [TestCase("//evil", "/return", "/return")]
     [TestCase("/back", null, "/back")]
+    [TestCase("/", "/foods", "/")]
+    [TestCase("//evil.example", null, "/foods")]
     [TestCase(null, null, "/foods")]
     [TestCase("//evil", "https://evil", "/foods")]
     public void BackTarget_TakesBackThenReturnThenTheDefault(string? backTo, string? returnTo, string expected) =>

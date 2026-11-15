@@ -61,11 +61,21 @@ public class ScanViewTests : ComponentTestBase
     }
 
     [Test]
-    public void Found_WithoutAFoodId_OffersOnlyScanAgain()
+    public void Found_WithoutAFoodId_OffersSearchByNameInsteadOfAdd()
     {
         var cut = Context.Render<ScanView>(p => p.Add(x => x.State, ScanState.Found).Add(x => x.Product, Consistent));
 
         Assert.That(cut.FindAll("[data-testid=scan-add]"), Is.Empty);
+        Assert.That(cut.FindAll("[data-testid=scan-search], [data-testid=scan-again]").Select(e => e.GetAttribute("data-testid")), Is.EqualTo(new[] { "scan-search", "scan-again" }));
+    }
+
+    [Test]
+    public void Found_WithNoProduct_OffersSearchByNameAndNoAdd()
+    {
+        var cut = Context.Render<ScanView>(p => p.Add(x => x.State, ScanState.Found));
+
+        Assert.That(cut.FindAll("[data-testid=scan-add]"), Is.Empty);
+        Assert.That(cut.FindAll("[data-testid=scan-search]"), Has.Count.EqualTo(1));
         Assert.That(cut.FindAll("[data-testid=scan-again]"), Has.Count.EqualTo(1));
     }
 

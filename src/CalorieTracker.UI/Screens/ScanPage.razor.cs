@@ -135,16 +135,14 @@ public partial class ScanPage : IDisposable
             return null;
         }
 
-        var label = food.ServingLabel?.Trim();
-        var hasServing = !string.IsNullOrEmpty(label) && label.Length <= FoodService.MaxServingLabelLength
-            && food.ServingAmount is { } amount && double.IsFinite(amount) && amount > 0 && amount <= FoodService.MaxServingAmount;
+        var hasServing = FoodService.TryBoundServing(food.ServingLabel, food.ServingAmount, out var label, out var servingAmount);
         return new ScannedProduct(food.Name, food.Brand, kcal, protein, carbs, fat, food.Unit == FoodUnit.Millilitre,
             ToNutrient(food.FibreG), ToNutrient(food.SugarsG), ToNutrient(food.SaturatesG), ToNutrient(food.SaltG),
-            food.Id > 0 ? food.Id : null, hasServing ? label : null, hasServing ? (decimal)food.ServingAmount!.Value : null);
+            food.Id > 0 ? food.Id : null, hasServing ? label : null, hasServing ? (decimal)servingAmount : null);
     }
 
     private static decimal? ToNutrient(double? value) =>
-        value is { } number && number >= 0 && number <= FoodService.MaxNutrientPer100 ? (decimal)number : null;
+        FoodService.BoundNutrient(value) is { } number ? (decimal)number : null;
 
     private Task AddToDiaryAsync() => product?.FoodId is { } id ? OnAddToDiary.InvokeAsync(id) : Task.CompletedTask;
 

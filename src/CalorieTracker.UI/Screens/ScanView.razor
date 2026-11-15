@@ -52,7 +52,7 @@
             {
                 <AppButton FullWidth TestId="scan-add" OnClick="OnAddToDiary">Add to diary</AppButton>
             }
-            else if (State == ScanState.NotFound || Product is null)
+            else
             {
                 <AppButton FullWidth TestId="scan-search" OnClick="OnSearchByName">Search by name</AppButton>
             }
@@ -67,7 +67,7 @@
     [Parameter]
     public ScanState State { get; set; }
 
-    /// <summary>The product to show when <see cref="State"/> is Found. Found with null shows the not-found message.</summary>
+    /// <summary>The product to show when <see cref="State"/> is Found. Found with null shows the not-found message and Search by name.</summary>
     [Parameter]
     public ScannedProduct? Product { get; set; }
 
@@ -75,7 +75,7 @@
     [Parameter]
     public EventCallback OnAddToDiary { get; set; }
 
-    /// <summary>Raised by Search by name, shown when nothing was found.</summary>
+    /// <summary>Raised by Search by name, shown when the product has no food id to add (nothing found, or not saved).</summary>
     [Parameter]
     public EventCallback OnSearchByName { get; set; }
 
