@@ -85,6 +85,9 @@ internal enum CoreEvent
     /// <summary><see cref="Seed.SeedLoader"/>: loading failed; nothing is recorded as loaded, so the next start retries.</summary>
     SeedLoadFailed = 1403,
 
+    /// <summary><see cref="Seed.SeedLoader"/>: stored Open Food Facts foods with no type were set to Food; the count.</summary>
+    SeedTypesBackfilled = 1404,
+
     /// <summary>Start of the block reserved for <see cref="Foods.FoodSearch"/>.</summary>
     FoodSearchBlock = 1500,
 

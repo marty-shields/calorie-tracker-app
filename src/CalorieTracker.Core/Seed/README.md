@@ -78,7 +78,7 @@ Name rules (case-insensitive, searched in the everyday `name`, applied after the
 | WY | distilled water | Drink |
 | PAA | soup powder | Food |
 
-Judgment calls: BAR milk products stay Ingredients, "Plain pilau rice" stays a Dish, sandwiches are Dishes, breads Ingredients, homemade sauces and soups Dishes (retail ones Foods), yoghurt and ice cream Foods, JR fish products Foods, cereals Foods, milkshakes Drinks, and drink mixes, squash, cordial and juice concentrates Drinks. Foods stored before types existed have a null `type` until the next seed refresh fills it.
+Judgment calls: BAR milk products stay Ingredients, "Plain pilau rice" stays a Dish, sandwiches are Dishes, breads Ingredients, homemade sauces and soups Dishes (retail ones Foods), yoghurt and ice cream Foods, JR fish products Foods, cereals Foods, milkshakes Drinks, and drink mixes, squash, cordial and juice concentrates Drinks. Foods stored before types existed have a null `type`: each start sets Open Food Facts rows to Food (in `SeedLoader`, even when the seed is up to date), and CoFID rows get the seed's type on the next seed refresh.
 
 ## Repeated food codes
 

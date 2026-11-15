@@ -57,6 +57,7 @@ public class OpenFoodFactsLookupTests
             Assert.That(food.Name, Is.EqualTo("Nutella"));
             Assert.That(food.Brand, Is.EqualTo("Ferrero"));
             Assert.That(food.Unit, Is.EqualTo(FoodUnit.Gram));
+            Assert.That(food.Type, Is.EqualTo(FoodType.Food));
             Assert.That(food.Kcal, Is.EqualTo(539));
             Assert.That(food.ProteinG, Is.EqualTo(6.3));
             Assert.That(food.CarbsG, Is.EqualTo(57.5));
@@ -80,6 +81,7 @@ public class OpenFoodFactsLookupTests
         Assert.Multiple(() =>
         {
             Assert.That(result.Food!.Unit, Is.EqualTo(FoodUnit.Millilitre));
+            Assert.That(result.Food.Type, Is.EqualTo(FoodType.Food));
             Assert.That(result.Food.Name, Is.EqualTo("Coca-Cola Original"));
             Assert.That(result.Food.Kcal, Is.EqualTo(44));
         });

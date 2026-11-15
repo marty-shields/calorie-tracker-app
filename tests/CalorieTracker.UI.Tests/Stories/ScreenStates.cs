@@ -27,6 +27,8 @@ public static class ScreenStates
         new() { Id = 4, Name = "Oat drink", Brand = "Oatly", Type = FoodType.Drink, Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 1, CarbsG = 6.7, FatG = 1.5 },
     ];
 
+    private static readonly IReadOnlyList<Food> Ingredients = SampleFoods.Where(f => f.Type == FoodType.Ingredient).ToList();
+
     public static IReadOnlyList<ScreenState> All { get; } =
     [
         new("Screens/Startup", "Loading", c => c.Render<StartupView>().FindAll("*")),
@@ -40,17 +42,17 @@ public static class ScreenStates
         new("Screens/Settings", "Dark chosen", c => Settings(c, version: "1.0.0", theme: ThemePreference.Dark)),
         new("Screens/Settings", "No version", c => Settings(c)),
 
-        new("Screens/FoodSearch", "Loading", c => FoodSearch(c, query: "oat", loading: true)),
-        new("Screens/FoodSearch", "Nothing typed", c => FoodSearch(c)),
-        new("Screens/FoodSearch", "Results", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, results: SampleFoods.Where(f => f.Type == FoodType.Ingredient).ToList())),
+        new("Screens/FoodSearch", "Loading", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, loading: true)),
+        new("Screens/FoodSearch", "Nothing typed", c => FoodSearch(c, filter: FoodType.Ingredient)),
+        new("Screens/FoodSearch", "Results", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, results: Ingredients)),
         new("Screens/FoodSearch", "Foods filter", c => FoodSearch(c, query: "oat", filter: FoodType.Food, results: SampleFoods.Where(f => f.Type == FoodType.Food).ToList())),
         new("Screens/FoodSearch", "Dishes filter", c => FoodSearch(c, query: "oat", filter: FoodType.Dish, results: SampleFoods.Where(f => f.Type == FoodType.Dish).ToList())),
         new("Screens/FoodSearch", "Drinks filter", c => FoodSearch(c, query: "oat", filter: FoodType.Drink, results: SampleFoods.Where(f => f.Type == FoodType.Drink).ToList())),
         new("Screens/FoodSearch", "All filter", c => FoodSearch(c, query: "oat", results: SampleFoods)),
         new("Screens/FoodSearch", "No results", c => FoodSearch(c, query: "zzz", filter: FoodType.Ingredient)),
         new("Screens/FoodSearch", "No match on a filter", c => FoodSearch(c, query: "oat", filter: FoodType.Drink)),
-        new("Screens/FoodSearch", "Food selected", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, results: SampleFoods, selected: SampleFoods[0])),
-        new("Screens/FoodSearch", "Search failed", c => FoodSearch(c, query: "oat", failed: true)),
+        new("Screens/FoodSearch", "Food selected", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, results: Ingredients, selected: Ingredients[0])),
+        new("Screens/FoodSearch", "Search failed", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, failed: true)),
         new("Screens/Scan", "Opening camera", c => Scan(c, ScanState.OpeningCamera)),
         new("Screens/Scan", "Closing camera", c => Scan(c, ScanState.Closing)),
         new("Screens/Scan", "Looking up", c => Scan(c, ScanState.LookingUp)),

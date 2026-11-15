@@ -151,6 +151,11 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             return result;
         });
 
+    /// <summary>Sets <see cref="FoodType.Food"/> on every Open Food Facts food stored with no type, leaving every other column and row alone. Returns how many rows changed.</summary>
+    public Task<int> BackfillOpenFoodFactsTypeAsync() =>
+        gate.RunAsync(async () =>
+            await connection.ExecuteAsync("UPDATE Food SET Type = ? WHERE Source = ? AND Type IS NULL", (int)FoodType.Food, (int)FoodSource.OpenFoodFacts));
+
     private static partial class Log
     {
         [LoggerMessage((int)CoreEvent.FoodInserted, LogLevel.Debug, "Food {FoodId} inserted")]

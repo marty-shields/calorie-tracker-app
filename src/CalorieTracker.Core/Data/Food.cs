@@ -61,7 +61,7 @@ public class Food
 
     public double? SaltG { get; set; }
 
-    /// <summary>Null on a row stored before types existed, until the seed refresh fills it.</summary>
+    /// <summary>Null on a row stored before types existed, until the seed loader sets it: Food for an Open Food Facts row on the next start, the seed's type for a CoFID row on the next seed refresh.</summary>
     public FoodType? Type { get; set; }
 
     /// <summary>Lowercased text with accents removed that searches match against.</summary>

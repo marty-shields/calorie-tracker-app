@@ -350,7 +350,7 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task Logs_AfterChangingTheFilter_HoldTheTypeAndCountsButNotWhatWasTyped()
+    public async Task Logs_AfterChangingTheFilter_DoNotHoldWhatWasTyped()
     {
         const string Typed = "my-private-meal-xyz";
         var cut = Context.Render<FoodSearchPage>();

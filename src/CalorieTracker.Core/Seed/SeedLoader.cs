@@ -44,6 +44,12 @@ internal sealed partial class SeedLoader(FoodStore store, ILogger<SeedLoader> lo
                 return SeedFile.Parse(stream);
             });
 
+            var backfilled = await store.BackfillOpenFoodFactsTypeAsync();
+            if (backfilled > 0)
+            {
+                Log.TypesBackfilled(logger, backfilled);
+            }
+
             var stored = await store.GetSeedVersionAsync(FoodSource.CoFID);
             if (stored >= seed.Version)
             {
@@ -78,6 +84,9 @@ internal sealed partial class SeedLoader(FoodStore store, ILogger<SeedLoader> lo
 
         [LoggerMessage((int)CoreEvent.SeedUpToDate, LogLevel.Information, "Seed up to date: stored version {Stored}, bundled version {Bundled}")]
         public static partial void UpToDate(ILogger logger, int stored, int bundled);
+
+        [LoggerMessage((int)CoreEvent.SeedTypesBackfilled, LogLevel.Information, "{Count} stored Open Food Facts foods set to type Food")]
+        public static partial void TypesBackfilled(ILogger logger, int count);
 
         [LoggerMessage((int)CoreEvent.SeedLoadFailed, LogLevel.Error, "Seed load failed")]
         public static partial void Failed(ILogger logger, Exception exception);

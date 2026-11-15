@@ -309,6 +309,27 @@ public class SeedLoaderTests
         }));
     }
 
+    [Test]
+    public async Task LoadAsync_StoredOpenFoodFactsFoodWithNoType_BecomesFoodAndNothingElseChanges()
+    {
+        await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Brand, Unit, Kcal, ProteinG, CarbsG, FatG, SearchText, Type) VALUES (77, ?, 'b1', 'Mine', 'Br', ?, 10, 1, 2, 3, 'mine br', NULL)", (int)FoodSource.OpenFoodFacts, (int)FoodUnit.Gram);
+        await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Unit, Kcal, ProteinG, CarbsG, FatG, SearchText, Type) VALUES (78, ?, 'b2', 'Typed', ?, 10, 1, 2, 3, 'typed', ?)", (int)FoodSource.OpenFoodFacts, (int)FoodUnit.Gram, (int)FoodType.Drink);
+        var before = await Snapshot(FoodSource.OpenFoodFacts);
+
+        await Loader().LoadAsync();
+
+        var after = await Snapshot(FoodSource.OpenFoodFacts);
+        var foods = (await connection.Table<Food>().Where(f => f.Source == FoodSource.OpenFoodFacts).ToListAsync()).ToDictionary(f => f.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(foods[77].Type, Is.EqualTo(FoodType.Food));
+            Assert.That(foods[78].Type, Is.EqualTo(FoodType.Drink));
+            Assert.That(after, Is.EqualTo(before));
+            Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Contain(CoreEvent.SeedTypesBackfilled));
+            Assert.That(logger.Collector.GetSnapshot().Select(r => r.Message), Has.None.Contain("Mine"));
+        });
+    }
+
     private SeedLoader Loader() => new(store, logger, () => new MemoryStream(Encoding.UTF8.GetBytes(seedJson)));
 
     private async Task<List<string>> Snapshot(FoodSource source) =>
