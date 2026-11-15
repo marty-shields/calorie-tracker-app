@@ -8,7 +8,7 @@ namespace CalorieTracker.Core.Foods;
 /// <summary>
 /// Serves barcodes from the food table, and otherwise from the inner lookup, saving what it finds.
 /// Concurrent calls for one barcode share a single store read, inner call and save, which ignore the callers' cancellation.
-/// A stored food with no serving is returned at once and looked up again in the background, one at a time for each barcode (a lookup that was offline or rate limited is tried again on a later scan); the serving and the nutrients are stored when the lookup gives a serving for the same product and unit, and show on the next scan. A source that has no usable serving marks the food checked in the database, so it is not asked again, even after a restart. A food with a serving, or checked, is never looked up again.
+/// A stored food with no serving is returned at once and looked up again in the background, one at a time for each barcode (a lookup that was offline or rate limited is tried again on a later scan); the serving and the nutrients are stored when the lookup gives a serving for the same product and unit, and show on the next scan. A source that has no usable serving for the same product and unit marks the food checked in the database, so it is not asked again, even after a restart. A food with a serving, or checked, is never looked up again.
 /// A failing store never reaches the callers: a failed read falls through to the inner lookup, a failed save returns the unsaved food.
 /// </summary>
 internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStore store, ILogger<StoredBarcodeLookup> logger) : IBarcodeLookup
@@ -125,7 +125,7 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
 
     /// <summary>
     /// Asks the inner lookup for the serving of <paramref name="stored"/>. A Found answer with the same source id and unit and a serving sets the serving and refreshes the nutrients on the row.
-    /// A NotFound answer, or a Found one without a usable serving, marks the food checked in the store so it is not asked again; an offline or rate-limited one leaves it to a later scan. Never throws.
+    /// A NotFound answer, or a Found one for the same source id and unit without a usable serving, marks the food checked in the store so it is not asked again; an offline or rate-limited one, or a Found one for another unit or source id, leaves it unmarked for a later scan. Never throws.
     /// </summary>
     private async Task FillServingAsync(string barcode, Food stored)
     {
@@ -133,10 +133,10 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
         {
             var result = await inner.LookupAsync(barcode, CancellationToken.None);
             var fresh = result.Food;
+            var sameProduct = fresh is not null && fresh.Unit == stored.Unit && fresh.SourceId == stored.SourceId;
             if (result.Status == BarcodeLookupStatus.Found
-                && fresh is { ServingLabel: not null, ServingAmount: not null }
-                && fresh.Unit == stored.Unit
-                && fresh.SourceId == stored.SourceId)
+                && sameProduct
+                && fresh is { ServingLabel: not null, ServingAmount: not null })
             {
                 if (await store.RefreshServingAsync(stored.Id, fresh))
                 {
@@ -144,7 +144,7 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
                     return;
                 }
             }
-            else if (result.Status is BarcodeLookupStatus.Found or BarcodeLookupStatus.NotFound)
+            else if (result.Status == BarcodeLookupStatus.NotFound || (result.Status == BarcodeLookupStatus.Found && sameProduct))
             {
                 await store.MarkServingCheckedAsync(stored.Id);
             }

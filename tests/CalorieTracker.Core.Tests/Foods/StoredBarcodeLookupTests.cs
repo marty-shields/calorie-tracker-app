@@ -229,7 +229,7 @@ public class StoredBarcodeLookupTests
     }
 
     [Test]
-    public async Task Lookup_RefreshedFoodOfAnotherUnitWithNoServing_IsMarkedCheckedWithoutChangingNutrients()
+    public async Task Lookup_RefreshedFoodOfAnotherUnitWithNoServing_IsLeftUnmarkedWithoutChangingNutrients()
     {
         await store.UpsertAsync(NoServing("1"), Barcode);
         var millilitres = NoServing("1");
@@ -241,7 +241,7 @@ public class StoredBarcodeLookupTests
         await lookup.RefreshesIdle().WaitAsync(Bound);
 
         var row = await connection.Table<Food>().FirstAsync();
-        Assert.That((row.ServingChecked, row.Kcal, row.Unit), Is.EqualTo(((bool?)true, 100.0, FoodUnit.Gram)));
+        Assert.That((row.ServingChecked, row.Kcal, row.Unit), Is.EqualTo(((bool?)null, 100.0, FoodUnit.Gram)));
     }
 
     [Test]
@@ -329,7 +329,7 @@ public class StoredBarcodeLookupTests
         await lookup.RefreshesIdle().WaitAsync(Bound);
         var result = await lookup.LookupAsync(Barcode);
 
-        Assert.That(result.Food!.ServingAmount, Is.Null);
+        await AssertUntouchedAndAskedAgainAsync(result);
     }
 
     [Test]
@@ -342,7 +342,23 @@ public class StoredBarcodeLookupTests
         await lookup.RefreshesIdle().WaitAsync(Bound);
         var result = await lookup.LookupAsync(Barcode);
 
+        await AssertUntouchedAndAskedAgainAsync(result);
+    }
+
+    private async Task AssertUntouchedAndAskedAgainAsync(BarcodeLookupResult result)
+    {
+        var row = await connection.Table<Food>().FirstAsync();
         Assert.That(result.Food!.ServingAmount, Is.Null);
+        Assert.That((row.ServingLabel, row.ServingAmount, row.ServingChecked), Is.EqualTo(((string?)null, (double?)null, (bool?)null)));
+        Assert.That((row.Kcal, row.ProteinG, row.CarbsG, row.FatG, row.Unit), Is.EqualTo((100.0, 1.0, 2.0, 3.0, FoodUnit.Gram)));
+        Assert.That(inner.Calls, Is.EqualTo(2), "the second scan asked the source again");
+
+        var later = new StoredBarcodeLookup(inner, store, logger);
+        inner.Enqueue(BarcodeLookupResult.Found(NewFood("1")));
+        await later.LookupAsync(Barcode);
+        await later.RefreshesIdle().WaitAsync(Bound);
+
+        Assert.That(inner.Calls, Is.EqualTo(3), "a fresh instance asked again");
     }
 
     [Test]
