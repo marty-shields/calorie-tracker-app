@@ -12,9 +12,8 @@ public interface IFoodSearch
     /// Plurals and "yogurt" are treated as their singular and "yoghurt". Foods whose last main word matches, with fewer other words, and common CoFID foods rank higher; ties break by name, then id. Only the first 10 distinct words are used.
     /// A blank query finds nothing.
     /// </summary>
-    /// <param name="type">Only foods of this type; null finds every type.</param>
     /// <param name="limit">Most foods to return; kept between 1 and <see cref="MaxLimit"/>.</param>
-    Task<FoodSearchResult> SearchAsync(string query, FoodType? type = null, int limit = DefaultLimit, CancellationToken ct = default);
+    Task<FoodSearchResult> SearchAsync(string query, int limit = DefaultLimit, CancellationToken ct = default);
 }
 
 public enum FoodSearchStatus

@@ -11,7 +11,6 @@ public static class ServingSamples
         Id = 11,
         Name = "Margherita pizza",
         Brand = "Casa Roma",
-        Type = FoodType.Food,
         Unit = FoodUnit.Gram,
         Kcal = 258,
         ProteinG = 11.2,
@@ -27,7 +26,6 @@ public static class ServingSamples
         Id = 12,
         Name = "Digestive biscuits",
         Brand = "Morning Mill",
-        Type = FoodType.Food,
         Unit = FoodUnit.Gram,
         Kcal = 487,
         ProteinG = 7,
@@ -40,7 +38,6 @@ public static class ServingSamples
     {
         Id = 13,
         Name = "Cheddar cheese",
-        Type = FoodType.Ingredient,
         Unit = FoodUnit.Gram,
         Kcal = 416,
         ProteinG = 25.4,
@@ -53,7 +50,6 @@ public static class ServingSamples
     {
         Id = 14,
         Name = "Semi-skimmed milk",
-        Type = FoodType.Drink,
         Unit = FoodUnit.Millilitre,
         Kcal = 47,
         ProteinG = 3.5,

@@ -103,6 +103,14 @@ public class FoodSearchSeedTests
     }
 
     [Test]
+    public async Task Milk_ListsDrinksIngredientsAndFoodsTogether()
+    {
+        var types = (await search.SearchAsync("milk")).Foods.Select(f => f.Type).Distinct().ToList();
+
+        Assert.That(types, Is.SupersetOf(new[] { FoodType.Drink, FoodType.Ingredient, FoodType.Food }));
+    }
+
+    [Test]
     public async Task Typos_FindTheIntendedFood()
     {
         Assert.That((await Names("chedar"))[0], Is.EqualTo("English Cheddar cheese"));

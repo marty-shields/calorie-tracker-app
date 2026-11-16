@@ -5,79 +5,55 @@
 
     <Story Name="Loading">
         <Template>
-            <FoodSearchView Query="oat" Filter="FoodType.Ingredient" Loading OnQueryChanged="(string _) => { }" OnNavigate="(NavDestination _) => { }" />
+            <FoodSearchView Query="oat" Loading OnQueryChanged="(string _) => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Nothing typed">
         <Template>
-            <FoodSearchView Filter="FoodType.Ingredient" OnQueryChanged="(string _) => { }" OnNavigate="(NavDestination _) => { }" />
+            <FoodSearchView OnQueryChanged="(string _) => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Results">
         <Template>
-            <FoodSearchView Query="oat" Filter="FoodType.Ingredient" Results="FoodSearchSamples.Ingredients" OnQueryChanged="(string _) => { }" OnFilterChanged="(FoodType? _) => { }" OnSelect="(Food _) => { }" OnNavigate="(NavDestination _) => { }" />
-        </Template>
-    </Story>
-
-    <Story Name="Foods filter">
-        <Template>
-            <FoodSearchView Query="oat" Filter="FoodType.Food" Results="FoodSearchSamples.Foods" OnQueryChanged="(string _) => { }" OnFilterChanged="(FoodType? _) => { }" OnSelect="(Food _) => { }" OnNavigate="(NavDestination _) => { }" />
-        </Template>
-    </Story>
-
-    <Story Name="Drinks filter">
-        <Template>
-            <FoodSearchView Query="oat" Filter="FoodType.Drink" Results="FoodSearchSamples.Drinks" OnQueryChanged="(string _) => { }" OnFilterChanged="(FoodType? _) => { }" OnSelect="(Food _) => { }" OnNavigate="(NavDestination _) => { }" />
-        </Template>
-    </Story>
-
-    <Story Name="All filter">
-        <Template>
-            <FoodSearchView Query="oat" Results="FoodSearchSamples.All" OnQueryChanged="(string _) => { }" OnFilterChanged="(FoodType? _) => { }" OnSelect="(Food _) => { }" OnNavigate="(NavDestination _) => { }" />
+            <FoodSearchView Query="oat" Results="FoodSearchSamples.Oats" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="No results">
         <Template>
-            <FoodSearchView Query="zzz" Filter="FoodType.Ingredient" OnQueryChanged="(string _) => { }" OnNavigate="(NavDestination _) => { }" />
-        </Template>
-    </Story>
-
-    <Story Name="No match on a filter">
-        <Template>
-            <FoodSearchView Query="oat" Filter="FoodType.Drink" OnQueryChanged="(string _) => { }" OnNavigate="(NavDestination _) => { }" />
+            <FoodSearchView Query="zzz" OnQueryChanged="(string _) => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Food selected">
         <Template>
-            <FoodSearchView Query="oat" Filter="FoodType.Ingredient" Results="FoodSearchSamples.Ingredients" Selected="FoodSearchSamples.Ingredients[0]" OnQueryChanged="(string _) => { }" OnAdd="(Food _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <FoodSearchView Query="oat" Results="FoodSearchSamples.Oats" Selected="FoodSearchSamples.Oats[0]" OnQueryChanged="(string _) => { }" OnAdd="(Food _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Add to a meal">
         <Template>
-            <FoodSearchView Meal="Meal.Lunch" Query="oat" Filter="FoodType.Ingredient" Results="FoodSearchSamples.Ingredients" OnQueryChanged="(string _) => { }" OnFilterChanged="(FoodType? _) => { }" OnSelect="(Food _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <FoodSearchView Meal="Meal.Lunch" Query="oat" Results="FoodSearchSamples.Oats" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Add to a meal with nothing typed">
         <Template>
-            <FoodSearchView Meal="Meal.Snacks" Filter="FoodType.Ingredient" OnQueryChanged="(string _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <FoodSearchView Meal="Meal.Snacks" OnQueryChanged="(string _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Add to a meal with no results">
         <Template>
-            <FoodSearchView Meal="Meal.Lunch" Query="xyzzy" Filter="FoodType.Ingredient" OnQueryChanged="(string _) => { }" OnFilterChanged="(FoodType? _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <FoodSearchView Meal="Meal.Lunch" Query="xyzzy" OnQueryChanged="(string _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Search failed">
         <Template>
-            <FoodSearchView Query="oat" Filter="FoodType.Ingredient" Failed OnQueryChanged="(string _) => { }" OnRetry="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <FoodSearchView Query="oat" Failed OnQueryChanged="(string _) => { }" OnRetry="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 

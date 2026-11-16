@@ -1,5 +1,4 @@
 #if DEBUG
-using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Scanning;
@@ -9,7 +8,7 @@ namespace CalorieTracker.App.Scanning;
 /// <summary>
 /// Debug builds only, for the E2E journeys: an emulator has no barcode to point a camera at.
 /// When <see cref="FileName"/> exists in the app's external files folder, the scanner returns its digits and deletes it instead of opening the camera.
-/// <see cref="Barcode"/> then finds the first Ingredient matching "oat" in the seeded foods, without the network. Every other scan and lookup is untouched.
+/// <see cref="Barcode"/> then finds the top search result for "oat" in the seeded foods, without the network. Every other scan and lookup is untouched.
 /// </summary>
 internal static class E2EScanSeam
 {
@@ -65,7 +64,7 @@ internal static class E2EScanSeam
                 return await inner.LookupAsync(barcode, ct);
             }
 
-            var found = await search.SearchAsync("oat", FoodType.Ingredient, 1, ct);
+            var found = await search.SearchAsync("oat", 1, ct);
             return found.Foods is [var food, ..] ? BarcodeLookupResult.Found(food) : BarcodeLookupResult.NotFound();
         }
     }

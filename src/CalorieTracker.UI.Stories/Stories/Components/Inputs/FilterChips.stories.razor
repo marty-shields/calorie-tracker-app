@@ -1,34 +1,28 @@
 @using CalorieTracker.Core.Data
 @attribute [Stories("Components/Inputs/FilterChips")]
 
-<Stories TComponent="FilterChips<FoodType?>" Layout="typeof(ThemeLayout)">
+<Stories TComponent="FilterChips<Meal>" Layout="typeof(ThemeLayout)">
 
-    <Story Name="Ingredients chosen">
+    <Story Name="Breakfast chosen">
         <Template>
-            <FilterChips TValue="FoodType?" Label="Type" Options="Options" Value="FoodType.Ingredient" ValueChanged="(FoodType? _) => { }" TestId="example-filter" />
+            <FilterChips TValue="Meal" Label="Meal" Options="Options" Value="Meal.Breakfast" ValueChanged="(Meal _) => { }" TestId="example-filter" />
         </Template>
     </Story>
 
-    <Story Name="Drinks chosen">
+    <Story Name="Snacks chosen">
         <Template>
-            <FilterChips TValue="FoodType?" Label="Type" Options="Options" Value="FoodType.Drink" ValueChanged="(FoodType? _) => { }" TestId="example-filter" />
-        </Template>
-    </Story>
-
-    <Story Name="All chosen">
-        <Template>
-            <FilterChips TValue="FoodType?" Label="Type" Options="Options" Value="@((FoodType?)null)" ValueChanged="(FoodType? _) => { }" TestId="example-filter" />
+            <FilterChips TValue="Meal" Label="Meal" Options="Options" Value="Meal.Snacks" ValueChanged="(Meal _) => { }" TestId="example-filter" />
         </Template>
     </Story>
 
 </Stories>
 
 @code {
-    private static readonly IReadOnlyList<RadioOption<FoodType?>> Options =
+    private static readonly IReadOnlyList<RadioOption<Meal>> Options =
     [
-        new(FoodType.Ingredient, "Ingredients", "example-filter-ingredients"),
-        new(FoodType.Food, "Foods", "example-filter-foods"),
-        new(FoodType.Drink, "Drinks", "example-filter-drinks"),
-        new(null, "All", "example-filter-all"),
+        new(Meal.Breakfast, "Breakfast", "example-filter-breakfast"),
+        new(Meal.Lunch, "Lunch", "example-filter-lunch"),
+        new(Meal.Dinner, "Dinner", "example-filter-dinner"),
+        new(Meal.Snacks, "Snacks", "example-filter-snacks"),
     ];
 }

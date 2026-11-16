@@ -116,20 +116,13 @@ public class FoodSearchTests
     }
 
     [Test]
-    public async Task Search_WithAType_FindsOnlyFoodsOfThatType()
+    public async Task Search_FindsEveryTypeInOneList()
     {
-        await Add("Potato", "potato", type: FoodType.Ingredient);
-        await Add("Potato crisps", "potato crisps", type: FoodType.Food);
-        await Add("Potato vodka", "potato vodka", type: FoodType.Drink);
+        await Add("Milk", "milk", type: FoodType.Ingredient);
+        await Add("Milk chocolate bar", "milk chocolate bar", type: FoodType.Food);
+        await Add("Milk drink", "milk drink", type: FoodType.Drink);
 
-        Assert.Multiple(async () =>
-        {
-            Assert.That(await Names("potato", FoodType.Ingredient), Is.EqualTo(new[] { "Potato" }));
-            Assert.That(await Names("potato", FoodType.Food), Is.EqualTo(new[] { "Potato crisps" }));
-            Assert.That(await Names("potato", FoodType.Drink), Is.EqualTo(new[] { "Potato vodka" }));
-            Assert.That(await Names("potato"), Has.Count.EqualTo(3));
-            Assert.That(await Names("crisps", FoodType.Drink), Is.Empty);
-        });
+        Assert.That(await Names("milk"), Is.EquivalentTo(new[] { "Milk", "Milk chocolate bar", "Milk drink" }));
     }
 
     [Test]
@@ -646,8 +639,8 @@ public class FoodSearchTests
         Assert.That((stored.ServingAmount, stored.SaltG), Is.EqualTo(((double?)20_000, (double?)500)));
     }
 
-    private async Task<List<string>> Names(string query, FoodType? type = null) =>
-        (await search.SearchAsync(query, type)).Foods.Select(f => f.Name).ToList();
+    private async Task<List<string>> Names(string query) =>
+        (await search.SearchAsync(query)).Foods.Select(f => f.Name).ToList();
 
     private Task Add(string name, string searchText, FoodSource source = FoodSource.CoFID, FoodType type = FoodType.Ingredient, string? brand = null, string? originalName = null) =>
         connection.InsertAsync(NewFood(name, searchText, source, type, brand, originalName));

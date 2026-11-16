@@ -16,32 +16,11 @@ Feature: Food search
     Then the results include a food named like "oat"
     And every result is a food with its energy per 100 g or ml
 
-  Scenario: Foods opens on Ingredients
-    Given I have opened Foods
-    Then the Ingredients chip is chosen
-
-  Scenario: The type chips are in order
-    Given I have opened Foods
-    Then the type chips read Ingredients, Foods, Drinks, All in that order
-
-  Scenario: Typing on Ingredients lists only ingredients
-    Given I have opened Foods
-    When I search for "potato"
-    Then every result is a "Ingredient"
-
-  Scenario: Switching to Drinks shows a drink
+  Scenario: Foods shows the search box and results only
     Given I have opened Foods
     And I have searched for "milk"
-    When I choose the Drinks chip
-    Then the Drinks chip is chosen
-    And every result is a "Drink"
-    And "milk" is still typed
-
-  Scenario: All shows every type
-    Given I have opened Foods
-    And I have searched for "potato"
-    When I choose the All chip
-    Then the results include more than one type
+    Then no type chips show
+    And the results include a food named like "milk"
 
   Scenario: A search nothing matches says so
     Given I have opened Foods
@@ -72,3 +51,8 @@ Feature: Food search
     Given I have opened Foods
     When I go back to the Dashboard
     Then I am on the Dashboard
+
+  Scenario: An old link with a type still opens search with the query typed
+    When I open the old link "/foods?q=oat&type=Drink"
+    Then "oat" is still typed
+    And the results include a food named like "oat"

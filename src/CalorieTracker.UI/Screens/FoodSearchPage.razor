@@ -7,12 +7,11 @@
 @inject SeedProgress Seed
 @inject ILogger<FoodSearchPage> Logger
 
-<FoodSearchView Meal="Meal" Query="@query" Filter="filter" OnFilterChanged="ChangeFilter" Results="results" Selected="selected" Loading="loading" Failed="failed"
+<FoodSearchView Meal="Meal" Query="@query" Results="results" Selected="selected" Loading="loading" Failed="failed"
                 OnQueryChanged="SearchAsync" OnSelect="SelectAsync" OnAdd="AddAsync" OnBack="OnBack" OnClearSelection="ClearSelection" OnRetry="Retry" OnNavigate="OnNavigate" />
 
 @code {
     private string query = "";
-    private FoodType? filter = FoodType.Ingredient;
     private IReadOnlyList<Food> results = [];
     private Food? selected;
     private bool loading;
@@ -32,10 +31,6 @@
     [Parameter]
     public string? InitialQuery { get; set; }
 
-    /// <summary>The type the search opens on; null is All. Read once, when the page starts.</summary>
-    [Parameter]
-    public FoodType? InitialFilter { get; set; } = FoodType.Ingredient;
-
     /// <summary>Raised to add a food: from a result in add mode, or Add to diary on a food's values. Carries the search so it can be restored on the way back.</summary>
     [Parameter]
     public EventCallback<FoodAddRequest> OnAdd { get; set; }
@@ -51,7 +46,6 @@
     protected override async Task OnInitializedAsync()
     {
         query = InitialQuery ?? "";
-        filter = InitialFilter;
         if (Seed.Current is { } load)
         {
             await WaitForSeedAsync(load);
@@ -101,7 +95,7 @@
         var token = source.Token;
         try
         {
-            var result = await Search.SearchAsync(text, filter, ct: token);
+            var result = await Search.SearchAsync(text, ct: token);
             if (token.IsCancellationRequested)
             {
                 return;
@@ -113,12 +107,6 @@
         catch (OperationCanceledException)
         {
         }
-    }
-
-    private Task ChangeFilter(FoodType? type)
-    {
-        filter = type;
-        return SearchAsync(query);
     }
 
     private void CancelRunning()
@@ -150,7 +138,7 @@
         return AddAsync(food);
     }
 
-    private Task AddAsync(Food food) => OnAdd.InvokeAsync(new FoodAddRequest(food, query, filter));
+    private Task AddAsync(Food food) => OnAdd.InvokeAsync(new FoodAddRequest(food, query));
 
     private void ClearSelection() => selected = null;
 

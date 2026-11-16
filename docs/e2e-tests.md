@@ -25,7 +25,7 @@ Running the E2E suite on a phone or an emulator, and where the results go. Set u
 - `@upgrade-seed`: the first half of the next release's upgrade check ([Upgrade](#the-upgrade-check)). The shards and the Release E2E run it like any other scenario, so every release proves its own seed works.
 
 ## Scan seam
-An emulator has no barcode to scan. In the Debug app only (`#if DEBUG`, `src/CalorieTracker.App/Scanning/E2EScanSeam.cs`), a file `e2e-barcode.txt` in the app's external files folder makes the scanner return its digits and delete it instead of opening the camera, and the barcode `5012345678900` finds the first Ingredient matching "oat" without the network. `Journeys.feature` uses it (`a barcode is held in front of the camera`). Every other scan and lookup is untouched, and the Release app has none of it, so scenarios that need it are not `@release`.
+An emulator has no barcode to scan. In the Debug app only (`#if DEBUG`, `src/CalorieTracker.App/Scanning/E2EScanSeam.cs`), a file `e2e-barcode.txt` in the app's external files folder makes the scanner return its digits and delete it instead of opening the camera, and the barcode `5012345678900` finds the top search result for "oat" without the network. `Journeys.feature` uses it (`a barcode is held in front of the camera`). Every other scan and lookup is untouched, and the Release app has none of it, so scenarios that need it are not `@release`.
 
 ## Other builds
 Run settings choose the build under test. The Debug app is the default.
