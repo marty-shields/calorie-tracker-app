@@ -8,7 +8,7 @@ namespace CalorieTracker.App.Scanning;
 /// <summary>
 /// Debug builds only, for the E2E journeys: an emulator has no barcode to point a camera at.
 /// When <see cref="FileName"/> exists in the app's external files folder, the scanner returns its digits and deletes it instead of opening the camera.
-/// <see cref="Barcode"/> then finds the first Ingredient matching "oat" in the seeded foods, without the network. Every other scan and lookup is untouched.
+/// <see cref="Barcode"/> then finds the top search result for "oat" in the seeded foods, without the network. Every other scan and lookup is untouched.
 /// </summary>
 internal static class E2EScanSeam
 {

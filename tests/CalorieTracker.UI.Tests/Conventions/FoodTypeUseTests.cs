@@ -12,17 +12,36 @@ public partial class FoodTypeUseTests
         "src/CalorieTracker.Core/Foods/OpenFoodFactsLookup.cs",
     ];
 
-    [GeneratedRegex(@"\bFoodType\b|\b[Ff]ood\w*\s*\??\.\s*Type\b")]
+    /// <summary>The Android <c>WindowInsets.Type</c> calls, which have nothing to do with a food.</summary>
+    private static readonly string[] WindowInsetsFiles =
+    [
+        "src/CalorieTracker.App/Keyboard/AndroidKeyboardRestore.cs",
+        "src/CalorieTracker.App/Components/SystemBarInsets.cs",
+    ];
+
+    [GeneratedRegex(@"\bFoodType\b|\.\s*Type\b")]
     private static partial Regex TypeUse();
+
+    [GeneratedRegex(@"//[^\r\n]*|/\*.*?\*/|@\*.*?\*@", RegexOptions.Singleline)]
+    private static partial Regex Comments();
+
+    private static string WithoutComments(string source) => Comments().Replace(source, "");
 
     [Test]
     public void NoCodeOutsideCoreDataAndSeed_ReadsTheFoodType()
     {
-        var offenders = new[] { "*.cs", "*.razor" }
+        var scanned = new[] { "*.cs", "*.razor" }
             .SelectMany(pattern => RepoFiles.Find(pattern, "src"))
-            .Select(file => Path.GetRelativePath(RepoFiles.Root, file).Replace('\\', '/'))
-            .Where(file => !Allowed.Any(file.StartsWith))
-            .Where(file => TypeUse().IsMatch(File.ReadAllText(RepoFiles.PathOf(file))))
+            .Select(file => (Path: Path.GetRelativePath(RepoFiles.Root, file).Replace('\\', '/'), Full: file))
+            .Where(file => !Allowed.Any(file.Path.StartsWith))
+            .ToList();
+
+        Assert.That(scanned, Is.Not.Empty);
+
+        var offenders = scanned
+            .Where(file => !WindowInsetsFiles.Contains(file.Path))
+            .Where(file => TypeUse().IsMatch(WithoutComments(File.ReadAllText(file.Full))))
+            .Select(file => file.Path)
             .ToList();
 
         Assert.That(offenders, Is.Empty);
