@@ -38,8 +38,8 @@ The generator sets `name` from the entry and leaves `originalName` and `sourceId
 | `source` | `CoFID` |
 | `sourceId` | CoFID food code, such as `11-001` (see the repeated-code rule below) |
 | `name` | Everyday display name, set from `names/` |
-| `originalName` | CoFID food name, never edited |
-| `foodGroup` | CoFID group code, such as `AA` |
+| `originalName` | CoFID food name, never edited; stored on the food as `OriginalName` |
+| `foodGroup` | CoFID group code, such as `AA`; stored on the food as `FoodGroup` |
 | `unit` | `Millilitre` when the group code starts with `Q` (alcoholic drinks, alcohol-free lager included), else `Gram` |
 | `type` | `Ingredient`, `Food` or `Drink`, from the group and the name rules in [Food types](#food-types) |
 | `energyKcal`, `proteinG`, `carbsG`, `fatG` | Per 100 g or 100 ml; a food with no value for any of these is left out |
@@ -116,5 +116,5 @@ The file is an embedded resource of `CalorieTracker.Core` (`cofid-foods.json`). 
 - A stored version equal to or higher than the bundled one loads nothing. A missing or lower one loads every food and then stores the bundled version.
 - Foods match on `source` and `sourceId`; an existing row keeps its `Id`. Rows of other sources are never read or written.
 - After the upsert, CoFID foods (and their barcode links) whose `sourceId` is not in the seed are deleted, in one transaction before the version is stored. This is how a database whose Dish rows were not typed Dish (schema step 4 only deletes those) loses them. Rows of other sources are untouched.
-- `originalName` and `foodGroup` are not stored (the Food table has no columns for them).
+- `originalName` and `foodGroup` are stored on the Food row (`OriginalName`, `FoodGroup`) and are required for every seed food: a food missing either fails the parse. Open Food Facts foods leave both null. Schema step 9 (`FoodOriginalNameUpgrade`) adds the columns and deletes the stored CoFID seed version, so an installed app reloads the seed once on its next start and fills them; food ids and diary entries are unchanged.
 - Bump `seedVersion` in `build-food-seed.py` whenever the content or names change, or installed apps will not pick the change up.

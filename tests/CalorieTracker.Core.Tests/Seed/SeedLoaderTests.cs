@@ -53,8 +53,52 @@ public class SeedLoaderTests
             Assert.That(foods["11-002"].Unit, Is.EqualTo(FoodUnit.Millilitre));
             Assert.That(foods["11-001"].Unit, Is.EqualTo(FoodUnit.Gram));
             Assert.That(foods["11-001"].Brand, Is.Null);
+            Assert.That((foods["11-001"].OriginalName, foods["11-001"].FoodGroup), Is.EqualTo(("Arrowroot", "AA")));
         });
         Assert.That(await store.GetSeedVersionAsync(FoodSource.CoFID), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task LoadAsync_FoodsStoredBeforeTheColumnsWereFilled_GetThemOnceAfterTheUpgradeStepKeepingIds()
+    {
+        await Loader().LoadAsync();
+        await connection.ExecuteAsync("UPDATE Food SET OriginalName = NULL, FoodGroup = NULL");
+        var idsBefore = await connection.QueryScalarsAsync<int>("SELECT Id FROM Food ORDER BY Id");
+        await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Breakfast, FoodId = idsBefore[0], Amount = 30 });
+
+        var db = new SQLiteConnection(databasePath);
+        try
+        {
+            new FoodOriginalNameUpgrade().Apply(db);
+        }
+        finally
+        {
+            db.Close();
+        }
+
+        var reload = await Loader().LoadAsync();
+        var again = await Loader().LoadAsync();
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That(reload, Is.EqualTo(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 0, 3, 0)));
+            Assert.That(again.Status, Is.EqualTo(SeedLoadStatus.UpToDate));
+            Assert.That(await connection.QueryScalarsAsync<int>("SELECT Id FROM Food ORDER BY Id"), Is.EqualTo(idsBefore));
+            Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM Food WHERE OriginalName IS NULL OR FoodGroup IS NULL"), Is.EqualTo(0));
+            Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM DiaryEntry WHERE FoodId = ?", idsBefore[0]), Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public void SeedFile_BundledSeed_StoresTheOriginalNameAndGroupOfEveryFood()
+    {
+        using var stream = SeedLoader.OpenBundledSeed();
+
+        var seed = SeedFile.Parse(stream);
+
+        var barley = seed.Foods.Single(f => f.SourceId == "11-002");
+        Assert.That((barley.OriginalName, barley.FoodGroup), Is.EqualTo(("Barley, pearl, raw", "AA")));
+        Assert.That(seed.Foods.Where(f => string.IsNullOrWhiteSpace(f.OriginalName) || string.IsNullOrWhiteSpace(f.FoodGroup)), Is.Empty);
     }
 
     [Test]
@@ -260,6 +304,8 @@ public class SeedLoaderTests
         yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, type: "Snack")])).SetName("unknown type");
         yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, type: "1")])).SetName("numeric type");
         yield return new TestCaseData(Wrap(1, ["""{"source":"CoFID","sourceId":"1","name":"A","unit":"Gram","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}"""])).SetName("missing type");
+        yield return new TestCaseData(Wrap(1, ["""{"source":"CoFID","sourceId":"1","name":"A","foodGroup":"AA","unit":"Gram","type":"Ingredient","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}"""])).SetName("missing originalName");
+        yield return new TestCaseData(Wrap(1, ["""{"source":"CoFID","sourceId":"1","name":"A","originalName":"A","unit":"Gram","type":"Ingredient","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}"""])).SetName("missing foodGroup");
         yield return new TestCaseData(Wrap(1, [Row("1", "   ", 1)])).SetName("whitespace name");
         yield return new TestCaseData(Wrap(0, [Row("1", "A", 1)])).SetName("seedVersion 0");
         yield return new TestCaseData("""{"foods":[]}""").SetName("missing seedVersion");
