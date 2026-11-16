@@ -11,9 +11,10 @@ trap 'rm -rf "$work"' EXIT
 # The script under test is a copy that also types group AQ (not a CoFID group), so a group that merely contains a Q can be Gram.
 mkdir "$work/bin"
 script="$work/bin/build-food-seed.py"
-# It also swaps TYPE_OVERRIDES for a given table (the real one names real CoFID codes, so the real rows are tested on the real seed).
+# It also swaps TYPE_OVERRIDES ($2) and LIQUID_IDS ($3, default none) for given tables (the real ones name real CoFID codes, so the real rows are tested on the real seed).
 with_overrides() { sed -e 's/^GROUP_TYPES = {$/GROUP_TYPES = {"AQ": "Ingredient",/' \
-    -e "s/^TYPE_OVERRIDES = {\$/TYPE_OVERRIDES = {$2} if True else {/" "$real_script" > "$1"; }
+    -e "s/^TYPE_OVERRIDES = {\$/TYPE_OVERRIDES = {$2} if True else {/" \
+    -e "s/^LIQUID_IDS = {\$/LIQUID_IDS = {${3:-}} if True else {/" "$real_script" > "$1"; }
 with_overrides "$script" ""
 check "the test copy of the script types AQ" "1" "$(grep -c '^GROUP_TYPES = {"AQ": "Ingredient",$' "$script")"
 
@@ -113,6 +114,19 @@ if variant == "rules":
         for number, line in enumerate(f, 1):
             group, name, _ = line.rstrip("\n").split("|")
             foods.append(proximate(f"30-{number:03d}", name, group, 100, 1, 1, 1))
+if variant == "units":
+    foods += [proximate("40-001", "Milk, semi-skimmed", "BAH", 46, 3.4, 4.7, 1.7),
+              proximate("40-002", "Cocoa, powder", "BH", 400, 20, 10, 20),
+              proximate("40-003", "Cocoa, powder, made up with semi-skimmed milk", "BH", 70, 3, 8, 3),
+              proximate("40-004", "Orange juice, weighed as whole fruit", "FC", 40, 1, 9, 0),
+              proximate("40-005", "Orange juice, pasteurised", "FC", 40, 1, 9, 0),
+              proximate("40-006", "Drink powder, made up with water", "PAA", 20, 0, 5, 0),
+              proximate("40-007", "Drink powder, dry", "PAA", 300, 0, 70, 0),
+              proximate("40-008", "Water, distilled", "WY", 1, 0, 0, 0),
+              proximate("40-009", "Salt, table", "WY", 1, 0, 0, 0),
+              proximate("40-010", "Single liquid in a vegetable group", "DG", 20, 0, 5, 0),
+              proximate("40-011", "Squash, undiluted", "PCC", 100, 0, 25, 0),
+              proximate("40-012", "Squash, diluted", "PCC", 10, 0, 2, 0)]
 if variant == "unknowngroup":
     foods.append(proximate("20-009", "Mystery", "ZZ", 1, 1, 1, 1))
 if variant == "dupkey":
@@ -166,12 +180,13 @@ warning: food code 13-669 is repeated; 'Watercress, raw' (row 15) gets sourceId 
 warning: food code 13-669 is repeated; 'Third with the code' (row 16) gets sourceId 13-669#3
 kept 10 of 14 foods, dropped 4
 dropped 0 Dishes, kept 10 foods
+3 foods in Millilitre
 exit=0" "$(seed ok)"
 
 # Sorted by code then repeat number (not sheet order); Tr is 0; 0.125 rounds half up; float noise is gone; the NSP column
 # (9 for Bread) is not the fibre; Na 400 mg is 1 g salt; Na 2/37 mg are 0.01/0.09 g (half up); each repeat of a code takes the
 # sodium of its own name; salt is null for N or a missing Na and for a food absent from 1.4.
-check "the seed file" '{"seedVersion":6,"source":"CoFID 2021","foods":[
+check "the seed file" '{"seedVersion":7,"source":"CoFID 2021","foods":[
 {"source":"CoFID","sourceId":"10-001","name":"Bread, white","originalName":"Bread, white","foodGroup":"AA","unit":"Gram","type":"Ingredient","energyKcal":100,"proteinG":0.07,"carbsG":4.6,"fatG":0.13,"fibreG":2.5,"sugarsG":0,"saturatesG":0.5,"saltG":1},
 {"source":"CoFID","sourceId":"10-006","name":"Nothing optional","originalName":"Nothing optional","foodGroup":"AA","unit":"Gram","type":"Ingredient","energyKcal":5,"proteinG":1,"carbsG":1,"fatG":1,"fibreG":null,"sugarsG":null,"saturatesG":null,"saltG":null},
 {"source":"CoFID","sourceId":"10-007","name":"Trace sodium","originalName":"Trace sodium","foodGroup":"AA","unit":"Gram","type":"Ingredient","energyKcal":5,"proteinG":1,"carbsG":1,"fatG":1,"fibreG":null,"sugarsG":0.05,"saturatesG":null,"saltG":0},
@@ -219,6 +234,34 @@ check "an override whose sourceId is not in the workbook fails" "build-food-seed
 exit=1" "$(python3 -I "$work/bin/missing.py" "$work/book.xlsx" "$work/missing.json" 2>&1 | tail -1; echo "exit=${PIPESTATUS[0]}")"
 check "a group with no type fails" "build-food-seed: food 20-009 is in group ZZ, which has no type in GROUP_TYPES
 exit=1" "$(seed unknowngroup | tail -2)"
+
+# Units: the group, the DRY_NAME and LIQUID_NAME_RULES rules, LIQUID_IDS (a test table naming 40-010) and an AQ food that stays in grams.
+with_overrides "$work/bin/units.py" "" '"40-010": "test"'
+python3 -I "$work/mkbook.py" "$work/book.xlsx" units
+python3 -I "$work/bin/units.py" "$work/book.xlsx" "$work/units.json" 2> /dev/null
+check "a food's unit follows its group, the dry-name and name rules and LIQUID_IDS" "10-008 Gram
+40-001 Millilitre
+40-002 Gram
+40-003 Millilitre
+40-004 Gram
+40-005 Millilitre
+40-006 Millilitre
+40-007 Gram
+40-008 Millilitre
+40-009 Gram
+40-010 Millilitre
+40-011 Gram
+40-012 Millilitre" "$(python3 -I -c '
+import json
+import sys
+foods = {f["sourceId"]: f for f in json.load(open(sys.argv[1]))["foods"]}
+for key in sorted(foods):
+    if key == "10-008" or key.startswith("40-"):
+        print(key, foods[key]["unit"])
+' "$work/units.json")"
+with_overrides "$work/bin/unknownliquid.py" "" '"99-999": "test"'
+check "a LIQUID_IDS id that is not in the workbook fails" "build-food-seed: LIQUID_IDS or DRY_IDS: 99-999 is not a food in the workbook output
+exit=1" "$(python3 -I "$work/bin/unknownliquid.py" "$work/book.xlsx" "$work/unknownliquid.json" 2>&1 | tail -1; echo "exit=${PIPESTATUS[0]}")"
 
 # One row per alternative of every NAME_RULES entry: group|name|expected type. The rest of the group is its base type, so
 # each row moves the food away from it ("uncoated" rows stay in the base type).

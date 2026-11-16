@@ -52,7 +52,8 @@ public class SeedUnitsTests
                 Assert.That(foods.Single(f => f.OriginalName == name).Unit, Is.EqualTo(FoodUnit.Millilitre), name);
             }
 
-            Assert.That(foods.Count(f => f.Unit == FoodUnit.Millilitre), Is.EqualTo(133));
+            // The step's frozen list is the exact, sorted set of millilitre foods, so a seed change that moves a food shows here.
+            Assert.That(foods.Where(f => f.Unit == FoodUnit.Millilitre).Select(f => f.SourceId).Order(StringComparer.Ordinal), Is.EqualTo(FoodUnitUpgrade.MillilitreSourceIds));
         });
     }
 
@@ -117,6 +118,7 @@ public class SeedUnitsTests
         var milk = BundledSeed().Single(f => f.OriginalName == "Milk, semi-skimmed, UHT");
         var cocoa = BundledSeed().Single(f => f.OriginalName == "Cocoa powder");
         milk.Unit = FoodUnit.Gram;
+        cocoa.Unit = FoodUnit.Millilitre;
         var milkId = (await store.UpsertAsync(milk)).Id;
         var cocoaId = (await store.UpsertAsync(cocoa)).Id;
         await connection.CreateTableAsync<AppSettings>();
@@ -144,8 +146,9 @@ public class SeedUnitsTests
         var entriesAfter = await connection.Table<DiaryEntry>().ToListAsync();
         Assert.Multiple(() =>
         {
-            Assert.That(before.Meals[0].Entries.Select(e => e.Unit), Is.EqualTo(new[] { FoodUnit.Gram, FoodUnit.Gram }));
-            Assert.That(after.Meals[0].Entries.Select(e => e.Unit), Is.EqualTo(new[] { FoodUnit.Millilitre, FoodUnit.Gram }));
+            Assert.That(before.Meals[0].Entries.Select(e => e.Unit), Is.EqualTo(new[] { FoodUnit.Gram, FoodUnit.Millilitre }));
+            // The step only sets millilitres for its frozen ids; cocoa is not one, so it keeps whatever it had.
+            Assert.That(after.Meals[0].Entries.Select(e => e.Unit), Is.EqualTo(new[] { FoodUnit.Millilitre, FoodUnit.Millilitre }));
             Assert.That(after.Meals[0].Entries.Select(e => e.Nutrition), Is.EqualTo(before.Meals[0].Entries.Select(e => e.Nutrition)));
             Assert.That(after.Meals[0].Entries.Select(e => (e.Amount, e.Servings)), Is.EqualTo(before.Meals[0].Entries.Select(e => (e.Amount, e.Servings))));
             Assert.That(after.Meals[0].Totals, Is.EqualTo(before.Meals[0].Totals));

@@ -297,7 +297,7 @@ def build(path):
             "name": name,
             "originalName": name,
             "foodGroup": group,
-            "unit": "Gram",
+            "unit": "Gram",  # placeholder: apply_units sets the real unit; the key is here for the output's key order
             "type": None,
             **{key: None if value is None else Raw(number_text(value)) for key, value in values.items()},
         }))
