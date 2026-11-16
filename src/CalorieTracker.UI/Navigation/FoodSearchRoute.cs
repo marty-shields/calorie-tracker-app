@@ -1,4 +1,3 @@
-using System.Globalization;
 using CalorieTracker.Core.Data;
 
 namespace CalorieTracker.UI.Navigation;
@@ -20,7 +19,7 @@ public static class FoodSearchRoute
     /// <summary>The route that opens search to add to <paramref name="meal"/>; <paramref name="date"/> null is today. A non-null <paramref name="query"/> also restores that search, with <paramref name="filter"/> (null is All).</summary>
     public static string AddUrl(Meal meal, DateOnly? date = null, string? query = null, FoodType? filter = null)
     {
-        var url = $"{Template}?meal={meal}" + (date is { } d ? $"&date={d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}" : "");
+        var url = $"{Template}?meal={meal}" + (date is { } d ? $"&date={RouteDate.ToText(d)}" : "");
         if (query is null)
         {
             return url;

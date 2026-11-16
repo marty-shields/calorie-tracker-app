@@ -14,5 +14,5 @@
     [SupplyParameterFromQuery(Name = "date")]
     public string? DateText { get; set; }
 
-    private DateOnly? date => DashboardRoute.ParseDate(DateText);
+    private DateOnly? date => RouteDate.Parse(DateText);
 }

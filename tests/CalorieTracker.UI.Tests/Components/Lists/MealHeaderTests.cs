@@ -22,6 +22,17 @@ public class MealHeaderTests : ComponentTestBase
     }
 
     [Test]
+    public void Render_ShowsAThousandsSeparator()
+    {
+        var cut = Context.Render<MealHeader>(p => p
+            .Add(x => x.Name, "Snacks")
+            .Add(x => x.Calories, 1250)
+            .Add(x => x.TestId, "meal"));
+
+        Assert.That(cut.Find("[data-testid=meal-calories]").TextContent, Is.EqualTo("1,250 kcal"));
+    }
+
+    [Test]
     public void Render_WithoutCalories_ShowsNoTotal()
     {
         var cut = Context.Render<MealHeader>(p => p

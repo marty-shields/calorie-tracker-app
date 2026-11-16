@@ -50,10 +50,10 @@ public static class DashboardSamples
         var all = protein + carbs + fat;
         var shares = all == 0
             ? new MacroShares(0, 0, 0)
-            : new MacroShares((int)Math.Round(100 * protein / all), (int)Math.Round(100 * carbs / all), (int)Math.Round(100 * fat / all));
+            : new MacroShares((int)Math.Round(100 * protein / all, MidpointRounding.AwayFromZero), (int)Math.Round(100 * carbs / all, MidpointRounding.AwayFromZero), (int)Math.Round(100 * fat / all, MidpointRounding.AwayFromZero));
         return new DaySummary(totals, shares, summaries, target, target - totals.Kcal, target is { } goal && totals.Kcal > goal);
     }
 
     private static Nutrition Sum(IEnumerable<Nutrition> parts) =>
-        parts.Aggregate(Nutrition.Zero, (sum, n) => new Nutrition(sum.Kcal + n.Kcal, Math.Round(sum.ProteinG + n.ProteinG, 1), Math.Round(sum.CarbsG + n.CarbsG, 1), Math.Round(sum.FatG + n.FatG, 1)));
+        parts.Aggregate(Nutrition.Zero, (sum, n) => new Nutrition(sum.Kcal + n.Kcal, Math.Round(sum.ProteinG + n.ProteinG, 1, MidpointRounding.AwayFromZero), Math.Round(sum.CarbsG + n.CarbsG, 1, MidpointRounding.AwayFromZero), Math.Round(sum.FatG + n.FatG, 1, MidpointRounding.AwayFromZero)));
 }

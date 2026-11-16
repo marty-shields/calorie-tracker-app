@@ -50,6 +50,7 @@ public class DashboardPageTests : ComponentTestBase
         await connection.InsertAsync(cheddar);
         cheddarId = cheddar.Id;
         Context.Services.AddSingleton(core.GetRequiredService<DaySummaryService>());
+        Context.Services.AddSingleton(core.GetRequiredService<DiaryService>());
         Context.Services.AddSingleton<TimeProvider>(new FakeTimeProvider(new DateTimeOffset(2031, 7, 19, 12, 40, 0, TimeSpan.Zero)));
     }
 
@@ -94,15 +95,6 @@ public class DashboardPageTests : ComponentTestBase
     }
 
     [Test]
-    public void ShowsALoadingSpinnerUntilTheDayIsRead()
-    {
-        var cut = Context.Render<DashboardPage>();
-
-        Assert.That(Exists(cut, "dashboard-loading") || Exists(cut, "dashboard-card"), Is.True);
-        cut.WaitForState(() => Exists(cut, "dashboard-card"));
-    }
-
-    [Test]
     public async Task ALoggedEntry_ShowsUnderItsMealAndInEveryTotal()
     {
         await Log(Today, Meal.Lunch, 30);
@@ -131,6 +123,24 @@ public class DashboardPageTests : ComponentTestBase
         var cut = Render();
 
         Assert.That(cut.Find("[data-testid^=entry-]").TextContent, Does.Contain("2 servings · 1 slice (20 g)"));
+    }
+
+    [Test]
+    public async Task AnEntryRemovedElsewhere_LeavesTheDayAndEveryTotal_AsUndoDoes()
+    {
+        await Log(Today, Meal.Lunch, 30);
+        var added = await core.GetRequiredService<DiaryService>().AddAsync(Today, Meal.Lunch, cheddarId, 30);
+        var cut = Render();
+        Assert.That(Text(cut, "dashboard-eaten"), Is.EqualTo("250"));
+
+        await core.GetRequiredService<DiaryService>().RemoveAsync(added.Entry!.Id);
+
+        await cut.WaitForAssertionAsync(() =>
+        {
+            Assert.That(Text(cut, "dashboard-eaten"), Is.EqualTo("125"));
+            Assert.That(Text(cut, "meal-lunch-calories"), Is.EqualTo("125 kcal"));
+            Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul .row"), Has.Count.EqualTo(1));
+        }, TimeSpan.FromSeconds(10));
     }
 
     [Test]

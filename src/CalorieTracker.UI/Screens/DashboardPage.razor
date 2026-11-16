@@ -1,20 +1,22 @@
 @using CalorieTracker.Core.Summary
 @inject DaySummaryService Summaries
+@using CalorieTracker.Core.Diary
+@implements IDisposable
+@inject DiaryService Diary
 @inject TimeProvider Time
 
-<DashboardView Date="date" Today="today" Summary="summary" Loading="loading" LoadFailed="loadFailed"
-               OnPrevious="@(() => ShowAsync(date.AddDays(-1)))" OnNext="@(() => ShowAsync(date.AddDays(1)))" OnToday="@(() => ShowAsync(today))"
+<DashboardView Date="date" Today="Today()" Summary="summary" Loading="loading" LoadFailed="loadFailed"
+               OnPrevious="@(() => ShowAsync(date.AddDays(-1)))" OnNext="@(() => ShowAsync(date.AddDays(1)))" OnToday="@(() => ShowAsync(Today()))"
                OnAdd="OnAdd" OnRetry="LoadAsync" OnNavigate="OnNavigate" OnSettings="OnSettings" />
 
 @code {
     private DateOnly date;
-    private DateOnly today;
     private DaySummary? summary;
     private bool loading = true;
     private bool loadFailed;
-    private bool started;
     private DateOnly? openedWith;
-    private int loadSequence;
+    private bool opened;
+    private bool disposed;
 
     /// <summary>The day to open on the date strip, from the route's <c>date</c>. Null opens today. A change opens that day.</summary>
     [Parameter]
@@ -32,19 +34,28 @@
     [Parameter]
     public EventCallback OnSettings { get; set; }
 
+    protected override void OnInitialized() => Diary.Changed += OnDiaryChanged;
+
+    public void Dispose()
+    {
+        disposed = true;
+        Diary.Changed -= OnDiaryChanged;
+    }
+
     protected override async Task OnParametersSetAsync()
     {
-        today = Today();
-        if (started && openedWith == Date)
+        // No read yet means the first render; after that only a new Date parameter reopens a day.
+        if (opened && openedWith == Date)
         {
             return;
         }
 
-        started = true;
+        opened = true;
         openedWith = Date;
-        await ShowAsync(Date ?? today);
+        await ShowAsync(Date ?? Today());
     }
 
+    /// <summary>Today by the clock now, so the screen is right when it is used past midnight.</summary>
     private DateOnly Today() => DateOnly.FromDateTime(Time.GetLocalNow().DateTime);
 
     private Task ShowAsync(DateOnly day)
@@ -53,23 +64,38 @@
         return LoadAsync();
     }
 
-    /// <summary>Reads the day on the strip. Only the newest read changes the screen, so tapping through days fast shows the last one.</summary>
-    private async Task LoadAsync()
+    /// <summary>Reads the day on the strip. Reads queue behind each other in the database gate, so they land in the order asked.</summary>
+    private Task LoadAsync() => LoadAsync(blank: true);
+
+    /// <param name="blank">Show the spinner while reading. False keeps the day on screen until the new read lands, for a change made elsewhere.</param>
+    private async Task LoadAsync(bool blank)
     {
-        var sequence = ++loadSequence;
-        today = Today();
         var day = date;
-        loading = true;
-        loadFailed = false;
-        summary = null;
-        var result = await Summaries.GetAsync(day);
-        if (sequence != loadSequence)
+        if (blank)
         {
-            return;
+            loading = true;
+            loadFailed = false;
+            summary = null;
         }
 
+        var result = await Summaries.GetAsync(day);
         loading = false;
         loadFailed = result.Status != DaySummaryStatus.Ok;
         summary = result.Summary;
     }
+
+    /// <summary>An entry was added, changed, removed or restored (an Undo, for one): read the day again.</summary>
+    private void OnDiaryChanged() => _ = InvokeAsync(async () =>
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        await LoadAsync(blank: false);
+        if (!disposed)
+        {
+            StateHasChanged();
+        }
+    });
 }

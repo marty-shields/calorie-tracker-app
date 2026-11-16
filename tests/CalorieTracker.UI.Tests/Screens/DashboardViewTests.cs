@@ -68,6 +68,7 @@ public class DashboardViewTests : ComponentTestBase
             Assert.That(Text(cut, "meal-lunch-calories"), Is.EqualTo("521 kcal"));
             Assert.That(Text(cut, "meal-dinner-none"), Is.EqualTo("Nothing logged"));
             Assert.That(cut.FindAll("[data-testid=meal-breakfast] ~ ul .row"), Has.Count.EqualTo(1));
+            Assert.That(Text(cut, "entry-4"), Does.Contain("200 ml"));
             Assert.That(Text(cut, "entry-1"), Does.StartWith("Porridge oats").And.Contain("40 g").And.EndWith("149"));
         });
     }
@@ -78,6 +79,19 @@ public class DashboardViewTests : ComponentTestBase
         var cut = Render(DashboardSamples.Loaded);
 
         Assert.That(Text(cut, "entry-2"), Does.Contain("1 serving · ½ pizza (201.8 g)"));
+    }
+
+    [TestCase(null, "1 serving · 40 g")]
+    [TestCase("  ", "1 serving · 40 g")]
+    public void AServingWithoutALabel_FallsBackToTheAmount(string? label, string expected)
+    {
+        var entry = new Core.Summary.SummaryEntry(9, 9, "Oats", null, FoodUnit.Gram, 40, 1, new(149, 4.4, 24, 3.4), label);
+        var meals = Enum.GetValues<Meal>().Select(m => new Core.Summary.MealSummary(m, m == Meal.Breakfast ? entry.Nutrition : Core.Summary.Nutrition.Zero, m == Meal.Breakfast ? [entry] : [])).ToList();
+        var day = DashboardSamples.Loaded with { Meals = meals };
+
+        var cut = Render(day);
+
+        Assert.That(Text(cut, "entry-9"), Does.Contain(expected));
     }
 
     [Test]

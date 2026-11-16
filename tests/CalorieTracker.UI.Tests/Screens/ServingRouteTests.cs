@@ -81,6 +81,20 @@ public class ServingRouteTests
     public void AfterAddTarget_IsTheReturnRouteOrTheDashboard(string? returnTo, string expected) =>
         Assert.That(ServingRoute.AfterAddTarget(returnTo), Is.EqualTo(expected));
 
+    [Test]
+    public void AfterAddTarget_WithADayAndNoReturnRoute_IsThatDayOnTheDashboard()
+    {
+        var day = new DateOnly(2031, 7, 4);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ServingRoute.AfterAddTarget(null, day), Is.EqualTo("/?date=2031-07-04"));
+            Assert.That(ServingRoute.AfterAddTarget("//evil", day), Is.EqualTo("/?date=2031-07-04"));
+            Assert.That(ServingRoute.AfterAddTarget("/foods", day), Is.EqualTo("/foods"));
+            Assert.That(ServingRoute.FollowUpFor(null), Is.EqualTo(AddedFollowUp.Undo));
+        });
+    }
+
     [TestCase("/foods", AddedFollowUp.ViewDay)]
     [TestCase(null, AddedFollowUp.Undo)]
     [TestCase("", AddedFollowUp.Undo)]

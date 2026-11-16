@@ -19,6 +19,9 @@ public sealed partial class DiaryService
         this.logger = logger;
     }
 
+    /// <summary>Raised, possibly on another thread, after an entry is added, changed, removed or restored, so a screen showing a day can read it again.</summary>
+    public event Action? Changed;
+
     /// <summary>The largest amount an entry can hold, in grams or millilitres.</summary>
     public const double MaxAmount = 10_000;
 
@@ -44,6 +47,7 @@ public sealed partial class DiaryService
             }
 
             Log.Added(logger, added.Id, foodId);
+            Changed?.Invoke();
             return DiaryResult.Ok(added);
         }
         catch (Exception)
@@ -101,6 +105,7 @@ public sealed partial class DiaryService
             }
 
             logged(logger, id);
+            Changed?.Invoke();
             return DiaryResult.Ok();
         }
         catch (Exception)

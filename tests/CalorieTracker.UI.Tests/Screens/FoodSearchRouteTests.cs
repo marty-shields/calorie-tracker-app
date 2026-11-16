@@ -52,6 +52,42 @@ public class FoodSearchRouteTests
     }
 
     [Test]
+    public void TheFoodsPage_BackGoesToTheDayWhenOneIsGiven()
+    {
+        var page = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Foods.razor");
+
+        Assert.That(page, Does.Contain("OnBack=\"@(() => Navigation.GoTo(date is { } day ? DashboardRoute.Url(day) : \"/\"))\""));
+    }
+
+    [Test]
+    public void TheServingPage_AfterAddGoesToTheGivenDayWithoutSettingReturnTo()
+    {
+        var serving = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Serving.razor");
+        var foods = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Foods.razor");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(serving, Does.Contain("ServingRoute.AfterAddTarget(ReturnTo, RouteDate.Parse(DateText))"));
+            Assert.That(foods, Does.Contain("ServingRoute.Url(request.Food.Id, preset, date, backTo:"));
+            Assert.That(foods, Does.Not.Contain("preset, date, returnTo"));
+        });
+    }
+
+    [Test]
+    public void TheHomePage_OpensTheDateQueryAndSendsAMealPlusToSearchForThatDay()
+    {
+        var home = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Home.razor");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(home, Does.Contain("[SupplyParameterFromQuery(Name = \"date\")]"));
+            Assert.That(home, Does.Contain("<DashboardPage Date=\"date\""));
+            Assert.That(home, Does.Contain("RouteDate.Parse(DateText)"));
+            Assert.That(home, Does.Contain("OnAdd=\"@(request => Navigation.GoTo(FoodSearchRoute.AddUrl(request.Meal, request.Date)))\""));
+        });
+    }
+
+    [Test]
     public void DashboardRoute_OpensTheDay() =>
         Assert.That(DashboardRoute.Url(new DateOnly(2031, 7, 4)), Is.EqualTo("/?date=2031-07-04"));
 
@@ -61,6 +97,6 @@ public class FoodSearchRouteTests
     [TestCase("2031-02-30", null)]
     [TestCase("", null)]
     [TestCase(null, null)]
-    public void DashboardRoute_ParsesTheDateQueryOrOpensToday(string? text, string? expected) =>
-        Assert.That(DashboardRoute.ParseDate(text)?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), Is.EqualTo(expected));
+    public void RouteDate_ParsesTheDateQueryOrGivesNull(string? text, string? expected) =>
+        Assert.That(RouteDate.Parse(text)?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), Is.EqualTo(expected));
 }

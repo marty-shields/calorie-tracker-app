@@ -1,8 +1,9 @@
+@using System.Globalization
 <div class="meal-header" data-testid="@TestId">
     <h2 class="name" data-testid="@($"{TestId}-name")" data-wrap-ok>@Name</h2>
     @if (Calories is not null)
     {
-        <span class="calories" data-testid="@($"{TestId}-calories")">@Calories kcal</span>
+        <span class="calories" data-testid="@($"{TestId}-calories")">@Calories.Value.ToString("N0", CultureInfo.InvariantCulture) kcal</span>
     }
     <IconButton Style="IconButtonStyle.Filled" Icon="IconName.Plus" AriaLabel="@($"Add to {Name}")" TestId="@($"{TestId}-add")" OnClick="OnAdd" />
 </div>
