@@ -1,6 +1,7 @@
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Foods;
+using CalorieTracker.Core.History;
 using CalorieTracker.Core.Seed;
 using CalorieTracker.Core.Summary;
 using CalorieTracker.Core.Targets;
@@ -33,6 +34,7 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<TargetStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<DiaryStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<DaySummaryStore>(provider, connection))
+            .AddSingleton(provider => ActivatorUtilities.CreateInstance<FoodHistoryStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<FoodStore>(provider, connection))
             .AddDecoratedSingleton<IDatabaseInitializer, GatedDatabaseInitializer>(provider =>
                 ActivatorUtilities.CreateInstance<DatabaseInitializer>(provider, connection))
@@ -58,6 +60,7 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<IFoodSearch, FoodSearch>()
             .AddSingleton(provider => new TargetService(provider.GetRequiredService<TargetStore>(), provider.GetRequiredService<ILogger<TargetService>>()))
             .AddSingleton(provider => new DiaryService(provider.GetRequiredService<DiaryStore>(), provider.GetRequiredService<ILogger<DiaryService>>()))
+            .AddSingleton(provider => new FoodHistoryService(provider.GetRequiredService<FoodHistoryStore>(), provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<FoodHistoryService>>()))
             .AddSingleton(provider => new DaySummaryService(provider.GetRequiredService<DaySummaryStore>(), provider.GetRequiredService<ILogger<DaySummaryService>>()))
             .AddSingleton<ISeedLoader>(provider =>
                 ActivatorUtilities.CreateInstance<SeedLoader>(provider, (Func<Stream>)SeedLoader.OpenBundledSeed))
