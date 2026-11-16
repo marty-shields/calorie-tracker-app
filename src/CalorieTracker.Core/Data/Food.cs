@@ -82,7 +82,7 @@ public class Food
     /// <summary>CoFID's food group code, such as "AA". Set for every CoFID food in the bundled seed; null for Open Food Facts foods and for removed CoFID foods kept for the diary.</summary>
     public string? FoodGroup { get; set; }
 
-    /// <summary>Lowercased text with accents removed that searches match against.</summary>
+    /// <summary>Lowercased text with accents removed, written when the food is saved. Ranking folds <see cref="Name"/> and <see cref="Brand"/> itself and does not read this.</summary>
     [NotNull]
     public string SearchText { get; set; } = "";
 }
