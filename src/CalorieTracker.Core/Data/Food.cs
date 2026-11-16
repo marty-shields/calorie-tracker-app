@@ -82,7 +82,34 @@ public class Food
     /// <summary>CoFID's food group code, such as "AA". Set for every CoFID food in the bundled seed; null for Open Food Facts foods and for removed CoFID foods kept for the diary.</summary>
     public string? FoodGroup { get; set; }
 
-    /// <summary>Lowercased text with accents removed, written when the food is saved. Ranking folds <see cref="Name"/> and <see cref="Brand"/> itself and does not read this.</summary>
+    /// <summary>Every brand Open Food Facts lists, such as "Ferrero, Nutella", joined with ", " in the source's order. <see cref="Brand"/> is the first. Null for CoFID and when none is listed.</summary>
+    public string? Brands { get; set; }
+
+    /// <summary>The product's generic name in the source's language, such as "Hazelnut And Cocoa Spread". Null when the source gives none.</summary>
+    public string? GenericName { get; set; }
+
+    /// <summary>The pack size as the source words it, such as "430 gram". Null when the source gives none.</summary>
+    public string? PackageLabel { get; set; }
+
+    /// <summary>The pack size in grams, or millilitres to match <see cref="Unit"/>. Above zero when set; null when the source's unit is not this food's unit.</summary>
+    public double? PackageAmount { get; set; }
+
+    /// <summary>The source's food group, such as "Sweets". Null when the source gives none or calls it unknown.</summary>
+    public string? Category { get; set; }
+
+    /// <summary>How many people have scanned the product on Open Food Facts; a measure of how well known it is. Null when the source gives none.</summary>
+    public int? Popularity { get; set; }
+
+    /// <summary>How complete the source's record is, from 0 to 1. Null when the source gives none.</summary>
+    public double? Completeness { get; set; }
+
+    /// <summary>When the source last changed the record (UTC). Null when the source gives none.</summary>
+    public DateTimeOffset? SourceUpdated { get; set; }
+
+    /// <summary>When the lookup that wrote the row ran (UTC). Null for CoFID and for an Open Food Facts food stored before this column existed, which is looked up again on its next scan.</summary>
+    public DateTimeOffset? FetchedAt { get; set; }
+
+    /// <summary>Lowercased text with accents removed, written when the food is saved. Ranking folds <see cref="Name"/>, <see cref="Brand"/>, <see cref="Brands"/>, <see cref="GenericName"/> and <see cref="Category"/> itself and does not read this.</summary>
     [NotNull]
     public string SearchText { get; set; } = "";
 }

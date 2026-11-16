@@ -4,7 +4,7 @@ namespace CalorieTracker.Core.Foods;
 
 /// <summary>
 /// Ranks foods against typed words in memory. A food matches when every word matches one of its words; the score decides the order.
-/// Main words are the name before its first bracket plus the brand; qualifier words are what is inside the brackets.
+/// Main words are the name before its first bracket plus every brand; qualifier words are what is inside the brackets plus the generic name and category.
 /// </summary>
 internal static class FoodRanker
 {
@@ -112,9 +112,18 @@ internal static class FoodRanker
         var nameMain = ToWords(bracket < 0 ? name : name[..bracket]);
         var qualifier = bracket < 0 ? [] : ToWords(name[bracket..]);
         var main = new List<Word>(nameMain);
-        if (!string.IsNullOrWhiteSpace(food.Brand))
+        var brands = string.IsNullOrWhiteSpace(food.Brands) ? food.Brand : food.Brands;
+        if (!string.IsNullOrWhiteSpace(brands))
         {
-            main.AddRange(ToWords(SearchFolding.Fold(food.Brand)));
+            main.AddRange(ToWords(SearchFolding.Fold(brands)));
+        }
+
+        foreach (var detail in new[] { food.GenericName, food.Category })
+        {
+            if (!string.IsNullOrWhiteSpace(detail))
+            {
+                qualifier.AddRange(ToWords(SearchFolding.Fold(detail)));
+            }
         }
 
         var head = nameMain.Count - 1;

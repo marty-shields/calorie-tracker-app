@@ -488,6 +488,60 @@ public class FoodSearchTests
         Assert.That(await Names("puree"), Is.EqualTo(new[] { "Purée" }));
     }
 
+    [Test]
+    public async Task Search_BrandsGenericNameAndCategory_FindTheStoredProduct()
+    {
+        await connection.InsertAsync(new Food
+        {
+            Source = FoodSource.OpenFoodFacts,
+            SourceId = "3017620422003",
+            Name = "Nutella",
+            Brand = "Ferrero",
+            Brands = "Ferrero, Nutella",
+            GenericName = "Hazelnut And Cocoa Spread",
+            Category = "Sweets",
+            Unit = FoodUnit.Gram,
+            Type = FoodType.Food,
+            SearchText = "nutella ferrero nutella hazelnut and cocoa spread sweets",
+        });
+        await connection.InsertAsync(new Food
+        {
+            Source = FoodSource.OpenFoodFacts,
+            SourceId = "5010029000023",
+            Name = "Original",
+            Brand = "Weetabix",
+            Brands = "Weetabix",
+            Category = "Breakfast cereals",
+            Unit = FoodUnit.Gram,
+            Type = FoodType.Food,
+            SearchText = "original weetabix breakfast cereals",
+        });
+
+        Assert.That(await Names("ferrero"), Is.EqualTo(new[] { "Nutella" }));
+        Assert.That(await Names("nutella"), Is.EqualTo(new[] { "Nutella" }));
+        Assert.That(await Names("hazelnut"), Is.EqualTo(new[] { "Nutella" }));
+        Assert.That(await Names("hazelnut spread"), Is.EqualTo(new[] { "Nutella" }));
+        Assert.That(await Names("cereal"), Is.EqualTo(new[] { "Original" }));
+    }
+
+    [Test]
+    public async Task Search_ASecondaryBrand_FindsTheProductThroughBrandsNotBrand()
+    {
+        await connection.InsertAsync(new Food
+        {
+            Source = FoodSource.OpenFoodFacts,
+            SourceId = "5000159407236",
+            Name = "Bar",
+            Brand = "Mars",
+            Brands = "Mars, Mars Wrigley",
+            Unit = FoodUnit.Gram,
+            Type = FoodType.Food,
+            SearchText = "",
+        });
+
+        Assert.That(await Names("wrigley"), Is.EqualTo(new[] { "Bar" }));
+    }
+
     private async Task<List<string>> Names(string query, FoodType? type = null) =>
         (await search.SearchAsync(query, type)).Foods.Select(f => f.Name).ToList();
 
