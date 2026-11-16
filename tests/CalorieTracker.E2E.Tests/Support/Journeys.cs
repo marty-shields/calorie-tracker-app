@@ -12,6 +12,7 @@ public sealed class Journeys(WebView web, Native native, DashboardScreen dashboa
         Settings,
         Foods,
         Scan,
+        AddFood,
         Other,
     }
 
@@ -22,6 +23,7 @@ public sealed class Journeys(WebView web, Native native, DashboardScreen dashboa
         SettingsScreen.Title => Screen.Settings,
         FoodSearchScreen.Title => Screen.Foods,
         ScanScreen.Title => Screen.Scan,
+        var title when FoodSearchScreen.IsAddTitle(title) => Screen.AddFood,
         _ => Screen.Other,
     };
 

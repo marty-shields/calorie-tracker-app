@@ -1,6 +1,6 @@
 namespace CalorieTracker.E2E.Tests.Screens;
 
-/// <summary>The Dashboard: its empty state, the navigation bar and the Settings gear.</summary>
+/// <summary>The Dashboard: the date strip, the day's totals, the meals, the navigation bar and the Settings gear.</summary>
 public sealed class DashboardScreen(WebView web)
 {
     public const string Title = "Calorie Tracker";
@@ -12,7 +12,54 @@ public sealed class DashboardScreen(WebView web)
         return web.Text("dashboard-empty-message");
     }
 
+    private static string Meal(string meal) => meal.ToLowerInvariant();
+
+    /// <summary>Taps a meal's + and waits for search to open in add mode for it.</summary>
+    public void AddTo(string meal)
+    {
+        web.Tap($"meal-{Meal(meal)}-add");
+        web.WaitUntil(() => web.Exists("screen-title") && web.Text("screen-title") == $"Add to {meal}", $"search for {meal} didn't show");
+    }
+
+    public bool HasAddButton(string meal) => web.Exists($"meal-{Meal(meal)}-add");
+
+    /// <summary>The number of entries listed under a meal.</summary>
+    public int EntryCount(string meal) => web.FindAll($"[data-testid=\"meal-{Meal(meal)}\"] ~ ul > li").Count;
+
+    /// <summary>The meal's total, such as "125 kcal"; null while it has no entries.</summary>
+    public string? MealTotal(string meal) => web.Exists($"meal-{Meal(meal)}-calories") ? web.Text($"meal-{Meal(meal)}-calories") : null;
+
+    /// <summary>The calories eaten on the day, as the card shows them.</summary>
+    public string Eaten() => web.Text("dashboard-eaten");
+
+    /// <summary>The ring's caption: "kcal left", "kcal over" or "kcal eaten".</summary>
+    public string RingLabel() => web.Text("dashboard-ring-label");
+
+    public string? NoTargetText() => web.Exists("dashboard-no-target") ? web.Text("dashboard-no-target") : null;
+
+    public void SetTarget() => web.Tap("dashboard-set-target");
+
+    public string DateLabel() => web.Text("date-strip-label");
+
+    public void NextDay() => web.Tap("date-strip-next");
+
+    public void ToToday() => web.Tap("date-strip-label");
+
     public bool HasStartupError() => web.Exists("startup-error");
 
     public void OpenSettings() => web.Tap("settings");
+
+    /// <summary>The entries listed under a meal, each as its row text (name, amount and calories).</summary>
+    public IReadOnlyList<string> Entries(string meal) =>
+        web.FindAll($"[data-testid=\"meal-{Meal(meal)}\"] ~ ul > li").Select(row => row.Text).ToList();
+
+    /// <summary>Taps the first entry under a meal and waits for Serving in edit mode.</summary>
+    public void OpenEntry(string meal)
+    {
+        web.FindAll($"[data-testid=\"meal-{Meal(meal)}\"] ~ ul > li button").First().Click();
+        web.WaitUntil(() => web.Exists("serving-save"), "the Serving screen didn't open in edit mode");
+    }
+
+    /// <summary>The calories eaten on the day as a number.</summary>
+    public int EatenKcal() => int.Parse(Eaten().Replace(",", "", StringComparison.Ordinal), System.Globalization.CultureInfo.InvariantCulture);
 }

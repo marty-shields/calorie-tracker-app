@@ -60,6 +60,7 @@ public static class CoreServiceCollectionExtensions
         services
             .AddSingleton(TimeProvider.System)
             .AddSingleton<IFoodSearch, FoodSearch>()
+            .AddSingleton(provider => new FoodService(provider.GetRequiredService<FoodStore>(), provider.GetRequiredService<ILogger<FoodService>>()))
             .AddSingleton(provider => new TargetService(provider.GetRequiredService<TargetStore>(), provider.GetRequiredService<ILogger<TargetService>>()))
             .AddSingleton(provider => new DiaryService(provider.GetRequiredService<DiaryStore>(), provider.GetRequiredService<ILogger<DiaryService>>()))
             .AddSingleton(provider => new FoodHistoryService(provider.GetRequiredService<FoodHistoryStore>(), provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<FoodHistoryService>>()))

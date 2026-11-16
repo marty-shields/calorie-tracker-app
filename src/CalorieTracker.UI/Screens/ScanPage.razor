@@ -1,9 +1,13 @@
-<ScanView State="state" Product="product" OnScanAgain="RunScanAsync" OnNavigate="OnNavigate" />
+<ScanView State="state" Product="product" OnScanAgain="RunScanAsync" OnAddToDiary="AddToDiaryAsync" OnSearchByName="SearchByNameAsync" OnNavigate="OnNavigate" />
 
 @code {
     /// <summary>Raised when the camera is closed without a barcode.</summary>
     [Parameter]
     public EventCallback OnBack { get; set; }
+
+    /// <summary>Raised with the id of the scanned food when Add to diary is tapped.</summary>
+    [Parameter]
+    public EventCallback<int> OnAddToDiary { get; set; }
 
     /// <summary>Raised with the destination tapped in the bottom navigation bar, or with the start screen on Android back.</summary>
     [Parameter]

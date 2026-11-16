@@ -6,6 +6,14 @@
             <h2 class="heading">Appearance</h2>
             <SegmentedControl TValue="ThemePreference" Label="Theme" Options="Themes" Value="Theme" ValueChanged="OnThemeChanged" TestId="theme" />
         </section>
+        <section class="section">
+            <h2 class="heading">Daily target</h2>
+            <NumberField Label="Calories per day" Unit="kcal" Value="Target" ValueChanged="OnTargetChanged" TextChanged="OnTargetTextChanged" InvalidMessage="@TargetInvalidMessage" TestId="settings-target" />
+            @if (string.IsNullOrEmpty(TargetInvalidMessage))
+            {
+                <p class="hint" data-testid="settings-target-hint">Shown on the dashboard. Leave it empty for no target.</p>
+            }
+        </section>
         @if (Version is not null)
         {
             <p class="version" data-testid="app-version">Version @Version</p>
@@ -25,6 +33,22 @@
     /// <summary>Raised with the theme tapped in Appearance.</summary>
     [Parameter]
     public EventCallback<ThemePreference> OnThemeChanged { get; set; }
+
+    /// <summary>What the Daily target field shows, in kcal. Null is an empty field, meaning no target.</summary>
+    [Parameter]
+    public decimal? Target { get; set; }
+
+    /// <summary>Shown in the error tone under the Daily target field in place of the helper text. Null or empty means the field is valid.</summary>
+    [Parameter]
+    public string? TargetInvalidMessage { get; set; }
+
+    /// <summary>Raised on every change to the Daily target field with its number; null when it was emptied or holds text that isn't a number.</summary>
+    [Parameter]
+    public EventCallback<decimal?> OnTargetChanged { get; set; }
+
+    /// <summary>Raised on every keystroke in the Daily target field with the typed text, just before <see cref="OnTargetChanged"/>.</summary>
+    [Parameter]
+    public EventCallback<string> OnTargetTextChanged { get; set; }
 
     /// <summary>Raised by the back arrow and the Android back button.</summary>
     [Parameter]

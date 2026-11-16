@@ -1,21 +1,89 @@
 @using Microsoft.Extensions.Logging
 @using CalorieTracker.Core.Services
+@using CalorieTracker.Core.Targets
 @using CalorieTracker.UI.Models.Settings
 @using CalorieTracker.UI.Theme
 @inject IAppEnvironment HostEnvironment
 @inject ThemeService Themes
+@inject TargetService Targets
 @inject ILogger<SettingsPage> Logger
 
-<SettingsView Theme="theme" Version="@HostEnvironment.AppVersion" OnThemeChanged="SetThemeAsync" OnBack="OnBack" />
+<SettingsView Theme="theme" Target="target" TargetInvalidMessage="@targetInvalidMessage" OnTargetChanged="SetTargetAsync" OnTargetTextChanged="text => typedText = text" Version="@HostEnvironment.AppVersion" OnThemeChanged="SetThemeAsync" OnBack="OnBack" />
 
 @code {
+    private const string InvalidTargetMessage = "Enter a whole number above 0, or clear the field.";
+
     private ThemePreference theme;
+    private decimal? target;
+    private int? savedTarget;
+    private string? targetInvalidMessage;
+    private string typedText = "";
+    private int saveSequence;
 
     /// <summary>Raised by the back arrow and the Android back button.</summary>
     [Parameter]
     public EventCallback OnBack { get; set; }
 
-    protected override async Task OnInitializedAsync() => theme = await LoadThemeAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        theme = await LoadThemeAsync();
+        var loaded = await Targets.GetAsync();
+        if (loaded.Status == TargetStatus.Ok)
+        {
+            savedTarget = loaded.Kcal;
+            target = loaded.Kcal;
+        }
+        else
+        {
+            Log.TargetLoadFailed(Logger);
+        }
+    }
+
+    /// <summary>
+    /// Saves what the field now holds, or clears the target when it is empty. A number the target can't be (zero, negative, fractional or above the cap)
+    /// and text that isn't a number both save nothing, keep what was typed and show the message. A failed save puts the last saved target back in the field.
+    /// Saves overlap while typing, so only the newest call changes what the screen shows; an older one still records a target it saved.
+    /// </summary>
+    private async Task SetTargetAsync(decimal? typed)
+    {
+        var sequence = ++saveSequence;
+        // Show what was typed while the call runs, so putting the saved target back below is a change the field picks up.
+        target = typed;
+        if (typed is null && !string.IsNullOrWhiteSpace(typedText))
+        {
+            targetInvalidMessage = InvalidTargetMessage;
+            return;
+        }
+
+        // Let the screen render what was typed before the call can finish. A call that fails before any render would otherwise leave the field
+        // showing the typed text, because putting the saved target back is then no change from what the field last received.
+        await Task.Yield();
+        var result = typed is { } kcal ? await Targets.SaveAsync((double)kcal) : await Targets.ClearAsync();
+        if (result.Status == TargetStatus.Ok)
+        {
+            savedTarget = result.Kcal;
+        }
+
+        if (sequence != saveSequence)
+        {
+            return;
+        }
+
+        switch (result.Status)
+        {
+            case TargetStatus.Ok:
+                targetInvalidMessage = null;
+                break;
+            case TargetStatus.Invalid:
+                targetInvalidMessage = InvalidTargetMessage;
+                break;
+            default:
+                target = savedTarget;
+                targetInvalidMessage = null;
+                Log.TargetSaveFailed(Logger);
+                break;
+        }
+    }
 
     /// <summary>The saved theme, or System when it can't be read.</summary>
     private async Task<ThemePreference> LoadThemeAsync()

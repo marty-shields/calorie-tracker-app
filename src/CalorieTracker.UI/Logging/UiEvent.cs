@@ -39,6 +39,12 @@ internal enum UiEvent
     /// <summary><see cref="Screens.SettingsPage"/>: storage refused the chosen theme, so it is lost at the next start.</summary>
     ThemeNotSaved = 3405,
 
+    /// <summary><see cref="Screens.SettingsPage"/>: reading the daily target failed, so the field shows empty.</summary>
+    TargetLoadFailed = 3406,
+
+    /// <summary><see cref="Screens.SettingsPage"/>: saving or clearing the daily target failed, so the last saved one stays.</summary>
+    TargetSaveFailed = 3407,
+
     /// <summary><see cref="Screens.FoodSearchPage"/>: the search waited for the food seed, with how it ended.</summary>
     FoodSeedWaited = 3501,
 
@@ -58,6 +64,12 @@ internal enum UiEvent
 
     /// <summary><see cref="Components.Inputs.NumberField"/>: focusing the field when it first showed failed.</summary>
     NumberFieldFocusFailed = 3701,
+
+    /// <summary><see cref="Screens.ServingPage"/>: Undo could not remove the entry just added, with the status.</summary>
+    UndoFailed = 3801,
+
+    /// <summary><see cref="Screens.ServingPage"/>: Undo could not restore the entry just removed, with the status.</summary>
+    RestoreFailed = 3802,
 
     /// <summary><see cref="Components.Layout.AppScreen"/>: setting up pull to refresh failed, so the screen can't be pulled.</summary>
     PullRefreshFailed = 4001,

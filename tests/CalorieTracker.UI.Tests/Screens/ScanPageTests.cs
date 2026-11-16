@@ -188,7 +188,7 @@ public class ScanPageTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
         {
-            Assert.That(cut.Find("[data-testid=scan-not-found]").TextContent, Is.EqualTo("Unable to find this product"));
+            Assert.That(cut.Find("[data-testid=scan-not-found-message]").TextContent, Is.EqualTo("Unable to find this product"));
             Assert.That(cut.FindAll("[data-testid=scan-again]"), Has.Count.EqualTo(1));
         });
     }
@@ -393,6 +393,83 @@ public class ScanPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task Found_WithAStoredFood_AddToDiaryRaisesOnAddToDiaryWithItsId()
+    {
+        var food = Product("Digestive biscuits", "Morning Mill", FoodUnit.Gram, 480, 7, 62, 22);
+        (food.Id, food.ServingLabel, food.ServingAmount) = (42, "1 biscuit", 15);
+        lookup.Result = BarcodeLookupResult.Found(food);
+        var added = new List<int>();
+        var cut = await ScannedAsync(p => p.Add(x => x.OnAddToDiary, added.Add));
+
+        cut.WaitForAssertion(() => Assert.That(cut.Find("[data-testid=scan-serving]").TextContent, Is.EqualTo("Serving: 1 biscuit (15 g)")));
+        cut.Find("[data-testid=scan-add]").Click();
+
+        Assert.That(added, Is.EqualTo(new[] { 42 }));
+    }
+
+    [Test]
+    public async Task Found_WithAFoodThatWasNotSaved_OffersNoAddToDiary()
+    {
+        lookup.Result = BarcodeLookupResult.Found(Product("Porridge oats", null, FoodUnit.Gram, 372, 11, 60, 8));
+        var cut = await ScannedAsync();
+
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-product]"), Has.Count.EqualTo(1)));
+        Assert.That(cut.FindAll("[data-testid=scan-add]"), Is.Empty);
+    }
+
+    [Test]
+    public async Task NotFound_SearchByName_OpensTheFoodsTab()
+    {
+        lookup.Result = BarcodeLookupResult.NotFound();
+        var navigated = new List<NavDestination>();
+        var cut = await ScannedAsync(p => p.Add(x => x.OnNavigate, navigated.Add));
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-search]"), Has.Count.EqualTo(1)));
+
+        cut.Find("[data-testid=scan-search]").Click();
+
+        Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Foods }));
+    }
+
+    [TestCase("", 15.0)]
+    [TestCase("  ", 15.0)]
+    [TestCase("x", 0.0)]
+    [TestCase("x", -1.0)]
+    [TestCase("x", double.NaN)]
+    [TestCase("x", FoodService.MaxServingAmount + 1)]
+    [TestCase("this label is far longer than sixty characters, so it is dropped altogether", 15.0)]
+    public void ToProduct_ServingOutOfRange_IsLeftOut(string label, double amount)
+    {
+        var food = Product("Biscuits", null, FoodUnit.Gram, 480, 7, 62, 22);
+        (food.ServingLabel, food.ServingAmount) = (label, amount);
+
+        var product = ScanPage.ToProduct(food)!;
+
+        Assert.That((product.ServingLabel, product.ServingAmount), Is.EqualTo(((string?)null, (decimal?)null)));
+    }
+
+    [Test]
+    public void ToProduct_ServingAtTheLimits_IsKeptTrimmed()
+    {
+        var food = Product("Biscuits", null, FoodUnit.Gram, 480, 7, 62, 22);
+        (food.ServingLabel, food.ServingAmount) = ($" {new string('a', FoodService.MaxServingLabelLength)} ", FoodService.MaxServingAmount);
+
+        var product = ScanPage.ToProduct(food)!;
+
+        Assert.That((product.ServingLabel, product.ServingAmount), Is.EqualTo((new string('a', FoodService.MaxServingLabelLength), (decimal?)10_000)));
+    }
+
+    [Test]
+    public void ToProduct_NutrientAboveTheCapOrNegative_IsLeftOut()
+    {
+        var food = Product("Biscuits", null, FoodUnit.Gram, 480, 7, 62, 22);
+        (food.FibreG, food.SugarsG, food.SaturatesG, food.SaltG) = (FoodService.MaxNutrientPer100 + 1, -1, FoodService.MaxNutrientPer100, 0);
+
+        var product = ScanPage.ToProduct(food)!;
+
+        Assert.That((product.Fibre, product.Sugars, product.Saturates, product.Salt), Is.EqualTo(((decimal?)null, (decimal?)null, (decimal?)100, (decimal?)0)));
+    }
+
+    [Test]
     public async Task ScanAgain_StartsANewScan()
     {
         lookup.Result = BarcodeLookupResult.NotFound();
@@ -435,7 +512,7 @@ public class ScanPageTests : ComponentTestBase
         var cut = Context.Render<ScanPage>(p => p.Add(x => x.OnNavigate, navigated.Add));
         await WaitForRendererAsync();
 
-        cut.Find("[data-testid=dashboard-link]").Click();
+        await cut.Find("[data-testid=dashboard-link]").ClickAsync(new());
 
         Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Dashboard }));
     }
@@ -455,21 +532,27 @@ public class ScanPageTests : ComponentTestBase
     [Test]
     public async Task Logs_TheBarcodeAndStatus_ButNeverTheProductNameOrBrand()
     {
-        lookup.Result = BarcodeLookupResult.Found(Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8));
-        await ScannedAsync();
+        var food = Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8);
+        (food.Id, food.ServingLabel, food.ServingAmount) = (42, "1 bowl", 40);
+        lookup.Result = BarcodeLookupResult.Found(food);
+        var cut = await ScannedAsync();
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-add]"), Has.Count.EqualTo(1)));
+        cut.Find("[data-testid=scan-add]").Click();
+        cut.Find("[data-testid=scan-again]").Click();
 
         var lines = logger.Collector.GetSnapshot().Select(r => r.Message).ToList();
         Assert.Multiple(() =>
         {
             Assert.That(LoggedEvents.Of(logger).Select(e => e.Item1), Is.EqualTo(new[] { UiEvent.ScanLookupStarted, UiEvent.ScanLookupFinished }));
+            Assert.That(lines, Has.None.Contain("bowl"));
             Assert.That(lines, Has.Some.Contain(Barcode));
             Assert.That(lines, Has.None.Contain("Porridge").And.None.Contain("Morning Mill"));
         });
     }
 
-    private async Task<IRenderedComponent<ScanPage>> ScannedAsync()
+    private async Task<IRenderedComponent<ScanPage>> ScannedAsync(Action<ComponentParameterCollectionBuilder<ScanPage>>? parameters = null)
     {
-        var cut = Context.Render<ScanPage>();
+        var cut = Context.Render<ScanPage>(parameters ?? (_ => { }));
         scanner.Detect(Barcode);
         await WaitForRendererAsync();
         scanner.Complete(ScanResult.Scanned(Barcode));

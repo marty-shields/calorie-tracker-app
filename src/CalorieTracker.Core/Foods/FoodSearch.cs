@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CalorieTracker.Core.Foods;
 
-/// <summary>Splits the typed text into folded words and ranks the food table by <see cref="FoodRanker"/>. A failing store gives <see cref="FoodSearchStatus.Failed"/>, never an exception.</summary>
+/// <summary>Splits the typed text into folded words and ranks the food table by <see cref="FoodRanker"/>. Each food comes back bounded like <see cref="FoodService.GetAsync"/> (serving and optional nutrients out of range are dropped). A failing store gives <see cref="FoodSearchStatus.Failed"/>, never an exception.</summary>
 internal sealed partial class FoodSearch(FoodStore store, ILogger<FoodSearch> logger) : IFoodSearch
 {
     private const int MaxTerms = 10;
@@ -24,6 +24,11 @@ internal sealed partial class FoodSearch(FoodStore store, ILogger<FoodSearch> lo
         {
             var foods = await store.ListAsync(type, ct).WaitAsync(ct);
             var ranked = FoodRanker.Rank(foods, terms, Math.Clamp(limit, 1, IFoodSearch.MaxLimit));
+            foreach (var food in ranked)
+            {
+                FoodService.Bound(food);
+            }
+
             Log.Searched(logger, terms.Count, ranked.Count);
             return FoodSearchResult.Found(ranked);
         }

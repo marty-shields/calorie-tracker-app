@@ -40,6 +40,25 @@ public class DiaryServiceTests
     }
 
     [Test]
+    public async Task Changed_IsRaisedOnlyWhenAnEntryChanges()
+    {
+        var raised = 0;
+        service.Changed += () => raised++;
+
+        var added = await service.AddAsync(Day, Meal.Lunch, foodId, 150);
+        await service.UpdateAsync(added.Entry!.Id, Day, Meal.Dinner, 200);
+        await service.RemoveAsync(added.Entry.Id);
+        await service.RestoreAsync(added.Entry.Id);
+        Assert.That(raised, Is.EqualTo(4));
+
+        await service.AddAsync(Day, Meal.Lunch, foodId, -1);
+        await service.AddAsync(Day, Meal.Lunch, foodId + 99, 10);
+        await service.RestoreAsync(added.Entry.Id);
+        await service.RemoveAsync(added.Entry.Id + 99);
+        Assert.That(raised, Is.EqualTo(4));
+    }
+
+    [Test]
     public async Task AddListUpdateRemoveRestore_RoundTrip()
     {
         var added = await service.AddAsync(Day, Meal.Lunch, foodId, 150, 1.5);

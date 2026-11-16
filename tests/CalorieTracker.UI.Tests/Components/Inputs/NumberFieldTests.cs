@@ -42,6 +42,35 @@ public class NumberFieldTests : ComponentTestBase
     }
 
     [Test]
+    public void Typing_RaisesTextChangedWithTheRawTextBeforeValueChanged()
+    {
+        var events = new List<string>();
+        var cut = Render(p => p
+            .Add(x => x.TextChanged, (string t) => events.Add($"text:{t}"))
+            .Add(x => x.ValueChanged, (decimal? v) => events.Add($"value:{v?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null"}")));
+
+        cut.Find("[data-testid=num]").Input("12,5");
+        cut.Find("[data-testid=num]").Input("abc");
+
+        Assert.That(events, Is.EqualTo(new[] { "text:12,5", "value:12.5", "text:abc", "value:null" }));
+    }
+
+    [Test]
+    public void Stepper_DoesNotRaiseTextChanged()
+    {
+        var texts = new List<string>();
+        var cut = Render(p => p
+            .Add(x => x.Stepper, true)
+            .Add(x => x.Value, 5m)
+            .Add(x => x.TextChanged, (string t) => texts.Add(t)));
+
+        cut.Find("[data-testid=num-plus]").Click();
+        cut.Find("[data-testid=num-minus]").Click();
+
+        Assert.That(texts, Is.Empty);
+    }
+
+    [Test]
     public void Typing_KeepsTheTypedTextWhileTheParentTakesTheNumber()
     {
         decimal? value = null;

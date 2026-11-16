@@ -3,6 +3,7 @@ using CalorieTracker.Core.Foods;
 using CalorieTracker.UI.Logging;
 using CalorieTracker.UI.Models.Scan;
 using CalorieTracker.UI.Models.Settings;
+using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Scanning;
 using CalorieTracker.UI.Theme;
 using Microsoft.AspNetCore.Components;
@@ -122,9 +123,30 @@ public partial class ScanPage : IDisposable
         return false;
     }
 
-    /// <summary>Null when the source has no value or it is not a real one: the row is left out rather than losing the product.</summary>
-    private static decimal? ToOptionalDecimal(double? value) =>
-        value is { } number && TryToDecimal(number, out var result) ? result : null;
+    /// <summary>
+    /// The product to show, or null when a main value cannot be shown. The scan reads the food straight from the lookup, not through <c>FoodService.GetAsync</c>, so the serving and optional nutrients are
+    /// bounded here with the same limits (<c>FoodService.Max*</c>): out of range, they are left out. The Serving screen reads the food again by id and bounds it itself.
+    /// </summary>
+    internal static ScannedProduct? ToProduct(Food food)
+    {
+        if (!TryToDecimal(food.Kcal, out var kcal) || !TryToDecimal(food.ProteinG, out var protein)
+            || !TryToDecimal(food.CarbsG, out var carbs) || !TryToDecimal(food.FatG, out var fat))
+        {
+            return null;
+        }
+
+        var hasServing = FoodService.TryBoundServing(food.ServingLabel, food.ServingAmount, out var label, out var servingAmount);
+        return new ScannedProduct(food.Name, food.Brand, kcal, protein, carbs, fat, food.Unit == FoodUnit.Millilitre,
+            ToNutrient(food.FibreG), ToNutrient(food.SugarsG), ToNutrient(food.SaturatesG), ToNutrient(food.SaltG),
+            food.Id > 0 ? food.Id : null, hasServing ? label : null, hasServing ? (decimal)servingAmount : null);
+    }
+
+    private static decimal? ToNutrient(double? value) =>
+        FoodService.BoundNutrient(value) is { } number ? (decimal)number : null;
+
+    private Task AddToDiaryAsync() => product?.FoodId is { } id ? OnAddToDiary.InvokeAsync(id) : Task.CompletedTask;
+
+    private Task SearchByNameAsync() => OnNavigate.InvokeAsync(NavDestination.Foods);
 
     private async Task LookUpAsync(string barcode, CancellationToken token)
     {
@@ -149,14 +171,9 @@ public partial class ScanPage : IDisposable
 
         Log.LookupFinished(Logger, barcode, result.Status);
         product = null;
-        if (result is { Status: BarcodeLookupStatus.Found, Food: { } food }
-            && TryToDecimal(food.Kcal, out var kcal)
-            && TryToDecimal(food.ProteinG, out var protein)
-            && TryToDecimal(food.CarbsG, out var carbs)
-            && TryToDecimal(food.FatG, out var fat))
+        if (result is { Status: BarcodeLookupStatus.Found, Food: { } food } && ToProduct(food) is { } mapped)
         {
-            product = new ScannedProduct(food.Name, food.Brand, kcal, protein, carbs, fat, food.Unit == FoodUnit.Millilitre,
-                ToOptionalDecimal(food.FibreG), ToOptionalDecimal(food.SugarsG), ToOptionalDecimal(food.SaturatesG), ToOptionalDecimal(food.SaltG));
+            product = mapped;
             state = ScanState.Found;
         }
         else

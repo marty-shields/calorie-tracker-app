@@ -1,20 +1,152 @@
-<AppScreen Title="Calorie Tracker" Destination="NavDestination.Dashboard" OnNavigate="OnNavigate">
+@using System.Globalization
+@using CalorieTracker.Core.Data
+@using CalorieTracker.Core.Summary
+@using CalorieTracker.UI.Components.Charts
+@using CalorieTracker.UI.Components.Feedback
+@using CalorieTracker.UI.Components.Inputs
+<AppScreen Title="Calorie Tracker" Destination="NavDestination.Dashboard" OnNavigate="OnNavigate" Status="Notice">
     <Actions>
         <IconButton Icon="IconName.Settings" AriaLabel="Settings" TestId="settings" OnClick="OnSettings" />
     </Actions>
     <ChildContent>
-        <div class="centre">
-            <EmptyState Message="Nothing here yet" TestId="dashboard-empty" />
+        <div class="body">
+            <DateStrip Date="Date" Today="Today" OnPrevious="OnPrevious" OnNext="OnNext" OnToday="OnToday" />
+            @if (LoadFailed)
+            {
+                <LoadFailed Message="Couldn't load this day" TestId="dashboard-load-failed" OnRetry="OnRetry" />
+            }
+            else if (Loading || Summary is not { } summary)
+            {
+                <div class="centre">
+                    <Spinner Label="Loading…" TestId="dashboard-loading" />
+                </div>
+            }
+            else
+            {
+                var logged = summary.Meals.Any(m => m.Entries.Count > 0);
+                <SummaryCard TestId="dashboard-card">
+                    <div class="card">
+                        <CalorieRing Eaten="summary.Totals.Kcal" Target="summary.TargetKcal" TestId="dashboard-ring" />
+                        <div class="figures">
+                            <p class="figure">Eaten <strong data-testid="dashboard-eaten">@Number(summary.Totals.Kcal)</strong></p>
+                            @if (summary.TargetKcal is { } target)
+                            {
+                                <p class="figure">Target <strong data-testid="dashboard-target">@Number(target)</strong></p>
+                            }
+                            else
+                            {
+                                <p class="figure" data-testid="dashboard-no-target" data-wrap-ok>No target set</p>
+                                <AppButton Variant="ButtonVariant.Secondary" TestId="dashboard-set-target" OnClick="OnSettings">Set one in Settings</AppButton>
+                            }
+                        </div>
+                    </div>
+                </SummaryCard>
+                @if (logged)
+                {
+                    <EnergyShareBar Protein="summary.Totals.ProteinG" Carbs="summary.Totals.CarbsG" Fat="summary.Totals.FatG" TestId="dashboard-share" />
+                }
+                else
+                {
+                    <EmptyState Message="@(Date == Today ? "Nothing logged today" : "Nothing logged this day")" Hint="Tap + on a meal to add your first food." TestId="dashboard-empty" />
+                }
+                @foreach (var meal in summary.Meals)
+                {
+                    var id = $"meal-{meal.Meal.ToString().ToLowerInvariant()}";
+                    <section class="meal">
+                        <MealHeader Name="@meal.Meal.ToString()" Calories="@(meal.Entries.Count > 0 ? meal.Totals.Kcal : null)" TestId="@id" OnAdd="@(() => OnAdd.InvokeAsync(new MealAddRequest(meal.Meal, Date)))" />
+                        @if (meal.Entries.Count > 0)
+                        {
+                            <ul class="entries">
+                                @foreach (var entry in meal.Entries)
+                                {
+                                    <li><ListRow Text="@entry.Name" Detail="@EntryDetail(entry)" Aside="@Number(entry.Nutrition.Kcal)" TestId="@($"entry-{entry.EntryId}")" OnClick="@EditTap(entry, meal.Meal)" /></li>
+                                }
+                            </ul>
+                        }
+                        else if (logged)
+                        {
+                            <p class="none" data-testid="@($"{id}-none")">Nothing logged</p>
+                        }
+                    </section>
+                }
+            }
         </div>
     </ChildContent>
 </AppScreen>
 
 @code {
+    private RenderFragment Notice => @<Snackbar />;
+
+    /// <summary>The row's tap, or none when nothing handles <see cref="OnEdit"/>, so the row isn't tappable.</summary>
+    private EventCallback EditTap(SummaryEntry entry, Meal meal) =>
+        OnEdit.HasDelegate ? EventCallback.Factory.Create(this, () => OnEdit.InvokeAsync(new EntryEditRequest(entry, meal, Date))) : default;
+
+    /// <summary>The day on the date strip.</summary>
+    [Parameter]
+    public DateOnly Date { get; set; }
+
+    /// <summary>Today, for the date strip's labels.</summary>
+    [Parameter]
+    public DateOnly Today { get; set; }
+
+    /// <summary>The day's summary. The day is not shown until it is set, or <see cref="LoadFailed"/> is.</summary>
+    [Parameter]
+    public DaySummary? Summary { get; set; }
+
+    /// <summary>The day is being read.</summary>
+    [Parameter]
+    public bool Loading { get; set; }
+
+    /// <summary>The day could not be read, whatever the reason.</summary>
+    [Parameter]
+    public bool LoadFailed { get; set; }
+
+    /// <summary>Raised by the date strip's previous arrow.</summary>
+    [Parameter]
+    public EventCallback OnPrevious { get; set; }
+
+    /// <summary>Raised by the date strip's next arrow.</summary>
+    [Parameter]
+    public EventCallback OnNext { get; set; }
+
+    /// <summary>Raised by the date strip's label, to return to today.</summary>
+    [Parameter]
+    public EventCallback OnToday { get; set; }
+
+    /// <summary>Raised by a meal's +.</summary>
+    [Parameter]
+    public EventCallback<MealAddRequest> OnAdd { get; set; }
+
+    /// <summary>Raised by a tapped entry, to change or remove it.</summary>
+    [Parameter]
+    public EventCallback<EntryEditRequest> OnEdit { get; set; }
+
+    /// <summary>Raised by Try again.</summary>
+    [Parameter]
+    public EventCallback OnRetry { get; set; }
+
     /// <summary>Raised with the destination tapped in the bottom navigation bar.</summary>
     [Parameter]
     public EventCallback<NavDestination> OnNavigate { get; set; }
 
-    /// <summary>Raised by the Settings gear.</summary>
+    /// <summary>Raised by the Settings gear and by Set one in Settings.</summary>
     [Parameter]
     public EventCallback OnSettings { get; set; }
+
+    private static string Number(int value) => value.ToString("N0", CultureInfo.InvariantCulture);
+
+    private static string Count(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+
+    /// <summary>The amount, or for an entry added by servings "1 serving · the food's label".</summary>
+    private static string EntryDetail(SummaryEntry entry)
+    {
+        var amount = $"{Count(entry.Amount)} {(entry.Unit == FoodUnit.Millilitre ? "ml" : "g")}";
+        if (entry.Servings is not { } servings)
+        {
+            return amount;
+        }
+
+        var servingText = $"{Count(servings)} {(Math.Abs(servings - 1) < 0.005 ? "serving" : "servings")}";
+        return $"{servingText} · {(string.IsNullOrWhiteSpace(entry.ServingLabel) ? amount : entry.ServingLabel)}";
+    }
 }

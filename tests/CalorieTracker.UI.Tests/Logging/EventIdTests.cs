@@ -36,12 +36,16 @@ public partial class EventIdTests
             [UiEvent.ThemeLoadFailed] = 3403,
             [UiEvent.ThemeSaveFailed] = 3404,
             [UiEvent.ThemeNotSaved] = 3405,
+            [UiEvent.TargetLoadFailed] = 3406,
+            [UiEvent.TargetSaveFailed] = 3407,
             [UiEvent.FoodSeedWaited] = 3501,
             [UiEvent.FoodSeedRetried] = 3503,
             [UiEvent.ScanLookupStarted] = 3601,
             [UiEvent.ScanLookupFinished] = 3602,
             [UiEvent.ScanCameraUnavailable] = 3603,
             [UiEvent.NumberFieldFocusFailed] = 3701,
+            [UiEvent.UndoFailed] = 3801,
+            [UiEvent.RestoreFailed] = 3802,
             [UiEvent.PullRefreshFailed] = 4001,
         }));
 

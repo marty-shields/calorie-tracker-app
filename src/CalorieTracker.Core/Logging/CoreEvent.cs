@@ -2,7 +2,7 @@ namespace CalorieTracker.Core.Logging;
 
 /// <summary>
 /// Event ids of Core's log messages: 1000–1999, a block of 100 per type.
-/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch, 1600 TargetService, 1700 DiaryService, 1800 DaySummaryService, 1900 FoodHistoryService; the <c>*Block</c> members hold them.
+/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch, 1600 TargetService, 1700 DiaryService, 1800 DaySummaryService, 1900 FoodService; the <c>*Block</c> members hold them. FoodHistoryService has ten ids from 1050 because every block of 100 is taken.
 /// Ids never change and are never reused; list a retired id here and in <c>CoreEventTests</c>.
 /// </summary>
 internal enum CoreEvent
@@ -167,17 +167,32 @@ internal enum CoreEvent
     DaySummaryMealUnknown = 1805,
 
     /// <summary>Start of the block reserved for <see cref="History.FoodHistoryService"/>.</summary>
-    FoodHistoryServiceBlock = 1900,
+    FoodHistoryServiceBlock = 1050,
 
     /// <summary><see cref="History.FoodHistoryService"/>: recent foods were read; carries the food count.</summary>
-    FoodHistoryRecent = 1901,
+    FoodHistoryRecent = 1051,
 
     /// <summary><see cref="History.FoodHistoryService"/>: usual foods were read; carries the food count, never the meal.</summary>
-    FoodHistoryUsual = 1902,
+    FoodHistoryUsual = 1052,
 
     /// <summary><see cref="History.FoodHistoryService"/>: history for given foods was read; carries the food count.</summary>
-    FoodHistoryForFoods = 1903,
+    FoodHistoryForFoods = 1053,
 
     /// <summary><see cref="History.FoodHistoryService"/>: the database failed, so the call returned <see cref="History.FoodHistoryStatus.Failed"/>.</summary>
-    FoodHistoryFailed = 1904,
+    FoodHistoryFailed = 1054,
+
+    /// <summary>Start of the block reserved for <see cref="Foods.FoodService"/>.</summary>
+    FoodServiceBlock = 1900,
+
+    /// <summary><see cref="Foods.FoodService"/>: a stored serving was out of range, so the food was returned with no serving; carries the food id.</summary>
+    FoodServingOutOfRange = 1901,
+
+    /// <summary><see cref="Foods.FoodService"/>: stored optional nutrients were out of range, so they were returned as unknown; carries the food id and how many.</summary>
+    FoodNutrientsOutOfRange = 1902,
+
+    /// <summary><see cref="Foods.FoodService"/>: no food has the id; carries the id.</summary>
+    FoodNotFound = 1903,
+
+    /// <summary><see cref="Foods.FoodService"/>: the database failed, so the call returned <see cref="Foods.FoodStatus.Failed"/>.</summary>
+    FoodReadFailed = 1904,
 }
