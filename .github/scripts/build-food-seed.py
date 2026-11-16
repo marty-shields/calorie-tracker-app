@@ -8,6 +8,7 @@ Everyday names: each <folder>/<foodGroup>.json (default: the "names" folder besi
 the workbook has them. Exits 1 on an entry whose sourceId is not in the output, whose food is in another group than the file name,
 or whose name is empty, and on a repeated sourceId key in a file. Names are stripped of surrounding spaces once.
 Types: each food gets a "type" (Ingredient, Food or Drink) from its CoFID group (GROUP_TYPES), then NAME_RULES may move it by its everyday name and TYPE_OVERRIDES by its sourceId (an override whose sourceId is not in the output exits 1).
+Units: a food is Millilitre when its group is alcoholic (ALCOHOL_GROUP_PREFIX) or a liquid group (LIQUID_GROUPS) and its CoFID name does not match DRY_NAME (powders, dried, concentrates, undiluted), or its sourceId is in LIQUID_IDS; DRY_IDS keeps single foods in grams. Everything else is Gram. Seed/README.md holds the rule.
 A food whose type comes out as Dish is dropped from the output (the app has no Dish type). The names are applied first, because the name rules read them, so delete the overlay entry of a dropped food (check-food-names.py fails on one).
 Exits 1 on a food whose group has no type. Seed/README.md holds the table as the decision record.
 Writes {"seedVersion", "source", "foods"} with one food per line, sorted by sourceId, so a rerun is byte-identical.
@@ -25,7 +26,7 @@ import xml.etree.ElementTree as ET
 from decimal import Decimal
 
 # Bumped by hand when the seed's content is revised (for example by the everyday-names edit, the food types or dropping the Dishes).
-SEED_VERSION = 6
+SEED_VERSION = 7
 SOURCE_NAME = "CoFID 2021"
 SOURCE = "CoFID"
 PROXIMATES = "1.3 Proximates"
@@ -58,6 +59,23 @@ GROUP_TYPES = {
     **dict.fromkeys(
         "BA BAB BAE BAH BAK BAR BC BH FC P PA PAA PAC PCA PCC PE Q QA QC QE QF QG QI QK".split(), DRINK),
 }
+# CoFID groups of liquids measured by volume: milks (BA BAB BAE BAH BAK BC, flavoured milk and milkshake in BAR), milk drinks (BH), fruit juices (FC PE),
+# coffee (P PA PAC), tea (PAC), soft drinks (PCA), squash and cordial (PCC). PAA (drink powders) is deliberately not here: its made-up foods are in LIQUID_NAME_RULES.
+LIQUID_GROUPS = set("BA BAB BAE BAH BAK BAR BC BH FC P PA PAC PCA PCC PE".split())
+# The CoFID name of a food in a liquid group that stays in grams: a powder (unless made up), dried, evaporated or condensed milk, a concentrate, a cordial or squash not yet diluted,
+# or a juice weighed as the whole fruit (its values are per 100 g of fruit, not of juice).
+DRY_NAME = r"powder(?!.*made up)|dried|evaporated|condensed|concentrate|undiluted|weighed as whole fruit"
+# (CoFID groups, pattern searched case-insensitively in the CoFID name): foods of a group outside LIQUID_GROUPS that are liquids.
+LIQUID_NAME_RULES = [
+    ("PAA", r"made up with|infusion"),
+    ("WY", r"^water,"),
+]
+# sourceId -> why: single liquids that no group or name rule captures.
+LIQUID_IDS = {
+    "13-607": "carrot juice sits in the vegetables group",
+}
+# sourceId -> why: single foods the liquid rules catch that stay in grams.
+DRY_IDS = {}
 COATED = r"(?<!un)coated|crumbs|batter|breaded"
 # (CoFID groups, pattern searched case-insensitively in the everyday name, type it gives), applied after the group's type.
 # The first rule of the food's group that matches wins, so a narrower rule goes before a wider one.
@@ -279,7 +297,7 @@ def build(path):
             "name": name,
             "originalName": name,
             "foodGroup": group,
-            "unit": "Millilitre" if group.startswith(ALCOHOL_GROUP_PREFIX) else "Gram",
+            "unit": "Gram",
             "type": None,
             **{key: None if value is None else Raw(number_text(value)) for key, value in values.items()},
         }))
@@ -335,6 +353,32 @@ def food_type(group, name):
     return found
 
 
+def food_unit(food):
+    """Millilitre for an alcoholic drink or a liquid (see the header), else Gram; reads the CoFID name, so it works on a food with an everyday name."""
+    group, source_id, original = food["foodGroup"], food["sourceId"], food["originalName"]
+    if source_id in DRY_IDS:
+        return "Gram"
+    if group.startswith(ALCOHOL_GROUP_PREFIX) or source_id in LIQUID_IDS:
+        return "Millilitre"
+    if group in LIQUID_GROUPS and not re.search(DRY_NAME, original, re.IGNORECASE):
+        return "Millilitre"
+    for groups, pattern in LIQUID_NAME_RULES:
+        if group in groups.split() and re.search(pattern, original, re.IGNORECASE):
+            return "Millilitre"
+    return "Gram"
+
+
+def apply_units(foods):
+    """Sets each food's unit; an id in LIQUID_IDS or DRY_IDS that is not in the output exits 1, so a renumbered food cannot silently lose its unit."""
+    known = {food["sourceId"] for food in foods}
+    for source_id in (*LIQUID_IDS, *DRY_IDS):
+        if source_id not in known:
+            fail(f"LIQUID_IDS or DRY_IDS: {source_id} is not a food in the workbook output")
+    for food in foods:
+        food["unit"] = food_unit(food)
+    print(f"{sum(food['unit'] == 'Millilitre' for food in foods)} foods in Millilitre", file=sys.stderr)
+
+
 def apply_types(foods):
     """Sets each food's type from its group, everyday name and override, then removes the Dishes from the list; run after
     apply_names (the name rules read the everyday name)."""
@@ -381,6 +425,7 @@ def main(argv):
     foods = build(args[0])
     apply_names(foods, names or os.path.join(os.path.dirname(os.path.abspath(args[1])), "names"), names is not None)
     apply_types(foods)
+    apply_units(foods)
     text = render(foods)
     with open(args[1], "w", encoding="utf-8", newline="\n") as out:
         out.write(text)

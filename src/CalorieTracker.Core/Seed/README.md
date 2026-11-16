@@ -31,7 +31,7 @@ The generator sets `name` from the entry and leaves `originalName` and `sourceId
 
 ## Format
 
-`{"seedVersion":5,"source":"CoFID 2021","foods":[...]}`, one food per line, sorted by `sourceId`, `\n` line endings. `seedVersion` is a constant in the script, bumped whenever the names or content change: 5 since the second food-type review (4 was the first food types, 3 was the everyday names, 2 the food-search change).
+`{"seedVersion":7,"source":"CoFID 2021","foods":[...]}`, one food per line, sorted by `sourceId`, `\n` line endings. `seedVersion` is a constant in the script, bumped whenever the names or content change: 7 since the liquids moved to millilitres (6 dropped the Dishes, 5 was the second food-type review (4 was the first food types, 3 was the everyday names, 2 the food-search change)).
 
 | Key | Meaning |
 | --- | --- |
@@ -40,7 +40,7 @@ The generator sets `name` from the entry and leaves `originalName` and `sourceId
 | `name` | Everyday display name, set from `names/` |
 | `originalName` | CoFID food name, never edited; stored on the food as `OriginalName` |
 | `foodGroup` | CoFID group code, such as `AA`; stored on the food as `FoodGroup` |
-| `unit` | `Millilitre` when the group code starts with `Q` (alcoholic drinks, alcohol-free lager included), else `Gram` |
+| `unit` | `Millilitre` for alcoholic drinks (group code starts with `Q`, alcohol-free lager included) and for liquids, else `Gram`. Liquids (seed 7): the groups in `LIQUID_GROUPS` (milks BA BAB BAE BAH BAK BC, flavoured milk and milkshake in BAR, milk drinks BH, juices FC PE, coffee P PA PAC, tea PAC, soft drinks PCA, squash and cordial PCC), the made-up and infusion foods of PAA (`LIQUID_NAME_RULES`), distilled water and carrot juice (`LIQUID_IDS`), except a CoFID name matching `DRY_NAME`: powder (not made up), dried, evaporated, condensed, concentrate, undiluted, or weighed as whole fruit. Those stay `Gram`, as do all other groups (soups, stock and coconut milk are not liquids here). 102 foods moved from `Gram`; the list is in the PR. Schema step 11 (`FoodUnitUpgrade`) sets the stored CoFID foods' unit from the bundled seed on upgrade, so a diary entry keeps its amount and its calories (they scale by amount / 100 whatever the unit) |
 | `type` | `Ingredient`, `Food` or `Drink`, from the group and the name rules in [Food types](#food-types) |
 | `energyKcal`, `proteinG`, `carbsG`, `fatG` | Per 100 g or 100 ml; a food with no value for any of these is left out |
 | `fibreG` | AOAC fibre (not NSP); `null` when not measured |
