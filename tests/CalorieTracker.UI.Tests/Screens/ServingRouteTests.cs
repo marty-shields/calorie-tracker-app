@@ -1,0 +1,170 @@
+using CalorieTracker.Core.Data;
+using CalorieTracker.UI.Navigation;
+using CalorieTracker.UI.Screens;
+
+namespace CalorieTracker.UI.Tests.Screens;
+
+public class ServingRouteTests
+{
+    private static readonly DateOnly Today = new(2031, 7, 19);
+
+    [Test]
+    public void Url_BuildsTheRouteWithOnlyTheQueryGiven()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(ServingRoute.Url(5), Is.EqualTo("/serving/5"));
+            Assert.That(ServingRoute.Url(5, Meal.Dinner), Is.EqualTo("/serving/5?meal=Dinner"));
+            Assert.That(ServingRoute.Url(5, Meal.Lunch, backTo: "/foods?meal=Lunch"), Is.EqualTo("/serving/5?meal=Lunch&back=%2Ffoods%3Fmeal%3DLunch"));
+            Assert.That(ServingRoute.Url(5, Meal.Snacks, new DateOnly(2031, 7, 4), "/foods"), Is.EqualTo("/serving/5?meal=Snacks&date=2031-07-04&return=%2Ffoods"));
+        });
+    }
+
+    [Test]
+    public void Url_WithBackTo_AddsBackAlone() =>
+        Assert.That(ServingRoute.Url(5, backTo: "/"), Is.EqualTo("/serving/5?back=%2F"));
+
+    [TestCase("Lunch", Meal.Lunch)]
+    [TestCase("lunch", Meal.Lunch)]
+    [TestCase("Snacks", Meal.Snacks)]
+    public void ParseMeal_AFourMealName_GivesIt(string text, Meal expected) =>
+        Assert.That(ServingRoute.ParseMeal(text), Is.EqualTo(expected));
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("Brunch")]
+    [TestCase("1")]
+    [TestCase("9")]
+    [TestCase("Lunch,Dinner")]
+    public void ParseMeal_Anything_Else_GivesNull(string? text) =>
+        Assert.That(ServingRoute.ParseMeal(text), Is.Null);
+
+    [Test]
+    public void ParseDate_AWellFormedDay_GivesIt() =>
+        Assert.That(ServingRoute.ParseDate("2031-07-04", Today), Is.EqualTo(new DateOnly(2031, 7, 4)));
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("4 July")]
+    [TestCase("2031-13-01")]
+    [TestCase("04/07/2031")]
+    public void ParseDate_Anything_Else_GivesToday(string? text) =>
+        Assert.That(ServingRoute.ParseDate(text, Today), Is.EqualTo(Today));
+
+    [TestCase("/foods", "/foods")]
+    [TestCase("/", "/")]
+    [TestCase(null, "/fallback")]
+    [TestCase("", "/fallback")]
+    [TestCase("foods", "/fallback")]
+    [TestCase("//evil.example", "/fallback")]
+    [TestCase("https://evil.example", "/fallback")]
+    [TestCase("/\\evil.example", "/fallback")]
+    [TestCase("/\t/evil.example", "/fallback")]
+    [TestCase("/\r\nevil", "/fallback")]
+    public void ReturnOr_OnlyAnInAppPathIsKept(string? returnTo, string expected) =>
+        Assert.That(ServingRoute.ReturnOr(returnTo, "/fallback"), Is.EqualTo(expected));
+
+    [TestCase("/back", "/return", "/back")]
+    [TestCase(null, "/return", "/return")]
+    [TestCase("//evil", "/return", "/return")]
+    [TestCase("/back", null, "/back")]
+    [TestCase("/", "/foods", "/")]
+    [TestCase("//evil.example", null, "/foods")]
+    [TestCase(null, null, "/foods")]
+    [TestCase("//evil", "https://evil", "/foods")]
+    public void BackTarget_TakesBackThenReturnThenTheDefault(string? backTo, string? returnTo, string expected) =>
+        Assert.That(ServingRoute.BackTarget(backTo, returnTo), Is.EqualTo(expected));
+
+    [TestCase("/foods", "/foods")]
+    [TestCase(null, "/")]
+    [TestCase("//evil", "/")]
+    public void AfterAddTarget_IsTheReturnRouteOrTheDashboard(string? returnTo, string expected) =>
+        Assert.That(ServingRoute.AfterAddTarget(returnTo), Is.EqualTo(expected));
+
+    [Test]
+    public void AfterAddTarget_WithADayAndNoReturnRoute_IsThatDayOnTheDashboard()
+    {
+        var day = new DateOnly(2031, 7, 4);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ServingRoute.AfterAddTarget(null, day), Is.EqualTo("/?date=2031-07-04"));
+            Assert.That(ServingRoute.AfterAddTarget("//evil", day), Is.EqualTo("/?date=2031-07-04"));
+            Assert.That(ServingRoute.AfterAddTarget("/foods", day), Is.EqualTo("/foods"));
+            Assert.That(ServingRoute.FollowUpFor(null), Is.EqualTo(AddedFollowUp.Undo));
+        });
+    }
+
+    [TestCase("/foods", AddedFollowUp.ViewDay)]
+    [TestCase(null, AddedFollowUp.Undo)]
+    [TestCase("", AddedFollowUp.Undo)]
+    [TestCase("//x", AddedFollowUp.Undo)]
+    [TestCase("https://evil.example", AddedFollowUp.Undo)]
+    public void FollowUpFor_OffersViewDayOnlyWhenTheReturnRouteIsAccepted(string? returnTo, AddedFollowUp expected) =>
+        Assert.That(ServingRoute.FollowUpFor(returnTo), Is.EqualTo(expected));
+
+    [Test]
+    public void TheAppsRoutePage_UsesTheTemplateAndReadsTheQuery()
+    {
+        var page = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Serving.razor");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(page, Does.Contain($"@page \"{ServingRoute.Template}\""));
+            Assert.That(page, Does.Contain("Name = \"meal\"").And.Contain("Name = \"date\"").And.Contain("Name = \"return\"").And.Contain("Name = \"back\""));
+            Assert.That(page, Does.Contain("ServingRoute.BackTarget(BackTo, ReturnTo)").And.Contain("ServingRoute.FollowUpFor(ReturnTo)"));
+        });
+    }
+
+    [Test]
+    public void EditUrl_CarriesTheEntryItsDayMealAndAmounts()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(ServingRoute.EditUrl(7, 23, Meal.Lunch, new DateOnly(2031, 7, 15), 30), Is.EqualTo("/serving/23?entry=7&meal=Lunch&date=2031-07-15&amount=30"));
+            Assert.That(ServingRoute.EditUrl(8, 22, Meal.Dinner, new DateOnly(2031, 7, 15), 150.5, 0.75), Is.EqualTo("/serving/22?entry=8&meal=Dinner&date=2031-07-15&amount=150.5&servings=0.75"));
+        });
+    }
+
+    [TestCase(0.74)]
+    [TestCase(201.8)]
+    [TestCase(0.1)]
+    [TestCase(10000)]
+    public void EditUrl_AmountsRoundTripThroughParseNumber(double value)
+    {
+        var url = ServingRoute.EditUrl(1, 2, Meal.Lunch, Today, value, value);
+        var query = System.Web.HttpUtility.ParseQueryString(url[(url.IndexOf('?') + 1)..]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ServingRoute.ParseNumber(query["amount"]), Is.EqualTo(value));
+            Assert.That(ServingRoute.ParseNumber(query["servings"]), Is.EqualTo(value));
+        });
+    }
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("abc")]
+    [TestCase("0")]
+    [TestCase("-3")]
+    [TestCase("NaN")]
+    [TestCase("Infinity")]
+    [TestCase("1e999")]
+    [TestCase("30,5")]
+    public void ParseNumber_NotAPositiveFiniteNumber_GivesNull(string? text) =>
+        Assert.That(ServingRoute.ParseNumber(text), Is.Null);
+
+    [Test]
+    public void TheAppsPages_WireEditThroughTheEditRouteAndTheDashboard()
+    {
+        var serving = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Serving.razor");
+        var home = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Home.razor");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(serving, Does.Contain("Name = \"entry\"").And.Contain("Name = \"amount\"").And.Contain("Name = \"servings\""));
+            Assert.That(serving, Does.Contain("EntryId=\"EntryId\"").And.Contain("OnSaved=").And.Contain("OnRemoved=").And.Contain("DashboardRoute.Url(EntryDay)"));
+            Assert.That(home, Does.Contain("ServingRoute.EditUrl(request.Entry.EntryId, request.Entry.FoodId, request.Meal, request.Date, request.Entry.Amount, request.Entry.Servings)"));
+        });
+    }
+}

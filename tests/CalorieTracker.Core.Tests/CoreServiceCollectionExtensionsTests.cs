@@ -34,6 +34,7 @@ public class CoreServiceCollectionExtensionsTests
                 (typeof(OpenFoodFactsLookup), (Type?)null, ServiceLifetime.Transient),
                 (typeof(ISeedLoader), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(IFoodSearch), typeof(FoodSearch), ServiceLifetime.Singleton),
+                (typeof(FoodService), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(TargetService), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(TargetStore), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(DiaryService), (Type?)null, ServiceLifetime.Singleton),

@@ -1,6 +1,6 @@
 namespace CalorieTracker.E2E.Tests.Screens;
 
-/// <summary>Scan: the camera, or the message when it can't open. Found and Not found need a real barcode, so bUnit covers them.</summary>
+/// <summary>Scan: the camera, or the message when it can't open. Found and Not found need a barcode: bUnit covers them, and the Diary journeys feature reaches Found through the Debug-build scan seam.</summary>
 public sealed class ScanScreen(WebView web)
 {
     public const string Title = "Scan barcode";
@@ -17,4 +17,12 @@ public sealed class ScanScreen(WebView web)
 
     /// <summary>Whether Try again shows on the camera-unavailable error.</summary>
     public bool HasTryAgain() => web.Exists("scan-camera-unavailable-retry");
+
+    /// <summary>Whether a found product shows.</summary>
+    public bool ShowsProduct() => web.Exists("scan-product");
+
+    /// <summary>Whether Add to diary shows under a found product.</summary>
+    public bool HasAddToDiary() => web.Exists("scan-add");
+
+    public void AddToDiary() => web.Tap("scan-add");
 }

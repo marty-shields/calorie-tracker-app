@@ -4,14 +4,24 @@ $attribute: CustomPage("Screens/Dashboard/Overview")
 
 # Dashboard
 
-Home screen. For now it is an empty shell: a title, the Settings gear and a "Nothing here yet" empty state. View: `DashboardView`; page: `DashboardPage`.
+Home screen: the day diary. A date strip, the day's calories and macros, then the four meals with their entries and a + each. View: `DashboardView`; page: `DashboardPage`.
 
 | Part | Content |
 |---|---|
 | Top bar | Title "Calorie Tracker"; Settings gear (`IconButton`) on the right, opens Settings. No back arrow; back leaves the app. |
-| Content | Centred `EmptyState` "Nothing here yet". |
+| Date strip | `DateStrip` under the bar: "Today, 19 Jul", the arrows move a day either way with no limit (future days too), and tapping the label returns to today. A future day looks like any other. The page opens on today, or on the day in the route's `date` (`/?date=yyyy-MM-dd`, which the Foods snackbar's **View day** uses). |
+| Calories | A `SummaryCard` with the `CalorieRing` and, beside it, "Eaten" and "Target". Calories left; over the target the ring shows how many over, in the error tone. With no target set the ring shows calories eaten, the card says "No target set" and **Set one in Settings** opens Settings. Whole kcal as the day summary rounds them. |
+| Macros | The `EnergyShareBar` with protein, carbs and fat in grams. Hidden while nothing is logged. |
+| Empty day | `EmptyState` "Nothing logged today" ("Nothing logged this day" on any other day) with "Tap + on a meal to add your first food." shows in place of the macros when no meal has an entry. |
+| Meals | Breakfast, Lunch, Dinner and Snacks, always in that order. Each is a `MealHeader` (name, total kcal once it has entries, filled + `IconButton`) and its entries in the order added. A meal with no entries on a day that has some says "Nothing logged". The + opens Foods search to add to that meal and the day on the strip (`/foods?meal=<Meal>&date=yyyy-MM-dd`). |
+| Entries | `ListRow` with the food name, the amount ("40 g", "200 ml") or for a food added by servings "1 serving · " and the food's serving label ("1 serving · ½ pizza (201.8 g)"), and the calories at the right. Tapping a row (`OnEdit`) opens Serving in edit mode for that entry, to change its amount or meal or remove it (see Serving). |
+| Loading | The date strip stays, with a spinner "Loading…" where the day goes. |
+| Load failed | The date strip stays, with "Couldn't load this day" and **Try again**. Also shown when an entry's food is missing. |
 | Navigation bar | `BottomNav` with Dashboard current, beside Foods and Scan. |
+| Snackbar | A message posted by another screen, such as "Oat flakes added to Lunch" or, after Remove in Serving's edit mode, "Cheddar cheese removed", with **Undo** (which restores the entry), shows above the navigation bar (`<Snackbar />` in the `Status` slot). Nothing shows when none is posted. |
 
-States: [Empty](./?path=/story/screens-dashboard--empty)
+Dark theme: the same layout; switch the theme in the toolbar to see it.
 
-`data-testid`: `dashboard-empty`, `bottom-nav`, `dashboard-link`, `foods-link`, `settings`.
+States: [First run](./?path=/story/screens-dashboard--first-run), [No target](./?path=/story/screens-dashboard--no-target), [Loaded](./?path=/story/screens-dashboard--loaded), [Over target](./?path=/story/screens-dashboard--over-target), [Loading](./?path=/story/screens-dashboard--loading), [Load failed](./?path=/story/screens-dashboard--load-failed), [Future day](./?path=/story/screens-dashboard--future-day), [Entry removed](./?path=/story/screens-dashboard--entry-removed)
+
+`data-testid`: `date-strip` (`-previous`, `-label`, `-next`), `dashboard-card`, `dashboard-ring` (`-value`, `-label`), `dashboard-eaten`, `dashboard-target`, `dashboard-no-target`, `dashboard-set-target`, `dashboard-share`, `dashboard-empty`, `meal-<meal>` (`-name`, `-calories`, `-add`, `-none`), `entry-<id>`, `dashboard-loading`, `dashboard-load-failed` (`-error`, `-retry`), `bottom-nav`, `dashboard-link`, `foods-link`, `settings`.

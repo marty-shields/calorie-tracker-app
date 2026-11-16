@@ -9,6 +9,13 @@ public sealed class FoodSearchScreen(WebView web)
 
     public const string Title = "Search foods";
 
+    /// <summary>Whether a screen title is food search in add mode ("Add to Lunch").</summary>
+    public static bool IsAddTitle(string title) => title.StartsWith("Add to ", StringComparison.Ordinal);
+
+    public string ScreenTitle() => web.Text("screen-title");
+
+    public bool HasNavigationBar() => web.Exists("bottom-nav");
+
     /// <summary>The first launch loads the food list in the background; give it longer than a screen change.</summary>
     private static readonly TimeSpan LoadTime = TimeSpan.FromSeconds(90);
 
@@ -45,7 +52,11 @@ public sealed class FoodSearchScreen(WebView web)
 
     public string PromptText() => web.Text("food-search-idle-message");
 
-    public string NoneText() => web.Text("food-search-none");
+    public string NoneText()
+    {
+        web.WaitUntil(() => web.Exists("food-search-none-message") || web.Exists("food-search-none"), "no 'No foods match' message showed");
+        return web.Exists("food-search-none-message") ? web.Text("food-search-none-message") : web.Text("food-search-none");
+    }
 
     /// <summary>The text of each result row, in order, once at least one shows.</summary>
     public IReadOnlyList<string> ResultRows()
@@ -54,11 +65,11 @@ public sealed class FoodSearchScreen(WebView web)
         return web.FindAll("[data-testid^=\"food-result-\"]").Select(row => row.Text.Trim()).ToList();
     }
 
-    /// <summary>The type shown at the right of each result row, in order, once at least one shows.</summary>
+    /// <summary>The type at the start of each result row's detail line, in order, once at least one shows.</summary>
     public IReadOnlyList<string> ResultTypes()
     {
         web.WaitUntil(() => web.Exists("food-results"), "no results showed");
-        return web.FindAll("[data-testid^=\"food-result-\"]").Select(row => row.FindElement(By.CssSelector(".aside")).Text.Trim()).ToList();
+        return web.FindAll("[data-testid^=\"food-result-\"]").Select(row => row.FindElement(By.CssSelector(".detail")).Text.Split('·')[0].Trim()).ToList();
     }
 
     /// <summary>Clicks the first row once the box holds what was typed; a row replaced by a newer search is found and clicked again.</summary>
@@ -80,6 +91,8 @@ public sealed class FoodSearchScreen(WebView web)
     public string DetailName() => web.Text("food-detail-name");
 
     public string DetailEnergy() => web.Text("food-detail-kcal");
+
+    public void AddToDiary() => web.Tap("food-detail-add");
 
     public void BackToResults() => web.Tap("food-detail-close");
 

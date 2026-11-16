@@ -43,6 +43,21 @@ internal sealed class Adb(string? udid)
     public string AppShell(TestedApp app, params string[] args) =>
         Shell([.. app.IsDebug ? (string[])["run-as", app.Package] : ["su", "0"], .. args]);
 
+    /// <summary>Writes <paramref name="content"/> to <paramref name="remotePath"/> on the device, through a temp file.</summary>
+    public void WriteText(string remotePath, string content)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"calorietracker-{Guid.NewGuid():N}");
+        try
+        {
+            File.WriteAllText(path, content);
+            Run("push", path, remotePath);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     /// <summary>Writes <paramref name="content"/> to the device's Download folder as <paramref name="name"/>, through a temp file.</summary>
     public void WriteToDownloads(string name, string content)
     {

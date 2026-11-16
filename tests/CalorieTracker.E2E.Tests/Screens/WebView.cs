@@ -85,6 +85,13 @@ public sealed class WebView
 
     public void Tap(string testId) => Find(testId).Click();
 
+    /// <summary>Opens an in-app route through Blazor's router, as a link would, without reloading the page. For screens no tap reaches yet.</summary>
+    public void NavigateTo(string route) =>
+        App.ExecuteScript("Blazor.navigateTo(arguments[0], { forceLoad: false, replaceHistoryEntry: true });", route);
+
+    /// <summary>Whether the element with this <c>data-testid</c> is enabled.</summary>
+    public bool IsEnabled(string testId) => Find(testId).Enabled;
+
     /// <summary>Replaces the input's text one key at a time, so the page sees every value as it is typed.</summary>
     public void Type(string testId, string text)
     {

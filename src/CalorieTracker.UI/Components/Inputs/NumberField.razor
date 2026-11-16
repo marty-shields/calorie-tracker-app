@@ -96,6 +96,7 @@
     private async Task OnInput(ChangeEventArgs e)
     {
         text = e.Value?.ToString() ?? "";
+        await TextChanged.InvokeAsync(text);
         await ValueChanged.InvokeAsync(Parse(text));
     }
 
@@ -121,6 +122,10 @@
     /// <summary>Raised on every keystroke with the typed number (null when it isn't one), and by the stepper with the new value.</summary>
     [Parameter]
     public EventCallback<decimal?> ValueChanged { get; set; }
+
+    /// <summary>Raised on every keystroke with the typed text, just before <see cref="ValueChanged"/>. Lets a parent tell an empty field from text that isn't a number, which both give a null value. Not raised by the stepper.</summary>
+    [Parameter]
+    public EventCallback<string> TextChanged { get; set; }
 
     /// <summary>Shown after the number, e.g. g or kcal.</summary>
     [Parameter]

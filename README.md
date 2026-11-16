@@ -22,12 +22,13 @@
 
 ## What's here
 
-This is the skeleton of the app: the architecture, design system, tests and CI, with no tracking features yet. It starts and shows two screens:
+This is the architecture, design system, tests and CI of the app, with a day diary on top. It starts on the Dashboard, and these screens are the main ones:
 
-- **Dashboard**: an empty home screen with the navigation bar and the Settings gear.
-- **Settings**: the theme (System, Light or Dark) and the app version.
+- **Dashboard**: the day diary, with a date strip, calories and macros, and four meals to add food to.
+- **Foods** and **Scan**: find a food by name or barcode and add it to a meal.
+- **Settings**: the theme (System, Light or Dark), the daily calorie target and the app version.
 
-Everything else is for you to add. [AGENTS.md](AGENTS.md) lists the rules the code follows, and the [design system](https://marty-shields.github.io/calorie-tracker-app/) shows the tokens, components and screens.
+More diary features are still to come. [AGENTS.md](AGENTS.md) lists the rules the code follows, and the [design system](https://marty-shields.github.io/calorie-tracker-app/) shows the tokens, components and screens.
 
 ## Install
 
@@ -42,6 +43,7 @@ Cutting the first release needs the keystore and the `CERT_SHA256` pin: see [Rel
 ## Your data
 
 - Data lives in a SQLite database on the phone. Scanning a barcode the app hasn't stored sends that barcode to an external product database (Open Food Facts), and the app itself sends none of your food log or other data anywhere. The camera scanner is Google ML Kit, which may send usage metrics to Google as set by Google's terms.
+- Your diary, daily target and foods are stored on the phone and in its Android backup (next bullet). A diary entry holds the food id, the amount (g or ml, and the servings if you entered them), the meal, the day and whether it was removed. The daily target is one number of calories. Foods are the bundled food data plus the products you scanned. The theme is kept in the app's web storage, not the database. The app sends none of your diary, daily target or settings anywhere.
 - Android Auto Backup copies that database, and only that, to your Google account, and a phone-to-phone transfer carries it too. The Dev build is never backed up.
 - Logs are in `Android/data/<package id>/files/logs`, readable over USB or `adb pull`. They hold events, ids, counts and non-personal data such as a scanned barcode, never personal information ([`Logging.feature`](tests/CalorieTracker.E2E.Tests/Features/Logging.feature) checks the start-up lines).
 
