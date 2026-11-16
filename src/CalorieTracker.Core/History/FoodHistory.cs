@@ -3,7 +3,7 @@ using CalorieTracker.Core.Data;
 namespace CalorieTracker.Core.History;
 
 /// <summary>
-/// What the person's kept diary entries say about one food. The last values are those of its newest entry (the highest entry id), whatever the meal or day.
+/// What the person's kept diary entries say about one food. The last values are those of its newest entry (the highest entry id), whatever the day: in the meal the read was asked for when the food was logged there, else in any meal (all meals when no meal was asked for).
 /// </summary>
 /// <param name="TimesLogged">Entries of the food; for usual foods, the days it was logged on in that meal.</param>
 /// <param name="LastDate">The day of the newest entry.</param>

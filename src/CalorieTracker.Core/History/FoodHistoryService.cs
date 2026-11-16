@@ -29,12 +29,13 @@ public sealed partial class FoodHistoryService
 
     /// <summary>Each food once, by its newest entry (the highest entry id), newest first. TimesLogged counts all its kept entries, on any day.</summary>
     /// <param name="limit">Most foods to return; kept between 1 and <see cref="MaxLimit"/>.</param>
-    public Task<FoodHistoryResult> RecentAsync(int limit = DefaultLimit) =>
-        ReadAsync(() => store.RecentAsync(Math.Clamp(limit, 1, MaxLimit)), Log.Recent);
+    /// <param name="meal">When set, each food's last values are those of its newest entry in that meal, or of its newest entry in any meal when it was never logged in that one.</param>
+    public Task<FoodHistoryResult> RecentAsync(int limit = DefaultLimit, Meal? meal = null) =>
+        ReadAsync(() => store.RecentAsync(Math.Clamp(limit, 1, MaxLimit), meal), Log.Recent);
 
     /// <summary>
     /// Foods logged in <paramref name="meal"/> in the last <see cref="UsualDays"/> days (local time, today included), the food logged on most days first, then the one with the newest entry in that meal.
-    /// TimesLogged is the number of days. An entry older than that does not count, but the food can still be in <see cref="RecentAsync"/>.
+    /// TimesLogged is the number of days. An entry older than that does not count, but the food can still be in <see cref="RecentAsync"/>. The last values are those of the food's newest entry in that meal, whatever its day.
     /// </summary>
     /// <param name="limit">Most foods to return; kept between 1 and <see cref="MaxLimit"/>.</param>
     public Task<FoodHistoryResult> UsualAsync(Meal meal, int limit = DefaultLimit)
@@ -44,12 +45,13 @@ public sealed partial class FoodHistoryService
     }
 
     /// <summary>For ranking: the history of each of <paramref name="foodIds"/> that was ever logged, in no set order. A food never logged is left out. TimesLogged counts all its kept entries.</summary>
-    public Task<FoodHistoryResult> ForFoodsAsync(IReadOnlyCollection<int> foodIds)
+    /// <param name="meal">When set, each food's last values are those of its newest entry in that meal, or of its newest entry in any meal when it was never logged in that one.</param>
+    public Task<FoodHistoryResult> ForFoodsAsync(IReadOnlyCollection<int> foodIds, Meal? meal = null)
     {
         ArgumentNullException.ThrowIfNull(foodIds);
         return foodIds.Count == 0
             ? Task.FromResult(FoodHistoryResult.Found([]))
-            : ReadAsync(() => store.ForFoodsAsync(foodIds), Log.ForFoods);
+            : ReadAsync(() => store.ForFoodsAsync(foodIds, meal), Log.ForFoods);
     }
 
     private async Task<FoodHistoryResult> ReadAsync(Func<Task<List<FoodHistoryRow>>> read, Action<ILogger, int> logged)

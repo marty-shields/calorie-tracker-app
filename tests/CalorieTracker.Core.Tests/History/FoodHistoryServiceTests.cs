@@ -161,6 +161,42 @@ public class FoodHistoryServiceTests
     }
 
     [Test]
+    public async Task WithAMeal_LastValuesAreFromThatMealElseTheNewestEntry()
+    {
+        await Log(3, Meal.Dinner, oats, 200);
+        await Log(2, Meal.Breakfast, oats, 150, servings: 1.5);
+        await Log(1, Meal.Dinner, oats, 210);
+        await Log(1, Meal.Dinner, eggs, 90);
+
+        var forBreakfast = (await service.ForFoodsAsync([oats, eggs], Meal.Breakfast)).Foods.ToDictionary(f => f.FoodId);
+        var forDinner = (await service.ForFoodsAsync([oats, eggs], Meal.Dinner)).Foods.ToDictionary(f => f.FoodId);
+        var recentBreakfast = (await service.RecentAsync(10, Meal.Breakfast)).Foods.ToDictionary(f => f.FoodId);
+        var usualBreakfast = (await service.UsualAsync(Meal.Breakfast)).Foods.Single();
+        var anyMeal = (await service.ForFoodsAsync([oats])).Foods.Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That((forBreakfast[oats].LastAmount, forBreakfast[oats].LastServings, forBreakfast[oats].TimesLogged), Is.EqualTo((150.0, (double?)1.5, 3)));
+            Assert.That(forBreakfast[eggs].LastAmount, Is.EqualTo(90));
+            Assert.That(forDinner[oats].LastAmount, Is.EqualTo(210));
+            Assert.That(recentBreakfast[oats].LastAmount, Is.EqualTo(150));
+            Assert.That(recentBreakfast[eggs].LastAmount, Is.EqualTo(90));
+            Assert.That(usualBreakfast.LastAmount, Is.EqualTo(150));
+            Assert.That(anyMeal.LastAmount, Is.EqualTo(210));
+        });
+    }
+
+    [Test]
+    public async Task WithAMeal_RemovedEntryOfThatMealIsIgnored()
+    {
+        await Log(2, Meal.Dinner, oats, 200);
+        var breakfast = await Log(1, Meal.Breakfast, oats, 150);
+        await diary.RemoveAsync(breakfast);
+
+        Assert.That((await service.ForFoodsAsync([oats], Meal.Breakfast)).Foods.Single().LastAmount, Is.EqualTo(200));
+    }
+
+    [Test]
     public async Task LastAmount_IsTheNewestKeptEntrysAmountAndServings()
     {
         await Log(3, Meal.Lunch, oats, 100, 1);

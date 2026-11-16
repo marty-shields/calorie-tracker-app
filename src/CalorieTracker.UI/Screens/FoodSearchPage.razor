@@ -7,12 +7,13 @@
 @inject SeedProgress Seed
 @inject ILogger<FoodSearchPage> Logger
 
-<FoodSearchView Meal="Meal" Query="@query" Results="results" Selected="selected" Loading="loading" Failed="failed"
+<FoodSearchView Meal="Meal" Query="@query" Groups="groups" Expanded="expanded" OnExpand="Expand" Selected="selected" Loading="loading" Failed="failed"
                 OnQueryChanged="SearchAsync" OnSelect="SelectAsync" OnAdd="AddAsync" OnBack="OnBack" OnClearSelection="ClearSelection" OnRetry="Retry" OnNavigate="OnNavigate" />
 
 @code {
     private string query = "";
-    private IReadOnlyList<Food> results = [];
+    private IReadOnlyList<FoodGroup> groups = [];
+    private readonly HashSet<FoodGroupKind> expanded = [];
     private Food? selected;
     private bool loading;
     private bool failed;
@@ -50,7 +51,7 @@
         {
             await WaitForSeedAsync(load);
         }
-        else if (query.Length > 0)
+        else
         {
             await SearchAsync(query);
         }
@@ -95,14 +96,17 @@
         var token = source.Token;
         try
         {
-            var result = await Search.SearchAsync(text, ct: token);
+            var typed = !string.IsNullOrWhiteSpace(text);
+            var result = typed ? await Search.SearchGroupedAsync(text, Meal, token) : await Search.SuggestAsync(Meal, token);
             if (token.IsCancellationRequested)
             {
                 return;
             }
 
-            failed = seedFailed || result.Status == FoodSearchStatus.Failed;
-            results = result.Foods;
+            // A failed read of the foods to start from is not an error: the screen shows its empty prompt and typing still works.
+            failed = seedFailed || (typed && result.Status == FoodSearchStatus.Failed);
+            groups = result.Groups;
+            expanded.Clear();
         }
         catch (OperationCanceledException)
         {
@@ -138,7 +142,14 @@
         return AddAsync(food);
     }
 
-    private Task AddAsync(Food food) => OnAdd.InvokeAsync(new FoodAddRequest(food, query));
+    private void Expand(FoodGroupKind kind) => expanded.Add(kind);
+
+    /// <summary>Carries the amount last logged, when the food was logged before, so Serving opens with it filled in.</summary>
+    private Task AddAsync(Food food)
+    {
+        var last = groups.SelectMany(g => g.Foods).FirstOrDefault(l => l.Food.Id == food.Id)?.History;
+        return OnAdd.InvokeAsync(new FoodAddRequest(food, query, last?.LastAmount, last?.LastServings));
+    }
 
     private void ClearSelection() => selected = null;
 

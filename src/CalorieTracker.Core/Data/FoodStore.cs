@@ -17,6 +17,21 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
     public Task<Food?> GetAsync(int id) =>
         gate.RunAsync<Food?>(async () => await connection.FindAsync<Food>(id));
 
+    /// <summary>The foods with these ids, in no set order; an id with no food is left out.</summary>
+    public Task<List<Food>> GetManyAsync(IReadOnlyCollection<int> ids) =>
+        gate.RunAsync(async () =>
+        {
+            var found = new List<Food>();
+            // Chunked so a long list stays under SQLite's limit on bound variables.
+            foreach (var chunk in ids.Distinct().Chunk(500))
+            {
+                var marks = string.Join(",", chunk.Select(_ => "?"));
+                found.AddRange(await connection.QueryAsync<Food>($"SELECT * FROM Food WHERE Id IN ({marks})", chunk.Cast<object>().ToArray()));
+            }
+
+            return found;
+        });
+
     /// <summary>The foods with these ids; an id with no food is left out. Runs on the caller's connection, inside the gate.</summary>
     internal static List<Food> FindIn(SQLiteConnection db, IReadOnlyCollection<int> ids)
     {

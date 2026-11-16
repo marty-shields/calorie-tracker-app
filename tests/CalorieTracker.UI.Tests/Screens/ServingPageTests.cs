@@ -119,6 +119,47 @@ public class ServingPageTests : ComponentTestBase
     }
 
     [Test]
+    public void StartAmount_OpensAtThatWeightInGrams()
+    {
+        var cut = Render(cheddarId, Meal.Lunch, more: p => p.Add(x => x.StartAmount, 35));
+
+        Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("35"));
+    }
+
+    [Test]
+    public void StartAmountWithServings_OpensInServingsMode()
+    {
+        var cut = Render(pizzaId, Meal.Lunch, more: p => p.Add(x => x.StartAmount, 303).Add(x => x.StartServings, 1.5));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=serving-mode-servings]").HasAttribute("checked"), Is.True);
+            Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("1.5"));
+            Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 303 g"));
+        });
+    }
+
+    [Test]
+    public void StartServings_ForAFoodWithoutAServing_OpensInGrams()
+    {
+        var cut = Render(cheddarId, Meal.Lunch, more: p => p.Add(x => x.StartAmount, 60).Add(x => x.StartServings, 2));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Exists(cut, "serving-mode"), Is.False);
+            Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("60"));
+        });
+    }
+
+    [Test]
+    public void StartAmount_NotAValidAmount_OpensAtTheDefault()
+    {
+        var cut = Render(cheddarId, Meal.Lunch, more: p => p.Add(x => x.StartAmount, -5));
+
+        Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("100"));
+    }
+
+    [Test]
     public void FoodWithNoServing_OpensInGramsWithNoSwitch()
     {
         var cut = Render(cheddarId, Meal.Lunch);

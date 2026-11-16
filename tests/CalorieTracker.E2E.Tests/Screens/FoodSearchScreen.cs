@@ -61,6 +61,43 @@ public sealed class FoodSearchScreen(WebView web)
             return first is not null;
         }, "no result to open");
 
+    /// <summary>The group headings on the screen, in order, as the testid keys (usual, recent, diary, common, branded). Only headings count: a group's "Show N more" row has a testid of its own.</summary>
+    public IReadOnlyList<string> Groups() =>
+        web.FindAll("h2[data-testid^=\"food-group-\"]").Select(h => h.GetDomAttribute("data-testid")!["food-group-".Length..]).ToList();
+
+    /// <summary>Waits for the screen to settle on exactly these groups, in order.</summary>
+    public void WaitForGroups(params string[] keys) =>
+        web.Eventually(Groups, Is.EqualTo(keys), "the groups shown");
+
+    /// <summary>The testids of the food rows of one group, in order.</summary>
+    public IReadOnlyList<string> RowIds(string group) =>
+        web.FindAll($"[data-testid=\"food-group-{group}\"] ~ ul [data-testid^=\"food-result-\"]").Select(row => row.GetDomAttribute("data-testid")!).ToList();
+
+    public string FirstRowText(string group)
+    {
+        web.WaitUntil(() => RowIds(group).Count > 0, $"the {group} group has no rows");
+        return web.FindAll($"[data-testid=\"food-group-{group}\"] ~ ul [data-testid^=\"food-result-\"]").First().Text.Trim();
+    }
+
+    public void OpenFirstIn(string group)
+    {
+        web.WaitUntil(() => RowIds(group).Count > 0, $"the {group} group has no rows");
+        web.FindAll($"[data-testid=\"food-group-{group}\"] ~ ul [data-testid^=\"food-result-\"]").First().Click();
+    }
+
+    /// <summary>The testid of every food row on the screen, in order.</summary>
+    public IReadOnlyList<string> AllRowIds() =>
+        web.FindAll("[data-testid^=\"food-result-\"]").Select(row => row.GetDomAttribute("data-testid")!).ToList();
+
+    /// <summary>The N of the group's "Show N more" row, once it shows.</summary>
+    public int MoreCount(string group)
+    {
+        web.WaitUntil(() => web.Exists($"food-group-{group}-more"), $"the {group} group has no Show more row");
+        return int.Parse(System.Text.RegularExpressions.Regex.Match(web.Text($"food-group-{group}-more"), @"Show (\d+) more").Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    public void ShowMore(string group) => web.Tap($"food-group-{group}-more");
+
     public bool ShowsDetail() => web.Exists("food-detail");
 
     public string DetailName() => web.Text("food-detail-name");

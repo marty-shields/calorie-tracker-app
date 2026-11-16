@@ -103,6 +103,12 @@ internal enum CoreEvent
     /// <summary><see cref="Foods.FoodSearch"/>: the store failed, so the search returned <see cref="Foods.FoodSearchStatus.Failed"/>.</summary>
     FoodSearchFailed = 1502,
 
+    /// <summary><see cref="Foods.FoodSearch"/>: a grouped search ran; term count and the number of foods in each group, never the text.</summary>
+    FoodSearchGrouped = 1503,
+
+    /// <summary><see cref="Foods.FoodSearch"/>: the foods shown before typing were read; the number of foods in each group.</summary>
+    FoodSuggested = 1504,
+
     /// <summary>Start of the block reserved for <see cref="Targets.TargetService"/>.</summary>
     TargetServiceBlock = 1600,
 

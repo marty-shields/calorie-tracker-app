@@ -70,6 +70,14 @@
     [Parameter]
     public double? EntryServings { get; set; }
 
+    /// <summary>The weight in g or ml to open an added food with, instead of 1 serving or 100 g. Ignored in edit mode and when it is not a valid amount.</summary>
+    [Parameter]
+    public double? StartAmount { get; set; }
+
+    /// <summary>The count of servings <see cref="StartAmount"/> was entered as; the screen opens in servings mode with it when the food has a serving. Null opens by weight.</summary>
+    [Parameter]
+    public double? StartServings { get; set; }
+
     /// <summary>Raised once an edited entry is saved.</summary>
     [Parameter]
     public EventCallback OnSaved { get; set; }
@@ -172,6 +180,25 @@
             {
                 mode = EntryMode.Grams;
                 amount = ToDecimal(Math.Min(stored, CarryLimit));
+                lockedGrams = null;
+            }
+
+            saveFailed = false;
+            return;
+        }
+
+        if (StartAmount is { } start && ServingRules.IsValidGrams(start))
+        {
+            if (HasServing && StartServings is { } startCount)
+            {
+                mode = EntryMode.Servings;
+                amount = ToDecimal(Math.Min(startCount, CarryLimit));
+                lockedGrams = start;
+            }
+            else
+            {
+                mode = EntryMode.Grams;
+                amount = ToDecimal(Math.Min(start, CarryLimit));
                 lockedGrams = null;
             }
 

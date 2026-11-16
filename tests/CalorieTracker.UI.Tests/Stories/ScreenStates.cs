@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Summary;
 using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Models.Scan;
@@ -102,11 +103,16 @@ public static class ScreenStates
 
         new("Screens/FoodSearch", "Loading", c => FoodSearch(c, query: "oat", loading: true)),
         new("Screens/FoodSearch", "Nothing typed", c => FoodSearch(c)),
-        new("Screens/FoodSearch", "Results", c => FoodSearch(c, query: "oat", results: SampleFoods)),
+        new("Screens/FoodSearch", "Nothing typed with history", c => FoodSearch(c, groups: FoodSearchSamples.IdleRecent)),
+        new("Screens/FoodSearch", "Results", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups)),
+        new("Screens/FoodSearch", "Results in one group", c => FoodSearch(c, query: "rolled", groups: FoodSearchSamples.OneGroup)),
+        new("Screens/FoodSearch", "Results with more to show", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.LongGroup)),
+        new("Screens/FoodSearch", "Results with an expanded group", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.LongGroup, expanded: [FoodGroupKind.Common])),
         new("Screens/FoodSearch", "No results", c => FoodSearch(c, query: "zzz")),
-        new("Screens/FoodSearch", "Food selected", c => FoodSearch(c, query: "oat", results: SampleFoods, selected: SampleFoods[0])),
-        new("Screens/FoodSearch", "Add to a meal", c => FoodSearch(c, query: "oat", results: SampleFoods, meal: Meal.Lunch)),
+        new("Screens/FoodSearch", "Food selected", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups, selected: SampleFoods[0])),
+        new("Screens/FoodSearch", "Add to a meal", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups, meal: Meal.Lunch)),
         new("Screens/FoodSearch", "Add to a meal with nothing typed", c => FoodSearch(c, meal: Meal.Snacks)),
+        new("Screens/FoodSearch", "Add to a meal with history", c => FoodSearch(c, groups: FoodSearchSamples.Idle, meal: Meal.Breakfast)),
         new("Screens/FoodSearch", "Add to a meal with no results", c => FoodSearch(c, query: "xyzzy", meal: Meal.Lunch)),
         new("Screens/FoodSearch", "Search failed", c => FoodSearch(c, query: "oat", failed: true)),
         new("Screens/Scan", "Opening camera", c => Scan(c, ScanState.OpeningCamera)),
@@ -144,13 +150,15 @@ public static class ScreenStates
         new("Screens/Error", "Error", c => c.Render<ErrorView>(p => p.Add(x => x.OnRestart, () => { })).FindAll("*")),
     ];
 
-    private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", IReadOnlyList<Food>? results = null, Food? selected = null, bool loading = false, bool failed = false, Meal? meal = null) =>
+    private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", IReadOnlyList<FoodGroup>? groups = null, Food? selected = null, bool loading = false, bool failed = false, Meal? meal = null, FoodGroupKind[]? expanded = null) =>
         context.Render<FoodSearchView>(p => p
             .Add(x => x.Meal, meal)
             .Add(x => x.OnAdd, (Food _) => { })
             .Add(x => x.OnBack, () => { })
             .Add(x => x.Query, query)
-            .Add(x => x.Results, results ?? [])
+            .Add(x => x.Groups, groups ?? [])
+            .Add(x => x.Expanded, (expanded ?? []).ToHashSet())
+            .Add(x => x.OnExpand, (FoodGroupKind _) => { })
             .Add(x => x.Selected, selected)
             .Add(x => x.Loading, loading)
             .Add(x => x.Failed, failed)
