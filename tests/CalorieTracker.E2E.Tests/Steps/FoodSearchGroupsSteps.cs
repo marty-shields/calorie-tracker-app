@@ -6,7 +6,7 @@ namespace CalorieTracker.E2E.Tests.Steps;
 
 /// <summary>The lists search shows: foods from the diary before and while typing, their last amounts, and "Show N more".</summary>
 [Binding]
-public sealed class FoodSearchGroupsSteps(FoodSearchScreen foods, ServingScreen serving, DashboardScreen dashboard, Journeys journeys, WebView web)
+public sealed class FoodSearchGroupsSteps(FoodSearchScreen foods, ServingScreen serving, DashboardScreen dashboard, SnackbarScreen snackbar, Journeys journeys, WebView web)
 {
     private const string Meals = "(Breakfast|Lunch|Dinner|Snacks)";
     private const string Groups = "(Usual|Recent|From your diary|Common|Branded)";
@@ -32,6 +32,7 @@ public sealed class FoodSearchGroupsSteps(FoodSearchScreen foods, ServingScreen 
         serving.Add();
         journeys.WaitFor(Journeys.Screen.Dashboard);
         web.Eventually(() => dashboard.Entries(meal).Count, Is.EqualTo(1));
+        web.Eventually(snackbar.IsShowing, Is.False);
     }
 
     [Then(@"^search lists only the " + Groups + " group$")]
