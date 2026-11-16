@@ -1313,7 +1313,7 @@ public class ServingPageTests : ComponentTestBase
 
     [TestCase(null)]
     [TestCase(99999)]
-    public async Task StartServingId_NullOrOneTheFoodDoesNotHave_OpensOnTheFirstServing(int? unknown)
+    public async Task StartServingId_NullOrOneTheFoodDoesNotHave_OpensOnTheSmallestServing(int? unknown)
     {
         await SeedCola();
 
