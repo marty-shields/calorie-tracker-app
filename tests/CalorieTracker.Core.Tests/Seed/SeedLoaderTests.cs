@@ -91,6 +91,41 @@ public class SeedLoaderTests
     }
 
     [Test]
+    public async Task LoadAsync_VersionEightDatabaseAfterTheRealUpgrade_FillsBothValuesOnceKeepingIdsAndDiary()
+    {
+        var idsBefore = await StoreVersionEightDatabaseWithADiaryEntry();
+
+        await new DatabaseInitializer(connection, SchemaSteps.All(), new FakeLogger<DatabaseInitializer>(), DatabaseInitializer.CurrentVersion).InitializeAsync();
+        var first = await Loader().LoadAsync();
+        var second = await Loader().LoadAsync();
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That(first.Status, Is.EqualTo(SeedLoadStatus.Loaded));
+            Assert.That(first.Updated, Is.EqualTo(3));
+            Assert.That(second.Status, Is.EqualTo(SeedLoadStatus.UpToDate));
+            Assert.That(await connection.QueryScalarsAsync<int>("SELECT Id FROM Food ORDER BY Id"), Is.EqualTo(idsBefore));
+            Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM Food WHERE OriginalName IS NULL OR FoodGroup IS NULL"), Is.EqualTo(0));
+            Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM DiaryEntry WHERE FoodId = ? AND Amount = 30", idsBefore[0]), Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task LoadAsync_RemovedCoFidFoodKeptForTheDiary_KeepsNullOriginalNameAndGroupAfterUpgradeAndReload()
+    {
+        await StoreVersionEightDatabaseWithADiaryEntry();
+        await connection.ExecuteAsync("INSERT INTO Food (Source, SourceId, Name, Unit, Type, SearchText) VALUES (0, 'old-kept', 'Kept', 0, 0, 'kept')");
+        var keptId = await connection.ExecuteScalarAsync<int>("SELECT Id FROM Food WHERE SourceId = 'old-kept'");
+        await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = keptId, Amount = 10 });
+
+        await new DatabaseInitializer(connection, SchemaSteps.All(), new FakeLogger<DatabaseInitializer>(), DatabaseInitializer.CurrentVersion).InitializeAsync();
+        await Loader().LoadAsync();
+
+        var row = await connection.QueryAsync<Food>("SELECT * FROM Food WHERE SourceId = 'old-kept'");
+        Assert.That(row.Select(f => (f.OriginalName, f.FoodGroup)), Is.EqualTo(new[] { ((string?)null, (string?)null) }));
+    }
+
+    [Test]
     public void SeedFile_BundledSeed_StoresTheOriginalNameAndGroupOfEveryFood()
     {
         using var stream = SeedLoader.OpenBundledSeed();
@@ -602,6 +637,17 @@ public class SeedLoaderTests
         "WE F2",
         "WY F6 I11 K1",
     ];
+
+    private async Task<List<int>> StoreVersionEightDatabaseWithADiaryEntry()
+    {
+        await Loader().LoadAsync();
+        var ids = await connection.QueryScalarsAsync<int>("SELECT Id FROM Food ORDER BY Id");
+        await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Breakfast, FoodId = ids[0], Amount = 30 });
+        await connection.ExecuteAsync("ALTER TABLE Food DROP COLUMN OriginalName");
+        await connection.ExecuteAsync("ALTER TABLE Food DROP COLUMN FoodGroup");
+        await connection.ExecuteAsync("PRAGMA user_version = 8");
+        return ids;
+    }
 
     private SeedLoader Loader() => new(store, logger, () => new MemoryStream(Encoding.UTF8.GetBytes(seedJson)));
 
