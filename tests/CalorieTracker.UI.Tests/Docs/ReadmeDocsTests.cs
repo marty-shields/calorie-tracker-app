@@ -22,12 +22,23 @@ public partial class ReadmeDocsTests
     [Test]
     public void YourData_SaysABarcodeLeavesThePhone()
     {
-        var start = Readme.IndexOf("## Your data", StringComparison.Ordinal);
-        var end = Readme.IndexOf("\n## ", start + 1, StringComparison.Ordinal);
-        var section = Readme[start..end];
+        var section = YourData();
 
         Assert.That(section, Does.Contain("barcode").And.Contain("Open Food Facts").And.Contain("none of your food log or other data").And.Contain("Google ML Kit").And.Contain("usage metrics")
             .And.Not.Contain("Nothing is sent to a server"));
+    }
+
+    [Test]
+    public void YourData_SaysTheDiaryAndTargetStayOnThePhoneAndWhatIsStored()
+    {
+        var section = YourData();
+
+        Assert.That(section, Does.Contain("Your diary, daily target and foods are stored on the phone and in its Android backup")
+            .And.Contain("A diary entry holds the food id, the amount (g or ml, and the servings if you entered them), the meal, the day and whether it was removed.")
+            .And.Contain("The daily target is one number of calories.")
+            .And.Contain("The theme is kept in the app's web storage, not the database.")
+            .And.Contain("The app sends none of your diary, daily target or settings anywhere."));
+        Assert.That(RepoFiles.Read("SECURITY.md"), Does.Contain("README.md#your-data").And.Contain("stay on the phone and in its Android backup"));
     }
 
     [Test]
@@ -46,6 +57,13 @@ public partial class ReadmeDocsTests
         var projects = Directory.GetDirectories(RepoFiles.PathOf("src"), "CalorieTracker.*").Select(Path.GetFileName);
 
         Assert.That(layout, Is.SupersetOf(projects));
+    }
+
+    private static string YourData()
+    {
+        var start = Readme.IndexOf("## Your data", StringComparison.Ordinal);
+        var end = Readme.IndexOf("\n## ", start + 1, StringComparison.Ordinal);
+        return Readme[start..end];
     }
 
     [GeneratedRegex(@"docs/images/readme/([a-z-]+)-light\.png")]

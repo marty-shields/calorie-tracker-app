@@ -1,5 +1,5 @@
 Feature: Scan
-  The navigation bar opens Scan, which asks for the camera. Without it Scan says so. A scanned product needs a real barcode in front of a camera, so the Found (Add to diary) and Not found (Search by name) states are covered by bUnit and the stories, not here. No test seam fakes the scanner on a device.
+  The navigation bar opens Scan, which asks for the camera. Without it Scan says so. Not found (Search by name) needs a real barcode in front of a camera, so bUnit and the stories cover it. The Found state is reached in Journeys.feature through a Debug-build seam (E2EScanSeam) that gives the scanner a barcode.
 
   Scenario: The navigation bar opens Scan
     Given I am on the Dashboard
