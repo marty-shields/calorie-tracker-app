@@ -19,15 +19,26 @@ internal static class E2EScanSeam
 
     public static IServiceCollection AddE2EScanSeam(this IServiceCollection services)
     {
-        var lookup = services.Last(d => d.ServiceType == typeof(IBarcodeLookup));
-        services.Remove(lookup);
-        services.AddSingleton<IBarcodeLookup>(provider => new SeededLookup((IBarcodeLookup)lookup.ImplementationFactory!(provider), provider.GetRequiredService<IFoodSearch>()));
-
-        var scanner = services.Last(d => d.ServiceType == typeof(IBarcodeScanner));
-        services.Remove(scanner);
-        services.AddSingleton<IBarcodeScanner>(provider => new FileScanner(ActivatorUtilities.CreateInstance<CameraBarcodeScanner>(provider)));
+        Wrap<IBarcodeLookup>(services, (inner, provider) => new SeededLookup(inner, provider.GetRequiredService<IFoodSearch>()));
+        Wrap<IBarcodeScanner>(services, (inner, _) => new FileScanner(inner));
         return services;
     }
+
+    /// <summary>Replaces the last registration of <typeparamref name="T"/> with one that builds the original and wraps it. Fails at start-up when there is none or it has an unknown shape.</summary>
+    private static void Wrap<T>(IServiceCollection services, Func<T, IServiceProvider, T> wrap)
+        where T : class
+    {
+        var original = services.LastOrDefault(d => d.ServiceType == typeof(T))
+            ?? throw new InvalidOperationException($"E2E scan seam: no {typeof(T).Name} is registered to wrap.");
+        services.Remove(original);
+        services.AddSingleton(provider => wrap(Create<T>(original, provider), provider));
+    }
+
+    private static T Create<T>(ServiceDescriptor original, IServiceProvider provider)
+        where T : class =>
+        (original.ImplementationInstance ?? original.ImplementationFactory?.Invoke(provider)
+            ?? (original.ImplementationType is { } type ? ActivatorUtilities.CreateInstance(provider, type) : null)) as T
+        ?? throw new InvalidOperationException($"E2E scan seam: can't build the registered {typeof(T).Name}.");
 
     private sealed class FileScanner(IBarcodeScanner camera) : IBarcodeScanner
     {

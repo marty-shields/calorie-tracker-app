@@ -6,4 +6,4 @@ Include the version (Settings, or the release tag), what you did and what happen
 
 Only the latest release is supported.
 
-The diary entries, daily target, foods and settings stay on the phone: see [Your data](README.md#your-data) for what is stored.
+The diary entries, daily target and foods stay on the phone and in its Android backup: see [Your data](README.md#your-data) for what is stored.

@@ -20,7 +20,7 @@ Running the E2E suite on a phone or an emulator, and where the results go. Set u
 
 ## Tags
 - `@smoke`: a quick check of the main paths.
-- `@release`: also runs on the Release build. These are the `@smoke` scenarios, the code a trimmed build is most likely to break, and the upgrade seed.
+- `@release`: also runs on the Release build. These are the `@smoke` scenarios except Journey 3 (it needs the Debug-only [scan seam](#scan-seam)), the code a trimmed build is most likely to break, and the upgrade seed.
 - `@upgrade`: installs another build, so the shards leave it out and it runs in its own workflow (below).
 - `@upgrade-seed`: the first half of the next release's upgrade check ([Upgrade](#the-upgrade-check)). The shards and the Release E2E run it like any other scenario, so every release proves its own seed works.
 
@@ -63,6 +63,7 @@ The check needs a last release: with no `v*` tag yet, the upgrade jobs skip thei
 The device state between the halves is the contract. The tag's project defines what the first half saves, and the current one checks it:
 - The app is installed from `PreviousApk`, under `AppPackage` (`E2E_APP_PACKAGE`), and has not been cleared.
 - Its Settings has the Dark theme chosen and a daily target of 2100, and its Dashboard lists one 100 g entry under Lunch for today (a food found by "oat"). As the app gains features, save more here and check it in `Upgrade.feature` once a release has it.
+- The entry is dated by the day the seed ran, and `Upgrade.feature` looks for it on today's Dashboard. A run that crosses midnight between the halves fails (accepted: the halves run minutes apart; rerun it).
 - The first half takes the run settings `AppPackage`, `AppApk` (the previous APK), `DeviceUdid` and `ChromedriverExecutable` and the `@upgrade-seed` category. Keep all of these, since a later release's check runs an older project with them.
 
 A failed try starts both halves again from an uninstalled app. A tag older than `UpgradeSeed.feature` has no seed scenario. For such a tag, the first half runs the E2E project of the commit that added the feature instead (`upgrade-seed-ref.sh` picks it). That commit's CI ran it against that release's build, and the commit never changes. `upgrade-seed-ref.sh` fails if a tag that contains that commit has no seed scenario.

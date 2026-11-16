@@ -63,6 +63,9 @@ public sealed class DiarySteps(ServingScreen serving, FoodSearchScreen foods, Da
     [When(@"^I tap the trash icon$")]
     public void WhenITapTheTrashIcon() => serving.Remove();
 
+    [When(@"^I tap View day$")]
+    public void WhenITapViewDay() => snackbar.TapAction();
+
     [When(@"^I tap Undo$")]
     public void WhenITapUndo() => snackbar.TapAction();
 
@@ -88,6 +91,13 @@ public sealed class DiarySteps(ServingScreen serving, FoodSearchScreen foods, Da
 
     [Then(@"^" + Meals + " lists 1 entry$")]
     public void ThenListsOneEntry(string meal) => web.Eventually(() => dashboard.Entries(meal).Count, Is.EqualTo(1));
+
+    [Then(@"^the day lists 1 entry$")]
+    public void ThenTheDayListsOneEntry()
+    {
+        journeys.WaitFor(Journeys.Screen.Dashboard);
+        web.Eventually(() => new[] { "Breakfast", "Lunch", "Dinner", "Snacks" }.Sum(meal => dashboard.Entries(meal).Count), Is.EqualTo(1));
+    }
 
     [Then(@"^the " + Meals + " entry is the same as before$")]
     public void ThenTheEntryIsTheSameAsBefore(string meal) =>

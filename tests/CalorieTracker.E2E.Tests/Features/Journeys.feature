@@ -24,6 +24,9 @@ Feature: Diary journeys
     Then I am on Foods
     And "oat" is still typed
     And the snackbar says it was added to the suggested meal with the action "View day"
+    When I tap View day
+    Then I am on the Dashboard
+    And the day lists 1 entry
 
   @smoke
   Scenario: Journey 3 Add a scanned product from Scan
@@ -36,3 +39,4 @@ Feature: Diary journeys
     When I tap Add
     Then I am on the Dashboard
     And the snackbar says it was added to the suggested meal with the action "Undo"
+    And the day lists 1 entry
