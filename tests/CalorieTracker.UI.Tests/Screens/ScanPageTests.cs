@@ -140,8 +140,8 @@ public class ScanPageTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
         {
-            Assert.That(cut.Find("[data-testid=scan-name]").TextContent, Is.EqualTo("Porridge oats"));
-            Assert.That(cut.Find("[data-testid=scan-brand]").TextContent, Is.EqualTo("Morning Mill"));
+            Assert.That(cut.Find("[data-testid=scan-name]").TextContent, Is.EqualTo("Morning Mill Porridge oats"));
+            Assert.That(cut.FindAll("[data-testid=scan-brand]"), Is.Empty);
             Assert.That(cut.Find("[data-testid=scan-per]").TextContent, Is.EqualTo("Per 100 g"));
             Assert.That(cut.Find("[data-testid=scan-kcal]").TextContent, Is.EqualTo("372 kcal"));
             Assert.That(cut.Find("[data-testid=scan-protein]").TextContent, Is.EqualTo("11 g"));

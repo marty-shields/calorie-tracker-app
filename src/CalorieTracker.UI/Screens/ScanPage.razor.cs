@@ -138,7 +138,8 @@ public partial class ScanPage : IDisposable
         var hasServing = FoodService.TryBoundServing(food.ServingLabel, food.ServingAmount, out var label, out var servingAmount);
         return new ScannedProduct(food.Name, food.Brand, kcal, protein, carbs, fat, food.Unit == FoodUnit.Millilitre,
             ToNutrient(food.FibreG), ToNutrient(food.SugarsG), ToNutrient(food.SaturatesG), ToNutrient(food.SaltG),
-            food.Id > 0 ? food.Id : null, hasServing ? label : null, hasServing ? (decimal)servingAmount : null);
+            food.Id > 0 ? food.Id : null, hasServing ? label : null, hasServing ? (decimal)servingAmount : null,
+            food.Brands, food.GenericName, food.PackageLabel);
     }
 
     private static decimal? ToNutrient(double? value) =>

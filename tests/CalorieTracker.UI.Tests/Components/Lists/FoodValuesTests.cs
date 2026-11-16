@@ -49,6 +49,27 @@ public class FoodValuesTests : ComponentTestBase
     }
 
     [Test]
+    public void Render_WithGenericNameAndPack_ShowsThemBeneathTheName()
+    {
+        var cut = Render(p => p.Add(x => x.GenericName, "Hazelnut spread").Add(x => x.Brand, "Ferrero").Add(x => x.Pack, "400 g e"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "generic"), Is.EqualTo("Hazelnut spread"));
+            Assert.That(Text(cut, "brand"), Is.EqualTo("Ferrero"));
+            Assert.That(Text(cut, "pack"), Is.EqualTo("400 g e"));
+        });
+    }
+
+    [Test]
+    public void Render_WithoutGenericNameOrPack_ShowsNeither()
+    {
+        var cut = Render();
+
+        Assert.That(cut.FindAll("[data-testid=food-generic], [data-testid=food-pack]"), Is.Empty);
+    }
+
+    [Test]
     public void Render_WithExtraNutrients_ShowsEachRowInOrder()
     {
         var cut = Render(p => p.Add(x => x.Fibre, 9).Add(x => x.Sugars, 1.1).Add(x => x.Saturates, 1.4).Add(x => x.Salt, 0.3));

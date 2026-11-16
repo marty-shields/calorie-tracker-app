@@ -12,8 +12,9 @@
     <ChildContent>
         @if (Selected is { } food)
         {
+            var display = FoodDisplay.Of(food);
             <section class="detail" data-testid="food-detail">
-                <FoodValues Name="@food.Name" Brand="@food.Brand" IsLiquid="@(food.Unit == FoodUnit.Millilitre)" Kcal="food.Kcal" Protein="food.ProteinG"
+                <FoodValues Name="@display.Title" Brand="@display.BrandLine" Pack="@display.Pack" GenericName="@display.GenericName" IsLiquid="@(food.Unit == FoodUnit.Millilitre)" Kcal="food.Kcal" Protein="food.ProteinG"
                             Carbs="food.CarbsG" Fat="food.FatG" Fibre="food.FibreG" Sugars="food.SugarsG" Saturates="food.SaturatesG" Salt="food.SaltG"
                             TestId="food-detail" />
             </section>
@@ -61,7 +62,7 @@
                             @foreach (var item in group.Foods.Take(shown))
                             {
                                 <li>
-                                    <ListRow Text="@item.Food.Name" Detail="@Subtitle(item)"
+                                    <ListRow Text="@FoodDisplay.Of(item.Food).Title" Detail="@Subtitle(item)"
                                              OnClick="@(() => OnSelect.InvokeAsync(item.Food))" TestId="@($"food-result-{item.Food.Id}")" />
                                 </li>
                             }
@@ -178,10 +179,11 @@
     private static string Subtitle(FoodListing item)
     {
         var food = item.Food;
+        var detail = FoodDisplay.Of(food).Detail;
         var values = item.History is { } last
             ? $"{Last(last, food)} · {Number(Math.Round(food.Kcal * last.LastAmount / 100))} kcal"
             : $"{Number(food.Kcal)} kcal / 100 {UnitText(food)}";
-        return string.IsNullOrEmpty(food.Brand) ? values : $"{food.Brand} · {values}";
+        return detail is null ? values : $"{detail} · {values}";
     }
 
     private static string Last(FoodHistory last, Food food) =>

@@ -20,6 +20,24 @@ public static class ServingSamples
         ServingAmount = 201.8,
     };
 
+    /// <summary>A single-portion pack with no serving of its own: the Serving screen offers its pack as "1 serving".</summary>
+    public static Food Mars { get; } = new()
+    {
+        Id = 15,
+        Name = "Mars",
+        Brand = "Mars",
+        Brands = "Mars, Mars Wrigley",
+        PackageLabel = "51 g",
+        Unit = FoodUnit.Gram,
+        Kcal = 449,
+        ProteinG = 4,
+        CarbsG = 69,
+        FatG = 17,
+        PackageAmount = 51,
+        ServingLabel = "1 serving",
+        ServingAmount = 51,
+    };
+
     /// <summary>A scanned product with no serving.</summary>
     public static Food Biscuits { get; } = new()
     {

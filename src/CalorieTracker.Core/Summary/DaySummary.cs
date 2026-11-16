@@ -1,5 +1,6 @@
 using System.Globalization;
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Foods;
 
 namespace CalorieTracker.Core.Summary;
 
@@ -31,7 +32,11 @@ public sealed record Nutrition(int Kcal, double ProteinG, double CarbsG, double 
 public sealed record MacroShares(int ProteinPercent, int CarbsPercent, int FatPercent);
 
 /// <summary>A kept entry with its food looked up. <see cref="Nutrition"/> is for the entry's amount. <see cref="ServingLabel"/> is the food's own label for one serving, as stored (such as "1 slice (28 g)"); null when the food has none.</summary>
-public sealed record SummaryEntry(int EntryId, int FoodId, string Name, string? Brand, FoodUnit Unit, double Amount, double? Servings, Nutrition Nutrition, string? ServingLabel = null);
+public sealed record SummaryEntry(int EntryId, int FoodId, string Name, string? Brand, FoodUnit Unit, double Amount, double? Servings, Nutrition Nutrition, string? ServingLabel = null, string? Brands = null)
+{
+    /// <summary>The title and brand line the diary row shows. The pack is not read for a diary row, so <see cref="FoodDisplay.Pack"/> is null.</summary>
+    public FoodDisplay Display => FoodDisplay.Of(Name, Brand, Brands, null);
+}
 
 /// <summary>One meal's entries in the order added, and their total. Empty meals are still listed.</summary>
 public sealed record MealSummary(Meal Meal, Nutrition Totals, IReadOnlyList<SummaryEntry> Entries);

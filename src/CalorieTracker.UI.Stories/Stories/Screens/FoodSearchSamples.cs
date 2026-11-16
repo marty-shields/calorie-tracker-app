@@ -43,6 +43,18 @@ public static class FoodSearchSamples
         new(FoodGroupKind.Branded, [new(Oats[2], null)]),
     ];
 
+    /// <summary>Branded foods whose names leave out, repeat or share the brand: Weetabix Original, Nutella, Mars and Coca Cola.</summary>
+    public static IReadOnlyList<Food> BrandedFoods { get; } =
+    [
+        new() { Id = 21, Name = "Original", Brand = "Weetabix", Brands = "Weetabix", PackageLabel = "430 gram", Unit = FoodUnit.Gram, Kcal = 362, ProteinG = 11.5, CarbsG = 69, FatG = 2, GenericName = "Wholegrain wheat biscuits" },
+        new() { Id = 22, Name = "Nutella", Brand = "Ferrero", Brands = "Ferrero, Nutella", PackageLabel = "400 g e", Unit = FoodUnit.Gram, Kcal = 539, ProteinG = 6.3, CarbsG = 57.5, FatG = 30.9, GenericName = "Hazelnut spread with cocoa" },
+        new() { Id = 23, Name = "Mars", Brand = "Mars", Brands = "Mars, Mars Wrigley", PackageLabel = "51 g", Unit = FoodUnit.Gram, Kcal = 449, ProteinG = 4, CarbsG = 69, FatG = 17 },
+        new() { Id = 24, Name = "Coca Cola", Brand = "Coca-Cola", Brands = "Coca-Cola", PackageLabel = "330 ml", Unit = FoodUnit.Millilitre, Kcal = 42, ProteinG = 0, CarbsG = 10.6, FatG = 0 },
+    ];
+
+    /// <summary>Typing "mars": only branded foods, each shown as title, then brand line, pack and energy.</summary>
+    public static IReadOnlyList<FoodGroup> BrandedGroup { get; } = [new(FoodGroupKind.Branded, BrandedFoods.Select(f => new FoodListing(f, null)).ToList())];
+
     /// <summary>Typing a word only common foods have.</summary>
     public static IReadOnlyList<FoodGroup> OneGroup { get; } = [new(FoodGroupKind.Common, [new(Oats[0], null)])];
 

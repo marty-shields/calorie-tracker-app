@@ -45,6 +45,12 @@
         </Template>
     </Story>
 
+    <Story Name="Found with brand and pack">
+        <Template>
+            <ScanView State="ScanState.Found" Product="@(new("Nutella", "Ferrero", 539, 6.3m, 57.5m, 30.9m, FoodId: 5, Brands: "Ferrero, Nutella", GenericName: "Hazelnut spread with cocoa", PackageLabel: "400 g e"))" OnNavigate="_ => { }" OnScanAgain="() => { }" />
+        </Template>
+    </Story>
+
     <Story Name="Found with warning">
         <Template>
             <ScanView State="ScanState.Found" Product="@(new("Chocolate spread", "Nutty Co", 250, 6, 55, 31, FoodId: 4))" OnNavigate="_ => { }" OnScanAgain="() => { }" />

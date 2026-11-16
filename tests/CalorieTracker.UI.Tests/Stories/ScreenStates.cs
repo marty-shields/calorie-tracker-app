@@ -46,6 +46,8 @@ public static class ScreenStates
         ServingAmount = 201.8,
     };
 
+    internal static readonly Food Mars = ServingSamples.Mars;
+
     internal static readonly Food Biscuits = new()
     {
         Id = 12,
@@ -92,6 +94,7 @@ public static class ScreenStates
         new("Screens/Dashboard", "Loading", c => Dashboard(c, null, loading: true)),
         new("Screens/Dashboard", "Load failed", c => Dashboard(c, null, loadFailed: true)),
         new("Screens/Dashboard", "Future day", c => Dashboard(c, DashboardSamples.Loaded, DashboardSamples.Today.AddDays(1))),
+        new("Screens/Dashboard", "Branded foods", c => Dashboard(c, DashboardSamples.Branded)),
         new("Screens/Dashboard", "Entry removed", c => Dashboard(c, DashboardSamples.Loaded, snackbar: "Cheddar cheese removed")),
 
         new("Screens/Settings", "Default", c => Settings(c, version: "1.0.0", target: 2100)),
@@ -105,11 +108,13 @@ public static class ScreenStates
         new("Screens/FoodSearch", "Nothing typed", c => FoodSearch(c)),
         new("Screens/FoodSearch", "Nothing typed with history", c => FoodSearch(c, groups: FoodSearchSamples.IdleRecent)),
         new("Screens/FoodSearch", "Results", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups)),
+        new("Screens/FoodSearch", "Results with branded foods", c => FoodSearch(c, query: "mars", groups: FoodSearchSamples.BrandedGroup)),
         new("Screens/FoodSearch", "Results in one group", c => FoodSearch(c, query: "rolled", groups: FoodSearchSamples.OneGroup)),
         new("Screens/FoodSearch", "Results with more to show", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.LongGroup)),
         new("Screens/FoodSearch", "Results with an expanded group", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.LongGroup, expanded: [FoodGroupKind.Common])),
         new("Screens/FoodSearch", "No results", c => FoodSearch(c, query: "zzz")),
         new("Screens/FoodSearch", "Food selected", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups, selected: SampleFoods[0])),
+        new("Screens/FoodSearch", "Branded food selected", c => FoodSearch(c, query: "nutella", groups: FoodSearchSamples.BrandedGroup, selected: FoodSearchSamples.BrandedFoods[1])),
         new("Screens/FoodSearch", "Add to a meal", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups, meal: Meal.Lunch)),
         new("Screens/FoodSearch", "Add to a meal with nothing typed", c => FoodSearch(c, meal: Meal.Snacks)),
         new("Screens/FoodSearch", "Add to a meal with history", c => FoodSearch(c, groups: FoodSearchSamples.Idle, meal: Meal.Breakfast)),
@@ -122,12 +127,14 @@ public static class ScreenStates
         new("Screens/Scan", "Found liquid", c => Scan(c, ScanState.Found, new("Semi-skimmed milk", null, 47, 3.5m, 4.8m, 1.7m, IsLiquid: true, FoodId: 2))),
         new("Screens/Scan", "Found with extra nutrients", c => Scan(c, ScanState.Found, new("Porridge oats", "Morning Mill", 372, 11, 60, 8, Fibre: 9, Sugars: 1.1m, Saturates: 1.4m, Salt: 0.01m, FoodId: 1))),
         new("Screens/Scan", "Found with a serving", c => Scan(c, ScanState.Found, new("Digestive biscuits", "Morning Mill", 480, 7, 62, 22, FoodId: 3, ServingLabel: "1 biscuit", ServingAmount: 15))),
+        new("Screens/Scan", "Found with brand and pack", c => Scan(c, ScanState.Found, new("Nutella", "Ferrero", 539, 6.3m, 57.5m, 30.9m, FoodId: 5, Brands: "Ferrero, Nutella", GenericName: "Hazelnut spread with cocoa", PackageLabel: "400 g e"))),
         new("Screens/Scan", "Found with warning", c => Scan(c, ScanState.Found, new("Chocolate spread", "Nutty Co", 250, 6, 55, 31, FoodId: 4))),
         new("Screens/Scan", "Not found", c => Scan(c, ScanState.NotFound)),
         new("Screens/Scan", "Camera unavailable", c => Scan(c, ScanState.CameraUnavailable)),
 
         new("Screens/Serving", "Servings", c => Serving(c, Pizza, EntryMode.Servings, 1, 201.8, Meal.Lunch)),
         new("Screens/Serving", "Grams with a serving", c => Serving(c, Pizza, EntryMode.Grams, 150, 150, Meal.Lunch)),
+        new("Screens/Serving", "Pack as one serving", c => Serving(c, Mars, EntryMode.Servings, 1, 51, Meal.Snacks)),
         new("Screens/Serving", "Scanned product with no serving", c => Serving(c, Biscuits, EntryMode.Grams, 30, 30, Meal.Lunch)),
         new("Screens/Serving", "CoFID ingredient", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch)),
         new("Screens/Serving", "Liquid", c => Serving(c, Milk, EntryMode.Grams, 250, 250, Meal.Breakfast)),

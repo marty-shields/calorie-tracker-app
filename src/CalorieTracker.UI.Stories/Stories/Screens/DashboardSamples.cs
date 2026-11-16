@@ -18,6 +18,14 @@ public static class DashboardSamples
 
     private static SummaryEntry Biscuits { get; } = Entry(5, 25, "Digestive biscuits", "Morning Mill", FoodUnit.Gram, 90, 1.5, new(438, 6.3, 55.8, 19.8), "2 biscuits (30 g)");
 
+    private static SummaryEntry Weetabix { get; } = Entry(6, 26, "Original", "Weetabix", FoodUnit.Gram, 38, null, new(138, 4.4, 26.2, 0.8), brands: "Weetabix");
+
+    private static SummaryEntry Nutella { get; } = Entry(7, 27, "Nutella", "Ferrero", FoodUnit.Gram, 15, null, new(81, 0.9, 8.6, 4.6), brands: "Ferrero, Nutella");
+
+    private static SummaryEntry Mars { get; } = Entry(8, 28, "Mars", "Mars", FoodUnit.Gram, 51, 1, new(229, 2, 35.2, 8.7), brands: "Mars, Mars Wrigley");
+
+    private static SummaryEntry Cola { get; } = Entry(9, 29, "Coca Cola", "Coca-Cola", FoodUnit.Millilitre, 330, 1, new(139, 0, 35, 0), brands: "Coca-Cola");
+
     /// <summary>Nothing logged, with a target of 2,100.</summary>
     public static DaySummary FirstRun { get; } = Day(2100);
 
@@ -30,8 +38,11 @@ public static class DashboardSamples
     /// <summary>More than the target of 1,000 eaten.</summary>
     public static DaySummary OverTarget { get; } = Day(1000, [Oats], [Pizza, Cheese], [], [Biscuits]);
 
-    private static SummaryEntry Entry(int entryId, int foodId, string name, string? brand, FoodUnit unit, double amount, double? servings, Nutrition nutrition, string? servingLabel = null) =>
-        new(entryId, foodId, name, brand, unit, amount, servings, nutrition, servingLabel);
+    /// <summary>Branded foods whose names leave out or repeat the brand: Weetabix Original, then Nutella (brand line Ferrero), a Mars bar and a can of Coca Cola added as 1 serving.</summary>
+    public static DaySummary Branded { get; } = Day(2100, [Weetabix], [Nutella], [Mars], [Cola]);
+
+    private static SummaryEntry Entry(int entryId, int foodId, string name, string? brand, FoodUnit unit, double amount, double? servings, Nutrition nutrition, string? servingLabel = null, string? brands = null) =>
+        new(entryId, foodId, name, brand, unit, amount, servings, nutrition, servingLabel, brands);
 
     private static DaySummary Day(int? target, params IReadOnlyList<SummaryEntry>[] meals)
     {
