@@ -1,3 +1,4 @@
+using System.Globalization;
 using CalorieTracker.Core.Data;
 using CalorieTracker.UI.Screens;
 
@@ -42,6 +43,21 @@ public static class ServingRoute
 
         return $"/serving/{foodId}" + (query.Count == 0 ? "" : "?" + string.Join('&', query));
     }
+
+    /// <summary>The route to change or remove a kept entry of a food: the entry's id, day, meal and amounts travel in the query, since a single entry can't be read back.</summary>
+    /// <param name="amount">Grams or ml.</param>
+    /// <param name="servings">The count of servings the entry was added by; null when it was added by weight.</param>
+    public static string EditUrl(int entryId, int foodId, Meal meal, DateOnly date, double amount, double? servings = null) =>
+        $"/serving/{foodId}?entry={entryId}&meal={meal}&date={RouteDate.ToText(date)}&amount={Text(amount)}" + (servings is { } count ? $"&servings={Text(count)}" : "");
+
+    /// <summary>Where Back and a saved or removed entry go in edit mode: the entry's day on the Dashboard.</summary>
+    public static string EditTarget(DateOnly date) => DashboardRoute.Url(date);
+
+    private static string Text(double value) => value.ToString("R", CultureInfo.InvariantCulture);
+
+    /// <summary>A positive, finite number in a query value (a point as the decimal separator), or null when it is missing or not one.</summary>
+    public static double? ParseNumber(string? text) =>
+        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && double.IsFinite(value) && value > 0 ? value : null;
 
     /// <summary>The meal named by a query value, or null when it is missing or not one of the four.</summary>
     public static Meal? ParseMeal(string? text) =>

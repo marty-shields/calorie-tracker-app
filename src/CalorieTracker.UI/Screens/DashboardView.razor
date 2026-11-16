@@ -59,7 +59,7 @@
                             <ul class="entries">
                                 @foreach (var entry in meal.Entries)
                                 {
-                                    <li><ListRow Text="@entry.Name" Detail="@EntryDetail(entry)" Aside="@Number(entry.Nutrition.Kcal)" TestId="@($"entry-{entry.EntryId}")" /></li>
+                                    <li><ListRow Text="@entry.Name" Detail="@EntryDetail(entry)" Aside="@Number(entry.Nutrition.Kcal)" TestId="@($"entry-{entry.EntryId}")" OnClick="@(() => OnEdit.InvokeAsync(new EntryEditRequest(entry, meal.Meal, Date)))" /></li>
                                 }
                             </ul>
                         }
@@ -112,6 +112,10 @@
     /// <summary>Raised by a meal's +.</summary>
     [Parameter]
     public EventCallback<MealAddRequest> OnAdd { get; set; }
+
+    /// <summary>Raised by a tapped entry, to change or remove it.</summary>
+    [Parameter]
+    public EventCallback<EntryEditRequest> OnEdit { get; set; }
 
     /// <summary>Raised by Try again.</summary>
     [Parameter]

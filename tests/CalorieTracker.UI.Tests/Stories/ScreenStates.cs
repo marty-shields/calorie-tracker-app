@@ -1,12 +1,14 @@
 using AngleSharp.Dom;
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Summary;
+using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Models.Scan;
 using CalorieTracker.UI.Models.Serving;
 using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Screens;
 using CalorieTracker.UI.Stories.Stories.Screens;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CalorieTracker.UI.Tests.Stories;
 
@@ -95,6 +97,7 @@ public static class ScreenStates
         new("Screens/Dashboard", "Loading", c => Dashboard(c, null, loading: true)),
         new("Screens/Dashboard", "Load failed", c => Dashboard(c, null, loadFailed: true)),
         new("Screens/Dashboard", "Future day", c => Dashboard(c, DashboardSamples.Loaded, DashboardSamples.Today.AddDays(1))),
+        new("Screens/Dashboard", "Entry removed", c => Dashboard(c, DashboardSamples.Loaded, snackbar: "Cheddar cheese removed")),
 
         new("Screens/Settings", "Default", c => Settings(c, version: "1.0.0", target: 2100)),
         new("Screens/Settings", "Dark chosen", c => Settings(c, version: "1.0.0", theme: ThemePreference.Dark, target: 2100)),
@@ -137,6 +140,12 @@ public static class ScreenStates
         new("Screens/Serving", "Amount too large", c => Serving(c, Cheddar, EntryMode.Grams, 12000, 12000, Meal.Lunch)),
         new("Screens/Serving", "Saving", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, saving: true)),
         new("Screens/Serving", "Save failed", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, saveFailed: true)),
+        new("Screens/Serving", "Edit entry", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, editing: true)),
+        new("Screens/Serving", "Edit entry in servings", c => Serving(c, Pizza, EntryMode.Servings, 1, 201.8, Meal.Lunch, editing: true)),
+        new("Screens/Serving", "Saving entry", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, saving: true, editing: true)),
+        new("Screens/Serving", "Entry save failed", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, saveFailed: true, editing: true)),
+        new("Screens/Serving", "Entry remove failed", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, removeFailed: true, editing: true)),
+        new("Screens/Serving", "Entry already removed", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, entryGone: true, editing: true)),
         new("Screens/Serving", "Loading", c => Serving(c, null, loading: true)),
         new("Screens/Serving", "Load failed", c => Serving(c, null, loadFailed: true)),
         new("Screens/Serving", "Food not found", c => Serving(c, null)),
@@ -164,7 +173,7 @@ public static class ScreenStates
             .FindAll("*");
 
     internal static IReadOnlyList<IElement> Serving(BunitContext context, Food? food, EntryMode mode = EntryMode.Servings, decimal? amount = null, double? grams = null, Meal meal = Meal.Breakfast,
-        TimeOnly? suggestedAt = null, bool saving = false, bool saveFailed = false, bool loading = false, bool loadFailed = false) =>
+        TimeOnly? suggestedAt = null, bool saving = false, bool saveFailed = false, bool loading = false, bool loadFailed = false, bool editing = false, bool removeFailed = false, bool entryGone = false) =>
         context.Render<ServingView>(p => p
             .Add(x => x.Food, food)
             .Add(x => x.Mode, mode)
@@ -176,6 +185,12 @@ public static class ScreenStates
             .Add(x => x.SaveFailed, saveFailed)
             .Add(x => x.Loading, loading)
             .Add(x => x.LoadFailed, loadFailed)
+            .Add(x => x.Editing, editing)
+            .Add(x => x.Date, DashboardSamples.Today)
+            .Add(x => x.RemoveFailed, removeFailed)
+            .Add(x => x.EntryGone, entryGone)
+            .Add(x => x.OnSave, () => { })
+            .Add(x => x.OnRemove, () => { })
             .Add(x => x.OnModeChanged, (EntryMode _) => { })
             .Add(x => x.OnAmountChanged, (decimal? _) => { })
             .Add(x => x.OnUseServing, () => { })
@@ -204,16 +219,28 @@ public static class ScreenStates
             .Add(x => x.OnBack, () => { }))
             .FindAll("*");
 
-    private static IReadOnlyList<IElement> Dashboard(BunitContext context, DaySummary? summary, DateOnly? date = null, bool loading = false, bool loadFailed = false) =>
-        context.Render<DashboardView>(p => p
+    private static IReadOnlyList<IElement> Dashboard(BunitContext context, DaySummary? summary, DateOnly? date = null, bool loading = false, bool loadFailed = false, string? snackbar = null) =>
+        Posted(context, snackbar).Render<DashboardView>(p => p
             .Add(x => x.Date, date ?? DashboardSamples.Today)
             .Add(x => x.Today, DashboardSamples.Today)
             .Add(x => x.Summary, summary)
             .Add(x => x.Loading, loading)
             .Add(x => x.LoadFailed, loadFailed)
             .Add(x => x.OnAdd, (MealAddRequest _) => { })
+            .Add(x => x.OnEdit, (EntryEditRequest _) => { })
             .Add(x => x.OnRetry, () => { })
             .Add(x => x.OnSettings, () => { })
             .Add(x => x.OnNavigate, (NavDestination _) => { }))
             .FindAll("*");
+
+    /// <summary>Posts the message with Undo to the context's snackbar before the screen renders, as another screen would; returns the context.</summary>
+    private static BunitContext Posted(BunitContext context, string? message)
+    {
+        if (message is not null)
+        {
+            context.Services.GetRequiredService<SnackbarService>().Show(message, "Undo", () => Task.CompletedTask, Timeout.InfiniteTimeSpan);
+        }
+
+        return context;
+    }
 }

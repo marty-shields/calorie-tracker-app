@@ -12,7 +12,7 @@
 @inject ILogger<ServingPage> Logger
 
 <ServingView Food="food" Loading="loading" LoadFailed="loadFailed" Mode="mode" Amount="amount" Grams="Grams" Meal="meal" SuggestedAt="suggestedAt"
-             Saving="saving" SaveFailed="saveFailed" OnModeChanged="ChangeMode" OnAmountChanged="ChangeAmount" OnUseServing="UseServing"
+             Saving="saving" SaveFailed="saveFailed" Editing="Editing" Date="Date" RemoveFailed="removeFailed" EntryGone="entryGone" OnSave="SaveAsync" OnRemove="RemoveAsync" OnModeChanged="ChangeMode" OnAmountChanged="ChangeAmount" OnUseServing="UseServing"
              OnMealChanged="ChangeMeal" OnAdd="AddAsync" OnRetry="LoadAsync" OnBack="OnBack" />
 
 @code {
@@ -28,7 +28,10 @@
     private TimeOnly? suggestedAt;
     private bool saving;
     private bool saveFailed;
+    private bool removeFailed;
+    private bool entryGone;
     private int loadedId = -1;
+    private int? loadedEntry;
     private Meal? loadedMeal;
 
     /// <summary>Largest weight carried across a mode switch. A typed number can be astronomically large; it is invalid anyway, and this keeps the conversion within a decimal.</summary>
@@ -54,6 +57,26 @@
     [Parameter]
     public Func<DateOnly, Task>? ViewDay { get; set; }
 
+    /// <summary>Id of the entry to change or remove. Set puts the screen in edit mode: <see cref="Date"/> and <see cref="Meal"/> are the entry's, and Save changes it instead of adding one.</summary>
+    [Parameter]
+    public int? EntryId { get; set; }
+
+    /// <summary>The entry's stored weight in g or ml, for edit mode. Null opens with the same defaults as adding.</summary>
+    [Parameter]
+    public double? EntryAmount { get; set; }
+
+    /// <summary>The count of servings the entry was added by, for edit mode. Null when it was added by weight, or the food no longer has a serving.</summary>
+    [Parameter]
+    public double? EntryServings { get; set; }
+
+    /// <summary>Raised once an edited entry is saved.</summary>
+    [Parameter]
+    public EventCallback OnSaved { get; set; }
+
+    /// <summary>Raised once the entry is removed (or was already gone), after the Undo snackbar is posted.</summary>
+    [Parameter]
+    public EventCallback OnRemoved { get; set; }
+
     /// <summary>Raised once the entry is saved, after its snackbar is posted.</summary>
     [Parameter]
     public EventCallback OnAdded { get; set; }
@@ -61,6 +84,8 @@
     /// <summary>Raised by the back arrow and the Android back button.</summary>
     [Parameter]
     public EventCallback OnBack { get; set; }
+
+    private bool Editing => EntryId is not null;
 
     private bool HasServing => ServingRules.HasServing(food);
 
@@ -71,7 +96,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        var foodChanged = FoodId != loadedId;
+        var foodChanged = FoodId != loadedId || EntryId != loadedEntry;
         if (!foodChanged && Meal == loadedMeal)
         {
             return;
@@ -81,6 +106,11 @@
         if (Meal is { } preset)
         {
             meal = preset;
+            suggestedAt = null;
+        }
+        else if (Editing)
+        {
+            meal = default;
             suggestedAt = null;
         }
         else
@@ -94,6 +124,9 @@
         if (foodChanged)
         {
             loadedId = FoodId;
+            loadedEntry = EntryId;
+            entryGone = false;
+            removeFailed = false;
             await LoadAsync();
         }
     }
@@ -114,6 +147,25 @@
         food = result.Food;
         if (food is null)
         {
+            return;
+        }
+
+        if (Editing && EntryAmount is { } stored)
+        {
+            if (HasServing && EntryServings is { } count)
+            {
+                mode = EntryMode.Servings;
+                amount = ToDecimal(Math.Min(count, CarryLimit));
+                lockedGrams = stored;
+            }
+            else
+            {
+                mode = EntryMode.Grams;
+                amount = ToDecimal(Math.Min(stored, CarryLimit));
+                lockedGrams = null;
+            }
+
+            saveFailed = false;
             return;
         }
 
@@ -177,13 +229,17 @@
         amount = value;
         lockedGrams = null;
         saveFailed = false;
+        removeFailed = false;
     }
 
     private void ChangeMeal(Meal value)
     {
         meal = value;
         saveFailed = false;
+        removeFailed = false;
     }
+
+    private double? Servings => mode == EntryMode.Servings && HasServing && amount is { } count ? (double)count : null;
 
     private async Task AddAsync()
     {
@@ -192,7 +248,7 @@
             return;
         }
 
-        double? servings = mode == EntryMode.Servings && HasServing && amount is { } count ? (double)count : null;
+        var servings = Servings;
         saving = true;
         saveFailed = false;
         try
@@ -216,6 +272,85 @@
         if (!saveFailed)
         {
             await OnAdded.InvokeAsync();
+        }
+    }
+
+    /// <summary>Saves the changed amount and meal of the entry. An entry gone meanwhile says so and keeps the screen.</summary>
+    private async Task SaveAsync()
+    {
+        if (saving || EntryId is not { } id || entryGone || food is null || Grams is not { } grams || !ServingRules.IsValidGrams(grams))
+        {
+            return;
+        }
+
+        saving = true;
+        saveFailed = false;
+        removeFailed = false;
+        DiaryResult result;
+        try
+        {
+            result = await Diary.UpdateAsync(id, Date, meal, grams, Servings);
+        }
+        catch
+        {
+            saving = false;
+            throw;
+        }
+
+        entryGone = result.Status == DiaryStatus.NotFound;
+        saveFailed = result.Status is not (DiaryStatus.Ok or DiaryStatus.NotFound);
+
+        // After a save the screen is left, so stay busy: a second tap must not save again.
+        saving = result.Status == DiaryStatus.Ok;
+        if (saving)
+        {
+            await OnSaved.InvokeAsync();
+        }
+    }
+
+    /// <summary>Removes the entry and posts "{food} removed" with Undo. An entry already gone is left as removed, with no message.</summary>
+    private async Task RemoveAsync()
+    {
+        if (saving || EntryId is not { } id || food is null)
+        {
+            return;
+        }
+
+        saving = true;
+        saveFailed = false;
+        removeFailed = false;
+        DiaryResult result;
+        try
+        {
+            result = await Diary.RemoveAsync(id);
+        }
+        catch
+        {
+            saving = false;
+            throw;
+        }
+
+        if (result.Status == DiaryStatus.Ok)
+        {
+            Snackbar.Show($"{food.Name} removed", "Undo", () => RestoreAsync(Diary, Snackbar, Logger, id));
+        }
+
+        removeFailed = result.Status is not (DiaryStatus.Ok or DiaryStatus.NotFound);
+        saving = !removeFailed;
+        if (saving)
+        {
+            await OnRemoved.InvokeAsync();
+        }
+    }
+
+    /// <summary>Brings the removed entry back. An entry already back counts as undone. A failure is logged and said in a snackbar; it never throws.</summary>
+    private static async Task RestoreAsync(DiaryService diary, SnackbarService snackbar, ILogger logger, int entryId)
+    {
+        var result = await diary.RestoreAsync(entryId);
+        if (result.Status is not (DiaryStatus.Ok or DiaryStatus.NotFound))
+        {
+            Log.RestoreFailed(logger, result.Status);
+            snackbar.Show("Couldn't undo. Add the food again.");
         }
     }
 

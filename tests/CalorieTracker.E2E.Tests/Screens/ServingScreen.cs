@@ -48,4 +48,26 @@ public sealed class ServingScreen(WebView web)
     public void Back() => web.Tap("back");
 
     public string NotFoundText() => web.Text("serving-not-found-message");
+
+    /// <summary>Waits for edit mode to show with its entry loaded, after a tap on an entry.</summary>
+    public void WaitUntilEditing() => web.WaitUntil(() => web.Exists("serving-save"), "the Serving screen didn't open in edit mode");
+
+    public void ChooseMeal(string meal)
+    {
+        web.Tap($"serving-meal-{meal.ToLowerInvariant()}");
+        web.Eventually(() => IsMealChosen(meal), Is.True, $"{meal} chosen");
+    }
+
+    public string SaveText() => web.Text("serving-save");
+
+    public bool HasAddButton() => web.Exists("serving-add");
+
+    public string RemoveLabel() => web.Attribute("serving-remove", "aria-label");
+
+    /// <summary>The muted meal and day line of edit mode, such as "Lunch · 15 Nov".</summary>
+    public string When() => web.Text("serving-when");
+
+    public void Save() => web.Tap("serving-save");
+
+    public void Remove() => web.Tap("serving-remove");
 }

@@ -2,10 +2,17 @@
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Diary
 @using CalorieTracker.Core.Foods
+@using CalorieTracker.UI.Components.Actions
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Components.Inputs
 @using CalorieTracker.UI.Models.Serving
-<AppScreen Title="@(Food?.Name ?? "Add food")" OnBack="OnBack">
+<AppScreen Title="@(Food?.Name ?? (Editing ? "Edit entry" : "Add food"))" OnBack="OnBack">
+    <Actions>
+        @if (Editing)
+        {
+            <IconButton Icon="IconName.Delete" AriaLabel="Remove entry" TestId="serving-remove" OnClick="OnRemove" />
+        }
+    </Actions>
     <ChildContent>
         @if (Loading)
         {
@@ -28,7 +35,14 @@
             var mode = HasServing ? Mode : EntryMode.Grams;
             var servings = mode == EntryMode.Servings;
             <div class="body">
-                <p class="per" data-testid="serving-per" data-wrap-ok>@PerLine(food)</p>
+                @if (Editing)
+                {
+                    <p class="when" data-testid="serving-when">@Meal · @Date.ToString("d MMM", CultureInfo.InvariantCulture)</p>
+                }
+                @if (!Editing)
+                {
+                    <p class="per" data-testid="serving-per" data-wrap-ok>@PerLine(food)</p>
+                }
                 @if (HasServing)
                 {
                     <section class="section">
@@ -56,7 +70,7 @@
                 <section class="section">
                     <h2 class="heading">Meal</h2>
                     <FilterChips TValue="Meal" Label="Meal" Options="Meals" Value="Meal" ValueChanged="OnMealChanged" TestId="serving-meal" />
-                    @if (SuggestedAt is { } at)
+                    @if (SuggestedAt is { } at && !Editing)
                     {
                         <p class="suggested" data-testid="serving-suggestion">Suggested from the time: @at.ToString("HH:mm", CultureInfo.InvariantCulture)</p>
                     }
@@ -64,7 +78,7 @@
                 @if (Valid)
                 {
                     <SummaryCard TestId="serving-adds">
-                        <h2 class="heading">This adds</h2>
+                        <h2 class="heading">@(Editing ? "This entry" : "This adds")</h2>
                         <p class="kcal" data-testid="serving-adds-kcal">@Kcal(food) kcal</p>
                         <p class="detail" data-testid="serving-adds-detail" data-wrap-ok>@AddsDetail(food)</p>
                     </SummaryCard>
@@ -75,13 +89,28 @@
     <BottomBar>
         @if (Food is not null && !Loading && !LoadFailed)
         {
-            <AppButton FullWidth Busy="Saving" Disabled="!Valid" TestId="serving-add" OnClick="OnAdd">@(Saving ? "Adding…" : $"Add to {Meal}")</AppButton>
+            @if (Editing)
+            {
+                <AppButton FullWidth Busy="Saving" Disabled="!Valid || EntryGone" TestId="serving-save" OnClick="OnSave">@(Saving ? "Saving…" : "Save")</AppButton>
+            }
+            else
+            {
+                <AppButton FullWidth Busy="Saving" Disabled="!Valid" TestId="serving-add" OnClick="OnAdd">@(Saving ? "Adding…" : $"Add to {Meal}")</AppButton>
+            }
         }
     </BottomBar>
     <Status>
-        @if (SaveFailed)
+        @if (EntryGone)
         {
-            <p class="error" role="alert" data-testid="serving-error" data-wrap-ok>Couldn't add this food. Try again.</p>
+            <p class="error" role="alert" data-testid="serving-gone" data-wrap-ok>This entry was already removed.</p>
+        }
+        else if (RemoveFailed)
+        {
+            <p class="error" role="alert" data-testid="serving-error" data-wrap-ok>Couldn't remove this entry. Try again.</p>
+        }
+        else if (SaveFailed)
+        {
+            <p class="error" role="alert" data-testid="serving-error" data-wrap-ok>@(Editing ? "Couldn't save this entry. Try again." : "Couldn't add this food. Try again.")</p>
         }
     </Status>
 </AppScreen>
@@ -146,6 +175,30 @@
     /// <summary>Raised by Add while the amount is valid.</summary>
     [Parameter]
     public EventCallback OnAdd { get; set; }
+
+    /// <summary>Changes an existing entry instead of adding one: the trash icon, the day and meal line and Save replace Add, and This entry replaces This adds.</summary>
+    [Parameter]
+    public bool Editing { get; set; }
+
+    /// <summary>The entry's day, shown with its meal in edit mode.</summary>
+    [Parameter]
+    public DateOnly Date { get; set; }
+
+    /// <summary>Shows the remove error in edit mode.</summary>
+    [Parameter]
+    public bool RemoveFailed { get; set; }
+
+    /// <summary>The entry no longer exists (removed elsewhere): says so, and turns Save off.</summary>
+    [Parameter]
+    public bool EntryGone { get; set; }
+
+    /// <summary>Raised by Save in edit mode while the amount is valid.</summary>
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+
+    /// <summary>Raised by the trash icon in edit mode.</summary>
+    [Parameter]
+    public EventCallback OnRemove { get; set; }
 
     /// <summary>Raised by Try again on a load error.</summary>
     [Parameter]

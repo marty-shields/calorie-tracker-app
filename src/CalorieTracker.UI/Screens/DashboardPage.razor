@@ -7,7 +7,7 @@
 
 <DashboardView Date="date" Today="Today()" Summary="summary" Loading="loading" LoadFailed="loadFailed"
                OnPrevious="@(() => ShowAsync(date.AddDays(-1)))" OnNext="@(() => ShowAsync(date.AddDays(1)))" OnToday="@(() => ShowAsync(Today()))"
-               OnAdd="OnAdd" OnRetry="LoadAsync" OnNavigate="OnNavigate" OnSettings="OnSettings" />
+               OnAdd="OnAdd" OnEdit="OnEdit" OnRetry="LoadAsync" OnNavigate="OnNavigate" OnSettings="OnSettings" />
 
 @code {
     private DateOnly date;
@@ -25,6 +25,10 @@
     /// <summary>Raised with the meal and day when a meal's + is tapped.</summary>
     [Parameter]
     public EventCallback<MealAddRequest> OnAdd { get; set; }
+
+    /// <summary>Raised with the entry, its meal and the day when an entry is tapped.</summary>
+    [Parameter]
+    public EventCallback<EntryEditRequest> OnEdit { get; set; }
 
     /// <summary>Raised with the destination tapped in the bottom navigation bar.</summary>
     [Parameter]

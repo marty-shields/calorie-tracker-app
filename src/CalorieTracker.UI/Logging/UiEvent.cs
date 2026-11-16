@@ -68,6 +68,9 @@ internal enum UiEvent
     /// <summary><see cref="Screens.ServingPage"/>: Undo could not remove the entry just added, with the status.</summary>
     UndoFailed = 3801,
 
+    /// <summary><see cref="Screens.ServingPage"/>: Undo could not restore the entry just removed, with the status.</summary>
+    RestoreFailed = 3802,
+
     /// <summary><see cref="Components.Layout.AppScreen"/>: setting up pull to refresh failed, so the screen can't be pulled.</summary>
     PullRefreshFailed = 4001,
 }

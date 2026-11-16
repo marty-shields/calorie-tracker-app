@@ -95,11 +95,27 @@ public class DashboardViewTests : ComponentTestBase
     }
 
     [Test]
-    public void EntriesAreNotTappable()
+    public void Entries_AreTappableRows()
     {
-        var cut = Render(DashboardSamples.Loaded);
+        var cut = Render(DashboardSamples.Loaded, p => p.Add(x => x.OnEdit, (EntryEditRequest _) => { }));
 
-        Assert.That(cut.FindAll("button[data-testid^=entry-]"), Is.Empty);
+        Assert.That(cut.FindAll("button[data-testid^=entry-]"), Has.Count.EqualTo(3));
+    }
+
+    [TestCase(2, 22, Meal.Lunch)]
+    [TestCase(4, 24, Meal.Snacks)]
+    public async Task TappingAnEntry_RaisesItWithItsMealAndTheDay(int entryId, int foodId, Meal meal)
+    {
+        EntryEditRequest? request = null;
+        var cut = Render(DashboardSamples.Loaded, p => p.Add(x => x.OnEdit, (EntryEditRequest r) => request = r), Today.AddDays(2));
+
+        await cut.Find($"[data-testid=entry-{entryId}]").ClickAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That((request!.Entry.EntryId, request.Entry.FoodId), Is.EqualTo((entryId, foodId)));
+            Assert.That((request.Meal, request.Date), Is.EqualTo((meal, Today.AddDays(2))));
+        });
     }
 
     [Test]

@@ -48,4 +48,18 @@ public sealed class DashboardScreen(WebView web)
     public bool HasStartupError() => web.Exists("startup-error");
 
     public void OpenSettings() => web.Tap("settings");
+
+    /// <summary>The entries listed under a meal, each as its row text (name, amount and calories).</summary>
+    public IReadOnlyList<string> Entries(string meal) =>
+        web.FindAll($"[data-testid=\"meal-{Meal(meal)}\"] ~ ul > li").Select(row => row.Text).ToList();
+
+    /// <summary>Taps the first entry under a meal and waits for Serving in edit mode.</summary>
+    public void OpenEntry(string meal)
+    {
+        web.FindAll($"[data-testid=\"meal-{Meal(meal)}\"] ~ ul > li button").First().Click();
+        web.WaitUntil(() => web.Exists("serving-save"), "the Serving screen didn't open in edit mode");
+    }
+
+    /// <summary>The calories eaten on the day as a number.</summary>
+    public int EatenKcal() => int.Parse(Eaten().Replace(",", "", StringComparison.Ordinal), System.Globalization.CultureInfo.InvariantCulture);
 }
