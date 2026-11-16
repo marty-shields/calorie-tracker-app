@@ -2,6 +2,7 @@ using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.History;
 using CalorieTracker.Core.Logging;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Time.Testing;
 using SQLite;
@@ -144,7 +145,7 @@ public class FoodHistoryServiceTests
     [Test]
     public async Task RemovedEntries_CountForNothingAndRestoringCountsAgain()
     {
-        var keptId = await Log(2, Meal.Breakfast, eggs, 50);
+        await Log(2, Meal.Breakfast, eggs, 50);
         var removedId = await Log(1, Meal.Breakfast, oats, 80);
         await diary.RemoveAsync(removedId);
 
@@ -157,7 +158,6 @@ public class FoodHistoryServiceTests
         Assert.That((await service.RecentAsync()).Foods.Select(f => f.FoodId), Is.EqualTo(new[] { oats, eggs }));
         Assert.That((await service.UsualAsync(Meal.Breakfast)).Foods.Select(f => f.FoodId), Is.EqualTo(new[] { oats, eggs }));
         Assert.That((await service.ForFoodsAsync([oats])).Foods.Single().LastEntryId, Is.EqualTo(removedId));
-        Assert.That(keptId, Is.Not.EqualTo(removedId));
     }
 
     [Test]
@@ -218,7 +218,65 @@ public class FoodHistoryServiceTests
             Assert.That(result.Foods, Is.Empty);
         }
 
-        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.All.EqualTo(CoreEvent.FoodHistoryFailed));
+        var lines = LoggedEvents.Of(logger);
+        Assert.That(lines.Select(e => e.Id), Is.EqualTo(new[] { CoreEvent.FoodHistoryFailed, CoreEvent.FoodHistoryFailed, CoreEvent.FoodHistoryFailed }));
+        Assert.That(lines.Select(e => e.Level), Is.All.EqualTo(LogLevel.Warning));
+    }
+
+    [Test]
+    public async Task RecentAndUsual_LimitAboveTheMaximum_ReturnAtMostTwoHundredFoods()
+    {
+        var foods = new List<Food>();
+        for (var i = 0; i < 201; i++)
+        {
+            foods.Add(new Food { Source = FoodSource.CoFID, SourceId = $"bulk{i}", Name = $"Bulk {i}", SearchText = $"bulk {i}" });
+        }
+
+        await connection.InsertAllAsync(foods);
+        await connection.InsertAllAsync(foods.Select(f => new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = f.Id, Amount = 1 }));
+
+        Assert.That((await service.RecentAsync(5000)).Foods, Has.Count.EqualTo(FoodHistoryService.MaxLimit));
+        Assert.That((await service.UsualAsync(Meal.Lunch, 5000)).Foods, Has.Count.EqualTo(FoodHistoryService.MaxLimit));
+    }
+
+    [Test]
+    public async Task ForFoodsAsync_MoreIdsThanOneChunk_ReadsThemAll()
+    {
+        await Log(1, Meal.Lunch, oats);
+        var ids = Enumerable.Range(100000, 1200).Append(oats).ToList();
+
+        Assert.That((await service.ForFoodsAsync(ids)).Foods.Select(f => f.FoodId), Is.EqualTo(new[] { oats }));
+    }
+
+    [Test]
+    public async Task EveryRead_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
+    {
+        var gate = new DatabaseGate();
+        var held = new FoodHistoryService(new FoodHistoryStore(connection, gate), new FakeTimeProvider(new DateTimeOffset(2031, 7, 19, 12, 0, 0, TimeSpan.Zero)), new FakeLogger<FoodHistoryService>());
+        var reads = new Func<Task<FoodHistoryResult>>[]
+        {
+            () => held.RecentAsync(),
+            () => held.UsualAsync(Meal.Lunch),
+            () => held.ForFoodsAsync([oats]),
+        };
+
+        foreach (var read in reads)
+        {
+            var holding = new TaskCompletionSource();
+            var busy = gate.RunAsync(async () =>
+            {
+                await holding.Task;
+                return 0;
+            });
+
+            var pending = read();
+            await Task.Delay(50);
+            Assert.That(pending.IsCompleted, Is.False);
+            holding.SetResult();
+
+            await busy;
+            Assert.That((await pending).Status, Is.EqualTo(FoodHistoryStatus.Found));
+        }
     }
 
     [Test]

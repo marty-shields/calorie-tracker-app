@@ -56,15 +56,23 @@ internal sealed class FoodHistoryStore(SQLiteAsyncConnection connection, Databas
             (int)meal, since, limit));
 
     /// <summary>The foods among <paramref name="foodIds"/> that have a kept entry, in no set order; TimesLogged counts every kept entry.</summary>
-    public Task<List<FoodHistoryRow>> ForFoodsAsync(IReadOnlyCollection<int> foodIds)
-    {
-        // Ids are ints, so they are safe to write into the text; this keeps the call clear of SQLite's limit on bound values.
-        var list = string.Join(',', foodIds.Distinct());
-        return gate.RunAsync(() => connection.QueryAsync<FoodHistoryRow>(
-            $"""
-            SELECT {Columns}
-            FROM (SELECT FoodId, COUNT(*) AS Times FROM DiaryEntry WHERE IsRemoved = 0 AND FoodId IN ({list}) GROUP BY FoodId) g
-            {LastEntryJoin}
-            """));
-    }
+    public Task<List<FoodHistoryRow>> ForFoodsAsync(IReadOnlyCollection<int> foodIds) =>
+        gate.RunAsync(async () =>
+        {
+            var found = new List<FoodHistoryRow>();
+            // Chunked so a long list stays under SQLite's limit on bound variables.
+            foreach (var chunk in foodIds.Distinct().Chunk(500))
+            {
+                var marks = string.Join(",", chunk.Select(_ => "?"));
+                found.AddRange(await connection.QueryAsync<FoodHistoryRow>(
+                    $"""
+                    SELECT {Columns}
+                    FROM (SELECT FoodId, COUNT(*) AS Times FROM DiaryEntry WHERE IsRemoved = 0 AND FoodId IN ({marks}) GROUP BY FoodId) g
+                    {LastEntryJoin}
+                    """,
+                    chunk.Cast<object>().ToArray()));
+            }
+
+            return found;
+        });
 }

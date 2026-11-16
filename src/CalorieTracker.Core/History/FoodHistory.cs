@@ -12,7 +12,7 @@ namespace CalorieTracker.Core.History;
 public sealed record FoodHistory(int FoodId, int TimesLogged, int LastEntryId, DateOnly LastDate, double LastAmount, double? LastServings)
 {
     internal static FoodHistory From(FoodHistoryRow row) =>
-        new(row.FoodId, row.TimesLogged, row.LastEntryId, DateOnly.ParseExact(row.LastDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), row.LastAmount, row.LastServings);
+        new(row.FoodId, row.TimesLogged, row.LastEntryId, DiaryEntry.ParseDate(row.LastDate), row.LastAmount, row.LastServings);
 }
 
 public enum FoodHistoryStatus

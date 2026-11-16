@@ -23,6 +23,9 @@ public class DiaryEntry
     /// <summary>The <see cref="Date"/> text of a day, so every writer and reader of the column agrees.</summary>
     internal static string FormatDate(DateOnly date) => date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 
+    /// <summary>The day a <see cref="Date"/> text names; the reverse of <see cref="FormatDate"/>.</summary>
+    internal static DateOnly ParseDate(string text) => DateOnly.ParseExact(text, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+
     /// <summary>The local calendar day as <c>yyyy-MM-dd</c>, with no time zone.</summary>
     [NotNull, Indexed]
     public string Date { get; set; } = "";
