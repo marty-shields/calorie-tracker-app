@@ -8,7 +8,8 @@ public interface IFoodSearch
     public const int MaxLimit = 200;
 
     /// <summary>
-    /// Finds foods whose words start with every word typed, in any order and either case. Foods whose name starts with the whole query (every word, in the order typed) come first, then the other matches, each by name (ignoring case). Only the first 10 distinct words must match, but the ranking uses every word.
+    /// Finds the foods every typed word matches, in any case, ignoring accents, best first. A word matches a food word that equals it or starts with it, a main word one letter off (only for typed words of 4 or more letters), or a word inside the name's brackets, weakest.
+    /// Plurals and "yogurt" are treated as their singular and "yoghurt". Foods whose last main word matches, with fewer other words, and common CoFID foods rank higher; ties break by name, then id. Only the first 10 distinct words are used.
     /// A blank query finds nothing.
     /// </summary>
     /// <param name="type">Only foods of this type; null finds every type.</param>
