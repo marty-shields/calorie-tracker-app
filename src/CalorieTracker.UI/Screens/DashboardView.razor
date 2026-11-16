@@ -59,7 +59,7 @@
                             <ul class="entries">
                                 @foreach (var entry in meal.Entries)
                                 {
-                                    <li><ListRow Text="@entry.Name" Detail="@EntryDetail(entry)" Aside="@Number(entry.Nutrition.Kcal)" TestId="@($"entry-{entry.EntryId}")" /></li>
+                                    <li><ListRow Text="@entry.Name" Detail="@EntryDetail(entry)" Aside="@Number(entry.Nutrition.Kcal)" TestId="@($"entry-{entry.EntryId}")" OnClick="@EditTap(entry, meal.Meal)" /></li>
                                 }
                             </ul>
                         }
@@ -76,6 +76,10 @@
 
 @code {
     private RenderFragment Notice => @<Snackbar />;
+
+    /// <summary>The row's tap, or none when nothing handles <see cref="OnEdit"/>, so the row isn't tappable.</summary>
+    private EventCallback EditTap(SummaryEntry entry, Meal meal) =>
+        OnEdit.HasDelegate ? EventCallback.Factory.Create(this, () => OnEdit.InvokeAsync(new EntryEditRequest(entry, meal, Date))) : default;
 
     /// <summary>The day on the date strip.</summary>
     [Parameter]
@@ -112,6 +116,10 @@
     /// <summary>Raised by a meal's +.</summary>
     [Parameter]
     public EventCallback<MealAddRequest> OnAdd { get; set; }
+
+    /// <summary>Raised by a tapped entry, to change or remove it.</summary>
+    [Parameter]
+    public EventCallback<EntryEditRequest> OnEdit { get; set; }
 
     /// <summary>Raised by Try again.</summary>
     [Parameter]

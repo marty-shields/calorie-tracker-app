@@ -71,6 +71,42 @@
         </Template>
     </Story>
 
+    <Story Name="Edit entry">
+        <Template>
+            <ServingView Food="ServingSamples.Cheddar" Mode="EntryMode.Grams" Amount="30" Grams="30" Meal="Meal.Lunch" Editing Date="DashboardSamples.Today" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnSave="() => { }" OnRemove="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Edit entry in servings">
+        <Template>
+            <ServingView Food="ServingSamples.Pizza" Mode="EntryMode.Servings" Amount="1" Grams="201.8" Meal="Meal.Lunch" Editing Date="DashboardSamples.Today" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnSave="() => { }" OnRemove="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Saving entry">
+        <Template>
+            <ServingView Food="ServingSamples.Cheddar" Mode="EntryMode.Grams" Amount="30" Grams="30" Meal="Meal.Lunch" Saving Editing Date="DashboardSamples.Today" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnSave="() => { }" OnRemove="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Entry save failed">
+        <Template>
+            <ServingView Food="ServingSamples.Cheddar" Mode="EntryMode.Grams" Amount="30" Grams="30" Meal="Meal.Lunch" SaveFailed Editing Date="DashboardSamples.Today" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnSave="() => { }" OnRemove="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Entry remove failed">
+        <Template>
+            <ServingView Food="ServingSamples.Cheddar" Mode="EntryMode.Grams" Amount="30" Grams="30" Meal="Meal.Lunch" RemoveFailed Editing Date="DashboardSamples.Today" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnSave="() => { }" OnRemove="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Entry already removed">
+        <Template>
+            <ServingView Food="ServingSamples.Cheddar" Mode="EntryMode.Grams" Amount="30" Grams="30" Meal="Meal.Lunch" EntryGone Editing Date="DashboardSamples.Today" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnSave="() => { }" OnRemove="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
     <Story Name="Loading">
         <Template>
             <ServingView Loading OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />

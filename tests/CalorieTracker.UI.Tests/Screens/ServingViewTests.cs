@@ -306,4 +306,87 @@ public class ServingViewTests : ComponentTestBase
 
         Assert.That(amounts, Is.EqualTo(new decimal?[] { 40, 2 }));
     }
+
+    [Test]
+    public void EditMode_ShowsTheTrashIcon_TheDayAndMeal_SaveAndThisEntry()
+    {
+        var cut = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, more: p => p.Add(x => x.Editing, true).Add(x => x.Date, new DateOnly(2031, 7, 15)));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=serving-remove]").GetAttribute("aria-label"), Is.EqualTo("Remove entry"));
+            Assert.That(Text(cut, "serving-when"), Is.EqualTo("Lunch · 15 Jul"));
+            Assert.That(Text(cut, "serving-save"), Is.EqualTo("Save"));
+            Assert.That(Exists(cut, "serving-add"), Is.False);
+            Assert.That(Exists(cut, "serving-per"), Is.False);
+            Assert.That(Exists(cut, "serving-suggestion"), Is.False);
+            Assert.That(cut.Find("[data-testid=serving-adds] h2").TextContent, Is.EqualTo("This entry"));
+            Assert.That(Text(cut, "serving-adds-kcal"), Is.EqualTo("125 kcal"));
+        });
+    }
+
+    [Test]
+    public void AddMode_HasNoTrashIconAndNoSave()
+    {
+        var cut = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Exists(cut, "serving-remove"), Is.False);
+            Assert.That(Exists(cut, "serving-save"), Is.False);
+            Assert.That(Exists(cut, "serving-when"), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task EditMode_SaveAndTrash_RaiseTheirCallbacks()
+    {
+        var log = new List<string>();
+        var cut = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, more: p => p.Add(x => x.Editing, true)
+            .Add(x => x.OnSave, () => log.Add("save")).Add(x => x.OnRemove, () => log.Add("remove")).Add(x => x.OnAdd, () => log.Add("add")));
+
+        await cut.Find("[data-testid=serving-save]").ClickAsync(new());
+        await cut.Find("[data-testid=serving-remove]").ClickAsync(new());
+
+        Assert.That(log, Is.EqualTo(new[] { "save", "remove" }));
+    }
+
+    [Test]
+    public void EditMode_SaveIsOffForAnInvalidAmount_AndWhenTheEntryIsGone()
+    {
+        var invalid = Render(ScreenStates.Cheddar, EntryMode.Grams, 0, 0, more: p => p.Add(x => x.Editing, true));
+        var gone = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, more: p => p.Add(x => x.Editing, true).Add(x => x.EntryGone, true));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(invalid.Find("[data-testid=serving-save]").HasAttribute("disabled"), Is.True);
+            Assert.That(gone.Find("[data-testid=serving-save]").HasAttribute("disabled"), Is.True);
+            Assert.That(Text(gone, "serving-gone"), Is.EqualTo("This entry was already removed."));
+        });
+    }
+
+    [Test]
+    public void EditMode_SaveAndRemoveErrors_SaySoInEditWords()
+    {
+        var save = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, saveFailed: true, more: p => p.Add(x => x.Editing, true));
+        var remove = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, more: p => p.Add(x => x.Editing, true).Add(x => x.RemoveFailed, true));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(save, "serving-error"), Is.EqualTo("Couldn't save this entry. Try again."));
+            Assert.That(Text(remove, "serving-error"), Is.EqualTo("Couldn't remove this entry. Try again."));
+        });
+    }
+
+    [Test]
+    public void EditMode_Saving_ShowsSaveBusy()
+    {
+        var cut = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, saving: true, more: p => p.Add(x => x.Editing, true));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "serving-save"), Is.EqualTo("Saving…"));
+            Assert.That(cut.Find("[data-testid=serving-save]").HasAttribute("aria-busy"), Is.True);
+        });
+    }
 }

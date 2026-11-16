@@ -23,6 +23,17 @@ public sealed class ServingScreen(WebView web)
 
     public void EnterAmount(string text) => web.Type("serving-amount", text);
 
+    /// <summary>Enters a weight, switching to Grams first when the food has a serving, so the amount does not depend on the food.</summary>
+    public void EnterGrams(string text)
+    {
+        if (HasModeSwitch())
+        {
+            web.Tap("serving-mode-grams");
+        }
+
+        EnterAmount(text);
+    }
+
     public string? AmountError() => web.Exists("serving-amount-error") ? web.Text("serving-amount-error") : null;
 
     /// <summary>The labels of the meal chips, in the order they show.</summary>
@@ -48,4 +59,26 @@ public sealed class ServingScreen(WebView web)
     public void Back() => web.Tap("back");
 
     public string NotFoundText() => web.Text("serving-not-found-message");
+
+    /// <summary>Waits for edit mode to show with its entry loaded, after a tap on an entry.</summary>
+    public void WaitUntilEditing() => web.WaitUntil(() => web.Exists("serving-save"), "the Serving screen didn't open in edit mode");
+
+    public void ChooseMeal(string meal)
+    {
+        web.Tap($"serving-meal-{meal.ToLowerInvariant()}");
+        web.Eventually(() => IsMealChosen(meal), Is.True, $"{meal} chosen");
+    }
+
+    public string SaveText() => web.Text("serving-save");
+
+    public bool HasAddButton() => web.Exists("serving-add");
+
+    public string RemoveLabel() => web.Attribute("serving-remove", "aria-label");
+
+    /// <summary>The muted meal and day line of edit mode, such as "Lunch · 15 Nov".</summary>
+    public string When() => web.Text("serving-when");
+
+    public void Save() => web.Tap("serving-save");
+
+    public void Remove() => web.Tap("serving-remove");
 }

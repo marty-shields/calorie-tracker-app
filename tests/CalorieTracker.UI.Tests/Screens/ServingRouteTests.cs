@@ -115,4 +115,56 @@ public class ServingRouteTests
             Assert.That(page, Does.Contain("ServingRoute.BackTarget(BackTo, ReturnTo)").And.Contain("ServingRoute.FollowUpFor(ReturnTo)"));
         });
     }
+
+    [Test]
+    public void EditUrl_CarriesTheEntryItsDayMealAndAmounts()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(ServingRoute.EditUrl(7, 23, Meal.Lunch, new DateOnly(2031, 7, 15), 30), Is.EqualTo("/serving/23?entry=7&meal=Lunch&date=2031-07-15&amount=30"));
+            Assert.That(ServingRoute.EditUrl(8, 22, Meal.Dinner, new DateOnly(2031, 7, 15), 150.5, 0.75), Is.EqualTo("/serving/22?entry=8&meal=Dinner&date=2031-07-15&amount=150.5&servings=0.75"));
+        });
+    }
+
+    [TestCase(0.74)]
+    [TestCase(201.8)]
+    [TestCase(0.1)]
+    [TestCase(10000)]
+    public void EditUrl_AmountsRoundTripThroughParseNumber(double value)
+    {
+        var url = ServingRoute.EditUrl(1, 2, Meal.Lunch, Today, value, value);
+        var query = System.Web.HttpUtility.ParseQueryString(url[(url.IndexOf('?') + 1)..]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ServingRoute.ParseNumber(query["amount"]), Is.EqualTo(value));
+            Assert.That(ServingRoute.ParseNumber(query["servings"]), Is.EqualTo(value));
+        });
+    }
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("abc")]
+    [TestCase("0")]
+    [TestCase("-3")]
+    [TestCase("NaN")]
+    [TestCase("Infinity")]
+    [TestCase("1e999")]
+    [TestCase("30,5")]
+    public void ParseNumber_NotAPositiveFiniteNumber_GivesNull(string? text) =>
+        Assert.That(ServingRoute.ParseNumber(text), Is.Null);
+
+    [Test]
+    public void TheAppsPages_WireEditThroughTheEditRouteAndTheDashboard()
+    {
+        var serving = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Serving.razor");
+        var home = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Home.razor");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(serving, Does.Contain("Name = \"entry\"").And.Contain("Name = \"amount\"").And.Contain("Name = \"servings\""));
+            Assert.That(serving, Does.Contain("EntryId=\"EntryId\"").And.Contain("OnSaved=").And.Contain("OnRemoved=").And.Contain("DashboardRoute.Url(EntryDay)"));
+            Assert.That(home, Does.Contain("ServingRoute.EditUrl(request.Entry.EntryId, request.Entry.FoodId, request.Meal, request.Date, request.Entry.Amount, request.Entry.Servings)"));
+        });
+    }
 }

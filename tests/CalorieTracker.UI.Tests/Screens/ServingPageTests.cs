@@ -608,4 +608,397 @@ public class ServingPageTests : ComponentTestBase
             Assert.That(records.Select(r => r.Message), Has.None.Contain("Lunch"));
         });
     }
+
+    /// <summary>Adds an entry to the test day and opens the page in edit mode on it, as the Dashboard's tap does.</summary>
+    private async Task<(IRenderedComponent<ServingPage> Cut, int EntryId)> RenderEditing(int foodId, Meal meal, double amount, double? servings = null, Action? onSaved = null, Action? onRemoved = null)
+    {
+        var entry = (await core.GetRequiredService<DiaryService>().AddAsync(Day, meal, foodId, amount, servings)).Entry!;
+        var cut = Loaded(Context.Render<ServingPage>(p =>
+        {
+            p.Add(x => x.FoodId, foodId).Add(x => x.Meal, meal).Add(x => x.Date, Day)
+                .Add(x => x.EntryId, entry.Id).Add(x => x.EntryAmount, amount).Add(x => x.EntryServings, servings);
+            if (onSaved is not null)
+            {
+                p.Add(x => x.OnSaved, onSaved);
+            }
+
+            if (onRemoved is not null)
+            {
+                p.Add(x => x.OnRemoved, onRemoved);
+            }
+        }));
+        return (cut, entry.Id);
+    }
+
+    private async Task<DiaryEntry?> Kept(int id, DateOnly? day = null) => (await core.GetRequiredService<DiaryService>().ListAsync(day ?? Day)).Entries.SingleOrDefault(e => e.Id == id);
+
+    [Test]
+    public async Task Edit_OpensOnTheEntrysAmountAndMeal_WithTheEditControls()
+    {
+        var (cut, _) = await RenderEditing(cheddarId, Meal.Dinner, 30);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "screen-title"), Is.EqualTo("Cheddar cheese"));
+            Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("30"));
+            Assert.That(cut.Find("[data-testid=serving-meal-dinner]").HasAttribute("checked"), Is.True);
+            Assert.That(Text(cut, "serving-when"), Is.EqualTo("Dinner · 19 Jul"));
+            Assert.That(Text(cut, "serving-save"), Is.EqualTo("Save"));
+            Assert.That(Text(cut, "serving-adds-kcal"), Is.EqualTo("125 kcal"));
+            Assert.That(Exists(cut, "serving-suggestion"), Is.False);
+            Assert.That(Exists(cut, "serving-remove"), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task Edit_OfAnEntryAddedByServings_OpensInServingsKeepingTheExactWeight()
+    {
+        var (cut, id) = await RenderEditing(pizzaId, Meal.Lunch, 150, 0.74);
+
+        var opened = (cut.Find("[data-testid=serving-mode-servings]").HasAttribute("checked"), cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Text(cut, "serving-weight"));
+        await cut.Find("[data-testid=serving-save]").ClickAsync(new());
+
+        var entry = await Kept(id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(opened, Is.EqualTo((true, "0.74", "= 150 g")));
+            Assert.That((entry!.Amount, entry.Servings), Is.EqualTo((150.0, (double?)0.74)));
+        });
+    }
+
+    [Test]
+    public async Task Edit_OfAServingsEntryWhoseFoodLostItsServing_OpensInGrams()
+    {
+        var (cut, _) = await RenderEditing(cheddarId, Meal.Lunch, 150, 0.74);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Exists(cut, "serving-mode"), Is.False);
+            Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("150"));
+        });
+    }
+
+    [Test]
+    public async Task Save_ChangesTheAmountAndUpdatesTheTotals_KeepingTheEntryAndItsDay()
+    {
+        var saved = 0;
+        var (cut, id) = await RenderEditing(cheddarId, Meal.Lunch, 30, onSaved: () => saved++);
+        await cut.Find("[data-testid=serving-amount]").InputAsync("45");
+
+        Assert.That(Text(cut, "serving-adds-kcal"), Is.EqualTo("187 kcal"));
+        await cut.Find("[data-testid=serving-save]").ClickAsync(new());
+
+        var entry = await Kept(id);
+        Assert.Multiple(() =>
+        {
+            Assert.That((entry!.Amount, entry.Meal, entry.Date, entry.FoodId), Is.EqualTo((45.0, Meal.Lunch, "2031-07-19", cheddarId)));
+            Assert.That(saved, Is.EqualTo(1));
+            Assert.That(Context.Services.GetRequiredService<SnackbarService>().Current, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task Save_WithAnotherMeal_MovesTheEntry()
+    {
+        var (cut, id) = await RenderEditing(cheddarId, Meal.Lunch, 30);
+        await cut.Find("[data-testid=serving-meal-snacks]").ChangeAsync(true);
+
+        await cut.Find("[data-testid=serving-save]").ClickAsync(new());
+
+        Assert.That((await Kept(id))!.Meal, Is.EqualTo(Meal.Snacks));
+    }
+
+    [TestCase("0")]
+    [TestCase("10000.5")]
+    [TestCase("")]
+    public async Task Save_WithAnInvalidAmount_ChangesNothing(string typed)
+    {
+        var saved = false;
+        var (cut, id) = await RenderEditing(cheddarId, Meal.Lunch, 30, onSaved: () => saved = true);
+        await cut.Find("[data-testid=serving-amount]").InputAsync(typed);
+
+        await cut.Find("[data-testid=serving-save]").ClickAsync(new());
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That((await Kept(id))!.Amount, Is.EqualTo(30));
+            Assert.That(saved, Is.False);
+            Assert.That(Exists(cut, "serving-error"), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task Save_OfAnEntryRemovedMeanwhile_SaysSo_WithoutLeavingOrThrowing()
+    {
+        var saved = false;
+        var (cut, id) = await RenderEditing(cheddarId, Meal.Lunch, 30, onSaved: () => saved = true);
+        await core.GetRequiredService<DiaryService>().RemoveAsync(id);
+        await cut.Find("[data-testid=serving-amount]").InputAsync("45");
+
+        await cut.Find("[data-testid=serving-save]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "serving-gone"), Is.EqualTo("This entry was already removed."));
+            Assert.That(saved, Is.False);
+            Assert.That(cut.Find("[data-testid=serving-save]").HasAttribute("disabled"), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task Save_WhenTheDatabaseFails_ShowsTheErrorAndStays()
+    {
+        var saved = false;
+        var (cut, _) = await RenderEditing(cheddarId, Meal.Lunch, 30, onSaved: () => saved = true);
+        await connection.ExecuteAsync("DROP TABLE DiaryEntry");
+
+        await cut.Find("[data-testid=serving-save]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "serving-error"), Is.EqualTo("Couldn't save this entry. Try again."));
+            Assert.That(saved, Is.False);
+            Assert.That(cut.Find("[data-testid=serving-save]").HasAttribute("disabled"), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task DoubleTapOnSave_SavesOnce()
+    {
+        var saved = 0;
+        var (cut, _) = await RenderEditing(cheddarId, Meal.Lunch, 30, onSaved: () => saved++);
+        var save = cut.Find("[data-testid=serving-save]");
+
+        await Task.WhenAll(save.ClickAsync(new()), save.ClickAsync(new()));
+
+        Assert.That(saved, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task Remove_RemovesTheEntry_PostsUndo_AndLeaves()
+    {
+        var removed = 0;
+        var (cut, id) = await RenderEditing(cheddarId, Meal.Lunch, 30, onRemoved: () => removed++);
+
+        await cut.Find("[data-testid=serving-remove]").ClickAsync(new());
+
+        var message = Context.Services.GetRequiredService<SnackbarService>().Current!;
+        Assert.Multiple(async () =>
+        {
+            Assert.That(await Kept(id), Is.Null);
+            Assert.That((message.Text, message.ActionLabel), Is.EqualTo(("Cheddar cheese removed", "Undo")));
+            Assert.That(removed, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task Undo_AfterRemove_RestoresTheEntryExactly_EvenAfterThePageIsGone()
+    {
+        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
+        var (cut, id) = await RenderEditing(pizzaId, Meal.Dinner, 150, 0.74);
+        await cut.Find("[data-testid=serving-remove]").ClickAsync(new());
+        var message = snackbar.Current!;
+        await Context.DisposeComponentsAsync();
+
+        await snackbar.InvokeActionAsync(message);
+
+        var entry = await Kept(id);
+        Assert.Multiple(() =>
+        {
+            Assert.That((entry!.FoodId, entry.Meal, entry.Date, entry.Amount, entry.Servings, entry.IsRemoved), Is.EqualTo((pizzaId, Meal.Dinner, "2031-07-19", 150.0, (double?)0.74, false)));
+            Assert.That(snackbar.Current, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task Remove_WithNoUndo_LeavesTheEntryRemoved()
+    {
+        var (cut, id) = await RenderEditing(cheddarId, Meal.Lunch, 30);
+        await cut.Find("[data-testid=serving-remove]").ClickAsync(new());
+
+        Context.Services.GetRequiredService<SnackbarService>().Dismiss();
+
+        Assert.That(await Kept(id), Is.Null);
+    }
+
+    [Test]
+    public async Task Remove_OfAnEntryAlreadyGone_LeavesWithoutASnackbarOrAnError()
+    {
+        var removed = false;
+        var (cut, id) = await RenderEditing(cheddarId, Meal.Lunch, 30, onRemoved: () => removed = true);
+        await core.GetRequiredService<DiaryService>().RemoveAsync(id);
+
+        await cut.Find("[data-testid=serving-remove]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(removed, Is.True);
+            Assert.That(Context.Services.GetRequiredService<SnackbarService>().Current, Is.Null);
+            Assert.That(Exists(cut, "serving-error"), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task Remove_WhenTheDatabaseFails_ShowsTheErrorAndStays()
+    {
+        var removed = false;
+        var (cut, _) = await RenderEditing(cheddarId, Meal.Lunch, 30, onRemoved: () => removed = true);
+        await connection.ExecuteAsync("DROP TABLE DiaryEntry");
+
+        await cut.Find("[data-testid=serving-remove]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "serving-error"), Is.EqualTo("Couldn't remove this entry. Try again."));
+            Assert.That(removed, Is.False);
+            Assert.That(Context.Services.GetRequiredService<SnackbarService>().Current, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task DoubleTapOnRemove_RemovesOnce()
+    {
+        var removed = 0;
+        var (cut, _) = await RenderEditing(cheddarId, Meal.Lunch, 30, onRemoved: () => removed++);
+        var remove = cut.Find("[data-testid=serving-remove]");
+
+        await Task.WhenAll(remove.ClickAsync(new()), remove.ClickAsync(new()));
+
+        Assert.That(removed, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task Undo_OfAnEntryAlreadyBack_CountsAsUndone_WithNoMessageAndNoLog()
+    {
+        var logger = new FakeLogger<ServingPage>();
+        Context.Services.AddSingleton<ILogger<ServingPage>>(logger);
+        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
+        var (cut, id) = await RenderEditing(cheddarId, Meal.Lunch, 30);
+        await cut.Find("[data-testid=serving-remove]").ClickAsync(new());
+        var message = snackbar.Current!;
+        await core.GetRequiredService<DiaryService>().RestoreAsync(id);
+
+        await snackbar.InvokeActionAsync(message);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snackbar.Current, Is.Null);
+            Assert.That(LoggedEvents.Of(logger), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task Undo_WhenRestoringFails_DoesNotThrow_SaysSo_AndLogsOnlyTheStatus()
+    {
+        var logger = new FakeLogger<ServingPage>();
+        Context.Services.AddSingleton<ILogger<ServingPage>>(logger);
+        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
+        var (cut, _) = await RenderEditing(cheddarId, Meal.Lunch, 30);
+        await cut.Find("[data-testid=serving-remove]").ClickAsync(new());
+        var message = snackbar.Current!;
+        await connection.ExecuteAsync("DROP TABLE DiaryEntry");
+
+        await snackbar.InvokeActionAsync(message);
+
+        var records = logger.Collector.GetSnapshot();
+        Assert.Multiple(() =>
+        {
+            Assert.That(snackbar.Current!.Text, Does.StartWith("Couldn't undo"));
+            Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { UiEvent.RestoreFailed }));
+            Assert.That(records.Select(r => r.Message), Has.None.Contain("Cheddar"));
+            Assert.That(records.Select(r => r.Message), Has.None.Contain("Lunch"));
+            Assert.That(records.Select(r => r.Message), Has.None.Contain("30"));
+        });
+    }
+
+    [Test]
+    public async Task EditMode_LogsNothingOfItsOwn_OnSaveAndRemove()
+    {
+        var logger = new FakeLogger<ServingPage>();
+        Context.Services.AddSingleton<ILogger<ServingPage>>(logger);
+        var (cut, _) = await RenderEditing(cheddarId, Meal.Lunch, 30);
+        await cut.Find("[data-testid=serving-save]").ClickAsync(new());
+        var (second, _) = await RenderEditing(cheddarId, Meal.Lunch, 30);
+
+        await second.Find("[data-testid=serving-remove]").ClickAsync(new());
+
+        Assert.That(logger.Collector.GetSnapshot(), Is.Empty);
+    }
+
+    [Test]
+    public async Task Edit_Back_RaisesOnBack()
+    {
+        var back = false;
+        var entry = (await core.GetRequiredService<DiaryService>().AddAsync(Day, Meal.Lunch, cheddarId, 30)).Entry!;
+        var cut = Loaded(Context.Render<ServingPage>(p => p.Add(x => x.FoodId, cheddarId).Add(x => x.Meal, Meal.Lunch).Add(x => x.Date, Day)
+            .Add(x => x.EntryId, entry.Id).Add(x => x.EntryAmount, 30.0).Add(x => x.OnBack, () => back = true)));
+
+        await cut.Find("[data-testid=back]").ClickAsync(new());
+
+        Assert.That(back, Is.True);
+    }
+
+    [Test]
+    public async Task Edit_ThenAnotherEntryOfTheSameFood_ShowsTheNewEntry_AndForgetsTheGoneNotice()
+    {
+        var (cut, idA) = await RenderEditing(cheddarId, Meal.Lunch, 30);
+        await core.GetRequiredService<DiaryService>().RemoveAsync(idA);
+        await cut.Find("[data-testid=serving-save]").ClickAsync(new());
+        var goneBefore = Exists(cut, "serving-gone");
+        var idB = (await core.GetRequiredService<DiaryService>().AddAsync(Day, Meal.Dinner, cheddarId, 70)).Entry!.Id;
+
+        cut.Render(p => p.Add(x => x.EntryId, idB).Add(x => x.EntryAmount, 70.0).Add(x => x.Meal, Meal.Dinner));
+        cut.WaitForState(() => cut.FindAll("[data-testid=serving-amount]").Count > 0 && cut.Find("[data-testid=serving-amount]").GetAttribute("value") == "70");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(goneBefore, Is.True);
+            Assert.That(Exists(cut, "serving-gone"), Is.False);
+            Assert.That(Text(cut, "serving-when"), Is.EqualTo("Dinner · 19 Jul"));
+            Assert.That(cut.Find("[data-testid=serving-save]").HasAttribute("disabled"), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task Edit_WithoutAValidAmountMealOrDay_ShowsNotFound_WithNoSaveOrTrash()
+    {
+        var entry = (await core.GetRequiredService<DiaryService>().AddAsync(Day, Meal.Lunch, cheddarId, 30)).Entry!;
+
+        foreach (var (name, meal, date, amount) in new (string, Meal?, DateOnly, double?)[]
+        {
+            ("amount", Meal.Lunch, Day, null),
+            ("meal", null, Day, 30),
+            ("date", Meal.Lunch, default, 30),
+        })
+        {
+            var cut = Loaded(Context.Render<ServingPage>(p => p.Add(x => x.FoodId, cheddarId).Add(x => x.Meal, meal).Add(x => x.Date, date)
+                .Add(x => x.EntryId, entry.Id).Add(x => x.EntryAmount, amount)));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(Exists(cut, "serving-not-found"), Is.True, name);
+                Assert.That(Exists(cut, "serving-save"), Is.False, name);
+                Assert.That(Exists(cut, "serving-remove"), Is.False, name);
+            });
+        }
+
+        Assert.That((await Kept(entry.Id))!.Amount, Is.EqualTo(30.0));
+    }
+
+    [Test]
+    public async Task Remove_ThenSwitchingModeOrUsingServing_ClearsTheRemoveError()
+    {
+        var (cut, _) = await RenderEditing(pizzaId, Meal.Lunch, 150, 0.74);
+        await connection.ExecuteAsync("DROP TABLE DiaryEntry");
+        await cut.Find("[data-testid=serving-remove]").ClickAsync(new());
+        var failed = Exists(cut, "serving-error");
+
+        await cut.Find("[data-testid=serving-mode-grams]").ChangeAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(failed, Is.True);
+            Assert.That(Exists(cut, "serving-error"), Is.False);
+        });
+    }
 }
