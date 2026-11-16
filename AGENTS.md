@@ -23,7 +23,7 @@ Personal Android app (.NET 11 MAUI Blazor Hybrid). Setup: [docs/dev-setup-build.
 - Every database call goes through `DatabaseGate` (`DatabaseGateTests`).
 - Event ids: `CoreEvent` 1000s, `UiEvent` 2000–4999 (a block of 100 per type), `AppEvent` 5000s. `CoreEventTests` and `EventIdTests` fix the values and ranges.
 - Styling: tokens only, no literal colours or sizes (`TokensOnlyCssTests`).
-- Logs hold no PII: ids, counts, events and non-personal data such as a scanned barcode are fine, personal data never is (obfuscate when needed) (`Logging.feature`). Add a test that a new feature's log lines carry no PII.
+- Logs hold no PII: ids, counts, events and non-personal data such as a scanned barcode are fine, personal data never is (obfuscate when needed; the food search is stricter and never logs its query or the barcodes it returns) (`Logging.feature`). Add a test that a new feature's log lines carry no PII.
 - Docs: `ReadmeDocsTests` checks the README's screenshot table and Project layout.
 - Upgrade check: `Upgrade.feature` and `UpgradeSeed.feature` save and check what the last release stored (the theme, the daily target and one logged food: it must stay in the diary, show its title and be found by search); the upgrade jobs skip until a `v*` tag exists.
 - Servings: a food's servings are rows of the `Serving` table (Product and Pack rows written by the lookup and refresh, User rows by `ServingService`); a diary entry added by servings holds the `ServingId`. `Food.ServingLabel` and `ServingAmount` are the old columns, no longer read (a later step can drop them); `ServingChecked` stays on Food.
