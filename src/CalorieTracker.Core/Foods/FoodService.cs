@@ -20,11 +20,11 @@ public sealed partial class FoodService
     /// <summary>Largest value kept for each optional nutrient (fibre, sugars, saturates, salt), in g per 100 g or 100 ml. A nutrient cannot exceed its own food.</summary>
     public const double MaxNutrientPer100 = 100;
 
-    /// <summary>Label of the serving offered from a food's pack when it has no serving of its own.</summary>
+    /// <summary>Label a food's pack serving shows when the pack is the food's only serving. With other servings it keeps its stored label, such as "Whole pack (330 ml)", so it is not confused with the product's own serving.</summary>
     public const string PackServingLabel = "1 serving";
 
-    /// <summary>Largest pack, in g or ml, taken as one serving. A can, bar or small bottle is; a cereal box or a multipack is not.</summary>
-    public const double MaxPackServingAmount = 350;
+    /// <summary>Largest pack, in g or ml, taken as one serving. A can, bar or bottle is; a multipack or a big cereal box is not.</summary>
+    public const double MaxPackServingAmount = 1000;
 
     private readonly FoodStore store;
     private readonly ILogger<FoodService> logger;
@@ -36,15 +36,17 @@ public sealed partial class FoodService
     }
 
     /// <summary>
-    /// The food with this id. A serving needs both a label (not blank, at most <see cref="MaxServingLabelLength"/> characters) and a weight that is finite, above zero and at most <see cref="MaxServingAmount"/>;
-    /// otherwise both come back null, and then a pack of at most <see cref="MaxPackServingAmount"/> is offered as a serving labelled <see cref="PackServingLabel"/> (see <see cref="OfferPackServing"/>). Each optional nutrient that is not finite or outside 0 to <see cref="MaxNutrientPer100"/> comes back null.
+    /// The food with this id and its servings. A serving needs both a label (not blank, at most <see cref="MaxServingLabelLength"/> characters) and a weight that is finite, above zero and at most <see cref="MaxServingAmount"/>; one that does not is left out.
+    /// Servings come in listing order (product, packs, then the person's own). A pack of the same amount as the product serving, or as another pack, is left out as a repeat, and a pack that is the food's only serving is labelled <see cref="PackServingLabel"/>.
+    /// Each optional nutrient that is not finite or outside 0 to <see cref="MaxNutrientPer100"/> comes back null.
     /// </summary>
     public async Task<FoodResult> GetAsync(int id)
     {
         Food? food;
+        List<Serving> stored;
         try
         {
-            food = await store.GetAsync(id);
+            (food, stored) = await store.GetWithServingsAsync(id);
         }
         catch (Exception)
         {
@@ -58,23 +60,46 @@ public sealed partial class FoodService
             return FoodResult.NotFound();
         }
 
+        var offered = Offered(food.Id, stored, logger);
         Bound(food, logger);
-        OfferPackServing(food);
-        return FoodResult.Found(food);
+        return FoodResult.Found(food, offered);
     }
 
-    /// <summary>Gives a food with no serving one labelled <see cref="PackServingLabel"/> as heavy as its pack, in place and not stored, when the pack is finite, above zero and at most <see cref="MaxPackServingAmount"/>. A real serving is never replaced.</summary>
-    internal static void OfferPackServing(Food food)
+    /// <summary>The servings to offer from the stored rows: bounded, repeats left out, a lone pack worded as one serving. New objects; the stored rows are not changed. Null <paramref name="logger"/> drops silently.</summary>
+    internal static List<Serving> Offered(int foodId, IReadOnlyList<Serving> stored, ILogger? logger = null)
     {
-        if (food.ServingLabel is null && food.ServingAmount is null
-            && food.PackageAmount is { } pack && double.IsFinite(pack) && pack > 0 && pack <= MaxPackServingAmount)
+        var offered = new List<Serving>();
+        var dropped = 0;
+        foreach (var row in stored)
         {
-            food.ServingLabel = PackServingLabel;
-            food.ServingAmount = pack;
+            if (!TryBoundServing(row.Label, row.Amount, out var label, out var amount))
+            {
+                dropped++;
+                continue;
+            }
+
+            if (row.Source == ServingSource.Pack && offered.Any(o => o.Source != ServingSource.User && o.Amount == amount))
+            {
+                continue;
+            }
+
+            offered.Add(new Serving { Id = row.Id, FoodId = row.FoodId, Label = label, Amount = amount, Source = row.Source, SortOrder = row.SortOrder });
         }
+
+        if (dropped > 0 && logger is not null)
+        {
+            Log.ServingOutOfRange(logger, foodId);
+        }
+
+        if (offered is [{ Source: ServingSource.Pack } only])
+        {
+            only.Label = PackServingLabel;
+        }
+
+        return offered;
     }
 
-    /// <summary>Applies the serving and nutrient caps of <see cref="GetAsync"/> to a food read elsewhere, in place. Nothing is written back to the database. Null <paramref name="logger"/> bounds silently, as search does on every keystroke.</summary>
+    /// <summary>Applies the nutrient caps of <see cref="GetAsync"/> (and drops an out-of-range product serving from the food's own serving fields) to a food read elsewhere, in place. Nothing is written back to the database. Null <paramref name="logger"/> bounds silently, as search does on every keystroke.</summary>
     internal static void Bound(Food food, ILogger? logger = null)
     {
         if (TryBoundServing(food.ServingLabel, food.ServingAmount, out var label, out _))
@@ -83,14 +108,6 @@ public sealed partial class FoodService
         }
         else
         {
-            if (food.ServingLabel is not null || food.ServingAmount is not null)
-            {
-                if (logger is not null)
-                {
-                    Log.ServingOutOfRange(logger, food.Id);
-                }
-            }
-
             food.ServingLabel = null;
             food.ServingAmount = null;
         }
@@ -142,7 +159,7 @@ public sealed partial class FoodService
 
     private static partial class Log
     {
-        [LoggerMessage((int)CoreEvent.FoodServingOutOfRange, LogLevel.Debug, "Food {FoodId} has a serving out of range, so it has none")]
+        [LoggerMessage((int)CoreEvent.FoodServingOutOfRange, LogLevel.Debug, "Food {FoodId} has a serving out of range, so it is left out")]
         public static partial void ServingOutOfRange(ILogger logger, int foodId);
 
         [LoggerMessage((int)CoreEvent.FoodNutrientsOutOfRange, LogLevel.Debug, "Food {FoodId} has {Count} optional nutrients out of range, so they are unknown")]

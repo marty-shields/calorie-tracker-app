@@ -423,7 +423,7 @@ public class DatabaseInitializerTests
     private const string DiaryColumns = "SELECT name || ':' || type || ':' || \"notnull\" || ':' || pk FROM pragma_table_info('DiaryEntry') ORDER BY cid";
 
     private static readonly string[] ExpectedDiaryColumns =
-        ["Id:INTEGER:1:1", "Date:varchar:1:0", "Meal:INTEGER:1:0", "FoodId:INTEGER:1:0", "Amount:float:1:0", "Servings:float:0:0", "IsRemoved:INTEGER:1:0"];
+        ["Id:INTEGER:1:1", "Date:varchar:1:0", "Meal:INTEGER:1:0", "FoodId:INTEGER:1:0", "Amount:float:1:0", "Servings:float:0:0", "IsRemoved:INTEGER:1:0", "ServingId:INTEGER:0:0"];
 
     private const string FoodTableSql =
         "CREATE TABLE Food (Id integer primary key autoincrement not null, Source integer not null, SourceId varchar not null, Name varchar not null, Brand varchar, Unit integer not null, Kcal float, ProteinG float, CarbsG float, FatG float, FibreG float, SugarsG float, SaturatesG float, SaltG float, ServingLabel varchar, ServingAmount float, SearchText varchar not null, Type integer not null)";
@@ -499,7 +499,7 @@ public class DatabaseInitializerTests
             new DiaryTableUpgrade().Apply(db);
 
             Assert.That(db.ExecuteScalar<int>("SELECT COUNT(*) FROM DiaryEntry"), Is.Zero);
-            Assert.That(db.QueryScalars<string>(DiaryColumns), Is.EqualTo(ExpectedDiaryColumns));
+            Assert.That(db.QueryScalars<string>(DiaryColumns), Is.EqualTo(ExpectedDiaryColumns[..^1]));
             Assert.That(
                 db.QueryScalars<string>("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'DiaryEntry' AND sql IS NOT NULL ORDER BY name"),
                 Is.EqualTo(new[] { "DiaryEntry_Date", "DiaryEntry_FoodId" }));
@@ -511,9 +511,9 @@ public class DatabaseInitializerTests
     }
 
     [Test]
-    public void CurrentVersion_IsTwelve()
+    public void CurrentVersion_IsThirteen()
     {
-        Assert.That(DatabaseInitializer.CurrentVersion, Is.EqualTo(12));
+        Assert.That(DatabaseInitializer.CurrentVersion, Is.EqualTo(13));
     }
 
     private const string ServingCheckedColumn = "SELECT name || ':' || type || ':' || \"notnull\" || ':' || pk FROM pragma_table_info('Food') WHERE name = 'ServingChecked'";

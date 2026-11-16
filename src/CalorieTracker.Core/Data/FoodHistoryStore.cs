@@ -16,6 +16,8 @@ internal sealed class FoodHistoryRow
     public double LastAmount { get; set; }
 
     public double? LastServings { get; set; }
+
+    public int? LastServingId { get; set; }
 }
 
 /// <summary>Reads what the kept (not removed) <see cref="DiaryEntry"/> rows say about each food, each call through the <see cref="DatabaseGate"/>. Removed rows count for nothing.</summary>
@@ -38,7 +40,7 @@ internal sealed class FoodHistoryStore(SQLiteAsyncConnection connection, Databas
     private static object[] Args(Meal? meal, object[] before, params object[] after) =>
         [.. before, .. meal is { } m ? new object[] { (int)m } : [], .. after];
 
-    private const string Columns = "g.FoodId AS FoodId, g.Times AS TimesLogged, e.Id AS LastEntryId, e.Date AS LastDate, e.Amount AS LastAmount, e.Servings AS LastServings";
+    private const string Columns = "g.FoodId AS FoodId, g.Times AS TimesLogged, e.Id AS LastEntryId, e.Date AS LastDate, e.Amount AS LastAmount, e.Servings AS LastServings, e.ServingId AS LastServingId";
 
     /// <summary>Distinct foods, the food of the newest entry first. TimesLogged counts every kept entry of the food. The last values come from <paramref name="meal"/> when set (see <see cref="LastEntryInMeal"/>).</summary>
     public Task<List<FoodHistoryRow>> RecentAsync(int limit, Meal? meal = null) =>

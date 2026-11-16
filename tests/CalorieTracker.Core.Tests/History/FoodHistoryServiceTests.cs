@@ -26,6 +26,7 @@ public class FoodHistoryServiceTests
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
+        await connection.CreateTableAsync<Serving>();
         await connection.CreateTableAsync<DiaryEntry>();
         oats = await AddFood("Zebra oats");
         eggs = await AddFood("Zebra eggs");
@@ -53,6 +54,36 @@ public class FoodHistoryServiceTests
 
     private async Task<int> Log(int days, Meal meal, int foodId, double amount = 100, double? servings = null) =>
         (await diary.AddAsync(Today.AddDays(-days), meal, foodId, amount, servings)).Entry!.Id;
+
+    [Test]
+    public async Task RecentAndAll_CarryTheServingOfTheNewestEntry_NullWhenItWasByWeightOrItsServingWasDeleted()
+    {
+        var rows = new List<Serving>
+        {
+            new() { FoodId = oats, Label = "1 bowl", Amount = 40, Source = ServingSource.User, SortOrder = 2 },
+            new() { FoodId = oats, Label = "1 cup", Amount = 90, Source = ServingSource.User, SortOrder = 2 },
+        };
+        await connection.InsertAllAsync(rows);
+        await diary.AddAsync(Today.AddDays(-1), Meal.Lunch, oats, 40, 1, rows[0].Id);
+        var newest = await diary.AddAsync(Today, Meal.Dinner, oats, 180, 2, rows[1].Id);
+        await Log(0, Meal.Lunch, eggs, 100);
+
+        var inDinner = (await service.RecentAsync(10, Meal.Dinner)).Foods.Single(f => f.FoodId == oats);
+        var inLunch = (await service.RecentAsync(10, Meal.Lunch)).Foods.Single(f => f.FoodId == oats);
+        var any = (await service.RecentAsync(10)).Foods.Single(f => f.FoodId == oats);
+        var eggsLast = (await service.RecentAsync(10)).Foods.Single(f => f.FoodId == eggs);
+        await connection.ExecuteAsync("UPDATE DiaryEntry SET ServingId = NULL WHERE Id = ?", newest.Entry!.Id);
+        var cleared = (await service.RecentAsync(10)).Foods.Single(f => f.FoodId == oats);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That((inDinner.LastServingId, inDinner.LastServings, inDinner.LastAmount), Is.EqualTo(((int?)rows[1].Id, (double?)2, 180.0)));
+            Assert.That(inLunch.LastServingId, Is.EqualTo(rows[0].Id));
+            Assert.That(any.LastServingId, Is.EqualTo(rows[1].Id));
+            Assert.That(eggsLast.LastServingId, Is.Null);
+            Assert.That(cleared.LastServingId, Is.Null);
+        });
+    }
 
     [Test]
     public async Task RecentAsync_ListsEachFoodOnceNewestFirstAndRespectsTheLimit()

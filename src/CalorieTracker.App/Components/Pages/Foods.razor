@@ -27,6 +27,6 @@
 
     private void Add(FoodAddRequest request) =>
         Navigation.GoTo(meal is { } preset
-            ? ServingRoute.Url(request.Food.Id, preset, date, backTo: FoodSearchRoute.AddUrl(preset, date, request.Query), amount: request.LastAmount, servings: request.LastServings)
-            : ServingRoute.Url(request.Food.Id, returnTo: FoodSearchRoute.Url(request.Query), amount: request.LastAmount, servings: request.LastServings));
+            ? ServingRoute.Url(request.Food.Id, preset, date, backTo: FoodSearchRoute.AddUrl(preset, date, request.Query), amount: request.LastAmount, servings: request.LastServings, servingId: request.LastServingId)
+            : ServingRoute.Url(request.Food.Id, returnTo: FoodSearchRoute.Url(request.Query), amount: request.LastAmount, servings: request.LastServings, servingId: request.LastServingId));
 }

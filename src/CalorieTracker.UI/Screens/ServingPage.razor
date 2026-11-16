@@ -6,17 +6,28 @@
 @using CalorieTracker.UI.Models.Serving
 @using Microsoft.Extensions.Logging
 @inject FoodService Foods
+@inject ServingService ServingsApi
 @inject DiaryService Diary
 @inject TimeProvider Time
 @inject SnackbarService Snackbar
 @inject ILogger<ServingPage> Logger
 
-<ServingView Food="food" Loading="loading" LoadFailed="loadFailed" Mode="mode" Amount="amount" Grams="Grams" Meal="meal" SuggestedAt="suggestedAt"
+<ServingView Food="food" Servings="offered" ServingId="chosen?.Id" OnServingChanged="ChangeServing"
+             AddingOwn="addingOwn" OwnLabel="@ownLabel" OwnAmount="ownAmount" OwnError="@ownError" SavingOwn="savingOwn"
+             OnOwnOpen="OpenOwn" OnOwnLabelChanged="ChangeOwnLabel" OnOwnAmountChanged="ChangeOwnAmount" OnOwnSave="SaveOwnAsync" OnOwnCancel="CancelOwn" OnDeleteOwn="DeleteOwnAsync"
+             Loading="loading" LoadFailed="loadFailed" Mode="mode" Amount="amount" Grams="Grams" Meal="meal" SuggestedAt="suggestedAt"
              Saving="saving" Removing="removing" SaveFailed="saveFailed" Editing="Editing" Date="Date" RemoveFailed="removeFailed" EntryGone="entryGone" OnSave="SaveAsync" OnRemove="RemoveAsync" OnModeChanged="ChangeMode" OnAmountChanged="ChangeAmount" OnUseServing="UseServing"
              OnMealChanged="ChangeMeal" OnAdd="AddAsync" OnRetry="LoadAsync" OnBack="OnBack" />
 
 @code {
     private Food? food;
+    private IReadOnlyList<Serving> offered = [];
+    private Serving? chosen;
+    private bool addingOwn;
+    private string? ownLabel;
+    private decimal? ownAmount;
+    private string? ownError;
+    private bool savingOwn;
     private bool loading = true;
     private bool loadFailed;
     private EntryMode mode = EntryMode.Servings;
@@ -70,6 +81,10 @@
     [Parameter]
     public double? EntryServings { get; set; }
 
+    /// <summary>The serving the entry counted its servings in, for edit mode. Null, or one the food no longer has, opens on the food's first serving.</summary>
+    [Parameter]
+    public int? EntryServingId { get; set; }
+
     /// <summary>The weight in g or ml to open an added food with, instead of 1 serving or 100 g. Ignored in edit mode and when it is not a valid amount.</summary>
     [Parameter]
     public double? StartAmount { get; set; }
@@ -77,6 +92,10 @@
     /// <summary>The count of servings <see cref="StartAmount"/> was entered as; the screen opens in servings mode with it when the food has a serving. Null opens by weight.</summary>
     [Parameter]
     public double? StartServings { get; set; }
+
+    /// <summary>The serving <see cref="StartServings"/> was counted in, such as the one last logged. Null, or one the food no longer has, opens on the food's first serving. Ignored in edit mode.</summary>
+    [Parameter]
+    public int? StartServingId { get; set; }
 
     /// <summary>Raised once an edited entry is saved.</summary>
     [Parameter]
@@ -96,11 +115,11 @@
 
     private bool Editing => EntryId is not null;
 
-    private bool HasServing => ServingRules.HasServing(food);
+    private bool HasServing => ServingRules.HasServing(offered);
 
     private double? Grams =>
         mode == EntryMode.Servings && HasServing
-            ? lockedGrams ?? (amount is { } count ? (double)count * food!.ServingAmount!.Value : null)
+            ? lockedGrams ?? (amount is { } count ? (double)count * chosen!.Amount : null)
             : amount is { } typed ? (double)typed : null;
 
     protected override async Task OnParametersSetAsync()
@@ -163,11 +182,15 @@
         loading = false;
         loadFailed = result.Status == FoodStatus.Failed;
         food = result.Food;
+        offered = result.Servings;
+        addingOwn = false;
+        ownError = null;
         if (food is null)
         {
             return;
         }
 
+        chosen = ServingRules.Pick(offered, Editing ? EntryServingId : StartServingId);
         if (Editing && EntryAmount is { } stored)
         {
             Carry(stored, EntryServings);
@@ -213,7 +236,7 @@
         }
         else
         {
-            var weight = food!.ServingAmount!.Value;
+            var weight = chosen!.Amount;
             amount = grams is { } g ? Math.Round((decimal)(g / weight), 2) : null;
             lockedGrams = grams;
         }
@@ -256,6 +279,143 @@
         removeFailed = false;
     }
 
+    /// <summary>Counts the same number of servings of another serving.</summary>
+    private void ChangeServing(int id)
+    {
+        if (offered.FirstOrDefault(s => s.Id == id) is not { } next)
+        {
+            return;
+        }
+
+        chosen = next;
+        lockedGrams = null;
+        saveFailed = false;
+        removeFailed = false;
+    }
+
+    private void OpenOwn()
+    {
+        addingOwn = true;
+        ownLabel = "";
+        ownAmount = null;
+        ownError = null;
+    }
+
+    private void CancelOwn()
+    {
+        addingOwn = false;
+        ownError = null;
+    }
+
+    private void ChangeOwnLabel(string value)
+    {
+        ownLabel = value;
+        ownError = null;
+    }
+
+    private void ChangeOwnAmount(decimal? value)
+    {
+        ownAmount = value;
+        ownError = null;
+    }
+
+    /// <summary>Saves the typed serving as the person's own and opens the food on it, counting one.</summary>
+    private async Task SaveOwnAsync()
+    {
+        if (savingOwn || food is null || !FoodService.TryBoundServing(ownLabel, (double?)ownAmount, out var label, out var size))
+        {
+            return;
+        }
+
+        savingOwn = true;
+        ownError = null;
+        try
+        {
+            var result = await ServingsApi.AddAsync(food.Id, label, size);
+            if (result.Status == ServingStatus.Ok)
+            {
+                await ReloadServingsAsync(result.Serving!.Id);
+                mode = EntryMode.Servings;
+                amount = 1;
+                lockedGrams = null;
+                saveFailed = false;
+                return;
+            }
+
+            ownError = result.Status switch
+            {
+                ServingStatus.Duplicate => "You already have a serving of that size.",
+                ServingStatus.Invalid => "Check the name and size.",
+                _ => "Couldn't save this serving. Try again.",
+            };
+        }
+        finally
+        {
+            savingOwn = false;
+        }
+    }
+
+    /// <summary>Deletes the chosen serving when it is the person's own. Entries that used it keep their amounts; the screen opens on the food's first serving.</summary>
+    private async Task DeleteOwnAsync()
+    {
+        if (savingOwn || chosen is not { Source: ServingSource.User } own)
+        {
+            return;
+        }
+
+        savingOwn = true;
+        try
+        {
+            var result = await ServingsApi.RemoveAsync(own.Id);
+            if (result.Status is ServingStatus.Ok or ServingStatus.NotFound)
+            {
+                var grams = Grams;
+                await ReloadServingsAsync(null);
+                if (!HasServing)
+                {
+                    mode = EntryMode.Grams;
+                    amount = grams is { } kept ? ToDecimal(Math.Min(kept, CarryLimit)) : null;
+                    lockedGrams = null;
+                }
+                else if (mode == EntryMode.Servings)
+                {
+                    lockedGrams = null;
+                }
+
+                saveFailed = false;
+            }
+            else
+            {
+                ownError = "Couldn't delete this serving. Try again.";
+                addingOwn = true;
+            }
+        }
+        finally
+        {
+            savingOwn = false;
+        }
+    }
+
+    /// <summary>Reads the food's servings again after one was added or deleted and picks <paramref name="pick"/>, or the first.</summary>
+    private async Task ReloadServingsAsync(int? pick)
+    {
+        var requested = FoodId;
+        var result = await Foods.GetAsync(requested);
+        if (requested != FoodId)
+        {
+            return;
+        }
+
+        if (result.Status == FoodStatus.Found)
+        {
+            offered = result.Servings;
+        }
+
+        chosen = ServingRules.Pick(offered, pick);
+        addingOwn = false;
+        ownError = null;
+    }
+
     private void ChangeAmount(decimal? value)
     {
         amount = value;
@@ -272,6 +432,9 @@
     }
 
     private double? Servings => mode == EntryMode.Servings && HasServing && amount is { } count ? (double)count : null;
+
+    /// <summary>The serving the count is in; null when the entry is by weight.</summary>
+    private int? ServingIdToSave => Servings is null ? null : chosen?.Id;
 
     /// <summary>Runs one save or remove with its busy flag on and the errors cleared. A throw clears the flag, since the screen stays.</summary>
     private async Task<DiaryResult> RunAsync(bool removal, Func<Task<DiaryResult>> call)
@@ -299,7 +462,7 @@
             return;
         }
 
-        var result = await RunAsync(false, () => Diary.AddAsync(Date, meal, food.Id, grams, Servings));
+        var result = await RunAsync(false, () => Diary.AddAsync(Date, meal, food.Id, grams, Servings, ServingIdToSave));
         saveFailed = result.Status != DiaryStatus.Ok;
         if (!saveFailed)
         {
@@ -323,7 +486,7 @@
             return;
         }
 
-        var result = await RunAsync(false, () => Diary.UpdateAsync(id, Date, meal, grams, Servings));
+        var result = await RunAsync(false, () => Diary.UpdateAsync(id, Date, meal, grams, Servings, ServingIdToSave));
         entryGone = result.Status == DiaryStatus.NotFound;
         saveFailed = result.Status is not (DiaryStatus.Ok or DiaryStatus.NotFound);
 

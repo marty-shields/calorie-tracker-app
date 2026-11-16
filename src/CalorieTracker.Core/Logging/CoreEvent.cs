@@ -2,7 +2,7 @@ namespace CalorieTracker.Core.Logging;
 
 /// <summary>
 /// Event ids of Core's log messages: 1000–1999, a block of 100 per type.
-/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch, 1600 TargetService, 1700 DiaryService, 1800 DaySummaryService, 1900 FoodService; the <c>*Block</c> members hold them. FoodHistoryService has ten ids from 1050 because every block of 100 is taken.
+/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch, 1600 TargetService, 1700 DiaryService, 1800 DaySummaryService, 1900 FoodService; the <c>*Block</c> members hold them. FoodHistoryService has ten ids from 1050 and ServingService ten from 1010 because every block of 100 is taken.
 /// Ids never change and are never reused; list a retired id here and in <c>CoreEventTests</c>.
 /// </summary>
 internal enum CoreEvent
@@ -15,6 +15,30 @@ internal enum CoreEvent
 
     /// <summary><see cref="Data.DatabaseInitializer"/>: a schema upgrade step ran.</summary>
     SchemaStepApplied = 1003,
+
+    /// <summary>Start of the ten ids reserved for <see cref="Foods.ServingService"/>.</summary>
+    ServingServiceBlock = 1010,
+
+    /// <summary><see cref="Foods.ServingService"/>: a serving was added; carries the serving and food ids.</summary>
+    ServingAdded = 1011,
+
+    /// <summary><see cref="Foods.ServingService"/>: a serving was deleted; carries its id.</summary>
+    ServingRemoved = 1012,
+
+    /// <summary><see cref="Foods.ServingService"/>: a label or amount was rejected; none is logged.</summary>
+    ServingRejected = 1013,
+
+    /// <summary><see cref="Foods.ServingService"/>: a serving was not added because its food does not exist; carries the food id.</summary>
+    ServingFoodNotFound = 1014,
+
+    /// <summary><see cref="Foods.ServingService"/>: a serving was not added because the food has one of the person's own with that amount; carries the food id.</summary>
+    ServingDuplicate = 1015,
+
+    /// <summary><see cref="Foods.ServingService"/>: no serving of the person's own has the id; carries the id.</summary>
+    ServingNotFound = 1016,
+
+    /// <summary><see cref="Foods.ServingService"/>: the database failed, so the call returned <see cref="Foods.ServingStatus.Failed"/>.</summary>
+    ServingFailed = 1017,
 
     /// <summary>Start of the block reserved for <see cref="Data.FoodStore"/>.</summary>
     FoodStoreBlock = 1100,

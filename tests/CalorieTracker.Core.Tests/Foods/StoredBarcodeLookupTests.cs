@@ -25,6 +25,8 @@ public class StoredBarcodeLookupTests
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
+        await connection.CreateTableAsync<Serving>();
+        await connection.CreateTableAsync<DiaryEntry>();
         await connection.CreateTableAsync<FoodBarcode>();
         store = new FoodStore(connection, new DatabaseGate(), new FakeLogger<FoodStore>());
         logger = new FakeLogger<StoredBarcodeLookup>();
@@ -132,11 +134,12 @@ public class StoredBarcodeLookupTests
 
         var rows = await connection.Table<Food>().ToListAsync();
         var row = rows.Single(r => r.Id == stored.Id);
+        var servings = await connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ?", stored.Id);
         Assert.Multiple(() =>
         {
             Assert.That((row.Kcal, row.ProteinG, row.CarbsG, row.FatG), Is.EqualTo((201.0, 21.0, 22.0, 23.0)));
             Assert.That((row.FibreG, row.SugarsG, row.SaturatesG, row.SaltG), Is.EqualTo(((double?)null, (double?)2.5, (double?)3.5, (double?)0.25)));
-            Assert.That((row.ServingLabel, row.ServingAmount), Is.EqualTo(("1 portion (50 g)", 50.0)));
+            Assert.That(servings.Select(x => (x.Label, x.Amount, x.Source)), Is.EqualTo(new[] { ("1 portion (50 g)", 50.0, ServingSource.Product) }));
             Assert.That((row.Name, row.Brand, row.Type, row.SearchText, row.Unit), Is.EqualTo(("Stored name", "Stored brand", FoodType.Drink, "oats", FoodUnit.Gram)));
             Assert.That((row.Source, row.SourceId), Is.EqualTo((FoodSource.OpenFoodFacts, "1")));
             Assert.That(rows, Has.Count.EqualTo(2));
@@ -757,6 +760,55 @@ public class StoredBarcodeLookupTests
     }
 
     [Test]
+    public async Task Lookup_FirstScanOfAProductWithAServingAndAPack_SavesAProductRowAndAPackRow()
+    {
+        inner.Enqueue(BarcodeLookupResult.Found(Detailed("1")));
+
+        var result = await lookup.LookupAsync(Barcode);
+
+        var rows = await connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY SortOrder", result.Food!.Id);
+        Assert.That(rows.Select(r => (r.Label, r.Amount, r.Source)), Is.EqualTo(new[]
+        {
+            ("1 portion (50 g)", 50.0, ServingSource.Product),
+            ("Whole pack (400 g)", 400.0, ServingSource.Pack),
+        }));
+    }
+
+    [Test]
+    public async Task Lookup_RefreshOfAFoodWithAPersonsOwnServing_WritesProductAndPackAndKeepsTheOwnRowAndTheFoodId()
+    {
+        var stored = await store.UpsertAsync(NoDetails("1"), Barcode);
+        await connection.InsertAsync(new Serving { FoodId = stored.Id, Label = "My bowl", Amount = 75, Source = ServingSource.User, SortOrder = 2 });
+        inner.Enqueue(BarcodeLookupResult.Found(Detailed("1")));
+
+        await lookup.LookupAsync(Barcode);
+        await lookup.RefreshesIdle().WaitAsync(Bound);
+
+        var rows = await connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY SortOrder", stored.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(rows.Select(r => (r.Label, r.Source)), Is.EqualTo(new[]
+            {
+                ("1 portion (50 g)", ServingSource.Product),
+                ("Whole pack (400 g)", ServingSource.Pack),
+                ("My bowl", ServingSource.User),
+            }));
+            Assert.That(connection.Table<Food>().CountAsync().Result, Is.EqualTo(1));
+        });
+        Assert.That((await store.FindByBarcodeAsync(Barcode))!.Id, Is.EqualTo(stored.Id));
+    }
+
+    [Test]
+    public async Task Lookup_StoredFoodOpened_CarriesItsProductServingFromTheServingTable()
+    {
+        await store.UpsertAsync(Detailed("1"), Barcode);
+
+        var result = await lookup.LookupAsync(Barcode);
+
+        Assert.That((result.Food!.ServingLabel, result.Food.ServingAmount), Is.EqualTo(("1 portion (50 g)", (double?)50)));
+    }
+
+    [Test]
     public async Task Lookup_StoredFoodWithNoFetchTime_ReturnsAtOnceThenRefreshesItWithTheNewFieldsAndKeepsItsIdAndDiary()
     {
         var stored = await store.UpsertAsync(NoDetails("1"), Barcode);
@@ -818,7 +870,7 @@ public class StoredBarcodeLookupTests
         await lookup.RefreshesIdle().WaitAsync(Bound);
 
         var row = await connection.Table<Food>().FirstAsync();
-        Assert.That((row.ServingLabel, row.ServingAmount, row.FetchedAt is not null, row.ServingChecked, inner.Calls), Is.EqualTo(((string?)null, (double?)null, true, (bool?)true, 1)));
+        Assert.That((await connection.Table<Serving>().Where(x => x.Source == ServingSource.Product).CountAsync(), row.FetchedAt is not null, row.ServingChecked, inner.Calls), Is.EqualTo((0, true, (bool?)true, 1)));
     }
 
     [Test]
@@ -836,7 +888,8 @@ public class StoredBarcodeLookupTests
         await lookup.RefreshesIdle().WaitAsync(Bound);
 
         var row = await connection.Table<Food>().FirstAsync();
-        Assert.That((row.ServingLabel, row.ServingAmount, row.FetchedAt is not null, row.Category, inner.Calls), Is.EqualTo((before.ServingLabel, before.ServingAmount, true, "Sweets", 1)));
+        var kept = await connection.Table<Serving>().Where(x => x.Source == ServingSource.Product).ToListAsync();
+        Assert.That((kept.Select(x => (x.Label, x.Amount)), row.FetchedAt is not null, row.Category, inner.Calls), Is.EqualTo((new[] { (before.ServingLabel!, before.ServingAmount!.Value) }, true, "Sweets", 1)));
         Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Not.Contain(CoreEvent.StoredLookupServingMissing));
     }
 

@@ -28,8 +28,9 @@ public sealed partial class DiaryService
     /// <summary>
     /// Adds an entry of a food. <paramref name="amount"/> (grams or millilitres) must be finite and above zero, up to <see cref="MaxAmount"/>, <paramref name="servings"/> when given the same, and <paramref name="meal"/> a defined meal;
     /// otherwise <see cref="DiaryStatus.Invalid"/>. <see cref="DiaryStatus.NotFound"/> when no food has the id. Nothing is added unless Ok.
+    /// <paramref name="servingId"/> is the serving the count of <paramref name="servings"/> was in; null when the entry is by weight. An id that is not a serving of the food is saved as null.
     /// </summary>
-    public async Task<DiaryResult> AddAsync(DateOnly date, Meal meal, int foodId, double amount, double? servings = null)
+    public async Task<DiaryResult> AddAsync(DateOnly date, Meal meal, int foodId, double amount, double? servings = null, int? servingId = null)
     {
         if (!IsValid(meal, amount, servings))
         {
@@ -39,7 +40,7 @@ public sealed partial class DiaryService
 
         try
         {
-            var added = await store.AddAsync(new DiaryEntry { Date = DiaryEntry.FormatDate(date), Meal = meal, FoodId = foodId, Amount = amount, Servings = servings });
+            var added = await store.AddAsync(new DiaryEntry { Date = DiaryEntry.FormatDate(date), Meal = meal, FoodId = foodId, Amount = amount, Servings = servings, ServingId = servingId });
             if (added is null)
             {
                 Log.FoodNotFound(logger, foodId);
@@ -58,10 +59,10 @@ public sealed partial class DiaryService
     }
 
     /// <summary>
-    /// Changes the day, meal, amount and servings of a kept entry; its food and place in the order added stay. Validated like <see cref="AddAsync"/>.
+    /// Changes the day, meal, amount, servings and serving of a kept entry; its food and place in the order added stay. Validated like <see cref="AddAsync"/>.
     /// <see cref="DiaryStatus.NotFound"/> when no kept entry has the id (a removed one must be restored first).
     /// </summary>
-    public async Task<DiaryResult> UpdateAsync(int id, DateOnly date, Meal meal, double amount, double? servings = null)
+    public async Task<DiaryResult> UpdateAsync(int id, DateOnly date, Meal meal, double amount, double? servings = null, int? servingId = null)
     {
         if (!IsValid(meal, amount, servings))
         {
@@ -69,7 +70,7 @@ public sealed partial class DiaryService
             return DiaryResult.Invalid();
         }
 
-        return await ChangeAsync(id, () => store.UpdateAsync(id, DiaryEntry.FormatDate(date), meal, amount, servings), Log.Updated);
+        return await ChangeAsync(id, () => store.UpdateAsync(id, DiaryEntry.FormatDate(date), meal, amount, servings, servingId), Log.Updated);
     }
 
     /// <summary>Removes a kept entry so <see cref="RestoreAsync"/> can bring it back. <see cref="DiaryStatus.NotFound"/> when no kept entry has the id.</summary>

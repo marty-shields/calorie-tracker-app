@@ -27,6 +27,7 @@ public class FoodSearchTests
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
+        await connection.CreateTableAsync<Serving>();
         await connection.CreateTableAsync<DiaryEntry>();
         gate = new DatabaseGate();
         logger = new FakeLogger<FoodSearch>();

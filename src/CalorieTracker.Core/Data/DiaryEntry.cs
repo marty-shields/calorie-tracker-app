@@ -46,4 +46,7 @@ public class DiaryEntry
     /// <summary>True once removed. The row stays so the entry can be restored to its place.</summary>
     [NotNull]
     public bool IsRemoved { get; set; }
+
+    /// <summary>The <see cref="Serving"/> the entry was added by, with <see cref="Servings"/>; null when it was added by weight, and for an entry saved before servings had their own table. When that serving is deleted the link is set to null and the entry keeps its amount, count and calories. Declared last so a new database and one upgraded by step 13 list their columns in the same order.</summary>
+    public int? ServingId { get; set; }
 }

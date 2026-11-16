@@ -137,7 +137,7 @@
 
     private static string Count(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
 
-    /// <summary>The amount, or for an entry added by servings "1 serving · the food's label", after the brand line when the food has one.</summary>
+    /// <summary>The amount, or for an entry added by servings "1 serving · the serving's label" (the amount when the entry has no serving), after the brand line when the food has one.</summary>
     private static string EntryDetail(SummaryEntry entry)
     {
         var amount = $"{Count(entry.Amount)} {(entry.Unit == FoodUnit.Millilitre ? "ml" : "g")}";

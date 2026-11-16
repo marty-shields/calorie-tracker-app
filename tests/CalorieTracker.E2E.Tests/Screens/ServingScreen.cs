@@ -34,6 +34,28 @@ public sealed class ServingScreen(WebView web)
         EnterAmount(text);
     }
 
+    /// <summary>The label card of a food with one serving.</summary>
+    public string ServingLabel() => web.Text("serving-label");
+
+    /// <summary>The weight line of Servings mode, such as "= 40 g".</summary>
+    public string Weight() => web.Text("serving-weight");
+
+    /// <summary>The servings of the list a food with two or more has, in the order shown; empty when there is no list.</summary>
+    public IReadOnlyList<string> ServingOptions() =>
+        web.FindAll("[data-testid=\"serving-select\"] option").Select(option => option.Text.Trim()).ToList();
+
+    public void ChooseServing(string label) => web.Choose("serving-select", label);
+
+    /// <summary>Opens the own-serving form, fills it and saves, then waits for the form to close.</summary>
+    public void AddOwnServing(string label, string amount)
+    {
+        web.Tap("serving-own-add");
+        web.Type("serving-own-label", label);
+        web.Type("serving-own-amount", amount);
+        web.Tap("serving-own-save");
+        web.WaitUntil(() => !web.Exists("serving-own-label"), $"the form for the serving {label} didn't close");
+    }
+
     public string? AmountError() => web.Exists("serving-amount-error") ? web.Text("serving-amount-error") : null;
 
     /// <summary>The labels of the meal chips, in the order they show.</summary>

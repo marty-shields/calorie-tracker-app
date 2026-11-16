@@ -175,7 +175,7 @@ public class ServingRouteTests
         {
             Assert.That(serving, Does.Contain("Name = \"entry\"").And.Contain("Name = \"amount\"").And.Contain("Name = \"servings\""));
             Assert.That(serving, Does.Contain("EntryId=\"EntryId\"").And.Contain("OnSaved=").And.Contain("OnRemoved=").And.Contain("DashboardRoute.Url(EntryDay)"));
-            Assert.That(home, Does.Contain("ServingRoute.EditUrl(request.Entry.EntryId, request.Entry.FoodId, request.Meal, request.Date, request.Entry.Amount, request.Entry.Servings)"));
+            Assert.That(home, Does.Contain("ServingRoute.EditUrl(request.Entry.EntryId, request.Entry.FoodId, request.Meal, request.Date, request.Entry.Amount, request.Entry.Servings, request.Entry.ServingId)"));
         });
     }
 }

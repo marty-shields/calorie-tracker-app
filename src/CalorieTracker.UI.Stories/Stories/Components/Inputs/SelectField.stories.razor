@@ -1,0 +1,42 @@
+@using CalorieTracker.UI.Components.Inputs
+@attribute [Stories("Components/Inputs/SelectField")]
+
+<Stories TComponent="SelectField<int>" Layout="typeof(ThemeLayout)">
+
+    <Story Name="Default">
+        <Template>
+            <SelectField TValue="int" Label="Serving" Options="Options" @bind-Value="chosen" TestId="example-select" />
+        </Template>
+    </Story>
+
+    <Story Name="Long labels">
+        <Template>
+            <SelectField TValue="int" Label="Serving" Options="Long" @bind-Value="longChosen" TestId="example-select" />
+        </Template>
+    </Story>
+
+    <Story Name="Disabled">
+        <Template>
+            <SelectField TValue="int" Label="Serving" Options="Options" Value="2" Disabled="true" TestId="example-select" />
+        </Template>
+    </Story>
+
+</Stories>
+
+@code {
+    private int chosen = 2;
+    private int longChosen = 1;
+
+    private static readonly IReadOnlyList<RadioOption<int>> Options =
+    [
+        new(1, "1 glass (250 ml)", "example-glass"),
+        new(2, "Whole pack (330 ml)", "example-pack"),
+        new(3, "My mug", "example-mug"),
+    ];
+
+    private static readonly IReadOnlyList<RadioOption<int>> Long =
+    [
+        new(1, "1 serving of the double chocolate chip cookie (45 g)", "example-cookie"),
+        new(2, "Whole pack (360 g)", "example-pack"),
+    ];
+}

@@ -19,6 +19,7 @@ public class FoodStoreTests
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
+        await connection.CreateTableAsync<Serving>();
         await connection.CreateTableAsync<FoodBarcode>();
         await connection.CreateTableAsync<DiaryEntry>();
         await connection.CreateTableAsync<SeedVersion>();
@@ -351,16 +352,20 @@ public class FoodStoreTests
 
         var row = await connection.Table<Food>().FirstAsync();
 
-        Assert.That((row.ServingLabel, row.ServingAmount, row.ServingChecked, row.Kcal), Is.EqualTo(("100 g", (double?)100, (bool?)null, 111.0)));
+        Assert.That((await Servings(target.Id)).Select(x => (x.Label, x.Amount)), Is.EqualTo(new[] { ("100 g", 100.0) }));
+        Assert.That((row.ServingChecked, row.Kcal), Is.EqualTo(((bool?)null, 111.0)));
     }
 
     [Test]
-    public async Task RefreshAsync_FreshFlaggedAsHavingNoServing_ClearsTheStoredServingAndMarksItChecked()
+    public async Task RefreshAsync_FreshFlaggedAsHavingNoServing_RemovesTheProductServingKeepsTheOwnAndMarksItChecked()
     {
         var original = NewFood("1");
         original.ServingLabel = "100 g";
         original.ServingAmount = 100;
         var target = await store.UpsertAsync(original);
+        await connection.InsertAsync(new Serving { FoodId = target.Id, Label = "My cup", Amount = 240, Source = ServingSource.User, SortOrder = 2 });
+        var product = (await Servings(target.Id)).Single(x => x.Source == ServingSource.Product);
+        await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = target.Id, Amount = 200, Servings = 2, ServingId = product.Id });
         var fresh = Fresh();
         fresh.ServingLabel = null;
         fresh.ServingAmount = null;
@@ -368,8 +373,11 @@ public class FoodStoreTests
         await store.RefreshAsync(target.Id, fresh);
 
         var row = await connection.Table<Food>().FirstAsync();
+        var entry = await connection.Table<DiaryEntry>().FirstAsync();
 
-        Assert.That((row.ServingLabel, row.ServingAmount, row.ServingChecked), Is.EqualTo(((string?)null, (double?)null, (bool?)true)));
+        Assert.That((await Servings(target.Id)).Select(x => x.Label), Is.EqualTo(new[] { "My cup" }));
+        Assert.That(row.ServingChecked, Is.EqualTo(true));
+        Assert.That((entry.ServingId, entry.Amount, entry.Servings), Is.EqualTo(((int?)null, 200.0, (double?)2)));
     }
 
     [Test]
@@ -386,6 +394,9 @@ public class FoodStoreTests
         Assert.That(after, Is.EqualTo("oats ferrero nutella sweets"));
         Assert.That((await connection.Table<Food>().FirstAsync()).SearchText, Is.EqualTo(after));
     }
+
+    private Task<List<Serving>> Servings(int foodId) =>
+        connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY SortOrder, Amount, Id", foodId);
 
     private static Food Fresh() => new()
     {
@@ -423,16 +434,18 @@ public class FoodStoreTests
         Assert.That(changed, Is.True);
         var rows = await connection.Table<Food>().ToListAsync();
         var row = rows.Single(r => r.Id == target.Id);
+        var servings = await Servings(target.Id);
         Assert.Multiple(() =>
         {
-            Assert.That((row.ServingLabel, row.ServingAmount), Is.EqualTo(("1 slice (30 g)", 30.0)));
+            Assert.That(servings.Select(x => (x.Label, x.Amount, x.Source)), Is.EqualTo(new[] { ("1 slice (30 g)", 30.0, ServingSource.Product) }));
             Assert.That((row.Kcal, row.ProteinG, row.CarbsG, row.FatG), Is.EqualTo((111.0, 11.0, 12.0, 13.0)));
             Assert.That((row.FibreG, row.SugarsG, row.SaturatesG, row.SaltG), Is.EqualTo(((double?)1.5, (double?)2.5, (double?)3.5, (double?)0.5)));
             Assert.That((row.Name, row.Brand, row.Type, row.Unit, row.Source, row.SourceId, row.SearchText), Is.EqualTo(("Oats", "Brand", FoodType.Food, FoodUnit.Gram, FoodSource.CoFID, "1", "renamed")));
             Assert.That(row.ServingChecked, Is.Null);
         });
         var otherRow = rows.Single(r => r.Id == other.Id);
-        Assert.That((otherRow.ServingLabel, otherRow.ServingAmount, otherRow.Kcal), Is.EqualTo(((string?)null, (double?)null, 200.0)));
+        Assert.That(otherRow.Kcal, Is.EqualTo(200.0));
+        Assert.That(await Servings(other.Id), Is.Empty);
         Assert.That(await store.FindByBarcodeAsync("5000000000017"), Has.Property("Id").EqualTo(target.Id));
     }
 
@@ -475,7 +488,7 @@ public class FoodStoreTests
 
         await busy;
         Assert.That(await set, Is.True);
-        Assert.That((await connection.Table<Food>().FirstAsync()).ServingAmount, Is.EqualTo(30));
+        Assert.That((await Servings(1)).Select(x => x.Amount), Is.EqualTo(new[] { 30.0 }));
     }
 
     [Test]

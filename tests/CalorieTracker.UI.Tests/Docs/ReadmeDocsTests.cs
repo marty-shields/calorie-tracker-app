@@ -34,7 +34,7 @@ public partial class ReadmeDocsTests
         var section = YourData();
 
         Assert.That(section, Does.Contain("Your diary, daily target and foods are stored on the phone and in its Android backup")
-            .And.Contain("A diary entry holds the food id, the amount (g or ml, and the servings if you entered them), the meal, the day and whether it was removed.")
+            .And.Contain("A diary entry holds the food id, the amount (g or ml, and the servings and which serving if you entered them), the meal, the day and whether it was removed.")
             .And.Contain("The daily target is one number of calories.")
             .And.Contain("The theme is kept in the app's web storage, not the database.")
             .And.Contain("The app sends none of your diary, daily target or settings anywhere."));

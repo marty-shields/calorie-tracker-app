@@ -42,8 +42,6 @@ public static class ScreenStates
         ProteinG = 11.2,
         CarbsG = 31.5,
         FatG = 9.9,
-        ServingLabel = "½ pizza (201.8 g)",
-        ServingAmount = 201.8,
     };
 
     internal static readonly Food Mars = ServingSamples.Mars;
@@ -132,9 +130,14 @@ public static class ScreenStates
         new("Screens/Scan", "Not found", c => Scan(c, ScanState.NotFound)),
         new("Screens/Scan", "Camera unavailable", c => Scan(c, ScanState.CameraUnavailable)),
 
-        new("Screens/Serving", "Servings", c => Serving(c, Pizza, EntryMode.Servings, 1, 201.8, Meal.Lunch)),
-        new("Screens/Serving", "Grams with a serving", c => Serving(c, Pizza, EntryMode.Grams, 150, 150, Meal.Lunch)),
-        new("Screens/Serving", "Pack as one serving", c => Serving(c, Mars, EntryMode.Servings, 1, 51, Meal.Snacks)),
+        new("Screens/Serving", "Servings", c => Serving(c, Pizza, EntryMode.Servings, 1, 201.8, Meal.Lunch, servings: ServingSamples.PizzaServings)),
+        new("Screens/Serving", "Grams with a serving", c => Serving(c, Pizza, EntryMode.Grams, 150, 150, Meal.Lunch, servings: ServingSamples.PizzaServings)),
+        new("Screens/Serving", "Pack as one serving", c => Serving(c, Mars, EntryMode.Servings, 1, 51, Meal.Snacks, servings: ServingSamples.MarsServings)),
+        new("Screens/Serving", "Choose between two servings", c => Serving(c, ServingSamples.Cola, EntryMode.Servings, 1, 330, Meal.Snacks, servings: ServingSamples.ColaServings, servingId: 162)),
+        new("Screens/Serving", "Own serving chosen", c => Serving(c, ServingSamples.Cola, EntryMode.Servings, 2, 400, Meal.Snacks, servings: ServingSamples.ColaServingsWithOwn, servingId: 163)),
+        new("Screens/Serving", "Add your own serving", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, addingOwn: true, ownLabel: "1 slice", ownAmount: 28)),
+        new("Screens/Serving", "Own serving invalid", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, addingOwn: true, ownLabel: "1 slice", ownAmount: 0)),
+        new("Screens/Serving", "Own serving repeats a size", c => Serving(c, ServingSamples.Cola, EntryMode.Servings, 1, 250, Meal.Snacks, servings: ServingSamples.ColaServingsWithOwn, servingId: 161, addingOwn: true, ownLabel: "Big mug", ownAmount: 200, ownError: "You already have a serving of that size.")),
         new("Screens/Serving", "Scanned product with no serving", c => Serving(c, Biscuits, EntryMode.Grams, 30, 30, Meal.Lunch)),
         new("Screens/Serving", "CoFID ingredient", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch)),
         new("Screens/Serving", "Liquid", c => Serving(c, Milk, EntryMode.Grams, 250, 250, Meal.Breakfast)),
@@ -145,7 +148,7 @@ public static class ScreenStates
         new("Screens/Serving", "Saving", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, saving: true)),
         new("Screens/Serving", "Save failed", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, saveFailed: true)),
         new("Screens/Serving", "Edit entry", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, editing: true)),
-        new("Screens/Serving", "Edit entry in servings", c => Serving(c, Pizza, EntryMode.Servings, 1, 201.8, Meal.Lunch, editing: true)),
+        new("Screens/Serving", "Edit entry in servings", c => Serving(c, Pizza, EntryMode.Servings, 1, 201.8, Meal.Lunch, editing: true, servings: ServingSamples.PizzaServings)),
         new("Screens/Serving", "Saving entry", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, saving: true, editing: true)),
         new("Screens/Serving", "Entry save failed", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, saveFailed: true, editing: true)),
         new("Screens/Serving", "Entry remove failed", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, removeFailed: true, editing: true)),
@@ -177,9 +180,23 @@ public static class ScreenStates
             .FindAll("*");
 
     internal static IReadOnlyList<IElement> Serving(BunitContext context, Food? food, EntryMode mode = EntryMode.Servings, decimal? amount = null, double? grams = null, Meal meal = Meal.Breakfast,
-        TimeOnly? suggestedAt = null, bool saving = false, bool saveFailed = false, bool loading = false, bool loadFailed = false, bool editing = false, bool removeFailed = false, bool entryGone = false) =>
+        TimeOnly? suggestedAt = null, bool saving = false, bool saveFailed = false, bool loading = false, bool loadFailed = false, bool editing = false, bool removeFailed = false, bool entryGone = false,
+        IReadOnlyList<CalorieTracker.Core.Data.Serving>? servings = null, int? servingId = null, bool addingOwn = false, string? ownLabel = null, decimal? ownAmount = null, string? ownError = null) =>
         context.Render<ServingView>(p => p
             .Add(x => x.Food, food)
+            .Add(x => x.Servings, servings ?? [])
+            .Add(x => x.ServingId, servingId)
+            .Add(x => x.AddingOwn, addingOwn)
+            .Add(x => x.OwnLabel, ownLabel)
+            .Add(x => x.OwnAmount, ownAmount)
+            .Add(x => x.OwnError, ownError)
+            .Add(x => x.OnServingChanged, (int _) => { })
+            .Add(x => x.OnOwnOpen, () => { })
+            .Add(x => x.OnOwnLabelChanged, (string _) => { })
+            .Add(x => x.OnOwnAmountChanged, (decimal? _) => { })
+            .Add(x => x.OnOwnSave, () => { })
+            .Add(x => x.OnOwnCancel, () => { })
+            .Add(x => x.OnDeleteOwn, () => { })
             .Add(x => x.Mode, mode)
             .Add(x => x.Amount, amount)
             .Add(x => x.Grams, grams)

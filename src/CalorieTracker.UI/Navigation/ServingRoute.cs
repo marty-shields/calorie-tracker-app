@@ -20,7 +20,8 @@ public static class ServingRoute
     /// <param name="backTo">An in-app route for Back alone, when it differs from where a saved entry goes; null uses <paramref name="returnTo"/>.</param>
     /// <param name="amount">Grams or ml to open with instead of the default, such as what was last logged of the food; null for the default.</param>
     /// <param name="servings">The count of servings to open with, with <paramref name="amount"/>; null opens by weight.</param>
-    public static string Url(int foodId, Meal? meal = null, DateOnly? date = null, string? returnTo = null, string? backTo = null, double? amount = null, double? servings = null)
+    /// <param name="servingId">The serving the count is in, with <paramref name="servings"/>; null opens on the food's first serving.</param>
+    public static string Url(int foodId, Meal? meal = null, DateOnly? date = null, string? returnTo = null, string? backTo = null, double? amount = null, double? servings = null, int? servingId = null)
     {
         var query = new List<string>();
         if (meal is { } m)
@@ -49,6 +50,10 @@ public static class ServingRoute
             if (servings is { } count)
             {
                 query.Add($"servings={Text(count)}");
+                if (servingId is { } serving)
+                {
+                    query.Add($"serving={serving.ToString(CultureInfo.InvariantCulture)}");
+                }
             }
         }
 
@@ -58,8 +63,15 @@ public static class ServingRoute
     /// <summary>The route to change or remove a kept entry of a food: the entry's id, day, meal and amounts travel in the query, since a single entry can't be read back.</summary>
     /// <param name="amount">Grams or ml.</param>
     /// <param name="servings">The count of servings the entry was added by; null when it was added by weight.</param>
-    public static string EditUrl(int entryId, int foodId, Meal meal, DateOnly date, double amount, double? servings = null) =>
-        $"/serving/{foodId}?entry={entryId}&meal={meal}&date={RouteDate.ToText(date)}&amount={Text(amount)}" + (servings is { } count ? $"&servings={Text(count)}" : "");
+    /// <param name="servingId">The serving the count is in; null when the entry has none.</param>
+    public static string EditUrl(int entryId, int foodId, Meal meal, DateOnly date, double amount, double? servings = null, int? servingId = null) =>
+        $"/serving/{foodId}?entry={entryId}&meal={meal}&date={RouteDate.ToText(date)}&amount={Text(amount)}"
+        + (servings is { } count ? $"&servings={Text(count)}" : "")
+        + (servings is not null && servingId is { } serving ? $"&serving={serving.ToString(CultureInfo.InvariantCulture)}" : "");
+
+    /// <summary>A whole number above zero in a query value, or null when it is missing or not one.</summary>
+    public static int? ParseId(string? text) =>
+        int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var value) && value > 0 ? value : null;
 
     private static string Text(double value) => value.ToString("R", CultureInfo.InvariantCulture);
 

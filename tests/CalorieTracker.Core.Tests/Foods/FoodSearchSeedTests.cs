@@ -22,6 +22,7 @@ public class FoodSearchSeedTests
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
+        await connection.CreateTableAsync<Serving>();
         await connection.CreateTableAsync<FoodBarcode>();
         await connection.CreateTableAsync<DiaryEntry>();
         await connection.CreateTableAsync<SeedVersion>();

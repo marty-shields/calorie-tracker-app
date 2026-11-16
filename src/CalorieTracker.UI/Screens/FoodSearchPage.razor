@@ -148,7 +148,7 @@
     private Task AddAsync(Food food)
     {
         var last = groups.SelectMany(g => g.Foods).FirstOrDefault(l => l.Food.Id == food.Id)?.History;
-        return OnAdd.InvokeAsync(new FoodAddRequest(food, query, last?.LastAmount, last?.LastServings));
+        return OnAdd.InvokeAsync(new FoodAddRequest(food, query, last?.LastAmount, last?.LastServings, last?.LastServingId));
     }
 
     private void ClearSelection() => selected = null;
