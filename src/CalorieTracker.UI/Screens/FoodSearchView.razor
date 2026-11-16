@@ -39,7 +39,7 @@
             else
             {
                 <div class="add-none">
-                    <EmptyState Message="No foods match" Hint="Try another word, or switch to All." TestId="food-search-none" />
+                    <EmptyState Message="No foods match" Hint="@(Filter is null ? "Try another word." : "Try another word, or switch to All.")" TestId="food-search-none" />
                 </div>
             }
         }

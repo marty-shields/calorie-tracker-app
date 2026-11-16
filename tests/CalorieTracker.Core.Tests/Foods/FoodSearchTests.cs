@@ -506,6 +506,23 @@ public class FoodSearchTests
     }
 
     [Test]
+    public async Task Search_OutOfRangeFood_LogsOnlyTheSearchAndNoContent()
+    {
+        var food = NewFood("Secret oats", "secret oats");
+        (food.Brand, food.ServingLabel, food.ServingAmount, food.SaltG) = ("Hidden brand", "1 bowl", 20_000, 500);
+        await connection.InsertAsync(food);
+
+        await search.SearchAsync("secret");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { CoreEvent.FoodSearched }));
+            var text = string.Join('\n', logger.Collector.GetSnapshot().Select(r => r.Message));
+            Assert.That(text, Does.Not.Contain("Secret").And.Not.Contain("Hidden").And.Not.Contain("1 bowl"));
+        });
+    }
+
+    [Test]
     public async Task Search_Bounds_AreNotWrittenBack()
     {
         var food = NewFood("Oats", "oats");

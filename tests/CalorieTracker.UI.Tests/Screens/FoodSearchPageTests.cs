@@ -406,6 +406,17 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task AddMode_NothingFoundUnderAll_HintsOnlyToTryAnotherWord()
+    {
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch));
+
+        await cut.Find("[data-testid=food-filter-all]").ChangeAsync(true);
+        await cut.Find("[data-testid=food-search-input]").InputAsync("xyzzy");
+
+        Assert.That(cut.Find("[data-testid=food-search-none-hint]").TextContent, Is.EqualTo("Try another word."));
+    }
+
+    [Test]
     public async Task TabMode_NothingFound_StaysTheMessageOnly()
     {
         var cut = Context.Render<FoodSearchPage>();

@@ -27,7 +27,7 @@ internal sealed partial class FoodSearch(FoodStore store, ILogger<FoodSearch> lo
             var foods = await store.SearchAsync(terms, string.Join(' ', words), Math.Clamp(limit, 1, IFoodSearch.MaxLimit), type, ct).WaitAsync(ct);
             foreach (var food in foods)
             {
-                FoodService.Bound(food, logger);
+                FoodService.Bound(food);
             }
 
             Log.Searched(logger, terms.Count, type, foods.Count);

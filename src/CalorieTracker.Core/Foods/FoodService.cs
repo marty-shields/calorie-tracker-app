@@ -56,8 +56,8 @@ public sealed partial class FoodService
         return FoodResult.Found(food);
     }
 
-    /// <summary>Applies the serving and nutrient caps of <see cref="GetAsync"/> to a food read elsewhere, in place. Nothing is written back to the database.</summary>
-    internal static void Bound(Food food, ILogger logger)
+    /// <summary>Applies the serving and nutrient caps of <see cref="GetAsync"/> to a food read elsewhere, in place. Nothing is written back to the database. Null <paramref name="logger"/> bounds silently, as search does on every keystroke.</summary>
+    internal static void Bound(Food food, ILogger? logger = null)
     {
         if (TryBoundServing(food.ServingLabel, food.ServingAmount, out var label, out _))
         {
@@ -67,7 +67,10 @@ public sealed partial class FoodService
         {
             if (food.ServingLabel is not null || food.ServingAmount is not null)
             {
-                Log.ServingOutOfRange(logger, food.Id);
+                if (logger is not null)
+                {
+                    Log.ServingOutOfRange(logger, food.Id);
+                }
             }
 
             food.ServingLabel = null;
@@ -79,7 +82,7 @@ public sealed partial class FoodService
         food.SugarsG = Nutrient(food.SugarsG, ref dropped);
         food.SaturatesG = Nutrient(food.SaturatesG, ref dropped);
         food.SaltG = Nutrient(food.SaltG, ref dropped);
-        if (dropped > 0)
+        if (dropped > 0 && logger is not null)
         {
             Log.NutrientsOutOfRange(logger, food.Id, dropped);
         }
