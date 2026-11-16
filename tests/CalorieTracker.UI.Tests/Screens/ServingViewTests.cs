@@ -53,6 +53,26 @@ public class ServingViewTests : ComponentTestBase
     }
 
     [Test]
+    public void MillilitreFood_WithAServing_ShowsMlOnTheAmountTheServingAndThePer100Labels()
+    {
+        var drink = new Food { Id = 15, Name = "Oat drink", Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 1, CarbsG = 6.7, FatG = 1.5, ServingLabel = "1 glass", ServingAmount = 200, ServingChecked = true };
+        var inMl = Render(drink, EntryMode.Grams, 250, 250);
+        var inServings = Render(drink, EntryMode.Servings, 2, 400);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(inMl, "serving-per"), Does.StartWith("Per 100 ml"));
+            Assert.That(Text(inMl, "serving-amount-unit"), Is.EqualTo("ml"));
+            Assert.That(Text(inMl, "serving-adds-detail"), Does.StartWith("250 ml of"));
+            Assert.That(Text(inServings, "serving-per"), Does.StartWith("Per 100 ml"));
+            Assert.That(Text(inServings, "serving-weight"), Is.EqualTo("= 400 ml"));
+            Assert.That(Text(inServings, "serving-adds-detail"), Does.StartWith("400 ml of"));
+            Assert.That(inMl.Markup, Does.Not.Contain("100 g").And.Not.Contain("= 250 g"));
+            Assert.That(inServings.Markup, Does.Not.Contain("100 g").And.Not.Contain("= 400 g"));
+        });
+    }
+
+    [Test]
     public void Switch_FoodWithALabelAndAWeight_Shows_Grams_And_Servings_WithServingsChosen()
     {
         var cut = Render(ScreenStates.Pizza);

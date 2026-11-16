@@ -5,6 +5,7 @@ namespace CalorieTracker.Core.Foods;
 /// <summary>
 /// Ranks foods against typed words in memory. A food matches when every word matches one of its words; the score decides the order.
 /// Main words are the name before its first bracket plus every brand; qualifier words are what is inside the brackets plus the generic name and category.
+/// A word with one wrong letter (a typo match) counts only when no food matches the query by an exact, prefix or bracket match, so "bread" lists no "Broad beans".
 /// </summary>
 internal static class FoodRanker
 {
@@ -62,12 +63,18 @@ internal static class FoodRanker
     {
         var terms = typed.Select(t => new Word(t)).ToList();
         var ranked = new List<(Food Food, double Score)>();
+        var typoRanked = new List<(Food Food, double Score)>();
         foreach (var food in foods)
         {
-            if (Score(food, terms) is { } score)
+            if (Score(food, terms, out var byTypo) is { } score)
             {
-                ranked.Add((food, score));
+                (byTypo ? typoRanked : ranked).Add((food, score));
             }
+        }
+
+        if (ranked.Count == 0)
+        {
+            ranked = typoRanked;
         }
 
         return ranked
@@ -105,8 +112,9 @@ internal static class FoodRanker
 
     private static List<Word> ToWords(string folded) => Words(folded).Select(w => new Word(w)).ToList();
 
-    private static double? Score(Food food, IReadOnlyList<Word> terms)
+    private static double? Score(Food food, IReadOnlyList<Word> terms, out bool byTypo)
     {
+        byTypo = false;
         var name = SearchFolding.Fold(food.Name);
         var bracket = name.IndexOf('(', StringComparison.Ordinal);
         var nameMain = ToWords(bracket < 0 ? name : name[..bracket]);
@@ -139,6 +147,7 @@ internal static class FoodRanker
 
             score += best.Value;
             singleByTypo = best.Value == MainTypo;
+            byTypo |= singleByTypo;
         }
 
         score -= ExtraMainWordPenalty * Math.Min(Math.Max(0, main.Count - terms.Count), MaxPenalisedWords);

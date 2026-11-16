@@ -44,16 +44,6 @@ public sealed partial class FoodHistoryService
         return ReadAsync(() => store.UsualAsync(meal, since, Math.Clamp(limit, 1, MaxLimit)), Log.Usual);
     }
 
-    /// <summary>For ranking: the history of each of <paramref name="foodIds"/> that was ever logged, in no set order. A food never logged is left out. TimesLogged counts all its kept entries.</summary>
-    /// <param name="meal">When set, each food's last values are those of its newest entry in that meal, or of its newest entry in any meal when it was never logged in that one.</param>
-    public Task<FoodHistoryResult> ForFoodsAsync(IReadOnlyCollection<int> foodIds, Meal? meal = null)
-    {
-        ArgumentNullException.ThrowIfNull(foodIds);
-        return foodIds.Count == 0
-            ? Task.FromResult(FoodHistoryResult.Found([]))
-            : ReadAsync(() => store.ForFoodsAsync(foodIds, meal), Log.ForFoods);
-    }
-
     /// <summary>For ranking a whole search: the history of every food ever logged, in no set order, in one read. TimesLogged counts all its kept entries.</summary>
     /// <param name="meal">When set, each food's last values are those of its newest entry in that meal, or of its newest entry in any meal when it was never logged in that one.</param>
     public Task<FoodHistoryResult> AllAsync(Meal? meal = null) =>

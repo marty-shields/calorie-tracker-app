@@ -25,8 +25,9 @@ Personal Android app (.NET 11 MAUI Blazor Hybrid). Setup: [docs/dev-setup-build.
 - Styling: tokens only, no literal colours or sizes (`TokensOnlyCssTests`).
 - Logs hold no PII: ids, counts, events and non-personal data such as a scanned barcode are fine, personal data never is (obfuscate when needed) (`Logging.feature`). Add a test that a new feature's log lines carry no PII.
 - Docs: `ReadmeDocsTests` checks the README's screenshot table and Project layout.
-- Upgrade check: `Upgrade.feature` and `UpgradeSeed.feature` save and check what the last release stored (just the theme so far); the upgrade jobs skip until a `v*` tag exists.
-- Skeleton: the app has no features yet. A new screen needs a `*Page`, a `*View`, a story per state, a docs page under `Stories/Screens/`, an entry in `ScreenStates` and its E2E scenarios.
+- Upgrade check: `Upgrade.feature` and `UpgradeSeed.feature` save and check what the last release stored (the theme, the daily target and one logged food: it must stay in the diary, show its title and be found by search); the upgrade jobs skip until a `v*` tag exists.
+- Food search: `FoodSearch` ranks in memory (`FoodRanker`: exact, prefix and bracket matches; a one-letter typo only when nothing else matches), groups the results (diary, common, branded) and suggests foods from `FoodHistoryService` before you type. `FoodDisplay` makes a food's title, brand line and pack for every screen. Search has no type filter. A scan or its background refresh stores the product's name, brands, generic name, pack size, serving and extra nutrients; no images are loaded.
+- New screen: it needs a `*Page`, a `*View`, a story per state, a docs page under `Stories/Screens/`, an entry in `ScreenStates` and its E2E scenarios.
 
 ## Rules
 - Ask about any ambiguity.

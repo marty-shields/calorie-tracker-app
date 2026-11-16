@@ -181,7 +181,7 @@ internal enum CoreEvent
     /// <summary><see cref="History.FoodHistoryService"/>: usual foods were read; carries the food count, never the meal.</summary>
     FoodHistoryUsual = 1052,
 
-    /// <summary><see cref="History.FoodHistoryService"/>: history for given foods was read; carries the food count.</summary>
+    /// <summary><see cref="History.FoodHistoryService"/>: the history of every logged food was read in one call, for search; carries the food count.</summary>
     FoodHistoryForFoods = 1053,
 
     /// <summary><see cref="History.FoodHistoryService"/>: the database failed, so the call returned <see cref="History.FoodHistoryStatus.Failed"/>.</summary>

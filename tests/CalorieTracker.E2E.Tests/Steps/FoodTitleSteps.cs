@@ -7,7 +7,11 @@ namespace CalorieTracker.E2E.Tests.Steps;
 [Binding]
 public sealed class FoodTitleSteps(FoodSearchScreen foods, ServingScreen serving, ScanScreen scan, DashboardScreen dashboard, WebView web)
 {
+    private const string Meals = "(Breakfast|Lunch|Dinner|Snacks)";
+
     private string noted = "";
+
+    private static string FirstLine(string text) => text.Split('\n')[0].Trim();
 
     [Given(@"^I have noted the title of the first result$")]
     public void GivenIHaveNotedTheTitleOfTheFirstResult()
@@ -19,6 +23,22 @@ public sealed class FoodTitleSteps(FoodSearchScreen foods, ServingScreen serving
     [Given(@"^I have noted the product's title on Scan$")]
     [Then(@"^I have noted the product's title on Scan$")]
     public void GivenIHaveNotedTheProductsTitleOnScan() => noted = scan.ProductTitle();
+
+    [Given(@"^I have noted the title of the " + Meals + " entry$")]
+    [Then(@"^I have noted the title of the " + Meals + " entry$")]
+    public void GivenIHaveNotedTheTitleOfTheEntry(string meal)
+    {
+        web.Eventually(() => dashboard.Entries(meal).Count, Is.EqualTo(1));
+        noted = FirstLine(dashboard.Entries(meal).Single());
+        Assert.That(noted, Is.Not.Empty, "the entry shows its food's title");
+    }
+
+    [When(@"^I search for the noted title$")]
+    public void WhenISearchForTheNotedTitle() => foods.Search(noted);
+
+    [Then(@"^the results include a food titled with the noted title$")]
+    public void ThenTheResultsIncludeAFoodTitledWithTheNotedTitle() =>
+        web.Eventually(() => foods.ResultRows().Select(FirstLine).ToList(), Does.Contain(noted), "a result row headed with the noted title");
 
     [Then(@"^the food's values are headed with the noted title$")]
     public void ThenTheFoodsValuesAreHeadedWithTheNotedTitle() => web.Eventually(foods.DetailName, Is.EqualTo(noted));

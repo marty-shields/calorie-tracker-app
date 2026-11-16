@@ -6,5 +6,5 @@ namespace CalorieTracker.Core.Tests;
 internal static class SchemaSteps
 {
     public static ISchemaUpgrade[] All() =>
-        [new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade(), new DiaryTableUpgrade(), new FoodServingCheckedUpgrade(), new FoodOriginalNameUpgrade(), new FoodSourceDetailsUpgrade(), new FoodUnitUpgrade()];
+        [new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade(), new DiaryTableUpgrade(), new FoodServingCheckedUpgrade(), new FoodOriginalNameUpgrade(), new FoodSourceDetailsUpgrade(), new FoodUnitUpgrade(), new FoodCordialUnitUpgrade()];
 }
