@@ -16,6 +16,14 @@ public partial class ScanServingRouteTests
     }
 
     [Test]
+    public void Foods_CarriesThePackOfAProductChosenFromOpenFoodFactsToTheServingScreen_InBothModes()
+    {
+        var foods = AppPage("Foods.razor");
+
+        Assert.That(Regex.Matches(foods, @"servingId: request\.LastServingId, pack: request\.PackAmount\)"), Has.Count.EqualTo(2));
+    }
+
+    [Test]
     public void Scan_RoutesSearchByNameToFoods()
     {
         var scan = AppPage("Scan.razor");

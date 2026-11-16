@@ -28,6 +28,9 @@ public class FoodSearchPageTests : ComponentTestBase
         seed = new SeedProgress(loader);
         logger = new FakeLogger<FoodSearchPage>();
         Context.Services.AddSingleton<IFoodSearch>(search);
+        Context.Services.AddSingleton<IOnlineFoodSearch>(new FakeOnlineSearch());
+        Context.Services.AddSingleton<IOnlineFoodImport>(new FakeOnlineImport());
+        Context.Services.AddSingleton<IOnlineSearchNotice>(new FakeOnlineNotice());
         Context.Services.AddSingleton(seed);
         Context.Services.AddSingleton<ILogger<FoodSearchPage>>(logger);
     }

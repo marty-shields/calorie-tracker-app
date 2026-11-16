@@ -66,6 +66,41 @@ public static class FoodSearchSamples
             new Food { Id = 100 + i, Name = $"Oat flakes {i}", Unit = FoodUnit.Gram, Kcal = 360 + i, ProteinG = 11, CarbsG = 60, FatG = 8 }, null)).ToList()),
     ];
 
+    /// <summary>Typing "cola", all the local group the foods already stored have, before Open Food Facts is searched.</summary>
+    public static IReadOnlyList<FoodGroup> ColaStored { get; } = [new(FoodGroupKind.Branded, [new(BrandedFoods[3], null)])];
+
+    /// <summary>What Open Food Facts offered for "coca-cola": eight products, the first stored already (no NEW marker), the rest new; five show, then "Show 3 more".</summary>
+    public static IReadOnlyList<OnlineProduct> OnlineColas { get; } =
+    [
+        Online("5000112637922", "Coca Cola", "Coca-Cola", "330 ml", FoodUnit.Millilitre, 42, 0, 10.6, 0, isNew: false),
+        Online("5000112641981", "Coca Cola", "Coca-Cola", "1.5L", FoodUnit.Millilitre, 42, 0, 10.6, 0),
+        Online("5449000028921", "Coca-Cola", "Coca-Cola", "1,25 l", FoodUnit.Millilitre, 42, 0, 10.6, 0),
+        Online("5449000043757", "Coca cola zero sugar", "Coca-Cola", "1,5l", FoodUnit.Millilitre, 0.3, 0, 0, 0),
+        Online("5449000050205", "Coca-Cola Light", "Coca-Cola", "330 ml", FoodUnit.Millilitre, 0.2, 0, 0, 0),
+        Online("5000112662115", "Coca-Cola Cherry", "Coca-Cola", "330 ml", FoodUnit.Millilitre, 46, 0, 11.2, 0),
+        Online("5449000059727", "Coca-Cola Lemon", "Coca-Cola", "330 ml", FoodUnit.Millilitre, 43.2, 0, 10.8, 0),
+        Online("5000328200453", "Coca Cola flavour crisps", "Walkers", "70 g", FoodUnit.Gram, 532, 6.2, 51, 33),
+    ];
+
+    /// <summary>Three products, so no "Show N more" row.</summary>
+    public static IReadOnlyList<OnlineProduct> OnlineFew { get; } = [OnlineColas[0], OnlineColas[1], OnlineColas[3]];
+
+    private static OnlineProduct Online(string barcode, string name, string brand, string pack, FoodUnit unit, double kcal, double protein, double carbs, double fat, bool isNew = true) =>
+        new(barcode, new Food
+        {
+            Source = FoodSource.OpenFoodFacts,
+            SourceId = barcode,
+            Name = name,
+            Brand = brand,
+            Brands = brand,
+            PackageLabel = pack,
+            Unit = unit,
+            Kcal = kcal,
+            ProteinG = protein,
+            CarbsG = carbs,
+            FatG = fat,
+        }, isNew);
+
     private static FoodListing Logged(Food food, int times, double amount, double? servings = null) =>
         new(food, new FoodHistory(food.Id, times, 1, Day, amount, servings));
 }

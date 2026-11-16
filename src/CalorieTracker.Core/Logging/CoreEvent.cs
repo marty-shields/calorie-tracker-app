@@ -133,6 +133,60 @@ internal enum CoreEvent
     /// <summary><see cref="Foods.FoodSearch"/>: the foods shown before typing were read; the number of foods in each group.</summary>
     FoodSuggested = 1504,
 
+    /// <summary>Start of the block reserved for <see cref="Foods.OnlineFoodSearch"/>.</summary>
+    OnlineSearchBlock = 1520,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: a request was sent; carries whether it was worldwide, never the text.</summary>
+    OnlineSearchSent = 1521,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: the same search was answered from the session cache; carries the product count.</summary>
+    OnlineSearchCached = 1522,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: a response was read; carries the hits, the products kept and the hits skipped or collapsed.</summary>
+    OnlineSearchAnswered = 1523,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: a request waited for the minimum gap after the last one; carries the wait in milliseconds.</summary>
+    OnlineSearchWaiting = 1524,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: the country search gave nothing to show, so it was repeated worldwide.</summary>
+    OnlineSearchWorldwideRepeat = 1525,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: the service answered HTTP 429.</summary>
+    OnlineSearchLimited = 1526,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: no response (network error or timeout).</summary>
+    OnlineSearchNoResponse = 1527,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: the body was not the expected JSON.</summary>
+    OnlineSearchMalformed = 1528,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: an HTTP status other than success and 429; carries it.</summary>
+    OnlineSearchUnexpectedStatus = 1529,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: reading which products are stored failed, so none is marked new.</summary>
+    OnlineSearchStoredCheckFailed = 1530,
+
+    /// <summary>Start of the block reserved for <see cref="Foods.OnlineFoodImport"/>.</summary>
+    OnlineImportBlock = 1540,
+
+    /// <summary><see cref="Foods.OnlineFoodImport"/>: a tapped product is stored; carries the food id and how it was stored.</summary>
+    OnlineImported = 1541,
+
+    /// <summary><see cref="Foods.OnlineFoodImport"/>: the barcode lookup gave no product; carries its status.</summary>
+    OnlineImportLookupFailed = 1542,
+
+    /// <summary><see cref="Foods.OnlineFoodImport"/>: the product could not be stored; carries the import status.</summary>
+    OnlineImportStoreFailed = 1543,
+
+    /// <summary>Start of the block reserved for <see cref="Foods.OnlineSearchNotice"/>.</summary>
+    OnlineNoticeBlock = 1550,
+
+    /// <summary><see cref="Foods.OnlineSearchNotice"/>: reading whether the notice was shown failed.</summary>
+    OnlineNoticeReadFailed = 1551,
+
+    /// <summary><see cref="Foods.OnlineSearchNotice"/>: saving that the notice was shown failed.</summary>
+    OnlineNoticeSaveFailed = 1552,
+
     /// <summary>Start of the block reserved for <see cref="Targets.TargetService"/>.</summary>
     TargetServiceBlock = 1600,
 

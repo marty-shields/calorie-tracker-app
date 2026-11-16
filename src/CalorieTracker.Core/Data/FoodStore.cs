@@ -31,6 +31,24 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             return (found, found is null ? null : row);
         });
 
+    /// <summary>The barcodes among <paramref name="barcodes"/> that are linked to a stored food.</summary>
+    public Task<HashSet<string>> StoredBarcodesAsync(IReadOnlyCollection<string> barcodes) =>
+        gate.RunAsync(async () =>
+        {
+            var found = new HashSet<string>();
+            await connection.RunInTransactionAsync(db =>
+            {
+                // Chunked so a long list stays under SQLite's limit on bound variables.
+                foreach (var chunk in barcodes.Distinct().Chunk(500))
+                {
+                    var marks = string.Join(",", chunk.Select(_ => "?"));
+                    found.UnionWith(db.Query<Barcode>($"SELECT * FROM Barcode WHERE Barcode IN ({marks})", chunk.Cast<object>().ToArray()).Select(b => b.Code));
+                }
+            });
+
+            return found;
+        });
+
     /// <summary>The food with this id as stored, or null when there is none. Its <see cref="Food.ServingLabel"/> and <see cref="Food.ServingAmount"/> are those of its Product serving row (null without one).</summary>
     public Task<Food?> GetAsync(int id) =>
         gate.RunAsync<Food?>(async () =>

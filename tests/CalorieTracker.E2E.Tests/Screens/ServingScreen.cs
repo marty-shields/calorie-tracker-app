@@ -74,6 +74,8 @@ public sealed class ServingScreen(WebView web)
 
     public string AddsKcal() => web.Text("serving-adds-kcal");
 
+    public string AddsDetail() => web.Text("serving-adds-detail");
+
     public bool ShowsAdds() => web.Exists("serving-adds");
 
     public void Add() => web.Tap("serving-add");

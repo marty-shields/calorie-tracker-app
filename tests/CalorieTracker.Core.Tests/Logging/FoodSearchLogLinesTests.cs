@@ -24,6 +24,21 @@ public class FoodSearchLogLinesTests
         CoreEvent.StoredLookupRefreshed,
         CoreEvent.StoredLookupServingMissing,
         CoreEvent.StoredLookupServingFailed,
+        CoreEvent.OnlineSearchSent,
+        CoreEvent.OnlineSearchCached,
+        CoreEvent.OnlineSearchAnswered,
+        CoreEvent.OnlineSearchWaiting,
+        CoreEvent.OnlineSearchWorldwideRepeat,
+        CoreEvent.OnlineSearchLimited,
+        CoreEvent.OnlineSearchNoResponse,
+        CoreEvent.OnlineSearchMalformed,
+        CoreEvent.OnlineSearchUnexpectedStatus,
+        CoreEvent.OnlineSearchStoredCheckFailed,
+        CoreEvent.OnlineImported,
+        CoreEvent.OnlineImportLookupFailed,
+        CoreEvent.OnlineImportStoreFailed,
+        CoreEvent.OnlineNoticeReadFailed,
+        CoreEvent.OnlineNoticeSaveFailed,
     ];
 
     [Test]

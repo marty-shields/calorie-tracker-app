@@ -1,5 +1,6 @@
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Foods
+@using CalorieTracker.UI.Models.Search
 @attribute [Stories("Screens/FoodSearch")]
 
 <Stories TComponent="FoodSearchView" Layout="typeof(PhoneLayout)">
@@ -91,6 +92,87 @@
     <Story Name="Add to a meal with no results">
         <Template>
             <FoodSearchView Meal="Meal.Lunch" Query="xyzzy" OnQueryChanged="(string _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Online search row">
+        <Template>
+            <FoodSearchView Query="cola" Groups="FoodSearchSamples.ColaStored" OnlineNoticeVisible OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnSearchOnline="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Online search row after the notice">
+        <Template>
+            <FoodSearchView Query="cola" Groups="FoodSearchSamples.ColaStored" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnSearchOnline="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="No results with online search">
+        <Template>
+            <FoodSearchView Query="zzz" OnlineNoticeVisible OnQueryChanged="(string _) => { }" OnSearchOnline="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Online searching">
+        <Template>
+            <FoodSearchView Query="cola" Groups="FoodSearchSamples.ColaStored" OnlineState="OnlineSearchState.Searching" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Online results">
+        <Template>
+            <FoodSearchView Query="coca-cola" Groups="FoodSearchSamples.ColaStored" OnlineState="OnlineSearchState.Results" OnlineProducts="FoodSearchSamples.OnlineColas" OnlineCountry="United Kingdom" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }"
+                            OnSelectOnline="(OnlineProduct _) => { }" OnExpandOnline="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Online results expanded">
+        <Template>
+            <FoodSearchView Query="coca-cola" Groups="FoodSearchSamples.ColaStored" OnlineState="OnlineSearchState.Results" OnlineProducts="FoodSearchSamples.OnlineColas" OnlineCountry="United Kingdom" OnlineExpanded OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }"
+                            OnSelectOnline="(OnlineProduct _) => { }" OnExpandOnline="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Online results worldwide">
+        <Template>
+            <FoodSearchView Query="coca-cola" OnlineState="OnlineSearchState.Results" OnlineProducts="FoodSearchSamples.OnlineFew" OnQueryChanged="(string _) => { }" OnSelectOnline="(OnlineProduct _) => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Online fetching a product">
+        <Template>
+            <FoodSearchView Query="coca-cola" OnlineState="OnlineSearchState.Importing" OnlineProducts="FoodSearchSamples.OnlineFew" OnlineCountry="United Kingdom" OnQueryChanged="(string _) => { }" OnSelectOnline="(OnlineProduct _) => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Online nothing found">
+        <Template>
+            <FoodSearchView Query="zzz" OnlineState="OnlineSearchState.None" OnQueryChanged="(string _) => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Online busy">
+        <Template>
+            <FoodSearchView Query="cola" Groups="FoodSearchSamples.ColaStored" OnlineState="OnlineSearchState.Busy" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnRetryOnline="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Online offline">
+        <Template>
+            <FoodSearchView Query="cola" Groups="FoodSearchSamples.ColaStored" OnlineState="OnlineSearchState.Offline" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnRetryOnline="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Online failed">
+        <Template>
+            <FoodSearchView Query="cola" Groups="FoodSearchSamples.ColaStored" OnlineState="OnlineSearchState.Failed" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnRetryOnline="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Online results in add mode">
+        <Template>
+            <FoodSearchView Meal="Meal.Lunch" Query="coca-cola" OnlineState="OnlineSearchState.Results" OnlineProducts="FoodSearchSamples.OnlineFew" OnlineCountry="United Kingdom" OnQueryChanged="(string _) => { }" OnSelectOnline="(OnlineProduct _) => { }"
+                            OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
