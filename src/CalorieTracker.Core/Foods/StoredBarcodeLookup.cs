@@ -134,7 +134,7 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
 
     /// <summary>
     /// Asks the inner lookup again for <paramref name="stored"/>. A Found answer with the same source id and unit refreshes the row (serving, nutrients and source details) when it has a serving or the food was stored before its details were (see <see cref="Food.FetchedAt"/>).
-    /// A food with no serving is marked checked in the store, so it is not asked again, when the answer is NotFound or a Found one for the same source id and unit without a usable serving; an offline or rate-limited one, or a Found one for another unit or source id, leaves it unmarked for a later scan. Never throws.
+    /// A food with no serving is marked checked in the store, so it is not asked again, when the answer is NotFound or a Found one for the same source id and unit without a usable serving. A Found answer of the scanned barcode's own product (a barcode merged into the food) with the same unit marks a food with no serving checked and changes nothing else. An offline or rate-limited answer, or a Found one for another unit or product, leaves it unmarked for a later scan. Never throws.
     /// </summary>
     private async Task RefreshStoredAsync(string barcode, Food stored)
     {
@@ -142,7 +142,10 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
         {
             var result = await inner.LookupAsync(barcode, CancellationToken.None);
             var fresh = result.Food;
-            var sameProduct = fresh is not null && fresh.Unit == stored.Unit && fresh.SourceId == stored.SourceId;
+            var sameUnit = fresh is not null && fresh.Unit == stored.Unit;
+            var sameProduct = sameUnit && fresh!.SourceId == stored.SourceId;
+            // A barcode merged into this food answers with its own product: the food's values stay, but the barcode is not asked about for a serving again.
+            var mergedBarcode = sameUnit && !sameProduct && fresh!.SourceId == barcode;
             var wantsServing = WantsServing(stored);
             if (result.Status == BarcodeLookupStatus.Found && sameProduct)
             {
@@ -163,6 +166,10 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
                 {
                     return;
                 }
+            }
+            else if (result.Status == BarcodeLookupStatus.Found && mergedBarcode && wantsServing)
+            {
+                await store.MarkServingCheckedAsync(stored.Id);
             }
             else if (result.Status == BarcodeLookupStatus.NotFound && wantsServing)
             {

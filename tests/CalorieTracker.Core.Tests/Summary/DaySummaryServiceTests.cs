@@ -397,6 +397,20 @@ public class DaySummaryServiceTests
     }
 
     [Test]
+    public async Task DaySummary_EntryAddedByALonePackServing_ReadsAsOneServing_AsOnTheServingScreen()
+    {
+        var food = new Food { Source = FoodSource.OpenFoodFacts, SourceId = "bar", Name = "Bar", Unit = FoodUnit.Gram, Kcal = 400, SearchText = "bar" };
+        await connection.InsertAsync(food);
+        var pack = new Serving { FoodId = food.Id, Label = "Whole pack (51 g)", Amount = 51, Source = ServingSource.Pack, SortOrder = 1 };
+        await connection.InsertAsync(pack);
+        await diary.AddAsync(Day, Meal.Lunch, food.Id, 51, 1, pack.Id);
+
+        var entries = (await service.GetAsync(Day)).Summary!.Meals.Single(m => m.Meal == Meal.Lunch).Entries;
+
+        Assert.That(entries.Single().ServingLabel, Is.EqualTo(FoodService.PackServingLabel));
+    }
+
+    [Test]
     public async Task DaySummary_EntrySavedBeforeServingsHadATable_NamesNoServingAndKeepsItsCount()
     {
         var (drink, _, _, _) = await AddDrink();

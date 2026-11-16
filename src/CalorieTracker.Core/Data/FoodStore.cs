@@ -127,21 +127,8 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
     /// a product with the stored food's source id is that food, refreshed and linked as <see cref="UpsertAsync"/> does (also <see cref="ImportOutcome.Known"/>);
     /// a stored Open Food Facts food that <see cref="Foods.ProductMatch.IsSameProduct"/> accepts gets the barcode, its pack and, when it has no Product serving, the product's (<see cref="ImportOutcome.Attached"/>; the food's name, brand and nutrients are not changed);
     /// otherwise a new food is inserted with its servings and barcode (<see cref="ImportOutcome.Created"/>).
-    /// A barcode another connection stored between the check and the insert (the unique index refuses it) gives <see cref="ImportOutcome.Known"/> after one retry.
     /// </summary>
-    public async Task<ImportResult> ImportAsync(string barcode, Food product, DateTimeOffset now)
-    {
-        try
-        {
-            return await ImportOnceAsync(barcode, product, now);
-        }
-        catch (SQLiteException e) when (e.Result == SQLite3.Result.Constraint)
-        {
-            return await ImportOnceAsync(barcode, product, now);
-        }
-    }
-
-    private Task<ImportResult> ImportOnceAsync(string barcode, Food product, DateTimeOffset now) =>
+    public Task<ImportResult> ImportAsync(string barcode, Food product, DateTimeOffset now) =>
         gate.RunAsync(async () =>
         {
             ImportResult result = default;
@@ -320,7 +307,7 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
     /// <summary>
     /// Sets the nutrients (kcal, protein, carbs, fat, fibre, sugars, saturates, salt), the source details (brands, generic name, package, category, popularity, completeness, source update and fetch time) and the search text of the food with <paramref name="id"/> from <paramref name="fresh"/>; every other column stays as stored.
     /// The serving rows follow <see cref="WriteServings"/>: the product's serving and pack are written, a serving the source flags as wrong is removed and the food marked checked, and rows the person added stay. The food id and the diary entries are untouched.
-    /// With <paramref name="barcode"/>, the pack of that barcode's row (amount and label) is set from <paramref name="fresh"/> too; the food's other barcodes keep theirs.
+    /// With <paramref name="barcode"/>, the pack of that barcode's row (amount and label) is set from <paramref name="fresh"/> too, and the Pack serving of its previous size is removed unless another barcode of the food has that size; the food's other barcodes keep theirs.
     /// False when no food has that id.
     /// </summary>
     public Task<bool> RefreshAsync(int id, Food fresh, string? barcode = null) =>
@@ -339,6 +326,7 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
                     WriteServings(db, id, fresh);
                     if (barcode is not null)
                     {
+                        DropReplacedPack(db, id, barcode, fresh.PackageAmount);
                         db.Execute("UPDATE Barcode SET PackageAmount = ?, PackageLabel = ? WHERE Barcode = ? AND FoodId = ?", fresh.PackageAmount, fresh.PackageLabel, barcode, id);
                     }
                 }
@@ -351,6 +339,24 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
 
             return changed;
         });
+
+    /// <summary>
+    /// When the barcode's pack size changed, removes the Pack serving of its previous size unless another barcode of the food still has that size; entries that used it keep their amounts with no serving link. Call before the barcode row is updated.
+    /// </summary>
+    private static void DropReplacedPack(SQLiteConnection db, int foodId, string barcode, double? newAmount)
+    {
+        var old = db.FindWithQuery<Barcode>("SELECT * FROM Barcode WHERE Barcode = ? AND FoodId = ?", barcode, foodId)?.PackageAmount;
+        if (old is null || old == newAmount)
+        {
+            return;
+        }
+
+        var shared = db.ExecuteScalar<int>("SELECT COUNT(*) FROM Barcode WHERE FoodId = ? AND Barcode <> ? AND PackageAmount = ?", foodId, barcode, old.Value);
+        if (shared == 0)
+        {
+            DeleteServings(db, "FoodId = ? AND Source = ? AND Amount = ?", foodId, (int)ServingSource.Pack, old.Value);
+        }
+    }
 
     /// <summary>Marks the food as asked for a serving, so it is not asked again (see <see cref="Food.ServingChecked"/>). False when no food has that id.</summary>
     public Task<bool> MarkServingCheckedAsync(int id) =>

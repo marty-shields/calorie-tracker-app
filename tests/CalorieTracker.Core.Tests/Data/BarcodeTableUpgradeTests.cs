@@ -110,6 +110,21 @@ public class BarcodeTableUpgradeTests
     }
 
     [Test]
+    public async Task Upgrade_ABarcodeTwoFoodsShare_PointsToTheLowerFoodId()
+    {
+        var plainId = (await connection.Table<Food>().FirstAsync(f => f.SourceId == PlainCode)).Id;
+        // The table has the barcode as its key, so the step's defence for a database that lacks it needs a table without one. Inserted with the higher food id first, so row order alone would pick the wrong food.
+        await connection.ExecuteAsync("DROP TABLE FoodBarcode");
+        await connection.ExecuteAsync("CREATE TABLE FoodBarcode (Barcode varchar not null, FoodId integer not null)");
+        await connection.ExecuteAsync("INSERT INTO FoodBarcode (Barcode, FoodId) VALUES (?, ?), (?, ?)", "5000000000055", plainId, "5000000000055", colaId);
+
+        await Upgrade();
+
+        var row = (await Rows()).Single(r => r.Code == "5000000000055");
+        Assert.That(row.FoodId, Is.EqualTo(Math.Min(colaId, plainId)));
+    }
+
+    [Test]
     public async Task Upgrade_FirstSeenIsTheFetchTimeOrTheTimeOfTheStep()
     {
         await Upgrade();

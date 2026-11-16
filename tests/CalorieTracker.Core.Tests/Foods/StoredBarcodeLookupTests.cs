@@ -108,6 +108,25 @@ public class StoredBarcodeLookupTests
     }
 
     [Test]
+    public async Task Lookup_FoodWithNoServingScannedByAMergedBarcode_IsMarkedCheckedSoTheNextScanDoesNotAskAgain_AndKeepsItsOwnValues()
+    {
+        const string attached = "5000000000024";
+        var stored = await store.UpsertAsync(NoServing("1"), Barcode);
+        await connection.InsertAsync(new Barcode { FoodId = stored.Id, Code = attached, FirstSeen = DateTimeOffset.UnixEpoch });
+        var merged = NewFood(attached);
+        merged.Kcal = 999;
+        inner.Enqueue(BarcodeLookupResult.Found(merged));
+
+        await lookup.LookupAsync(attached);
+        await lookup.RefreshesIdle().WaitAsync(Bound);
+        await lookup.LookupAsync(attached);
+        await lookup.RefreshesIdle().WaitAsync(Bound);
+
+        var row = await connection.Table<Food>().FirstAsync();
+        Assert.That((inner.Calls, row.ServingChecked, row.Kcal), Is.EqualTo((1, (bool?)true, 100.0)));
+    }
+
+    [Test]
     public async Task Lookup_RefreshWithServing_RefreshesEveryNutrientAndChangesNothingElseOnTheRow()
     {
         var original = NoServing("1");

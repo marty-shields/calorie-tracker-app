@@ -44,7 +44,7 @@ internal sealed class ServingTableUpgrade : ISchemaUpgrade
         if (HasColumn(db, "Food", "PackageAmount") && HasColumn(db, "Food", "ServingLabel") && HasColumn(db, "Food", "ServingAmount"))
         {
             var packs = db.Query<PackRow>(
-                "SELECT Id, Unit, PackageAmount FROM Food WHERE PackageAmount IS NOT NULL AND PackageAmount > 0 AND PackageAmount <= ? AND ServingLabel IS NULL AND ServingAmount IS NULL", MaxPackAmount);
+                "SELECT Id, Unit, PackageAmount FROM Food WHERE PackageAmount IS NOT NULL AND PackageAmount > 0 AND PackageAmount <= ? AND NOT EXISTS (SELECT 1 FROM Serving WHERE Serving.FoodId = Food.Id AND Serving.Source = 0)", MaxPackAmount);
             foreach (var pack in packs)
             {
                 db.Execute(

@@ -52,6 +52,15 @@ public class FoodDisplayTests
         });
     }
 
+    [TestCase(null)]
+    [TestCase("Goat")]
+    public void Of_BrandsListWithOneWholeWordInTheName_ShowsTheOtherOnTheBrandLine(string? brand)
+    {
+        var display = FoodDisplay.Of("Goat Milk", brand, "Goat, Oat", null);
+
+        Assert.That((display.Title, display.BrandLine), Is.EqualTo(("Goat Milk", "Oat")));
+    }
+
     [Test]
     public void Of_NoBrandsListed_UsesTheSingleBrand()
     {

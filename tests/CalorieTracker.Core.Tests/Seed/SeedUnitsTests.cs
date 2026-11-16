@@ -216,6 +216,26 @@ public class SeedUnitsTests
     }
 
     [Test]
+    public async Task CordialStep_LeavesAnOpenFoodFactsFoodWithAFrozenSourceIdInItsUnit()
+    {
+        await connection.InsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = FoodCordialUnitUpgrade.MillilitreSourceIds[0], Name = "Same id", Unit = FoodUnit.Gram, SearchText = "same id" });
+        await connection.CloseAsync();
+
+        var db = new SQLiteConnection(databasePath);
+        try
+        {
+            new FoodCordialUnitUpgrade().Apply(db);
+        }
+        finally
+        {
+            db.Close();
+        }
+
+        connection = new SQLiteAsyncConnection(databasePath);
+        Assert.That((await connection.Table<Food>().ToListAsync()).Single().Unit, Is.EqualTo(FoodUnit.Gram));
+    }
+
+    [Test]
     public async Task UnitStep_LeavesOpenFoodFactsFoodsAndUnknownCoFidFoodsAlone()
     {
         await connection.InsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "12-314", Name = "Same id", Unit = FoodUnit.Gram, SearchText = "same id" });

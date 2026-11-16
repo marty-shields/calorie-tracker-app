@@ -449,6 +449,35 @@ public class FoodStoreTests
         Assert.That(await store.FindByBarcodeAsync("5000000000017"), Has.Property("Id").EqualTo(target.Id));
     }
 
+    private static Food Packed(double pack)
+    {
+        var food = NewFood("pack", FoodSource.OpenFoodFacts);
+        food.PackageAmount = pack;
+        food.PackageLabel = $"{pack} g";
+        return food;
+    }
+
+    [Test]
+    public async Task RefreshAsync_WithABarcodeWhosePackChanged_ReplacesItsPreviousPackRow()
+    {
+        var imported = await store.ImportAsync("5000000000017", Packed(330), DateTimeOffset.UnixEpoch);
+
+        await store.RefreshAsync(imported.Food.Id, Packed(500), "5000000000017");
+
+        Assert.That((await Servings(imported.Food.Id)).Select(x => (x.Amount, x.Source)), Is.EqualTo(new[] { (500.0, ServingSource.Pack) }));
+    }
+
+    [Test]
+    public async Task RefreshAsync_WithABarcodeWhosePackChanged_KeepsAPackRowAnotherBarcodeStillHas()
+    {
+        var imported = await store.ImportAsync("5000000000017", Packed(330), DateTimeOffset.UnixEpoch);
+        await connection.InsertAsync(new Barcode { FoodId = imported.Food.Id, Code = "5000000000024", PackageAmount = 330, FirstSeen = DateTimeOffset.UnixEpoch });
+
+        await store.RefreshAsync(imported.Food.Id, Packed(500), "5000000000017");
+
+        Assert.That((await Servings(imported.Food.Id)).Select(x => x.Amount), Is.EqualTo(new[] { 330.0, 500.0 }));
+    }
+
     [Test]
     public async Task RefreshAsync_AnOptionalNutrientTheSourceLacks_ClearsIt()
     {

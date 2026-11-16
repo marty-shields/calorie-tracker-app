@@ -23,6 +23,9 @@
     private Food? food;
     private IReadOnlyList<Serving> offered = [];
     private Serving? chosen;
+
+    /// <summary>True while an entry being edited points at no serving the food offers (none, or one since deleted): the screen shows the smallest, but Save keeps the link empty until the person picks a serving, so the entry is not rewritten as a count of one it never used.</summary>
+    private bool entryServingUnmatched;
     private bool addingOwn;
     private string? ownLabel;
     private decimal? ownAmount;
@@ -195,6 +198,7 @@
         }
 
         chosen = ServingRules.Pick(offered, Editing ? EntryServingId : StartServingId, Editing ? null : StartPackAmount);
+        entryServingUnmatched = Editing && offered.All(s => s.Id != EntryServingId);
         if (Editing && EntryAmount is { } stored)
         {
             Carry(stored, EntryServings);
@@ -231,6 +235,7 @@
 
         var grams = Grams is { } raw ? Math.Min(raw, CarryLimit) : (double?)null;
         mode = next;
+        entryServingUnmatched = false;
         saveFailed = false;
         removeFailed = false;
         if (next == EntryMode.Grams)
@@ -292,6 +297,7 @@
         }
 
         chosen = next;
+        entryServingUnmatched = false;
         lockedGrams = null;
         saveFailed = false;
         removeFailed = false;
@@ -414,8 +420,13 @@
         {
             offered = result.Servings;
         }
+        else if (result.Status == FoodStatus.Failed)
+        {
+            loadFailed = true;
+        }
 
         chosen = ServingRules.Pick(offered, pick);
+        entryServingUnmatched = false;
         addingOwn = false;
         ownError = null;
     }
@@ -438,7 +449,7 @@
     private double? Servings => mode == EntryMode.Servings && HasServing && amount is { } count ? (double)count : null;
 
     /// <summary>The serving the count is in; null when the entry is by weight.</summary>
-    private int? ServingIdToSave => Servings is null ? null : chosen?.Id;
+    private int? ServingIdToSave => Servings is null || entryServingUnmatched ? null : chosen?.Id;
 
     /// <summary>Runs one save or remove with its busy flag on and the errors cleared. A throw clears the flag, since the screen stays.</summary>
     private async Task<DiaryResult> RunAsync(bool removal, Func<Task<DiaryResult>> call)

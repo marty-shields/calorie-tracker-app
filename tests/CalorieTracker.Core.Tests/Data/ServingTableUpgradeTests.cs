@@ -113,6 +113,17 @@ public class ServingTableUpgradeTests
     }
 
     [Test]
+    public async Task Upgrade_AServingWithAZeroAmount_GetsNoProductRow_AndItsFoodGetsTheSmallPackRow()
+    {
+        await connection.InsertAsync(Food("zero", "Zero", FoodUnit.Gram, 100, "1 nothing", 0, pack: 200));
+
+        await Upgrade();
+
+        var rows = (await Rows()).Where(r => r.SourceId == "zero").ToList();
+        Assert.That(rows.Select(r => (r.Source, r.Amount)), Is.EqualTo(new[] { (ServingSource.Pack, 200.0) }));
+    }
+
+    [Test]
     public async Task Upgrade_MovesEachFoodsServingIntoAProductRowAndAddsPackRowsWhereTheRuleOffersOne()
     {
         await Upgrade();

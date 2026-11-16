@@ -1342,6 +1342,39 @@ public class ServingPageTests : ComponentTestBase
         });
     }
 
+    [TestCase(null)]
+    [TestCase(99999)]
+    public async Task Edit_OfAnEntryWhoseServingTheFoodDoesNotOffer_KeepsItsCountAndLinkOnSave(int? unknown)
+    {
+        await SeedCola();
+        var entry = (await core.GetRequiredService<DiaryService>().AddAsync(Day, Meal.Snacks, colaId, 500, 2, null)).Entry!;
+        var cut = Loaded(Context.Render<ServingPage>(p => p.Add(x => x.FoodId, colaId).Add(x => x.Meal, Meal.Snacks).Add(x => x.Date, Day)
+            .Add(x => x.EntryId, entry.Id).Add(x => x.EntryAmount, 500.0).Add(x => x.EntryServings, 2.0).Add(x => x.EntryServingId, unknown)));
+        await cut.Find("[data-testid=serving-save]").ClickAsync(new());
+
+        var saved = await Kept(entry.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That((saved!.Amount, saved.Servings, saved.ServingId), Is.EqualTo((500.0, (double?)2, (int?)null)));
+        });
+    }
+
+    [Test]
+    public async Task AddingAnOwnServing_WhenTheReloadFails_ShowsTheLoadError()
+    {
+        await SeedCola();
+        var cut = Render(colaId, Meal.Snacks);
+        await cut.Find("[data-testid=serving-own-add]").ClickAsync(new());
+        await cut.Find("[data-testid=serving-own-label]").InputAsync(new() { Value = "My mug" });
+        await cut.Find("[data-testid=serving-own-amount]").InputAsync(new() { Value = "200" });
+        // The serving is written, then the food can no longer be read (a fetch time that is no date), as when the database fails between the two calls.
+        await connection.ExecuteAsync("CREATE TRIGGER BreakFood AFTER INSERT ON Serving BEGIN UPDATE Food SET FetchedAt = -1 WHERE Id = NEW.FoodId; END");
+
+        await cut.Find("[data-testid=serving-own-save]").ClickAsync(new());
+
+        Assert.That(Text(cut, "serving-load-failed-error"), Is.EqualTo("Couldn't load this food"));
+    }
+
     [Test]
     public async Task AddingAnOwnServing_SavesItAsAUserRow_AndOpensOnItCountingOne()
     {
