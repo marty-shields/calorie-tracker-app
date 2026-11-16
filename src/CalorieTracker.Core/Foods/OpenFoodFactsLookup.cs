@@ -196,7 +196,8 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
         brand = string.IsNullOrEmpty(brand) ? null : brand;
         var brands = brandList.Count == 0 ? null : Truncate(string.Join(", ", brandList), MaxBrandsLength);
         var millilitre = IsMillilitre(product, "product_quantity_unit") || IsMillilitre(product, "serving_quantity_unit");
-        var (servingLabel, servingAmount) = HasWarning(product, ServingOverPackageWarning) ? (null, null) : ReadServing(product, millilitre);
+        var servingFlagged = HasWarning(product, ServingOverPackageWarning);
+        var (servingLabel, servingAmount) = servingFlagged ? (null, null) : ReadServing(product, millilitre);
         var genericName = Truncate(ReadString(product, "generic_name"), MaxLabelLength);
         var category = ReadString(product, "pnns_groups_2");
         category = string.Equals(category, "unknown", StringComparison.OrdinalIgnoreCase) ? null : Truncate(category, MaxLabelLength);
@@ -229,9 +230,10 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
             PackageLabel = Truncate(ReadString(product, "quantity"), MaxLabelLength),
             PackageAmount = packageAmount is > 0 && packageMatches ? packageAmount : null,
             Category = category,
-            Popularity = popularity is { } scans && scans <= int.MaxValue ? (int)scans : null,
-            Completeness = completeness is <= 1 ? completeness : null,
-            SourceUpdated = updated is { } seconds && seconds <= MaxUnixSeconds ? DateTimeOffset.FromUnixTimeSeconds((long)seconds) : null,
+            ServingChecked = servingFlagged ? true : null,
+            Popularity = popularity is { } scans && scans >= 0 && scans <= int.MaxValue ? (int)scans : null,
+            Completeness = completeness is >= 0 and <= 1 ? completeness : null,
+            SourceUpdated = updated is { } seconds && seconds >= 0 && seconds <= MaxUnixSeconds ? DateTimeOffset.FromUnixTimeSeconds((long)seconds) : null,
             FetchedAt = fetchedAt,
             SearchText = SearchFolding.Fold(string.Join(' ', new[] { name, string.Join(' ', brandList), genericName, category }.Where(t => !string.IsNullOrEmpty(t)))),
         };

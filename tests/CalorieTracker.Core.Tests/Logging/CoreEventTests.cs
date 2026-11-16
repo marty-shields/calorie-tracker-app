@@ -38,7 +38,7 @@ public class CoreEventTests
             [CoreEvent.StoredLookupNotFoundHit] = 1304,
             [CoreEvent.StoredLookupReadFailed] = 1305,
             [CoreEvent.StoredLookupSaveFailed] = 1306,
-            [CoreEvent.StoredLookupServingFilled] = 1307,
+            [CoreEvent.StoredLookupRefreshed] = 1307,
             [CoreEvent.StoredLookupServingMissing] = 1308,
             [CoreEvent.StoredLookupServingFailed] = 1309,
             [CoreEvent.SeedLoaderBlock] = 1400,

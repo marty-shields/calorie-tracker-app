@@ -113,7 +113,7 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
         {
             try
             {
-                await FillServingAsync(barcode, stored);
+                await RefreshStoredAsync(barcode, stored);
             }
             finally
             {
@@ -131,7 +131,7 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
     /// Asks the inner lookup again for <paramref name="stored"/>. A Found answer with the same source id and unit refreshes the row (serving, nutrients and source details) when it has a serving or the food was stored before its details were (see <see cref="Food.FetchedAt"/>).
     /// A food with no serving is marked checked in the store, so it is not asked again, when the answer is NotFound or a Found one for the same source id and unit without a usable serving; an offline or rate-limited one, or a Found one for another unit or source id, leaves it unmarked for a later scan. Never throws.
     /// </summary>
-    private async Task FillServingAsync(string barcode, Food stored)
+    private async Task RefreshStoredAsync(string barcode, Food stored)
     {
         try
         {
@@ -142,18 +142,21 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
             if (result.Status == BarcodeLookupStatus.Found && sameProduct)
             {
                 var hasServing = fresh is { ServingLabel: not null, ServingAmount: not null };
-                if ((hasServing || WantsDetails(stored)) && await store.RefreshAsync(stored.Id, fresh!))
+                var refreshed = (hasServing || WantsDetails(stored)) && await store.RefreshAsync(stored.Id, fresh!);
+                if (refreshed)
                 {
                     Log.Refreshed(logger, stored.Id, hasServing);
-                    if (hasServing)
-                    {
-                        return;
-                    }
                 }
 
-                if (!hasServing && wantsServing)
+                // A flagged serving was marked checked by the refresh itself.
+                if (!hasServing && wantsServing && !(refreshed && fresh!.ServingChecked is true))
                 {
                     await store.MarkServingCheckedAsync(stored.Id);
+                }
+
+                if (refreshed)
+                {
+                    return;
                 }
             }
             else if (result.Status == BarcodeLookupStatus.NotFound && wantsServing)
@@ -171,13 +174,13 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
 
     private static partial class Log
     {
-        [LoggerMessage((int)CoreEvent.StoredLookupServingFilled, LogLevel.Debug, "Food {FoodId} refreshed, serving {HasServing}")]
+        [LoggerMessage((int)CoreEvent.StoredLookupRefreshed, LogLevel.Debug, "Food {FoodId} refreshed, serving {HasServing}")]
         public static partial void Refreshed(ILogger logger, int foodId, bool hasServing);
 
         [LoggerMessage((int)CoreEvent.StoredLookupServingMissing, LogLevel.Debug, "Serving lookup for food {FoodId} gave none, status {Status}")]
         public static partial void ServingMissing(ILogger logger, int foodId, BarcodeLookupStatus status);
 
-        [LoggerMessage((int)CoreEvent.StoredLookupServingFailed, LogLevel.Warning, "Serving refresh for food {FoodId} failed")]
+        [LoggerMessage((int)CoreEvent.StoredLookupServingFailed, LogLevel.Warning, "Refresh of food {FoodId} failed")]
         public static partial void ServingFailed(ILogger logger, int foodId);
 
         [LoggerMessage((int)CoreEvent.StoredLookupStoreHit, LogLevel.Debug, "Barcode served from food {FoodId}")]

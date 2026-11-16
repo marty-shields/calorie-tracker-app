@@ -820,6 +820,30 @@ public class OpenFoodFactsLookupTests
     }
 
     [Test]
+    public async Task Popularity_AndUpdateTime_Negative_AreNull()
+    {
+        var body = Fixture("details-nutella-3017620422003.json");
+        handler.Respond(body.Replace("\"unique_scans_n\":804", "\"unique_scans_n\":-5").Replace("1794233882", "-99999999999999"));
+
+        var food = (await lookup.LookupAsync(Barcode)).Food!;
+
+        Assert.That((food.Popularity, food.SourceUpdated), Is.EqualTo(((int?)null, (DateTimeOffset?)null)));
+    }
+
+    [Test]
+    public async Task GenericName_EmojiStraddlingTheLimit_IsCutBeforeTheSurrogatePair()
+    {
+        var body = Fixture("details-nutella-3017620422003.json");
+        var text = new string('a', 99) + "\ud83d\ude00" + "bbb";
+        handler.Respond(body.Replace("Hazelnut And Cocoa Spread", text));
+
+        var generic = (await lookup.LookupAsync(Barcode)).Food!.GenericName!;
+
+        Assert.That(generic, Is.EqualTo(new string('a', 99)));
+        Assert.That(generic.Any(char.IsSurrogate), Is.False);
+    }
+
+    [Test]
     public async Task LongTexts_AreBounded()
     {
         var body = Fixture("details-nutella-3017620422003.json");
@@ -839,7 +863,7 @@ public class OpenFoodFactsLookupTests
 
         var food = (await lookup.LookupAsync("5000159407236")).Food!;
 
-        Assert.That((food.ServingLabel, food.ServingAmount), Is.EqualTo(("100 g", (double?)100)));
+        Assert.That((food.ServingLabel, food.ServingAmount, food.ServingChecked), Is.EqualTo(("100 g", (double?)100, (bool?)null)));
     }
 
     [Test]

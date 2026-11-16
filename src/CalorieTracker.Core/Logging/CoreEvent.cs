@@ -74,7 +74,7 @@ internal enum CoreEvent
     StoredLookupSaveFailed = 1306,
 
     /// <summary><see cref="Foods.StoredBarcodeLookup"/>: a stored food was refreshed from a fresh lookup (it had no serving, or no fetch time); carries the food id and whether the lookup had a serving.</summary>
-    StoredLookupServingFilled = 1307,
+    StoredLookupRefreshed = 1307,
 
     /// <summary><see cref="Foods.StoredBarcodeLookup"/>: the lookup for a stored food gave nothing to refresh it with; carries the food id and the lookup's status.</summary>
     StoredLookupServingMissing = 1308,

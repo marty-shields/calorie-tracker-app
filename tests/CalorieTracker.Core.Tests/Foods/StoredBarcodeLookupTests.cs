@@ -98,7 +98,7 @@ public class StoredBarcodeLookupTests
         Assert.That((third.Food!.ServingLabel, third.Food.ServingAmount), Is.EqualTo(("1 portion (50 g)", 50.0)));
         var row = await connection.Table<Food>().FirstAsync();
         Assert.That((row.Id, row.Kcal), Is.EqualTo((stored.Id, 999.0)));
-        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Contain(CoreEvent.StoredLookupServingFilled));
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Contain(CoreEvent.StoredLookupRefreshed));
     }
 
     [Test]
@@ -137,7 +137,7 @@ public class StoredBarcodeLookupTests
             Assert.That((row.Kcal, row.ProteinG, row.CarbsG, row.FatG), Is.EqualTo((201.0, 21.0, 22.0, 23.0)));
             Assert.That((row.FibreG, row.SugarsG, row.SaturatesG, row.SaltG), Is.EqualTo(((double?)null, (double?)2.5, (double?)3.5, (double?)0.25)));
             Assert.That((row.ServingLabel, row.ServingAmount), Is.EqualTo(("1 portion (50 g)", 50.0)));
-            Assert.That((row.Name, row.Brand, row.Type, row.SearchText, row.Unit), Is.EqualTo(("Stored name", "Stored brand", FoodType.Drink, "stored", FoodUnit.Gram)));
+            Assert.That((row.Name, row.Brand, row.Type, row.SearchText, row.Unit), Is.EqualTo(("Stored name", "Stored brand", FoodType.Drink, "oats", FoodUnit.Gram)));
             Assert.That((row.Source, row.SourceId), Is.EqualTo((FoodSource.OpenFoodFacts, "1")));
             Assert.That(rows, Has.Count.EqualTo(2));
             Assert.That(rows.Single(r => r.Id == other.Id).Kcal, Is.EqualTo(100.0));
@@ -390,7 +390,7 @@ public class StoredBarcodeLookupTests
         Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[]
         {
             CoreEvent.StoredLookupStoreHit,
-            CoreEvent.StoredLookupServingFilled,
+            CoreEvent.StoredLookupRefreshed,
             CoreEvent.StoredLookupStoreHit,
             CoreEvent.StoredLookupServingMissing,
             CoreEvent.StoredLookupStoreHit,
@@ -803,9 +803,28 @@ public class StoredBarcodeLookupTests
     }
 
     [Test]
-    public async Task Lookup_StoredFoodWithNoFetchTimeAndAServing_LosesAServingTheSourceNowFlagsAsWrong()
+    public async Task Lookup_StoredFoodWithNoFetchTimeAndAServing_LosesAServingTheSourceFlagsAsWrong_AndIsNotLookedUpAgain()
     {
         await store.UpsertAsync(NoDetails("1"), Barcode);
+        var fresh = Detailed("1");
+        fresh.ServingLabel = null;
+        fresh.ServingAmount = null;
+        fresh.ServingChecked = true;
+        inner.Enqueue(BarcodeLookupResult.Found(fresh));
+
+        await lookup.LookupAsync(Barcode);
+        await lookup.RefreshesIdle().WaitAsync(Bound);
+        await lookup.LookupAsync(Barcode);
+        await lookup.RefreshesIdle().WaitAsync(Bound);
+
+        var row = await connection.Table<Food>().FirstAsync();
+        Assert.That((row.ServingLabel, row.ServingAmount, row.FetchedAt is not null, row.ServingChecked, inner.Calls), Is.EqualTo(((string?)null, (double?)null, true, (bool?)true, 1)));
+    }
+
+    [Test]
+    public async Task Lookup_StoredFoodWithNoFetchTimeAndAServing_KeepsItWhenTheFreshRecordHasNone_AndIsNotLookedUpAgain()
+    {
+        var before = await store.UpsertAsync(NoDetails("1"), Barcode);
         var fresh = Detailed("1");
         fresh.ServingLabel = null;
         fresh.ServingAmount = null;
@@ -813,9 +832,12 @@ public class StoredBarcodeLookupTests
 
         await lookup.LookupAsync(Barcode);
         await lookup.RefreshesIdle().WaitAsync(Bound);
+        await lookup.LookupAsync(Barcode);
+        await lookup.RefreshesIdle().WaitAsync(Bound);
 
         var row = await connection.Table<Food>().FirstAsync();
-        Assert.That((row.ServingLabel, row.ServingAmount, row.FetchedAt is not null, row.ServingChecked), Is.EqualTo(((string?)null, (double?)null, true, (bool?)null)));
+        Assert.That((row.ServingLabel, row.ServingAmount, row.FetchedAt is not null, row.Category, inner.Calls), Is.EqualTo((before.ServingLabel, before.ServingAmount, true, "Sweets", 1)));
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Not.Contain(CoreEvent.StoredLookupServingMissing));
     }
 
     [Test]
@@ -879,7 +901,7 @@ public class StoredBarcodeLookupTests
         await lookup.LookupAsync(Barcode);
         await lookup.RefreshesIdle().WaitAsync(Bound);
 
-        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { CoreEvent.StoredLookupStoreHit, CoreEvent.StoredLookupServingFilled }));
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { CoreEvent.StoredLookupStoreHit, CoreEvent.StoredLookupRefreshed }));
         AssertNoContentLogged(Barcode, "SRC-SECRET", "Distinctive");
     }
 

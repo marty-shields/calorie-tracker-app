@@ -84,17 +84,32 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
         });
 
     /// <summary>
-    /// Sets the serving (both parts, or null when <paramref name="fresh"/> lacks either), the nutrients (kcal, protein, carbs, fat, fibre, sugars, saturates, salt) and the source details (brands, generic name, package, category, popularity, completeness, source update and fetch time) of the food with <paramref name="id"/> from <paramref name="fresh"/>; every other column stays as stored.
+    /// Sets the nutrients (kcal, protein, carbs, fat, fibre, sugars, saturates, salt), the source details (brands, generic name, package, category, popularity, completeness, source update and fetch time) and the search text of the food with <paramref name="id"/> from <paramref name="fresh"/>; every other column stays as stored.
+    /// The serving is set (with its label) when <paramref name="fresh"/> has both parts. With neither and <see cref="Food.ServingChecked"/> true on <paramref name="fresh"/> (the source flags the serving as wrong) it is cleared and the food marked checked. Otherwise the stored serving stays.
     /// False when no food has that id.
     /// </summary>
     public Task<bool> RefreshAsync(int id, Food fresh) =>
         gate.RunAsync(async () =>
         {
             var hasServing = fresh is { ServingLabel: not null, ServingAmount: not null };
+            var args = new List<object?>();
+            var servingSet = "";
+            if (hasServing)
+            {
+                servingSet = "ServingLabel = ?, ServingAmount = ?, ";
+                args.Add(fresh.ServingLabel);
+                args.Add(fresh.ServingAmount);
+            }
+            else if (fresh.ServingChecked is true)
+            {
+                servingSet = "ServingLabel = NULL, ServingAmount = NULL, ServingChecked = 1, ";
+            }
+
+            args.AddRange([fresh.Kcal, fresh.ProteinG, fresh.CarbsG, fresh.FatG, fresh.FibreG, fresh.SugarsG, fresh.SaturatesG, fresh.SaltG,
+                fresh.Brands, fresh.GenericName, fresh.PackageLabel, fresh.PackageAmount, fresh.Category, fresh.Popularity, fresh.Completeness, fresh.SourceUpdated?.UtcTicks, fresh.FetchedAt?.UtcTicks, fresh.SearchText, id]);
             var changed = await connection.ExecuteAsync(
-                "UPDATE Food SET ServingLabel = ?, ServingAmount = ?, Kcal = ?, ProteinG = ?, CarbsG = ?, FatG = ?, FibreG = ?, SugarsG = ?, SaturatesG = ?, SaltG = ?, Brands = ?, GenericName = ?, PackageLabel = ?, PackageAmount = ?, Category = ?, Popularity = ?, Completeness = ?, SourceUpdated = ?, FetchedAt = ? WHERE Id = ?",
-                hasServing ? fresh.ServingLabel : null, hasServing ? fresh.ServingAmount : null, fresh.Kcal, fresh.ProteinG, fresh.CarbsG, fresh.FatG, fresh.FibreG, fresh.SugarsG, fresh.SaturatesG, fresh.SaltG,
-                fresh.Brands, fresh.GenericName, fresh.PackageLabel, fresh.PackageAmount, fresh.Category, fresh.Popularity, fresh.Completeness, fresh.SourceUpdated?.UtcTicks, fresh.FetchedAt?.UtcTicks, id) > 0;
+                $"UPDATE Food SET {servingSet}Kcal = ?, ProteinG = ?, CarbsG = ?, FatG = ?, FibreG = ?, SugarsG = ?, SaturatesG = ?, SaltG = ?, Brands = ?, GenericName = ?, PackageLabel = ?, PackageAmount = ?, Category = ?, Popularity = ?, Completeness = ?, SourceUpdated = ?, FetchedAt = ?, SearchText = COALESCE(NULLIF(?, ''), SearchText) WHERE Id = ?",
+                args.ToArray()) > 0;
             if (changed)
             {
                 Log.Updated(logger, id);

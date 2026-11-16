@@ -524,6 +524,24 @@ public class FoodSearchTests
         Assert.That(await Names("cereal"), Is.EqualTo(new[] { "Original" }));
     }
 
+    [Test]
+    public async Task Search_ASecondaryBrand_FindsTheProductThroughBrandsNotBrand()
+    {
+        await connection.InsertAsync(new Food
+        {
+            Source = FoodSource.OpenFoodFacts,
+            SourceId = "5000159407236",
+            Name = "Bar",
+            Brand = "Mars",
+            Brands = "Mars, Mars Wrigley",
+            Unit = FoodUnit.Gram,
+            Type = FoodType.Food,
+            SearchText = "",
+        });
+
+        Assert.That(await Names("wrigley"), Is.EqualTo(new[] { "Bar" }));
+    }
+
     private async Task<List<string>> Names(string query, FoodType? type = null) =>
         (await search.SearchAsync(query, type)).Foods.Select(f => f.Name).ToList();
 

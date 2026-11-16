@@ -339,7 +339,7 @@ public class FoodStoreTests
     }
 
     [Test]
-    public async Task RefreshAsync_FreshWithNoServing_ClearsTheStoredServing_AndHalfAServingCountsAsNone()
+    public async Task RefreshAsync_FreshWithNoServing_KeepsTheStoredServing_AndHalfAServingCountsAsNone()
     {
         var original = NewFood("1");
         original.ServingLabel = "100 g";
@@ -351,7 +351,40 @@ public class FoodStoreTests
 
         var row = await connection.Table<Food>().FirstAsync();
 
-        Assert.That((row.ServingLabel, row.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+        Assert.That((row.ServingLabel, row.ServingAmount, row.ServingChecked, row.Kcal), Is.EqualTo(("100 g", (double?)100, (bool?)null, 111.0)));
+    }
+
+    [Test]
+    public async Task RefreshAsync_FreshFlaggedAsHavingNoServing_ClearsTheStoredServingAndMarksItChecked()
+    {
+        var original = NewFood("1");
+        original.ServingLabel = "100 g";
+        original.ServingAmount = 100;
+        var target = await store.UpsertAsync(original);
+        var fresh = Fresh();
+        fresh.ServingLabel = null;
+        fresh.ServingAmount = null;
+        fresh.ServingChecked = true;
+        await store.RefreshAsync(target.Id, fresh);
+
+        var row = await connection.Table<Food>().FirstAsync();
+
+        Assert.That((row.ServingLabel, row.ServingAmount, row.ServingChecked), Is.EqualTo(((string?)null, (double?)null, (bool?)true)));
+    }
+
+    [Test]
+    public async Task RefreshAsync_RecomputesTheSearchTextAndKeepsItWhenFreshHasNone()
+    {
+        var target = await store.UpsertAsync(NewFood("1", FoodSource.OpenFoodFacts));
+        var fresh = Fresh();
+        fresh.SearchText = "oats ferrero nutella sweets";
+        await store.RefreshAsync(target.Id, fresh);
+        var after = (await connection.Table<Food>().FirstAsync()).SearchText;
+        fresh.SearchText = "";
+        await store.RefreshAsync(target.Id, fresh);
+
+        Assert.That(after, Is.EqualTo("oats ferrero nutella sweets"));
+        Assert.That((await connection.Table<Food>().FirstAsync()).SearchText, Is.EqualTo(after));
     }
 
     private static Food Fresh() => new()
@@ -366,7 +399,7 @@ public class FoodStoreTests
         SugarsG = 2.5,
         SaturatesG = 3.5,
         SaltG = 0.5,
-        // Everything below must be left alone by a refresh.
+        // Everything below must be left alone by a refresh, except the search text.
         Name = "Renamed",
         Brand = "Other brand",
         Type = FoodType.Drink,
@@ -395,7 +428,7 @@ public class FoodStoreTests
             Assert.That((row.ServingLabel, row.ServingAmount), Is.EqualTo(("1 slice (30 g)", 30.0)));
             Assert.That((row.Kcal, row.ProteinG, row.CarbsG, row.FatG), Is.EqualTo((111.0, 11.0, 12.0, 13.0)));
             Assert.That((row.FibreG, row.SugarsG, row.SaturatesG, row.SaltG), Is.EqualTo(((double?)1.5, (double?)2.5, (double?)3.5, (double?)0.5)));
-            Assert.That((row.Name, row.Brand, row.Type, row.Unit, row.Source, row.SourceId, row.SearchText), Is.EqualTo(("Oats", "Brand", FoodType.Food, FoodUnit.Gram, FoodSource.CoFID, "1", "oats")));
+            Assert.That((row.Name, row.Brand, row.Type, row.Unit, row.Source, row.SourceId, row.SearchText), Is.EqualTo(("Oats", "Brand", FoodType.Food, FoodUnit.Gram, FoodSource.CoFID, "1", "renamed")));
             Assert.That(row.ServingChecked, Is.Null);
         });
         var otherRow = rows.Single(r => r.Id == other.Id);
