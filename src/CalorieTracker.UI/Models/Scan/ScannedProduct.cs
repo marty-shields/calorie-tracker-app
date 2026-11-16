@@ -1,3 +1,5 @@
+using CalorieTracker.Core.Foods;
+
 namespace CalorieTracker.UI.Models.Scan;
 
 /// <summary>A looked-up product as the scan screen shows it. Values are per 100 g, or per 100 ml when <paramref name="IsLiquid"/>.</summary>
@@ -14,9 +16,16 @@ namespace CalorieTracker.UI.Models.Scan;
 /// <param name="FoodId">Id of the stored food the Serving screen reads. Null when the food could not be saved, and the screen offers no Add to diary.</param>
 /// <param name="ServingLabel">The product's own serving, such as "1 biscuit". Null with <paramref name="ServingAmount"/> when it has none or the values are out of range.</param>
 /// <param name="ServingAmount">Weight (g) or volume (ml) of one serving.</param>
+/// <param name="Brands">Every brand, joined with ", ". Null when the source lists none, which leaves <paramref name="Brand"/> as the only brand.</param>
+/// <param name="GenericName">The source's generic name. Null when it gives none.</param>
+/// <param name="PackageLabel">The pack size as the source words it, such as "430 gram". Null when it gives none.</param>
 public sealed record ScannedProduct(string Name, string? Brand, decimal Kcal, decimal Protein, decimal Carbs, decimal Fat, bool IsLiquid = false,
-    decimal? Fibre = null, decimal? Sugars = null, decimal? Saturates = null, decimal? Salt = null, int? FoodId = null, string? ServingLabel = null, decimal? ServingAmount = null)
+    decimal? Fibre = null, decimal? Sugars = null, decimal? Saturates = null, decimal? Salt = null, int? FoodId = null, string? ServingLabel = null, decimal? ServingAmount = null,
+    string? Brands = null, string? GenericName = null, string? PackageLabel = null)
 {
+    /// <summary>The title, brand line, pack and generic name the screen shows.</summary>
+    public FoodDisplay Display { get; } = FoodDisplay.Of(Name, Brand, Brands, PackageLabel, GenericName);
+
     /// <summary>Largest allowed gap between <see cref="Kcal"/> and the energy the macros add up to, as a fraction of that energy. A placeholder to confirm.</summary>
     public const decimal KcalTolerance = 0.20m;
 

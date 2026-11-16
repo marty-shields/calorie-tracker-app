@@ -46,6 +46,12 @@
         </Template>
     </Story>
 
+    <Story Name="Branded foods">
+        <Template>
+            <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.Branded" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
     <Story Name="Entry removed">
         <Template>
             @{ PostRemoved(); }

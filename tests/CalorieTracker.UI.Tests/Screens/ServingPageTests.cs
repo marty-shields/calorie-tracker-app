@@ -110,11 +110,74 @@ public class ServingPageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(Text(cut, "screen-title"), Is.EqualTo("Margherita pizza"));
+            Assert.That(Text(cut, "screen-title"), Is.EqualTo("Casa Roma Margherita pizza"));
             Assert.That(cut.Find("[data-testid=serving-mode-servings]").HasAttribute("checked"), Is.True);
             Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("1"));
             Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 202 g"));
             Assert.That(Text(cut, "serving-adds-kcal"), Is.EqualTo("521 kcal"));
+        });
+    }
+
+    private async Task<int> InsertMars(double? packAmount = 51, string? servingLabel = null, double? servingAmount = null)
+    {
+        var mars = Stored(ScreenStates.Mars, "mars");
+        mars.Brands = "Mars, Mars Wrigley";
+        mars.PackageLabel = "51 g";
+        mars.PackageAmount = packAmount;
+        mars.ServingLabel = servingLabel;
+        mars.ServingAmount = servingAmount;
+        return await Insert(mars);
+    }
+
+    [Test]
+    public async Task FoodWithOnlyAPack_OffersItAsOneServing_ShowsTheBrandLine_AndAddsItWithServingsOne()
+    {
+        var id = await InsertMars();
+        var added = 0;
+        var cut = Render(id, Meal.Snacks, () => added++);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "screen-title"), Is.EqualTo("Mars"));
+            Assert.That(Text(cut, "serving-brand"), Is.EqualTo("Mars Wrigley · 51 g"));
+            Assert.That(Text(cut, "serving-label"), Is.EqualTo("1 serving"));
+            Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 51 g"));
+            Assert.That(Text(cut, "serving-adds-detail"), Is.EqualTo("51 g of Mars"));
+        });
+
+        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
+
+        var entries = await Entries();
+        Assert.Multiple(() =>
+        {
+            Assert.That(added, Is.EqualTo(1));
+            Assert.That(entries.Select(e => (e.Amount, e.Servings)), Is.EqualTo(new[] { (51d, (double?)1) }));
+        });
+    }
+
+    [Test]
+    public async Task FoodWithAPackAndARealServing_KeepsTheRealServing()
+    {
+        var id = await InsertMars(51, "2 squares (20 g)", 20);
+        var cut = Render(id, Meal.Snacks);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "serving-label"), Is.EqualTo("2 squares (20 g)"));
+            Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 20 g"));
+        });
+    }
+
+    [Test]
+    public async Task FoodWithNeitherAServingNorAPack_OffersNoServing()
+    {
+        var id = await InsertMars(null);
+        var cut = Render(id, Meal.Snacks);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Exists(cut, "serving-label"), Is.False);
+            Assert.That(Exists(cut, "serving-mode-servings"), Is.False);
         });
     }
 
@@ -146,7 +209,7 @@ public class ServingPageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(Exists(cut, "serving-mode"), Is.False);
+            Assert.That(Exists(cut, "serving-mode-servings"), Is.False);
             Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("60"));
         });
     }
@@ -186,7 +249,7 @@ public class ServingPageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(Exists(cut, "serving-mode"), Is.False);
+            Assert.That(Exists(cut, "serving-mode-servings"), Is.False);
             Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("100"));
             Assert.That(Text(cut, "serving-amount-unit"), Is.EqualTo("g"));
         });
@@ -208,7 +271,7 @@ public class ServingPageTests : ComponentTestBase
 
         var cut = Render(id, Meal.Lunch);
 
-        Assert.That(Exists(cut, "serving-mode"), Is.False);
+        Assert.That(Exists(cut, "serving-mode-servings"), Is.False);
     }
 
     [Test]
@@ -374,7 +437,7 @@ public class ServingPageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(Text(cut, "screen-title"), Is.EqualTo("Margherita pizza"));
+            Assert.That(Text(cut, "screen-title"), Is.EqualTo("Casa Roma Margherita pizza"));
             Assert.That(Exists(cut, "serving-load-failed-error"), Is.False);
         });
     }
@@ -578,6 +641,38 @@ public class ServingPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task Add_OfABrandedFood_NamesItWithItsBrandInTheSnackbar()
+    {
+        var id = await InsertWeetabix();
+        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
+        var cut = Render(id, Meal.Lunch);
+
+        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
+
+        Assert.That(snackbar.Current!.Text, Is.EqualTo("Weetabix Original added to Lunch"));
+    }
+
+    [Test]
+    public async Task Remove_OfABrandedFood_NamesItWithItsBrandInTheSnackbar()
+    {
+        var id = await InsertWeetabix();
+        var (cut, _) = await RenderEditing(id, Meal.Lunch, 30);
+
+        await cut.Find("[data-testid=serving-remove]").ClickAsync(new());
+
+        Assert.That(Context.Services.GetRequiredService<SnackbarService>().Current!.Text, Is.EqualTo("Weetabix Original removed"));
+    }
+
+    private async Task<int> InsertWeetabix()
+    {
+        var food = Stored(ScreenStates.Cheddar, "weetabix");
+        food.Name = "Original";
+        food.Brand = "Weetabix";
+        food.Brands = "Weetabix";
+        return await Insert(food);
+    }
+
+    [Test]
     public async Task Add_WithAReturnRoute_PostsViewDay_AndItOpensTheDayAfterThePageIsGone()
     {
         var snackbar = Context.Services.GetRequiredService<SnackbarService>();
@@ -734,7 +829,7 @@ public class ServingPageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(Exists(cut, "serving-mode"), Is.False);
+            Assert.That(Exists(cut, "serving-mode-servings"), Is.False);
             Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("150"));
         });
     }

@@ -76,6 +76,70 @@ public class FoodServiceTests
     }
 
     [Test]
+    public async Task GetAsync_NoServingButASmallPack_OffersTheWholePackAsOneServing()
+    {
+        var id = await Store(f => { f.ServingLabel = null; f.ServingAmount = null; f.PackageAmount = 51; f.Unit = FoodUnit.Gram; });
+
+        var food = (await service.GetAsync(id)).Food!;
+
+        Assert.That((food.ServingLabel, food.ServingAmount), Is.EqualTo(("1 serving", (double?)51)));
+    }
+
+    [Test]
+    public async Task GetAsync_NoServingAMillilitrePack_OffersItInMillilitres()
+    {
+        var id = await Store(f => { f.ServingLabel = null; f.ServingAmount = null; f.PackageAmount = 330; f.Unit = FoodUnit.Millilitre; });
+
+        var food = (await service.GetAsync(id)).Food!;
+
+        Assert.That((food.ServingLabel, food.ServingAmount, food.Unit), Is.EqualTo(("1 serving", (double?)330, FoodUnit.Millilitre)));
+    }
+
+    [Test]
+    public async Task GetAsync_ARealServing_IsNeverReplacedByThePack()
+    {
+        var id = await Store(f => f.PackageAmount = 51);
+
+        var food = (await service.GetAsync(id)).Food!;
+
+        Assert.That((food.ServingLabel, food.ServingAmount), Is.EqualTo(("1/2 pie (201.8 g)", (double?)201.8)));
+    }
+
+    [Test]
+    public async Task GetAsync_ABadServingFallsBackToThePack()
+    {
+        var id = await Store(f => { f.ServingAmount = 99_999; f.PackageAmount = 51; });
+
+        var food = (await service.GetAsync(id)).Food!;
+
+        Assert.That((food.ServingLabel, food.ServingAmount), Is.EqualTo(("1 serving", (double?)51)));
+    }
+
+    [Test]
+    public async Task GetAsync_PackExactlyAtTheLimit_OffersItAsAServing()
+    {
+        var id = await Store(f => { f.ServingLabel = null; f.ServingAmount = null; f.PackageAmount = 350.0; });
+
+        var food = (await service.GetAsync(id)).Food!;
+
+        Assert.That((food.ServingLabel, food.ServingAmount), Is.EqualTo(("1 serving", (double?)350)));
+    }
+
+    [TestCase(null)]
+    [TestCase(0.0)]
+    [TestCase(430.0)]
+    [TestCase(1000.0)]
+    [TestCase(350.1)]
+    public async Task GetAsync_NoServingAndNoSmallPack_OffersNoServing(double? pack)
+    {
+        var id = await Store(f => { f.ServingLabel = null; f.ServingAmount = null; f.PackageAmount = pack; });
+
+        var food = (await service.GetAsync(id)).Food!;
+
+        Assert.That((food.ServingLabel, food.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+    }
+
+    [Test]
     public async Task GetAsync_NoSuchFood_ReturnsNotFound()
     {
         var result = await service.GetAsync(99);

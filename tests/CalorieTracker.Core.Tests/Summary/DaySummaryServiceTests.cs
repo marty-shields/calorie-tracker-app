@@ -391,6 +391,21 @@ public class DaySummaryServiceTests
         });
     }
 
+    [Test]
+    public async Task DaySummary_StoredBrands_GiveTheEntryItsTitleAndBrandLine()
+    {
+        var nutella = await AddFood("Nutella", FoodUnit.Gram, 539, 6.3, 57.5, 30.9);
+        await connection.ExecuteAsync("UPDATE Food SET Brands = ? WHERE Id = ?", "Ferrero, Nutella", nutella);
+        var weetabix = await AddFood("Original", FoodUnit.Gram, 362, 11.5, 69, 2);
+        await connection.ExecuteAsync("UPDATE Food SET Brands = ? WHERE Id = ?", "Weetabix", weetabix);
+        await diary.AddAsync(Day, Meal.Lunch, nutella, 15);
+        await diary.AddAsync(Day, Meal.Lunch, weetabix, 40);
+
+        var entries = (await service.GetAsync(Day)).Summary!.Meals.Single(m => m.Meal == Meal.Lunch).Entries;
+
+        Assert.That(entries.Select(e => (e.Display.Title, e.Display.BrandLine)), Is.EqualTo(new[] { ("Nutella", (string?)"Ferrero"), ("Weetabix Original", null) }));
+    }
+
     private async Task<int> AddFood(string name, FoodUnit unit, double kcal, double protein, double carbs, double fat)
     {
         var food = new Food

@@ -47,6 +47,10 @@ public sealed class FoodSearchScreen(WebView web)
         return web.FindAll("[data-testid^=\"food-result-\"]").Select(row => row.Text.Trim()).ToList();
     }
 
+    /// <summary>The title heading the first result row, or empty while there is none.</summary>
+    public string FirstResultTitle() =>
+        web.FindAll("[data-testid^=\"food-result-\"] .text").FirstOrDefault()?.Text.Trim() ?? "";
+
     /// <summary>Clicks the first row once the box holds what was typed; a row replaced by a newer search is found and clicked again.</summary>
     public void OpenFirstResult() =>
         web.WaitUntil(() =>

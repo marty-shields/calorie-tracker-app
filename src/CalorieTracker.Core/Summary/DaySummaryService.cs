@@ -60,7 +60,7 @@ public sealed partial class DaySummaryService
                     Nutrition.Round(p),
                     Nutrition.Round(c),
                     Nutrition.Round(f));
-                mealEntries.Add(new SummaryEntry(entry.Id, food.Id, food.Name, food.Brand, food.Unit, entry.Amount, entry.Servings, nutrition, food.ServingLabel));
+                mealEntries.Add(new SummaryEntry(entry.Id, food.Id, food.Name, food.Brand, food.Unit, entry.Amount, entry.Servings, nutrition, food.ServingLabel, food.Brands));
             }
 
             var meals = byMeal

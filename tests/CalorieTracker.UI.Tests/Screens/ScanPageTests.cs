@@ -140,14 +140,31 @@ public class ScanPageTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
         {
-            Assert.That(cut.Find("[data-testid=scan-name]").TextContent, Is.EqualTo("Porridge oats"));
-            Assert.That(cut.Find("[data-testid=scan-brand]").TextContent, Is.EqualTo("Morning Mill"));
+            Assert.That(cut.Find("[data-testid=scan-name]").TextContent, Is.EqualTo("Morning Mill Porridge oats"));
+            Assert.That(cut.FindAll("[data-testid=scan-brand]"), Is.Empty);
             Assert.That(cut.Find("[data-testid=scan-per]").TextContent, Is.EqualTo("Per 100 g"));
             Assert.That(cut.Find("[data-testid=scan-kcal]").TextContent, Is.EqualTo("372 kcal"));
             Assert.That(cut.Find("[data-testid=scan-protein]").TextContent, Is.EqualTo("11 g"));
             Assert.That(cut.Find("[data-testid=scan-carbs]").TextContent, Is.EqualTo("60 g"));
             Assert.That(cut.Find("[data-testid=scan-fat]").TextContent, Is.EqualTo("8 g"));
             Assert.That(cut.FindAll("[data-testid=scan-warning]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task Found_WithBrandsPackAndGenericName_ShowsThemAll()
+    {
+        var food = Product("Nutella", null, FoodUnit.Gram, 539, 6.3, 57.5, 30.9);
+        (food.Brands, food.PackageLabel, food.GenericName) = ("Ferrero, Nutella", "400 g", "Hazelnut spread");
+        lookup.Result = BarcodeLookupResult.Found(food);
+        var cut = await ScannedAsync();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.That(cut.Find("[data-testid=scan-name]").TextContent, Is.EqualTo("Nutella"));
+            Assert.That(cut.Find("[data-testid=scan-brand]").TextContent, Is.EqualTo("Ferrero"));
+            Assert.That(cut.Find("[data-testid=scan-pack]").TextContent, Is.EqualTo("400 g"));
+            Assert.That(cut.Find("[data-testid=scan-generic]").TextContent, Is.EqualTo("Hazelnut spread"));
         });
     }
 

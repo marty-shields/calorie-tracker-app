@@ -23,7 +23,7 @@
                 break;
             case ScanState.Found when Product is { } product:
                 <div data-testid="scan-product">
-                    <FoodValues Name="@product.Name" Brand="@product.Brand" IsLiquid="product.IsLiquid" Kcal="(double)product.Kcal" Protein="(double)product.Protein"
+                    <FoodValues Name="@product.Display.Title" Brand="@product.Display.BrandLine" Pack="@product.Display.Pack" GenericName="@product.Display.GenericName" IsLiquid="product.IsLiquid" Kcal="(double)product.Kcal" Protein="(double)product.Protein"
                                 Carbs="(double)product.Carbs" Fat="(double)product.Fat" Fibre="(double?)product.Fibre" Sugars="(double?)product.Sugars"
                                 Saturates="(double?)product.Saturates" Salt="(double?)product.Salt" TestId="scan">
                         @if (product.ServingLabel is not null && product.ServingAmount is { } serving)

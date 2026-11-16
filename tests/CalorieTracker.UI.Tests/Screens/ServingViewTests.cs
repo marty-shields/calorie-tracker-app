@@ -123,7 +123,7 @@ public class ServingViewTests : ComponentTestBase
             Assert.That(Text(cut, "serving-amount-unit"), Is.EqualTo("serving"));
             Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 202 g"));
             Assert.That(Text(cut, "serving-adds-kcal"), Is.EqualTo("521 kcal"));
-            Assert.That(Text(cut, "serving-adds-detail"), Is.EqualTo("202 g of Margherita pizza"));
+            Assert.That(Text(cut, "serving-adds-detail"), Is.EqualTo("202 g of Casa Roma Margherita pizza"));
             Assert.That(Exists(cut, "serving-use-serving"), Is.False);
         });
     }
@@ -141,7 +141,7 @@ public class ServingViewTests : ComponentTestBase
             Assert.That(Exists(cut, "serving-weight"), Is.False);
             Assert.That(Text(cut, "serving-amount-unit"), Is.EqualTo("g"));
             Assert.That(Text(cut, "serving-adds-kcal"), Is.EqualTo("387 kcal"));
-            Assert.That(Text(cut, "serving-adds-detail"), Is.EqualTo("150 g of Margherita pizza"));
+            Assert.That(Text(cut, "serving-adds-detail"), Is.EqualTo("150 g of Casa Roma Margherita pizza"));
         });
     }
 

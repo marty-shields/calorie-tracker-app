@@ -296,9 +296,39 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task ResultRow_ShowsTheBrandAndTheKcal_NotTheType()
+    public async Task ResultRow_StoredNutella_ShowsNutellaWithFerreroPackAndKcal()
     {
-        search.Results = [new Food { Id = 7, Name = "Oat drink", Brand = "Oatly", Type = FoodType.Drink, Unit = FoodUnit.Millilitre, Kcal = 46 }];
+        search.Results = [new Food { Id = 8, Name = "Nutella", Brand = "Ferrero", Brands = "Ferrero, Nutella", PackageLabel = "400 g e", Unit = FoodUnit.Gram, Kcal = 539 }];
+        var cut = Context.Render<FoodSearchPage>();
+
+        await cut.Find("[data-testid=food-search-input]").InputAsync("nutella");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=food-result-8] .text").TextContent, Is.EqualTo("Nutella"));
+            Assert.That(cut.Find("[data-testid=food-result-8] .detail").TextContent, Is.EqualTo("Ferrero · 400 g e · 539 kcal / 100 g"));
+        });
+    }
+
+    [Test]
+    public async Task ResultRow_ABlankBrand_ShowsTheNameAloneWithNoSeparator()
+    {
+        search.Results = [new Food { Id = 9, Name = "Oat drink", Brand = " ", Brands = " ", Unit = FoodUnit.Millilitre, Kcal = 46 }];
+        var cut = Context.Render<FoodSearchPage>();
+
+        await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=food-result-9] .text").TextContent, Is.EqualTo("Oat drink"));
+            Assert.That(cut.Find("[data-testid=food-result-9] .detail").TextContent, Is.EqualTo("46 kcal / 100 ml"));
+        });
+    }
+
+    [Test]
+    public async Task ResultRow_ShowsTheTitleBrandLinePackAndTheKcal_NotTheType()
+    {
+        search.Results = [new Food { Id = 7, Name = "Oat drink", Brand = "Oatly, Alpro", Brands = "Oatly, Alpro", PackageLabel = "1 l", Type = FoodType.Drink, Unit = FoodUnit.Millilitre, Kcal = 46 }];
         var cut = Context.Render<FoodSearchPage>();
 
         await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
@@ -306,7 +336,8 @@ public class FoodSearchPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(cut.FindAll("[data-testid=food-result-7] .aside"), Is.Empty);
-            Assert.That(cut.Find("[data-testid=food-result-7] .detail").TextContent, Is.EqualTo("Oatly · 46 kcal / 100 ml"));
+            Assert.That(cut.Find("[data-testid=food-result-7] .detail").TextContent, Is.EqualTo("Alpro · 1 l · 46 kcal / 100 ml"));
+            Assert.That(cut.Find("[data-testid=food-result-7] .text").TextContent, Is.EqualTo("Oatly Oat drink"));
         });
     }
 
@@ -514,7 +545,7 @@ public class FoodSearchPageTests : ComponentTestBase
         {
             Assert.That(cut.FindAll("h2[data-testid^=food-group-]").Select(h => h.TextContent), Is.EqualTo(new[] { "From your diary", "Common", "Branded" }));
             Assert.That(cut.Find("[data-testid=food-result-1]").TextContent, Does.Contain("375 kcal / 100 g"));
-            Assert.That(cut.Find("[data-testid=food-result-3]").TextContent, Does.Contain("Acme · 400 kcal / 100 g"));
+            Assert.That(cut.Find("[data-testid=food-result-3]").TextContent, Does.Contain("Acme Oat bar").And.Contain("400 kcal / 100 g"));
         });
 
         search.Groups = [new FoodGroup(FoodGroupKind.Branded, [new FoodListing(Brand, null)])];
@@ -533,7 +564,7 @@ public class FoodSearchPageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(cut.Find("[data-testid=food-result-3]").TextContent, Does.Contain("Acme · 2 servings (80 g) · 320 kcal"));
+            Assert.That(cut.Find("[data-testid=food-result-3]").TextContent, Does.Contain("Acme Oat bar").And.Contain("2 servings (80 g) · 320 kcal"));
             Assert.That(cut.Find("[data-testid=food-result-2]").TextContent, Does.Contain("250 ml · 125 kcal"));
         });
     }

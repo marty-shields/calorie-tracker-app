@@ -59,7 +59,7 @@
                             <ul class="entries">
                                 @foreach (var entry in meal.Entries)
                                 {
-                                    <li><ListRow Text="@entry.Name" Detail="@EntryDetail(entry)" Aside="@Number(entry.Nutrition.Kcal)" TestId="@($"entry-{entry.EntryId}")" OnClick="@EditTap(entry, meal.Meal)" /></li>
+                                    <li><ListRow Text="@entry.Display.Title" Detail="@EntryDetail(entry)" Aside="@Number(entry.Nutrition.Kcal)" TestId="@($"entry-{entry.EntryId}")" OnClick="@EditTap(entry, meal.Meal)" /></li>
                                 }
                             </ul>
                         }
@@ -137,16 +137,19 @@
 
     private static string Count(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
 
-    /// <summary>The amount, or for an entry added by servings "1 serving · the food's label".</summary>
+    /// <summary>The amount, or for an entry added by servings "1 serving · the food's label", after the brand line when the food has one.</summary>
     private static string EntryDetail(SummaryEntry entry)
     {
         var amount = $"{Count(entry.Amount)} {(entry.Unit == FoodUnit.Millilitre ? "ml" : "g")}";
+        var brand = entry.Display.BrandLine;
         if (entry.Servings is not { } servings)
         {
-            return amount;
+            return Prefixed(brand, amount);
         }
 
         var servingText = $"{Count(servings)} {(Math.Abs(servings - 1) < 0.005 ? "serving" : "servings")}";
-        return $"{servingText} · {(string.IsNullOrWhiteSpace(entry.ServingLabel) ? amount : entry.ServingLabel)}";
+        return Prefixed(brand, $"{servingText} · {(string.IsNullOrWhiteSpace(entry.ServingLabel) ? amount : entry.ServingLabel)}");
     }
+
+    private static string Prefixed(string? brand, string text) => brand is null ? text : $"{brand} · {text}";
 }

@@ -17,6 +17,12 @@
         </Template>
     </Story>
 
+    <Story Name="Pack as one serving">
+        <Template>
+            <ServingView Food="ServingSamples.Mars" Mode="EntryMode.Servings" Amount="1" Grams="51" Meal="Meal.Snacks" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
     <Story Name="Scanned product with no serving">
         <Template>
             <ServingView Food="ServingSamples.Biscuits" Mode="EntryMode.Grams" Amount="30" Grams="30" Meal="Meal.Lunch" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />

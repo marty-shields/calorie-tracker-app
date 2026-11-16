@@ -303,7 +303,7 @@
         saveFailed = result.Status != DiaryStatus.Ok;
         if (!saveFailed)
         {
-            Announce(food.Name, meal, Date, result.Entry!);
+            Announce(FoodDisplay.Of(food).Title, meal, Date, result.Entry!);
         }
 
         // After a save the screen is left, so stay busy: a tap between the save and the navigation must not add a second entry.
@@ -343,7 +343,7 @@
             return;
         }
 
-        var text = food is null ? "Entry removed" : $"{food.Name} removed";
+        var text = food is null ? "Entry removed" : $"{FoodDisplay.Of(food).Title} removed";
         var result = await RunAsync(true, () => Diary.RemoveAsync(id));
         if (result.Status == DiaryStatus.Ok)
         {

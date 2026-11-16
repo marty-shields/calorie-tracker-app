@@ -20,6 +20,12 @@ public sealed partial class FoodService
     /// <summary>Largest value kept for each optional nutrient (fibre, sugars, saturates, salt), in g per 100 g or 100 ml. A nutrient cannot exceed its own food.</summary>
     public const double MaxNutrientPer100 = 100;
 
+    /// <summary>Label of the serving offered from a food's pack when it has no serving of its own.</summary>
+    public const string PackServingLabel = "1 serving";
+
+    /// <summary>Largest pack, in g or ml, taken as one serving. A can, bar or small bottle is; a cereal box or a multipack is not.</summary>
+    public const double MaxPackServingAmount = 350;
+
     private readonly FoodStore store;
     private readonly ILogger<FoodService> logger;
 
@@ -31,7 +37,7 @@ public sealed partial class FoodService
 
     /// <summary>
     /// The food with this id. A serving needs both a label (not blank, at most <see cref="MaxServingLabelLength"/> characters) and a weight that is finite, above zero and at most <see cref="MaxServingAmount"/>;
-    /// otherwise both come back null. Each optional nutrient that is not finite or outside 0 to <see cref="MaxNutrientPer100"/> comes back null.
+    /// otherwise both come back null, and then a pack of at most <see cref="MaxPackServingAmount"/> is offered as a serving labelled <see cref="PackServingLabel"/> (see <see cref="OfferPackServing"/>). Each optional nutrient that is not finite or outside 0 to <see cref="MaxNutrientPer100"/> comes back null.
     /// </summary>
     public async Task<FoodResult> GetAsync(int id)
     {
@@ -53,7 +59,19 @@ public sealed partial class FoodService
         }
 
         Bound(food, logger);
+        OfferPackServing(food);
         return FoodResult.Found(food);
+    }
+
+    /// <summary>Gives a food with no serving one labelled <see cref="PackServingLabel"/> as heavy as its pack, in place and not stored, when the pack is finite, above zero and at most <see cref="MaxPackServingAmount"/>. A real serving is never replaced.</summary>
+    internal static void OfferPackServing(Food food)
+    {
+        if (food.ServingLabel is null && food.ServingAmount is null
+            && food.PackageAmount is { } pack && double.IsFinite(pack) && pack > 0 && pack <= MaxPackServingAmount)
+        {
+            food.ServingLabel = PackServingLabel;
+            food.ServingAmount = pack;
+        }
     }
 
     /// <summary>Applies the serving and nutrient caps of <see cref="GetAsync"/> to a food read elsewhere, in place. Nothing is written back to the database. Null <paramref name="logger"/> bounds silently, as search does on every keystroke.</summary>

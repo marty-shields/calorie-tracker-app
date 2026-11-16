@@ -28,6 +28,12 @@
         </Template>
     </Story>
 
+    <Story Name="Results with branded foods">
+        <Template>
+            <FoodSearchView Query="mars" Groups="FoodSearchSamples.BrandedGroup" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
     <Story Name="Results in one group">
         <Template>
             <FoodSearchView Query="rolled" Groups="FoodSearchSamples.OneGroup" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnNavigate="(NavDestination _) => { }" />
@@ -55,6 +61,12 @@
     <Story Name="Food selected">
         <Template>
             <FoodSearchView Query="oat" Groups="FoodSearchSamples.AllGroups" Selected="FoodSearchSamples.Oats[0]" OnQueryChanged="(string _) => { }" OnAdd="(Food _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Branded food selected">
+        <Template>
+            <FoodSearchView Query="nutella" Groups="FoodSearchSamples.BrandedGroup" Selected="FoodSearchSamples.BrandedFoods[1]" OnQueryChanged="(string _) => { }" OnAdd="(Food _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
