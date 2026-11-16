@@ -57,9 +57,10 @@ internal static class FoodRanker
         return word;
     }
 
-    /// <summary>The matching foods, best first; ties break by name (ignoring case), then id. <paramref name="terms"/> must be folded and normalised.</summary>
-    public static List<Food> Rank(IEnumerable<Food> foods, IReadOnlyList<string> terms, int limit)
+    /// <summary>The matching foods, best first; ties break by name (ignoring case), then id. <paramref name="typed"/> must be folded but not normalised.</summary>
+    public static List<Food> Rank(IEnumerable<Food> foods, IReadOnlyList<string> typed, int limit)
     {
+        var terms = typed.Select(t => new Word(t)).ToList();
         var ranked = new List<(Food Food, double Score)>();
         foreach (var food in foods)
         {
@@ -78,16 +79,42 @@ internal static class FoodRanker
             .ToList();
     }
 
-    private static double? Score(Food food, IReadOnlyList<string> terms)
+    /// <summary>A word as written plus its normalised form, and for "-oes" words the form with only the "s" dropped, so "sloe" meets "sloes" and "potatoe" meets "potatoes".</summary>
+    private readonly struct Word
+    {
+        public Word(string raw)
+        {
+            Raw = raw;
+            Norm = Normalise(raw);
+            Alt = raw.Length > 4 && raw.EndsWith("oes", StringComparison.Ordinal) ? raw[..^1] : null;
+        }
+
+        public string Raw { get; }
+
+        public string Norm { get; }
+
+        public string? Alt { get; }
+
+        public bool Matches(Word other) => Norm == other.Norm || (Alt is not null && (Alt == other.Norm || Alt == other.Alt)) || (other.Alt is not null && Norm == other.Alt);
+
+        public bool StartsWith(Word typed) =>
+            Norm.StartsWith(typed.Norm, StringComparison.Ordinal)
+            || Raw.StartsWith(typed.Raw, StringComparison.Ordinal)
+            || (typed.Alt is not null && (Norm.StartsWith(typed.Alt, StringComparison.Ordinal) || Raw.StartsWith(typed.Alt, StringComparison.Ordinal)));
+    }
+
+    private static List<Word> ToWords(string folded) => Words(folded).Select(w => new Word(w)).ToList();
+
+    private static double? Score(Food food, IReadOnlyList<Word> terms)
     {
         var name = SearchFolding.Fold(food.Name);
         var bracket = name.IndexOf('(', StringComparison.Ordinal);
-        var nameMain = Words(bracket < 0 ? name : name[..bracket]).Select(Normalise).ToList();
-        var qualifier = bracket < 0 ? [] : Words(name[bracket..]).Select(Normalise).ToList();
-        var main = new List<string>(nameMain);
+        var nameMain = ToWords(bracket < 0 ? name : name[..bracket]);
+        var qualifier = bracket < 0 ? [] : ToWords(name[bracket..]);
+        var main = new List<Word>(nameMain);
         if (!string.IsNullOrWhiteSpace(food.Brand))
         {
-            main.AddRange(Words(SearchFolding.Fold(food.Brand)).Select(Normalise));
+            main.AddRange(ToWords(SearchFolding.Fold(food.Brand)));
         }
 
         var head = nameMain.Count - 1;
@@ -107,27 +134,27 @@ internal static class FoodRanker
         score -= ExtraQualifierWordPenalty * Math.Min(qualifier.Count, MaxPenalisedWords);
         if (terms.Count == 1)
         {
-            score += CommonFoodBoost(food, terms[0]);
+            score += CommonFoodBoost(food, terms[0].Norm);
         }
 
         return score;
     }
 
-    private static double? BestMatch(string term, List<string> main, List<string> qualifier, int head)
+    private static double? BestMatch(Word term, List<Word> main, List<Word> qualifier, int head)
     {
         double? best = null;
         for (var i = 0; i < main.Count; i++)
         {
             var bonus = i == head ? HeadBonus : 0;
-            if (main[i] == term)
+            if (main[i].Matches(term))
             {
                 best = Math.Max(best ?? 0, MainEquals + bonus);
             }
-            else if (main[i].StartsWith(term, StringComparison.Ordinal))
+            else if (main[i].StartsWith(term))
             {
                 best = Math.Max(best ?? 0, MainPrefix + bonus);
             }
-            else if (term.Length >= MinTypoLength && IsOneEditAway(term, main[i]))
+            else if (term.Norm.Length >= MinTypoLength && IsOneEditAway(term.Norm, main[i].Norm))
             {
                 best = Math.Max(best ?? 0, MainTypo);
             }
@@ -140,11 +167,11 @@ internal static class FoodRanker
 
         foreach (var word in qualifier)
         {
-            if (word == term)
+            if (word.Matches(term))
             {
                 best = Math.Max(best ?? 0, QualifierEquals);
             }
-            else if (word.StartsWith(term, StringComparison.Ordinal))
+            else if (word.StartsWith(term))
             {
                 best = Math.Max(best ?? 0, QualifierPrefix);
             }

@@ -12,8 +12,7 @@ internal sealed partial class FoodSearch(FoodStore store, ILogger<FoodSearch> lo
     public async Task<FoodSearchResult> SearchAsync(string query, FoodType? type = null, int limit = IFoodSearch.DefaultLimit, CancellationToken ct = default)
     {
         var terms = FoodRanker.Words(SearchFolding.Fold(query ?? ""))
-            .Select(FoodRanker.Normalise)
-            .Distinct()
+            .DistinctBy(FoodRanker.Normalise)
             .Take(MaxTerms)
             .ToList();
         if (terms.Count == 0)

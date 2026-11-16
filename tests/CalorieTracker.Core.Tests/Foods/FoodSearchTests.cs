@@ -165,13 +165,107 @@ public class FoodSearchTests
     [TestCase("_")]
     [TestCase("p%")]
     [TestCase("\\")]
-    public async Task Search_LikeWildcardsInTheQuery_AreLiteral(string query)
+    public async Task Search_PunctuationOnlyOrPartlyPunctuatedQuery_MatchesOnlyWhatItSpells(string query)
     {
         await Add("Potato", "potato");
         await Add("Fifty% juice", "fifty% juice");
 
         Assert.That(await Names(query), Is.Empty);
         Assert.That(await Names("fifty%"), Is.EqualTo(new[] { "Fifty% juice" }));
+    }
+
+    [Test]
+    public async Task Search_PartlyTypedWordOfAPlural_StillPrefixMatches()
+    {
+        await Add("Cookies", "cookies");
+
+        Assert.That(await Names("cooki"), Is.EqualTo(new[] { "Cookies" }));
+    }
+
+    [Test]
+    public async Task Search_SingularOrPluralOfAnOesWord_MeetsTheOtherForm()
+    {
+        await Add("Sloes", "sloes");
+        await Add("Potatoe", "potatoe");
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That(await Names("sloe"), Is.EqualTo(new[] { "Sloes" }));
+            Assert.That(await Names("sloes"), Is.EqualTo(new[] { "Sloes" }));
+            Assert.That(await Names("potatoes"), Is.EqualTo(new[] { "Potatoe" }));
+        });
+    }
+
+    [Test]
+    public async Task Search_MatchInTheHeadWord_RanksAboveTheSameMatchElsewhere()
+    {
+        await Add("Zzz egg", "zzz egg");
+        await Add("Egg aaa", "egg aaa");
+
+        Assert.That(await Names("egg"), Is.EqualTo(new[] { "Zzz egg", "Egg aaa" }));
+    }
+
+    [Test]
+    public async Task Search_BrandWord_IsAMainWordButNotTheHead()
+    {
+        await Add("Zzz bar", "zzz bar", brand: "Egg");
+        await Add("Egg aaa", "egg aaa");
+        await Add("Zzz egg", "zzz egg");
+
+        Assert.That(await Names("egg"), Is.EqualTo(new[] { "Zzz egg", "Egg aaa", "Zzz bar" }));
+    }
+
+    [Test]
+    public async Task Search_CommonFoodBoost_AppliesToOneWordQueriesOfCoFidFoodsOnly()
+    {
+        await Add("Aaa milk", "aaa milk");
+        await Add("Milk plain", "milk plain", originalName: "Milk, whole, average");
+        await Add("Milk off", "milk off", FoodSource.OpenFoodFacts, originalName: "Milk, whole, average");
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That(await Names("milk"), Is.EqualTo(new[] { "Milk plain", "Aaa milk", "Milk off" }));
+            Assert.That(await Names("milk plain"), Is.EqualTo(new[] { "Milk plain" }));
+        });
+    }
+
+    [Test]
+    public async Task Search_CommonFoodBoost_NotAppliedToTwoWordQueries()
+    {
+        await Add("Milk whole extra", "milk whole extra", originalName: "Milk, whole, average");
+        await Add("Aaa milk whole", "aaa milk whole");
+
+        Assert.That(await Names("milk whole"), Is.EqualTo(new[] { "Aaa milk whole", "Milk whole extra" }));
+    }
+
+    [Test]
+    public async Task Search_RawVersionOfACommonFood_BeatsAnAlphabeticallyEarlierTie()
+    {
+        await Add("Aaa potato", "aaa potato", originalName: "Potato, boiled");
+        await Add("Zzz potato", "zzz potato", originalName: "Potato, raw");
+
+        Assert.That(await Names("potato"), Is.EqualTo(new[] { "Zzz potato", "Aaa potato" }));
+    }
+
+    [Test]
+    public async Task Search_FoodsWithTheSameName_OrderById()
+    {
+        await Add("Twin", "twin");
+        await Add("TWIN", "twin");
+        await Add("twin", "twin");
+
+        var ids = (await search.SearchAsync("twin")).Foods.Select(f => f.Id).ToList();
+        Assert.That(ids, Is.Ordered);
+        Assert.That(ids, Has.Count.EqualTo(3));
+    }
+
+    [Test]
+    public async Task Search_FourLetterTypedWord_MatchesByTypo()
+    {
+        await Add("Lamb", "lamb");
+
+        Assert.That(await Names("lmab"), Is.EqualTo(new[] { "Lamb" }));
+        Assert.That(await Names("lmb"), Is.Empty);
     }
 
     [Test]
@@ -370,11 +464,12 @@ public class FoodSearchTests
     private async Task<List<string>> Names(string query, FoodType? type = null) =>
         (await search.SearchAsync(query, type)).Foods.Select(f => f.Name).ToList();
 
-    private Task Add(string name, string searchText, FoodSource source = FoodSource.CoFID, FoodType type = FoodType.Ingredient, string? brand = null) =>
-        connection.InsertAsync(NewFood(name, searchText, source, type, brand));
+    private Task Add(string name, string searchText, FoodSource source = FoodSource.CoFID, FoodType type = FoodType.Ingredient, string? brand = null, string? originalName = null) =>
+        connection.InsertAsync(NewFood(name, searchText, source, type, brand, originalName));
 
-    private Food NewFood(string name, string searchText, FoodSource source = FoodSource.CoFID, FoodType type = FoodType.Ingredient, string? brand = null) => new()
+    private Food NewFood(string name, string searchText, FoodSource source = FoodSource.CoFID, FoodType type = FoodType.Ingredient, string? brand = null, string? originalName = null) => new()
     {
+        OriginalName = originalName,
         Brand = brand,
         Type = type,
         Source = source,
