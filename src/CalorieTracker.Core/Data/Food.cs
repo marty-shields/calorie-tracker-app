@@ -76,6 +76,12 @@ public class Food
     /// <summary>True once the source was asked for this food's serving and had no usable one (not found, or found without a serving), so it is not asked again. Null while unasked; an offline or rate-limited answer leaves it null.</summary>
     public bool? ServingChecked { get; set; }
 
+    /// <summary>CoFID's own name for the food, such as "Barley, pearl, raw". Set for every CoFID food in the bundled seed; null for Open Food Facts foods and for removed CoFID foods kept for the diary.</summary>
+    public string? OriginalName { get; set; }
+
+    /// <summary>CoFID's food group code, such as "AA". Set for every CoFID food in the bundled seed; null for Open Food Facts foods and for removed CoFID foods kept for the diary.</summary>
+    public string? FoodGroup { get; set; }
+
     /// <summary>Lowercased text with accents removed that searches match against.</summary>
     [NotNull]
     public string SearchText { get; set; } = "";

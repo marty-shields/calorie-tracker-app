@@ -67,6 +67,7 @@ public class OpenFoodFactsLookupTests
             Assert.That(food.SaturatesG, Is.EqualTo(10.6));
             Assert.That(food.SaltG, Is.EqualTo(0.107));
             Assert.That(food.SearchText, Is.EqualTo("nutella ferrero"));
+            Assert.That((food.OriginalName, food.FoodGroup), Is.EqualTo(((string?)null, (string?)null)));
         });
     }
 

@@ -160,6 +160,10 @@ public class CoreServiceCollectionExtensionsTests
             Assert.That(result.Status, Is.EqualTo(SeedLoadStatus.Loaded));
             Assert.That(result.Inserted, Is.EqualTo(2174));
         });
+        var connection = new SQLiteAsyncConnection(path);
+        var barley = await connection.QueryAsync<Food>("SELECT * FROM Food WHERE Source = 0 AND SourceId = '11-002'");
+        await connection.CloseAsync();
+        Assert.That(barley.Select(f => (f.OriginalName, f.FoodGroup)), Is.EqualTo(new[] { ("Barley, pearl, raw", "AA") }));
         File.Delete(path);
     }
 
