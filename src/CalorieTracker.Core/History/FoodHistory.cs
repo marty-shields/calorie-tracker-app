@@ -9,10 +9,11 @@ namespace CalorieTracker.Core.History;
 /// <param name="LastDate">The day of the newest entry.</param>
 /// <param name="LastAmount">Grams or millilitres of the newest entry.</param>
 /// <param name="LastServings">Servings of the newest entry; null when it was entered as grams or millilitres.</param>
-public sealed record FoodHistory(int FoodId, int TimesLogged, int LastEntryId, DateOnly LastDate, double LastAmount, double? LastServings)
+/// <param name="LastServingId">The serving the newest entry counted its servings in; null when it was entered by weight, was saved before servings had their own table, or its serving was deleted.</param>
+public sealed record FoodHistory(int FoodId, int TimesLogged, int LastEntryId, DateOnly LastDate, double LastAmount, double? LastServings, int? LastServingId = null)
 {
     internal static FoodHistory From(FoodHistoryRow row) =>
-        new(row.FoodId, row.TimesLogged, row.LastEntryId, DiaryEntry.ParseDate(row.LastDate), row.LastAmount, row.LastServings);
+        new(row.FoodId, row.TimesLogged, row.LastEntryId, DiaryEntry.ParseDate(row.LastDate), row.LastAmount, row.LastServings, row.LastServingId);
 }
 
 public enum FoodHistoryStatus

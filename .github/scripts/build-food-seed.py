@@ -8,7 +8,7 @@ Everyday names: each <folder>/<foodGroup>.json (default: the "names" folder besi
 the workbook has them. Exits 1 on an entry whose sourceId is not in the output, whose food is in another group than the file name,
 or whose name is empty, and on a repeated sourceId key in a file. Names are stripped of surrounding spaces once.
 Types: each food gets a "type" (Ingredient, Food or Drink) from its CoFID group (GROUP_TYPES), then NAME_RULES may move it by its everyday name and TYPE_OVERRIDES by its sourceId (an override whose sourceId is not in the output exits 1).
-Units: a food is Millilitre when its group is alcoholic (ALCOHOL_GROUP_PREFIX) or a liquid group (LIQUID_GROUPS) and its CoFID name does not match DRY_NAME (powders, dried, concentrates, undiluted), or its sourceId is in LIQUID_IDS; DRY_IDS keeps single foods in grams. Everything else is Gram. Seed/README.md holds the rule.
+Units: a food is Millilitre when its group is alcoholic (ALCOHOL_GROUP_PREFIX) or a liquid group (LIQUID_GROUPS) and its CoFID name does not match DRY_NAME (powders, dried, concentrates), or its sourceId is in LIQUID_IDS; DRY_IDS keeps single foods in grams. Everything else is Gram. Seed/README.md holds the rule.
 A food whose type comes out as Dish is dropped from the output (the app has no Dish type). The names are applied first, because the name rules read them, so delete the overlay entry of a dropped food (check-food-names.py fails on one).
 Exits 1 on a food whose group has no type. Seed/README.md holds the table as the decision record.
 Writes {"seedVersion", "source", "foods"} with one food per line, sorted by sourceId, so a rerun is byte-identical.
@@ -26,7 +26,7 @@ import xml.etree.ElementTree as ET
 from decimal import Decimal
 
 # Bumped by hand when the seed's content is revised (for example by the everyday-names edit, the food types or dropping the Dishes).
-SEED_VERSION = 7
+SEED_VERSION = 8
 SOURCE_NAME = "CoFID 2021"
 SOURCE = "CoFID"
 PROXIMATES = "1.3 Proximates"
@@ -62,9 +62,9 @@ GROUP_TYPES = {
 # CoFID groups of liquids measured by volume: milks (BA BAB BAE BAH BAK BC, flavoured milk and milkshake in BAR), milk drinks (BH), fruit juices (FC PE),
 # coffee (P PA PAC), tea (PAC), soft drinks (PCA), squash and cordial (PCC). PAA (drink powders) is deliberately not here: its made-up foods are in LIQUID_NAME_RULES.
 LIQUID_GROUPS = set("BA BAB BAE BAH BAK BAR BC BH FC P PA PAC PCA PCC PE".split())
-# The CoFID name of a food in a liquid group that stays in grams: a powder (unless made up), dried, evaporated or condensed milk, a concentrate, a cordial or squash not yet diluted,
-# or a juice weighed as the whole fruit (its values are per 100 g of fruit, not of juice).
-DRY_NAME = r"powder(?!.*made up)|dried|evaporated|condensed|concentrate|undiluted|weighed as whole fruit"
+# The CoFID name of a food in a liquid group that stays in grams: a powder (unless made up), dried, evaporated or condensed milk, a concentrate,
+# or a juice weighed as the whole fruit (its values are per 100 g of fruit, not of juice). Undiluted cordial and squash are NOT here: they are poured, so millilitres.
+DRY_NAME = r"powder(?!.*made up)|dried|evaporated|condensed|concentrate|weighed as whole fruit"
 # (CoFID groups, pattern searched case-insensitively in the CoFID name): foods of a group outside LIQUID_GROUPS that are liquids.
 LIQUID_NAME_RULES = [
     ("PAA", r"made up with|infusion"),

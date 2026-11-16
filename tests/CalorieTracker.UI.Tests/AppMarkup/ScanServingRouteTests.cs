@@ -12,7 +12,7 @@ public partial class ScanServingRouteTests
     {
         var scan = AppPage("Scan.razor");
 
-        Assert.That(scan, Does.Contain("OnAddToDiary=\"@(foodId => Navigation.GoTo(ServingRoute.Url(foodId, backTo: \"/\")))\""));
+        Assert.That(scan, Does.Contain("OnAddToDiary=\"@(add => Navigation.GoTo(ServingRoute.Url(add.FoodId, backTo: \"/\", pack: add.PackAmount)))\""));
     }
 
     [Test]

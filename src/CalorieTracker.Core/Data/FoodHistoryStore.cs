@@ -16,6 +16,8 @@ internal sealed class FoodHistoryRow
     public double LastAmount { get; set; }
 
     public double? LastServings { get; set; }
+
+    public int? LastServingId { get; set; }
 }
 
 /// <summary>Reads what the kept (not removed) <see cref="DiaryEntry"/> rows say about each food, each call through the <see cref="DatabaseGate"/>. Removed rows count for nothing.</summary>
@@ -38,7 +40,7 @@ internal sealed class FoodHistoryStore(SQLiteAsyncConnection connection, Databas
     private static object[] Args(Meal? meal, object[] before, params object[] after) =>
         [.. before, .. meal is { } m ? new object[] { (int)m } : [], .. after];
 
-    private const string Columns = "g.FoodId AS FoodId, g.Times AS TimesLogged, e.Id AS LastEntryId, e.Date AS LastDate, e.Amount AS LastAmount, e.Servings AS LastServings";
+    private const string Columns = "g.FoodId AS FoodId, g.Times AS TimesLogged, e.Id AS LastEntryId, e.Date AS LastDate, e.Amount AS LastAmount, e.Servings AS LastServings, e.ServingId AS LastServingId";
 
     /// <summary>Distinct foods, the food of the newest entry first. TimesLogged counts every kept entry of the food. The last values come from <paramref name="meal"/> when set (see <see cref="LastEntryInMeal"/>).</summary>
     public Task<List<FoodHistoryRow>> RecentAsync(int limit, Meal? meal = null) =>
@@ -66,27 +68,6 @@ internal sealed class FoodHistoryStore(SQLiteAsyncConnection connection, Databas
             LIMIT ?
             """,
             Args(meal, [(int)meal, since], limit)));
-
-    /// <summary>The foods among <paramref name="foodIds"/> that have a kept entry, in no set order; TimesLogged counts every kept entry. The last values come from <paramref name="meal"/> when set (see <see cref="LastEntryInMeal"/>).</summary>
-    public Task<List<FoodHistoryRow>> ForFoodsAsync(IReadOnlyCollection<int> foodIds, Meal? meal = null) =>
-        gate.RunAsync(async () =>
-        {
-            var found = new List<FoodHistoryRow>();
-            // Chunked so a long list stays under SQLite's limit on bound variables.
-            foreach (var chunk in foodIds.Distinct().Chunk(500))
-            {
-                var marks = string.Join(",", chunk.Select(_ => "?"));
-                found.AddRange(await connection.QueryAsync<FoodHistoryRow>(
-                    $"""
-                    SELECT {Columns}
-                    FROM (SELECT FoodId, COUNT(*) AS Times FROM DiaryEntry WHERE IsRemoved = 0 AND FoodId IN ({marks}) GROUP BY FoodId) g
-                    {LastEntryJoin(meal)}
-                    """,
-                    Args(meal, chunk.Cast<object>().ToArray())));
-            }
-
-            return found;
-        });
 
     /// <summary>Every food with a kept entry, in no set order; TimesLogged counts every kept entry. The last values come from <paramref name="meal"/> when set (see <see cref="LastEntryInMeal"/>).</summary>
     public Task<List<FoodHistoryRow>> AllAsync(Meal? meal = null) =>

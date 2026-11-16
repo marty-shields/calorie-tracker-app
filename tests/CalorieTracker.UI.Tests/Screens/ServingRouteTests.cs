@@ -32,6 +32,17 @@ public class ServingRouteTests
     }
 
     [Test]
+    public void Url_WithAPack_AddsItAlone_AndWithTheOtherQueryValues()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(ServingRoute.Url(5, pack: 1000), Is.EqualTo("/serving/5?pack=1000"));
+            Assert.That(ServingRoute.Url(5, backTo: "/", pack: 330.5), Is.EqualTo("/serving/5?back=%2F&pack=330.5"));
+            Assert.That(ServingRoute.ParseNumber("1000"), Is.EqualTo(1000));
+        });
+    }
+
+    [Test]
     public void Url_WithBackTo_AddsBackAlone() =>
         Assert.That(ServingRoute.Url(5, backTo: "/"), Is.EqualTo("/serving/5?back=%2F"));
 
@@ -175,7 +186,7 @@ public class ServingRouteTests
         {
             Assert.That(serving, Does.Contain("Name = \"entry\"").And.Contain("Name = \"amount\"").And.Contain("Name = \"servings\""));
             Assert.That(serving, Does.Contain("EntryId=\"EntryId\"").And.Contain("OnSaved=").And.Contain("OnRemoved=").And.Contain("DashboardRoute.Url(EntryDay)"));
-            Assert.That(home, Does.Contain("ServingRoute.EditUrl(request.Entry.EntryId, request.Entry.FoodId, request.Meal, request.Date, request.Entry.Amount, request.Entry.Servings)"));
+            Assert.That(home, Does.Contain("ServingRoute.EditUrl(request.Entry.EntryId, request.Entry.FoodId, request.Meal, request.Date, request.Entry.Amount, request.Entry.Servings, request.Entry.ServingId)"));
         });
     }
 }

@@ -27,6 +27,7 @@ public class FoodSearchTests
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
+        await connection.CreateTableAsync<Serving>();
         await connection.CreateTableAsync<DiaryEntry>();
         gate = new DatabaseGate();
         logger = new FakeLogger<FoodSearch>();
@@ -228,21 +229,44 @@ public class FoodSearchTests
     }
 
     [Test]
-    public async Task Search_TypoOnAMainWord_RanksAboveMatchOnlyInBrackets()
+    public async Task Search_TypoOnAMainWord_IsDroppedWhenAMatchInBracketsExists()
     {
         await Add("Aaa (milk)", "aaa (milk)");
         await Add("Zzz mlik", "zzz mlik");
 
-        Assert.That(await Names("milk"), Is.EqualTo(new[] { "Zzz mlik", "Aaa (milk)" }));
+        Assert.That(await Names("milk"), Is.EqualTo(new[] { "Aaa (milk)" }));
+    }
+
+    [Test]
+    public async Task Search_TypoMatches_AppearOnlyWhenNoExactPrefixOrBracketMatchExists()
+    {
+        await Add("Broad beans", "broad beans");
+        await Add("Brown bread", "brown bread");
+
+        Assert.That(await Names("bread"), Is.EqualTo(new[] { "Brown bread" }));
+
+        await connection.ExecuteAsync("DELETE FROM Food WHERE Name = 'Brown bread'");
+
+        Assert.That(await Names("bread"), Is.EqualTo(new[] { "Broad beans" }));
+    }
+
+    [Test]
+    public async Task Search_TwoWordQuery_DropsAFoodNeedingATypoWhenAnotherMatchesBothWordsPlainly()
+    {
+        await Add("Milk chocolate", "milk chocolate");
+        await Add("Milk chocolat", "milk chocolat");
+        await Add("Mlik chocolate", "mlik chocolate");
+
+        Assert.That(await Names("milk chocolate"), Is.EqualTo(new[] { "Milk chocolate" }));
     }
 
     [Test]
     public async Task Search_CommonFoodBoost_NotAppliedWhenTheWordMatchedByTypo()
     {
         await Add("Zzz mlik", "zzz mlik", originalName: "Milk, whole, average");
-        await Add("Aaa milky", "aaa milky");
+        await Add("Aaa mlik", "aaa mlik");
 
-        Assert.That(await Names("milk"), Is.EqualTo(new[] { "Aaa milky", "Zzz mlik" }));
+        Assert.That(await Names("milk"), Is.EqualTo(new[] { "Aaa mlik", "Zzz mlik" }));
     }
 
     [Test]

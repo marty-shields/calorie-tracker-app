@@ -47,3 +47,22 @@ Feature: Serving
     Given I am on Foods
     When I open Serving for a food that does not exist
     Then Serving says "Food not found"
+
+  Scenario: Add an own serving to a food
+    Given I have opened Serving for the first food found by "oat" with Lunch preset
+    When I add my own serving "1 bowl" of "40"
+    Then Serving shows the serving "1 bowl"
+    And Serving has the Grams and Servings switch
+    And the weight reads "= 40 g"
+
+  Scenario: Choose between two servings
+    Given I have opened Serving for the first food found by "oat" with Lunch preset
+    And I have added my own serving "1 bowl" of "40"
+    And I have added my own serving "1 cup" of "90"
+    Then the servings list reads "1 bowl, 1 cup"
+    When I choose the serving "1 bowl"
+    And I enter an amount of "2"
+    Then the weight reads "= 80 g"
+    When I tap Add
+    Then I am on the Dashboard
+    And the Lunch entry reads "2 servings · 1 bowl"

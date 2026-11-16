@@ -35,6 +35,32 @@ public class FoodDisplayTests
         Assert.That((display.Title, display.BrandLine), Is.EqualTo(("CRÈME  de la crème", (string?)null)));
     }
 
+    [TestCase("Goat Milk", "Oat", "Oat Goat Milk", null)]
+    [TestCase("Coat", "Oat", "Oat Coat", null)]
+    [TestCase("Oat Milk", "Oat", "Oat Milk", null)]
+    [TestCase("Creamy oat drink", "OAT", "Creamy oat drink", null)]
+    [TestCase("Cocacola Zero", "Coca-Cola", "Cocacola Zero", null)]
+    [TestCase("Cola Zero", "Coca-Cola", "Coca-Cola Cola Zero", null)]
+    public void Of_BrandMatchesWholeWordsOnly_NotPartOfAWord(string name, string brand, string title, string? line)
+    {
+        var display = FoodDisplay.Of(name, brand, null, null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(display.Title, Is.EqualTo(title));
+            Assert.That(display.BrandLine, Is.EqualTo(line));
+        });
+    }
+
+    [TestCase(null)]
+    [TestCase("Goat")]
+    public void Of_BrandsListWithOneWholeWordInTheName_ShowsTheOtherOnTheBrandLine(string? brand)
+    {
+        var display = FoodDisplay.Of("Goat Milk", brand, "Goat, Oat", null);
+
+        Assert.That((display.Title, display.BrandLine), Is.EqualTo(("Goat Milk", "Oat")));
+    }
+
     [Test]
     public void Of_NoBrandsListed_UsesTheSingleBrand()
     {

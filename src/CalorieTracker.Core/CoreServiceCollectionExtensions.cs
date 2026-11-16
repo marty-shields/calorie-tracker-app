@@ -36,6 +36,7 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<DaySummaryStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<FoodHistoryStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<FoodStore>(provider, connection))
+            .AddSingleton(provider => ActivatorUtilities.CreateInstance<ServingStore>(provider, connection))
             .AddDecoratedSingleton<IDatabaseInitializer, GatedDatabaseInitializer>(provider =>
                 ActivatorUtilities.CreateInstance<DatabaseInitializer>(provider, connection))
             .AddDecoratedSingleton<IBarcodeLookup, StoredBarcodeLookup>(provider => provider.GetRequiredService<OpenFoodFactsLookup>());
@@ -53,7 +54,10 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<ISchemaUpgrade, FoodServingCheckedUpgrade>()
             .AddSingleton<ISchemaUpgrade, FoodOriginalNameUpgrade>()
             .AddSingleton<ISchemaUpgrade, FoodSourceDetailsUpgrade>()
-            .AddSingleton<ISchemaUpgrade, FoodUnitUpgrade>();
+            .AddSingleton<ISchemaUpgrade, FoodUnitUpgrade>()
+            .AddSingleton<ISchemaUpgrade, FoodCordialUnitUpgrade>()
+            .AddSingleton<ISchemaUpgrade, ServingTableUpgrade>()
+            .AddSingleton<ISchemaUpgrade, BarcodeTableUpgrade>();
 
     private static IServiceCollection AddServices(this IServiceCollection services)
     {
@@ -61,6 +65,8 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton(TimeProvider.System)
             .AddSingleton<IFoodSearch, FoodSearch>()
             .AddSingleton(provider => new FoodService(provider.GetRequiredService<FoodStore>(), provider.GetRequiredService<ILogger<FoodService>>()))
+            .AddSingleton(provider => new FoodImportService(provider.GetRequiredService<FoodStore>(), provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<FoodImportService>>()))
+            .AddSingleton(provider => new ServingService(provider.GetRequiredService<ServingStore>(), provider.GetRequiredService<ILogger<ServingService>>()))
             .AddSingleton(provider => new TargetService(provider.GetRequiredService<TargetStore>(), provider.GetRequiredService<ILogger<TargetService>>()))
             .AddSingleton(provider => new DiaryService(provider.GetRequiredService<DiaryStore>(), provider.GetRequiredService<ILogger<DiaryService>>()))
             .AddSingleton(provider => new FoodHistoryService(provider.GetRequiredService<FoodHistoryStore>(), provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<FoodHistoryService>>()))

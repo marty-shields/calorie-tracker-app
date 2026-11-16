@@ -38,6 +38,9 @@ public partial class PageParameterTests
         {
             Assert.That(serving, Does.Contain("StartAmount=\"EntryId is null ? ServingRoute.ParseNumber(AmountText) : null\""));
             Assert.That(serving, Does.Contain("StartServings=\"EntryId is null ? ServingRoute.ParseNumber(ServingsText) : null\""));
+            Assert.That(serving, Does.Contain("StartServingId=\"EntryId is null ? ServingRoute.ParseId(ServingText) : null\""));
+            Assert.That(serving, Does.Contain("StartPackAmount=\"EntryId is null ? ServingRoute.ParseNumber(PackText) : null\""));
+            Assert.That(serving, Does.Contain("EntryServingId=\"ServingRoute.ParseId(ServingText)\""));
         });
     }
 
@@ -46,7 +49,7 @@ public partial class PageParameterTests
     {
         var foods = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Foods.razor");
 
-        Assert.That(Regex.Matches(foods, @"amount: request\.LastAmount, servings: request\.LastServings"), Has.Count.EqualTo(2));
+        Assert.That(Regex.Matches(foods, @"amount: request\.LastAmount, servings: request\.LastServings, servingId: request\.LastServingId"), Has.Count.EqualTo(2));
     }
 
     [GeneratedRegex(@"public\s+string\??\s+(\w+)\s*\{")]

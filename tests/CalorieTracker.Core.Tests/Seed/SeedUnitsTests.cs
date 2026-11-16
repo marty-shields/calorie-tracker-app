@@ -23,7 +23,8 @@ public class SeedUnitsTests
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
-        await connection.CreateTableAsync<FoodBarcode>();
+        await connection.CreateTableAsync<Serving>();
+        await connection.CreateTableAsync<Barcode>();
         await connection.CreateTableAsync<DiaryEntry>();
         await connection.CreateTableAsync<SeedVersion>();
         store = new FoodStore(connection, new DatabaseGate(), new FakeLogger<FoodStore>());
@@ -46,14 +47,14 @@ public class SeedUnitsTests
             Assert.That(foods.Where(f => f.FoodGroup is "BA" or "BAB" or "BAE" or "BAH" or "BAK" or "BC").Select(f => f.Unit), Is.All.EqualTo(FoodUnit.Millilitre));
             Assert.That(foods.Where(f => f.FoodGroup is "FC" && !f.OriginalName!.Contains("weighed as whole fruit")).Select(f => f.Unit), Is.All.EqualTo(FoodUnit.Millilitre));
             Assert.That(foods.Where(f => f.FoodGroup is "PCA" or "PAC").Select(f => f.Unit), Is.All.EqualTo(FoodUnit.Millilitre));
-            Assert.That(foods.Where(f => f.FoodGroup is "PCC" && f.OriginalName!.Contains("diluted") && !f.OriginalName.Contains("undiluted")).Select(f => f.Unit), Is.All.EqualTo(FoodUnit.Millilitre));
+            Assert.That(foods.Where(f => f.FoodGroup is "PCC").Select(f => f.Unit), Is.All.EqualTo(FoodUnit.Millilitre));
             foreach (var name in new[] { "Milk, semi-skimmed, UHT", "Milk, soya, non-dairy alternative to milk, unsweetened, fortified", "Orange juice, chilled", "Cola", "Tea, green, infusion", "Coffee, infusion, average", "Smoothies", "Carrot juice", "Water, distilled" })
             {
                 Assert.That(foods.Single(f => f.OriginalName == name).Unit, Is.EqualTo(FoodUnit.Millilitre), name);
             }
 
-            // The step's frozen list is the exact, sorted set of millilitre foods, so a seed change that moves a food shows here.
-            Assert.That(foods.Where(f => f.Unit == FoodUnit.Millilitre).Select(f => f.SourceId).Order(StringComparer.Ordinal), Is.EqualTo(FoodUnitUpgrade.MillilitreSourceIds));
+            // The frozen lists of steps 11 and 12 together are the exact set of millilitre foods, so a seed change that moves a food shows here.
+            Assert.That(foods.Where(f => f.Unit == FoodUnit.Millilitre).Select(f => f.SourceId).Order(StringComparer.Ordinal), Is.EqualTo(FoodUnitUpgrade.MillilitreSourceIds.Concat(FoodCordialUnitUpgrade.MillilitreSourceIds).Order(StringComparer.Ordinal)));
         });
     }
 
@@ -94,6 +95,7 @@ public class SeedUnitsTests
             try
             {
                 new FoodUnitUpgrade().Apply(db);
+                new FoodCordialUnitUpgrade().Apply(db);
             }
             finally
             {
@@ -154,6 +156,83 @@ public class SeedUnitsTests
             Assert.That(after.Meals[0].Totals, Is.EqualTo(before.Meals[0].Totals));
             Assert.That(entriesAfter.Select(e => (e.Id, e.FoodId, e.Amount, e.Servings, e.IsRemoved)), Is.EqualTo(entriesBefore.Select(e => (e.Id, e.FoodId, e.Amount, e.Servings, e.IsRemoved))));
         });
+    }
+
+    [Test]
+    public void Seed_UndilutedCordialAndSquash_AreInMillilitres_AndConcentratesAndWholeFruitJuicesStayInGrams()
+    {
+        var foods = BundledSeed();
+        var moved = foods.Where(f => f.OriginalName!.Contains("undiluted")).ToList();
+
+        Assert.Multiple(() =>
+        {
+            // The foods that moved from grams to millilitres in seed 8, and step 12's frozen list.
+            Assert.That(moved.Select(f => f.SourceId).Order(StringComparer.Ordinal), Is.EqualTo(new[] { "17-200", "17-674", "17-737", "17-738", "17-739", "17-740", "17-743" }));
+            Assert.That(moved.Select(f => f.SourceId).Order(StringComparer.Ordinal), Is.EqualTo(FoodCordialUnitUpgrade.MillilitreSourceIds));
+            Assert.That(moved.Select(f => f.Unit), Is.All.EqualTo(FoodUnit.Millilitre));
+            Assert.That(foods.Where(f => f.OriginalName!.Contains("concentrate", StringComparison.OrdinalIgnoreCase)).Select(f => f.Unit), Is.All.EqualTo(FoodUnit.Gram));
+            Assert.That(foods.Where(f => f.OriginalName!.Contains("weighed as whole fruit")).Select(f => f.Unit), Is.All.EqualTo(FoodUnit.Gram));
+            Assert.That(FoodUnitUpgrade.MillilitreSourceIds.Intersect(FoodCordialUnitUpgrade.MillilitreSourceIds), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task CordialStep_OnAnUpgradedDatabase_SetsMillilitresAndKeepsTheDiaryAndItsCalories()
+    {
+        var squash = BundledSeed().Single(f => f.SourceId == "17-737");
+        var juice = BundledSeed().Single(f => f.OriginalName == "Lemon juice, fresh, weighed as whole fruit");
+        squash.Unit = FoodUnit.Gram;
+        var squashId = (await store.UpsertAsync(squash)).Id;
+        var juiceId = (await store.UpsertAsync(juice)).Id;
+        await connection.CreateTableAsync<AppSettings>();
+        var diary = new DiaryService(new DiaryStore(connection, new DatabaseGate()), NullLogger<DiaryService>.Instance);
+        await diary.AddAsync(Day, Meal.Breakfast, squashId, 50);
+        await diary.AddAsync(Day, Meal.Breakfast, juiceId, 30);
+        var before = await Summary();
+        await connection.CloseAsync();
+
+        var db = new SQLiteConnection(databasePath);
+        try
+        {
+            new FoodCordialUnitUpgrade().Apply(db);
+            new FoodCordialUnitUpgrade().Apply(db);
+        }
+        finally
+        {
+            db.Close();
+        }
+
+        connection = new SQLiteAsyncConnection(databasePath);
+        store = new FoodStore(connection, new DatabaseGate(), new FakeLogger<FoodStore>());
+        var after = await Summary();
+        Assert.Multiple(() =>
+        {
+            Assert.That(before.Meals[0].Entries.Select(e => e.Unit), Is.EqualTo(new[] { FoodUnit.Gram, FoodUnit.Gram }));
+            Assert.That(after.Meals[0].Entries.Select(e => e.Unit), Is.EqualTo(new[] { FoodUnit.Millilitre, FoodUnit.Gram }));
+            Assert.That(after.Meals[0].Entries.Select(e => e.Nutrition), Is.EqualTo(before.Meals[0].Entries.Select(e => e.Nutrition)));
+            Assert.That(after.Meals[0].Entries.Select(e => (e.Amount, e.Servings)), Is.EqualTo(before.Meals[0].Entries.Select(e => (e.Amount, e.Servings))));
+            Assert.That(after.Meals[0].Totals, Is.EqualTo(before.Meals[0].Totals));
+        });
+    }
+
+    [Test]
+    public async Task CordialStep_LeavesAnOpenFoodFactsFoodWithAFrozenSourceIdInItsUnit()
+    {
+        await connection.InsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = FoodCordialUnitUpgrade.MillilitreSourceIds[0], Name = "Same id", Unit = FoodUnit.Gram, SearchText = "same id" });
+        await connection.CloseAsync();
+
+        var db = new SQLiteConnection(databasePath);
+        try
+        {
+            new FoodCordialUnitUpgrade().Apply(db);
+        }
+        finally
+        {
+            db.Close();
+        }
+
+        connection = new SQLiteAsyncConnection(databasePath);
+        Assert.That((await connection.Table<Food>().ToListAsync()).Single().Unit, Is.EqualTo(FoodUnit.Gram));
     }
 
     [Test]

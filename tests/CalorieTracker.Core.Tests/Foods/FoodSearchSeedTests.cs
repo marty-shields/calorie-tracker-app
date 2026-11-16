@@ -22,7 +22,8 @@ public class FoodSearchSeedTests
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
-        await connection.CreateTableAsync<FoodBarcode>();
+        await connection.CreateTableAsync<Serving>();
+        await connection.CreateTableAsync<Barcode>();
         await connection.CreateTableAsync<DiaryEntry>();
         await connection.CreateTableAsync<SeedVersion>();
         var gate = new DatabaseGate();
@@ -142,15 +143,13 @@ public class FoodSearchSeedTests
     }
 
     [Test]
-    public async Task PrefixAndExactMatchesInTheMainNameRankAboveTypoMatches()
+    public async Task Bread_ListsNoTypoMatchesSuchAsBroadBeans()
     {
-        static bool Starts(string name) => MainWords(name).Select(FoodRanker.Normalise).Any(w => w.StartsWith("bread", StringComparison.Ordinal));
         var names = await Names("bread");
-        var firstTypo = names.FindIndex(n => !Starts(n) && !n.Contains('('));
-        var lastMain = names.FindLastIndex(Starts);
 
-        Assert.That(firstTypo, Is.GreaterThan(-1), "the seed has typo matches for bread, such as Broad beans");
-        Assert.That(firstTypo, Is.GreaterThan(lastMain));
+        Assert.That(names, Is.Not.Empty);
+        Assert.That(names, Has.None.Contains("Broad beans"));
+        Assert.That(names, Has.All.Matches<string>(n => n!.Contains("bread", StringComparison.OrdinalIgnoreCase)), "every hit has bread in its name");
     }
 
     [Test]

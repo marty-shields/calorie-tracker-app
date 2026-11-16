@@ -26,6 +26,7 @@ public class FoodHistoryServiceTests
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
+        await connection.CreateTableAsync<Serving>();
         await connection.CreateTableAsync<DiaryEntry>();
         oats = await AddFood("Zebra oats");
         eggs = await AddFood("Zebra eggs");
@@ -53,6 +54,36 @@ public class FoodHistoryServiceTests
 
     private async Task<int> Log(int days, Meal meal, int foodId, double amount = 100, double? servings = null) =>
         (await diary.AddAsync(Today.AddDays(-days), meal, foodId, amount, servings)).Entry!.Id;
+
+    [Test]
+    public async Task RecentAndAll_CarryTheServingOfTheNewestEntry_NullWhenItWasByWeightOrItsServingWasDeleted()
+    {
+        var rows = new List<Serving>
+        {
+            new() { FoodId = oats, Label = "1 bowl", Amount = 40, Source = ServingSource.User, SortOrder = 2 },
+            new() { FoodId = oats, Label = "1 cup", Amount = 90, Source = ServingSource.User, SortOrder = 2 },
+        };
+        await connection.InsertAllAsync(rows);
+        await diary.AddAsync(Today.AddDays(-1), Meal.Lunch, oats, 40, 1, rows[0].Id);
+        var newest = await diary.AddAsync(Today, Meal.Dinner, oats, 180, 2, rows[1].Id);
+        await Log(0, Meal.Lunch, eggs, 100);
+
+        var inDinner = (await service.RecentAsync(10, Meal.Dinner)).Foods.Single(f => f.FoodId == oats);
+        var inLunch = (await service.RecentAsync(10, Meal.Lunch)).Foods.Single(f => f.FoodId == oats);
+        var any = (await service.RecentAsync(10)).Foods.Single(f => f.FoodId == oats);
+        var eggsLast = (await service.RecentAsync(10)).Foods.Single(f => f.FoodId == eggs);
+        await connection.ExecuteAsync("UPDATE DiaryEntry SET ServingId = NULL WHERE Id = ?", newest.Entry!.Id);
+        var cleared = (await service.RecentAsync(10)).Foods.Single(f => f.FoodId == oats);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That((inDinner.LastServingId, inDinner.LastServings, inDinner.LastAmount), Is.EqualTo(((int?)rows[1].Id, (double?)2, 180.0)));
+            Assert.That(inLunch.LastServingId, Is.EqualTo(rows[0].Id));
+            Assert.That(any.LastServingId, Is.EqualTo(rows[1].Id));
+            Assert.That(eggsLast.LastServingId, Is.Null);
+            Assert.That(cleared.LastServingId, Is.Null);
+        });
+    }
 
     [Test]
     public async Task RecentAsync_ListsEachFoodOnceNewestFirstAndRespectsTheLimit()
@@ -151,13 +182,13 @@ public class FoodHistoryServiceTests
 
         Assert.That((await service.RecentAsync()).Foods.Select(f => f.FoodId), Is.EqualTo(new[] { eggs }));
         Assert.That((await service.UsualAsync(Meal.Breakfast)).Foods.Select(f => f.FoodId), Is.EqualTo(new[] { eggs }));
-        Assert.That((await service.ForFoodsAsync([oats, eggs])).Foods.Select(f => f.FoodId), Is.EqualTo(new[] { eggs }));
+        Assert.That((await service.AllAsync()).Foods.Select(f => f.FoodId), Is.EqualTo(new[] { eggs }));
 
         await diary.RestoreAsync(removedId);
 
         Assert.That((await service.RecentAsync()).Foods.Select(f => f.FoodId), Is.EqualTo(new[] { oats, eggs }));
         Assert.That((await service.UsualAsync(Meal.Breakfast)).Foods.Select(f => f.FoodId), Is.EqualTo(new[] { oats, eggs }));
-        Assert.That((await service.ForFoodsAsync([oats])).Foods.Single().LastEntryId, Is.EqualTo(removedId));
+        Assert.That((await service.AllAsync()).Foods.Single(f => f.FoodId == oats).LastEntryId, Is.EqualTo(removedId));
     }
 
     [Test]
@@ -168,11 +199,11 @@ public class FoodHistoryServiceTests
         await Log(1, Meal.Dinner, oats, 210);
         await Log(1, Meal.Dinner, eggs, 90);
 
-        var forBreakfast = (await service.ForFoodsAsync([oats, eggs], Meal.Breakfast)).Foods.ToDictionary(f => f.FoodId);
-        var forDinner = (await service.ForFoodsAsync([oats, eggs], Meal.Dinner)).Foods.ToDictionary(f => f.FoodId);
+        var forBreakfast = (await service.AllAsync(Meal.Breakfast)).Foods.ToDictionary(f => f.FoodId);
+        var forDinner = (await service.AllAsync(Meal.Dinner)).Foods.ToDictionary(f => f.FoodId);
         var recentBreakfast = (await service.RecentAsync(10, Meal.Breakfast)).Foods.ToDictionary(f => f.FoodId);
         var usualBreakfast = (await service.UsualAsync(Meal.Breakfast)).Foods.Single();
-        var anyMeal = (await service.ForFoodsAsync([oats])).Foods.Single();
+        var anyMeal = (await service.AllAsync()).Foods.Single(f => f.FoodId == oats);
 
         Assert.Multiple(() =>
         {
@@ -193,7 +224,7 @@ public class FoodHistoryServiceTests
         var breakfast = await Log(1, Meal.Breakfast, oats, 150);
         await diary.RemoveAsync(breakfast);
 
-        Assert.That((await service.ForFoodsAsync([oats], Meal.Breakfast)).Foods.Single().LastAmount, Is.EqualTo(200));
+        Assert.That((await service.AllAsync(Meal.Breakfast)).Foods.Single().LastAmount, Is.EqualTo(200));
     }
 
     [Test]
@@ -217,26 +248,27 @@ public class FoodHistoryServiceTests
 
         Assert.That((await service.RecentAsync()).Foods.Single().LastServings, Is.Null);
         Assert.That((await service.UsualAsync(Meal.Lunch)).Foods.Single().LastServings, Is.Null);
-        Assert.That((await service.ForFoodsAsync([oats])).Foods.Single().LastServings, Is.Null);
+        Assert.That((await service.AllAsync()).Foods.Single(f => f.FoodId == oats).LastServings, Is.Null);
     }
 
     [Test]
-    public async Task ForFoodsAsync_GivesCountAndLastForEachLoggedFoodAndSkipsTheRest()
+    public async Task AllAsync_GivesCountAndLastForEachLoggedFoodAndSkipsTheRest()
     {
         await Log(3, Meal.Lunch, oats);
         var last = await Log(1, Meal.Dinner, oats, 70);
         await Log(2, Meal.Lunch, eggs);
 
-        var result = await service.ForFoodsAsync([oats, soup, oats, 9999]);
+        var result = await service.AllAsync();
 
-        var only = result.Foods.Single();
+        var only = result.Foods.Single(f => f.FoodId == oats);
+        Assert.That(result.Foods.Select(f => f.FoodId), Is.EquivalentTo(new[] { oats, eggs }));
         Assert.That((only.FoodId, only.TimesLogged, only.LastEntryId, only.LastAmount, only.LastDate), Is.EqualTo((oats, 2, last, 70.0, Today.AddDays(-1))));
     }
 
     [Test]
     public async Task EmptyDiary_ReturnsFoundWithNoFoods()
     {
-        foreach (var result in new[] { await service.RecentAsync(), await service.UsualAsync(Meal.Lunch), await service.ForFoodsAsync([oats]), await service.ForFoodsAsync([]) })
+        foreach (var result in new[] { await service.RecentAsync(), await service.UsualAsync(Meal.Lunch), await service.AllAsync() })
         {
             Assert.That(result.Status, Is.EqualTo(FoodHistoryStatus.Found));
             Assert.That(result.Foods, Is.Empty);
@@ -248,7 +280,7 @@ public class FoodHistoryServiceTests
     {
         await connection.ExecuteAsync("DROP TABLE DiaryEntry");
 
-        foreach (var result in new[] { await service.RecentAsync(), await service.UsualAsync(Meal.Lunch), await service.ForFoodsAsync([oats]) })
+        foreach (var result in new[] { await service.RecentAsync(), await service.UsualAsync(Meal.Lunch), await service.AllAsync() })
         {
             Assert.That(result.Status, Is.EqualTo(FoodHistoryStatus.Failed));
             Assert.That(result.Foods, Is.Empty);
@@ -276,15 +308,6 @@ public class FoodHistoryServiceTests
     }
 
     [Test]
-    public async Task ForFoodsAsync_MoreIdsThanOneChunk_ReadsThemAll()
-    {
-        await Log(1, Meal.Lunch, oats);
-        var ids = Enumerable.Range(100000, 1200).Append(oats).ToList();
-
-        Assert.That((await service.ForFoodsAsync(ids)).Foods.Select(f => f.FoodId), Is.EqualTo(new[] { oats }));
-    }
-
-    [Test]
     public async Task EveryRead_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
     {
         var gate = new DatabaseGate();
@@ -293,7 +316,7 @@ public class FoodHistoryServiceTests
         {
             () => held.RecentAsync(),
             () => held.UsualAsync(Meal.Lunch),
-            () => held.ForFoodsAsync([oats]),
+            () => held.AllAsync(),
         };
 
         foreach (var read in reads)
@@ -322,7 +345,7 @@ public class FoodHistoryServiceTests
         await diary.AddAsync(date, Meal.Snacks, soup, 7531.25, 8642.5);
         await service.RecentAsync();
         await service.UsualAsync(Meal.Snacks);
-        await service.ForFoodsAsync([soup]);
+        await service.AllAsync();
 
         var lines = LoggedEvents.Of(logger);
         Assert.That(lines.Select(l => l.Id), Is.EqualTo(new[] { CoreEvent.FoodHistoryRecent, CoreEvent.FoodHistoryUsual, CoreEvent.FoodHistoryForFoods }));

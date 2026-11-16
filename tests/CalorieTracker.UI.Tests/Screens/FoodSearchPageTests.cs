@@ -467,8 +467,8 @@ public class FoodSearchPageTests : ComponentTestBase
     private static readonly Food Brand = new() { Id = 3, Name = "Oat bar", Brand = "Acme", Unit = FoodUnit.Gram, Kcal = 400, ServingLabel = "1 bar", ServingAmount = 40 };
     private static readonly Food Rice = new() { Id = 4, Name = "Rice", Unit = FoodUnit.Gram, Kcal = 130 };
 
-    private static FoodListing Logged(Food food, double amount, double? servings = null, int times = 1) =>
-        new(food, new CalorieTracker.Core.History.FoodHistory(food.Id, times, 1, new DateOnly(2031, 7, 19), amount, servings));
+    private static FoodListing Logged(Food food, double amount, double? servings = null, int times = 1, int? servingId = null) =>
+        new(food, new CalorieTracker.Core.History.FoodHistory(food.Id, times, 1, new DateOnly(2031, 7, 19), amount, servings, servingId));
 
     private static string[] Ids(IRenderedComponent<FoodSearchPage> cut, string selector) =>
         cut.FindAll(selector).Select(e => e.GetAttribute("data-testid")!).ToArray();
@@ -658,6 +658,19 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task Tapping_ALoggedFood_CarriesTheServingItWasLoggedWith()
+    {
+        search.Groups = [new FoodGroup(FoodGroupKind.Diary, [Logged(Brand, 660, servings: 2, servingId: 12)])];
+        var requests = new List<FoodAddRequest>();
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch).Add(x => x.OnAdd, requests.Add));
+        await cut.Find("[data-testid=food-search-input]").InputAsync("o");
+
+        await cut.Find("[data-testid=food-result-3]").ClickAsync(new());
+
+        Assert.That(requests, Is.EqualTo(new[] { new FoodAddRequest(Brand, "o", 660, 2, 12) }));
+    }
+
+    [Test]
     public async Task Tapping_ANeverLoggedFood_RaisesOnAddWithNoAmount()
     {
         search.Groups = [new FoodGroup(FoodGroupKind.Common, [new FoodListing(Oats, null)])];
@@ -667,7 +680,7 @@ public class FoodSearchPageTests : ComponentTestBase
 
         await cut.Find("[data-testid=food-result-1]").ClickAsync(new());
 
-        Assert.That(requests.Single(), Has.Property(nameof(FoodAddRequest.LastAmount)).Null.And.Property(nameof(FoodAddRequest.LastServings)).Null);
+        Assert.That(requests.Single(), Has.Property(nameof(FoodAddRequest.LastAmount)).Null.And.Property(nameof(FoodAddRequest.LastServings)).Null.And.Property(nameof(FoodAddRequest.LastServingId)).Null);
     }
 
     [Test]

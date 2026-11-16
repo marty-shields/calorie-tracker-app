@@ -52,3 +52,13 @@
     place-items: center;
     height: 100%;
 }
+
+.own-actions {
+    display: flex;
+    gap: var(--space-3);
+}
+
+.own-actions > * {
+    flex: 1 1 0;
+    min-width: 0;
+}

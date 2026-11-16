@@ -11,8 +11,15 @@ Saved responses of `GET https://world.openfoodfacts.org/api/v2/product/{barcode}
 | details-cola-can-5000112637922.json | 5000112637922 | Coca-Cola can: `product_quantity` 330 with `product_quantity_unit` `ml`, Swedish `generic_name`, a serving in grams (`330 g`) that does not match the ml unit |
 | details-mars-5000159407236.json | 5000159407236 | Mars bar: `product_quantity` 51, `serving_size` `100 g`, and `en:serving-quantity-over-product-quantity` in `data_quality_warnings_tags`, so no serving is stored |
 | details-weetabix-5010029000023.json | 5010029000023 | Weetabix: `serving_size` `37.5 gram`, `pnns_groups_2` `Breakfast cereals`, `product_quantity` 430 |
+| details-cola-original-5449000214911.json | 5449000214911 | Coca-Cola Original 330 ml (captured 2026-11-17, same request as the other `details-*` files): brand `Coca-Cola`, 42 kcal, serving `330ml` |
+| details-cola-zero-5449000131805.json | 5449000131805 | Coca-Cola Zero Sugar 330 ml (captured 2026-11-17): 0 kcal |
+| details-cola-light-5449000050205.json | 5449000050205 | Coca-Cola Light 330 ml (captured 2026-11-17): brand `COCA-COLA SERVICES SA/NV`, 0.2 kcal |
+| details-cola-original-taste-1-5l-5449000000439.json | 5449000000439 | Coca Cola Original Taste 1.5L (captured 2026-11-17): 45 kcal, `product_quantity` 1500 ml |
+| details-oreo-7622300336738.json | 7622300336738 | Oreo Original 154 g (captured 2026-11-17): 472 kcal, grams |
 | missing-0000000000017.json | 0000000000017 | HTTP 200, `status` 0 (no such product) |
 | not-food-8410757001090.json | 8410757001090 | HTTP 404, `status` 0 (a product of another type) |
 | missing-values-6111246651261.json | 6111246651261 | HTTP 200, `status` 1 (product found) but `product` is empty: no name or nutriments (captured 2026-11-14) |
 
-The four `details-*` files were captured 2026-11-16 with one request each, using the current field list: `GET https://world.openfoodfacts.org/api/v2/product/{barcode}?fields=product_name,brands,nutriments,product_quantity_unit,serving_quantity_unit,categories_tags,serving_size,serving_quantity,generic_name,quantity,product_quantity,pnns_groups_2,unique_scans_n,completeness,last_modified_t,data_quality_warnings_tags`. The service also returned a few keys that were not asked for; they are ignored. No image field is requested. The older files above were captured with the shorter field list and stay as they were.
+The `details-*` files for Nutella, the Coca-Cola can, Mars and Weetabix were captured 2026-11-16 with one request each, using the current field list: `GET https://world.openfoodfacts.org/api/v2/product/{barcode}?fields=product_name,brands,nutriments,product_quantity_unit,serving_quantity_unit,categories_tags,serving_size,serving_quantity,generic_name,quantity,product_quantity,pnns_groups_2,unique_scans_n,completeness,last_modified_t,data_quality_warnings_tags`. The service also returned a few keys that were not asked for; they are ignored. No image field is requested. The older files above were captured with the shorter field list and stay as they were.
+
+The 1 L and 2 L sizes of Coca-Cola Original used by `FoodImportServiceTests` are not saved responses: the test changes the Original response's pack, name and serving in memory. The five responses of 2026-11-17 were each fetched once.

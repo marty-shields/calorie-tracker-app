@@ -5,6 +5,7 @@ using CalorieTracker.Core.Foods;
 using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Logging;
 using CalorieTracker.UI.Screens;
+using CalorieTracker.UI.Stories.Stories.Screens;
 using CalorieTracker.UI.Tests.Stories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Time.Testing;
 using SQLite;
+using StoredServing = CalorieTracker.Core.Data.Serving;
 
 namespace CalorieTracker.UI.Tests.Screens;
 
@@ -36,9 +38,12 @@ public class ServingPageTests : ComponentTestBase
             .BuildServiceProvider();
         await core.GetRequiredService<IDatabaseInitializer>().InitializeAsync();
         connection = new SQLiteAsyncConnection(databasePath);
-        pizzaId = await Insert(Stored(ScreenStates.Pizza, "pizza"));
+        var pizza = Stored(ScreenStates.Pizza, "pizza");
+        (pizza.ServingLabel, pizza.ServingAmount) = ("½ pizza (201.8 g)", 201.8);
+        pizzaId = await Insert(pizza);
         cheddarId = await Insert(Stored(ScreenStates.Cheddar, "cheddar"));
         Context.Services.AddSingleton(core.GetRequiredService<FoodService>());
+        Context.Services.AddSingleton(core.GetRequiredService<ServingService>());
         Context.Services.AddSingleton(core.GetRequiredService<DiaryService>());
         Context.Services.AddSingleton<TimeProvider>(Clock(12, 40));
     }
@@ -63,14 +68,27 @@ public class ServingPageTests : ComponentTestBase
         ProteinG = from.ProteinG,
         CarbsG = from.CarbsG,
         FatG = from.FatG,
+        PackageAmount = from.PackageAmount,
         ServingLabel = from.ServingLabel,
         ServingAmount = from.ServingAmount,
         SearchText = from.Name.ToLowerInvariant(),
     };
 
+    /// <summary>Stores the food and, as the lookup's write path does, its serving rows: a Product row for the serving set on it (as it is, unbounded) and a Pack row for a pack of 1000 g or ml at most.</summary>
     private async Task<int> Insert(Food food)
     {
         await connection.InsertAsync(food);
+        if (food.ServingAmount is { } amount)
+        {
+            await connection.InsertAsync(new StoredServing { FoodId = food.Id, Label = food.ServingLabel ?? "", Amount = amount, Source = ServingSource.Product, SortOrder = 0 });
+        }
+
+        if (food.PackageAmount is > 0 and <= 1000 && food.PackageAmount != food.ServingAmount)
+        {
+            var unit = food.Unit == FoodUnit.Millilitre ? "ml" : "g";
+            await connection.InsertAsync(new StoredServing { FoodId = food.Id, Label = $"Whole pack ({food.PackageAmount:0.##} {unit})", Amount = food.PackageAmount.Value, Source = ServingSource.Pack, SortOrder = 1 });
+        }
+
         return food.Id;
     }
 
@@ -156,14 +174,14 @@ public class ServingPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task FoodWithAPackAndARealServing_KeepsTheRealServing()
+    public async Task FoodWithAPackAndARealServing_OffersBothWithTheRealServingFirstAndThePackClearlyLabelled()
     {
         var id = await InsertMars(51, "2 squares (20 g)", 20);
         var cut = Render(id, Meal.Snacks);
 
         Assert.Multiple(() =>
         {
-            Assert.That(Text(cut, "serving-label"), Is.EqualTo("2 squares (20 g)"));
+            Assert.That(OptionTexts(cut), Is.EqualTo(new[] { "2 squares (20 g)", "Whole pack (51 g)" }));
             Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 20 g"));
         });
     }
@@ -1156,5 +1174,348 @@ public class ServingPageTests : ComponentTestBase
             Assert.That(failed, Is.True);
             Assert.That(Exists(cut, "serving-error"), Is.False);
         });
+    }
+
+    private int colaId;
+    private int glassId;
+    private int canId;
+
+    /// <summary>A drink with two servings: its own glass (250 ml) and its can (330 ml, a Pack row).</summary>
+    private async Task SeedCola()
+    {
+        var cola = Stored(ServingSamples.Cola, "cola");
+        (cola.ServingLabel, cola.ServingAmount) = ("1 glass (250 ml)", 250);
+        colaId = await Insert(cola);
+        var rows = await connection.QueryAsync<StoredServing>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY SortOrder", colaId);
+        (glassId, canId) = (rows[0].Id, rows[1].Id);
+    }
+
+    private static string[] OptionTexts(IRenderedComponent<ServingPage> cut) => [.. cut.FindAll("[data-testid=serving-select] option").Select(o => o.TextContent.Trim())];
+
+    [Test]
+    public async Task FoodWithTwoServings_OpensOnTheFirstWithAListOfBoth()
+    {
+        await SeedCola();
+
+        var cut = Render(colaId, Meal.Snacks);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(OptionTexts(cut), Is.EqualTo(new[] { "1 glass (250 ml)", "Whole pack (330 ml)" }));
+            Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 250 ml"));
+            Assert.That(Text(cut, "serving-amount-unit"), Is.EqualTo("serving"));
+        });
+    }
+
+    [Test]
+    public async Task ChoosingTheOtherServing_UsesItsAmountForTheWeightAndWhatIsLogged_AndSavesItsId()
+    {
+        await SeedCola();
+        var cut = Render(colaId, Meal.Snacks);
+
+        await cut.Find("[data-testid=serving-select]").ChangeAsync(new() { Value = "1" });
+        await cut.Find("[data-testid=serving-amount-plus]").ClickAsync(new());
+        var weight = Text(cut, "serving-weight");
+        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
+
+        var entry = (await Entries()).Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(weight, Is.EqualTo("= 660 ml"));
+            Assert.That((entry.Amount, entry.Servings, entry.ServingId), Is.EqualTo((660.0, (double?)2, (int?)canId)));
+        });
+    }
+
+    [Test]
+    public async Task ByWeight_SavesNoServingId()
+    {
+        await SeedCola();
+        var cut = Render(colaId, Meal.Snacks);
+
+        await cut.Find("[data-testid=serving-mode-grams]").ChangeAsync(new());
+        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
+
+        Assert.That((await Entries()).Single().ServingId, Is.Null);
+    }
+
+    [Test]
+    public async Task SwitchingModesAcrossAServing_KeepsTheWeight()
+    {
+        await SeedCola();
+        var cut = Render(colaId, Meal.Snacks);
+        await cut.Find("[data-testid=serving-select]").ChangeAsync(new() { Value = "1" });
+
+        await cut.Find("[data-testid=serving-mode-grams]").ChangeAsync(new());
+        var grams = cut.Find("[data-testid=serving-amount]").GetAttribute("value");
+        await cut.Find("[data-testid=serving-use-serving]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(grams, Is.EqualTo("330"));
+            Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 330 ml"));
+        });
+    }
+
+    [Test]
+    public async Task StartServingId_OpensOnThatServingWithTheSameCount()
+    {
+        await SeedCola();
+
+        var cut = Render(colaId, Meal.Snacks, more: p => p.Add(x => x.StartAmount, 660).Add(x => x.StartServings, 2).Add(x => x.StartServingId, canId));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { false, true }));
+            Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("2"));
+            Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 660 ml"));
+        });
+    }
+
+    [Test]
+    public async Task StartPackAmount_OpensOnTheServingOfThatSize_WhenNoServingIsNamed()
+    {
+        await SeedCola();
+
+        var cut = Render(colaId, Meal.Snacks, more: p => p.Add(x => x.StartPackAmount, 330.0));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { false, true }));
+            Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 330 ml"));
+        });
+    }
+
+    [TestCase(500.0)]
+    [TestCase(null)]
+    public async Task StartPackAmount_NoServingOfThatSize_OpensOnTheSmallest(double? pack)
+    {
+        await SeedCola();
+
+        var cut = Render(colaId, Meal.Snacks, more: p => p.Add(x => x.StartPackAmount, pack));
+
+        Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { true, false }));
+    }
+
+    [Test]
+    public async Task StartServingId_BeatsTheScannedPack()
+    {
+        await SeedCola();
+
+        var cut = Render(colaId, Meal.Snacks, more: p => p.Add(x => x.StartAmount, 250).Add(x => x.StartServings, 1).Add(x => x.StartServingId, (int?)null).Add(x => x.StartPackAmount, 330.0));
+        var logged = Render(colaId, Meal.Snacks, more: p => p.Add(x => x.StartAmount, 250).Add(x => x.StartServings, 1).Add(x => x.StartServingId, glassId).Add(x => x.StartPackAmount, 330.0));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { false, true }));
+            Assert.That(logged.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { true, false }), "the serving last logged wins over the scanned pack");
+        });
+    }
+
+    [TestCase(null)]
+    [TestCase(99999)]
+    public async Task StartServingId_NullOrOneTheFoodDoesNotHave_OpensOnTheSmallestServing(int? unknown)
+    {
+        await SeedCola();
+
+        var cut = Render(colaId, Meal.Snacks, more: p => p.Add(x => x.StartAmount, 500).Add(x => x.StartServings, 2).Add(x => x.StartServingId, unknown));
+
+        Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { true, false }));
+    }
+
+    [Test]
+    public async Task Edit_OfAnEntryAddedByAServing_OpensOnThatServing_AndSaveKeepsOrChangesIt()
+    {
+        await SeedCola();
+        var entry = (await core.GetRequiredService<DiaryService>().AddAsync(Day, Meal.Snacks, colaId, 330, 1, canId)).Entry!;
+        var cut = Loaded(Context.Render<ServingPage>(p => p.Add(x => x.FoodId, colaId).Add(x => x.Meal, Meal.Snacks).Add(x => x.Date, Day)
+            .Add(x => x.EntryId, entry.Id).Add(x => x.EntryAmount, 330.0).Add(x => x.EntryServings, 1.0).Add(x => x.EntryServingId, canId)));
+        var opened = cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")).ToArray();
+
+        await cut.Find("[data-testid=serving-select]").ChangeAsync(new() { Value = "0" });
+        await cut.Find("[data-testid=serving-save]").ClickAsync(new());
+
+        var saved = await Kept(entry.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(opened, Is.EqualTo(new[] { false, true }));
+            Assert.That((saved!.Amount, saved.Servings, saved.ServingId), Is.EqualTo((250.0, (double?)1, (int?)glassId)));
+        });
+    }
+
+    [TestCase(null)]
+    [TestCase(99999)]
+    public async Task Edit_OfAnEntryWhoseServingTheFoodDoesNotOffer_KeepsItsCountAndLinkOnSave(int? unknown)
+    {
+        await SeedCola();
+        var entry = (await core.GetRequiredService<DiaryService>().AddAsync(Day, Meal.Snacks, colaId, 500, 2, null)).Entry!;
+        var cut = Loaded(Context.Render<ServingPage>(p => p.Add(x => x.FoodId, colaId).Add(x => x.Meal, Meal.Snacks).Add(x => x.Date, Day)
+            .Add(x => x.EntryId, entry.Id).Add(x => x.EntryAmount, 500.0).Add(x => x.EntryServings, 2.0).Add(x => x.EntryServingId, unknown)));
+        await cut.Find("[data-testid=serving-save]").ClickAsync(new());
+
+        var saved = await Kept(entry.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That((saved!.Amount, saved.Servings, saved.ServingId), Is.EqualTo((500.0, (double?)2, (int?)null)));
+        });
+    }
+
+    [Test]
+    public async Task AddingAnOwnServing_WhenTheReloadFails_ShowsTheLoadError()
+    {
+        await SeedCola();
+        var cut = Render(colaId, Meal.Snacks);
+        await cut.Find("[data-testid=serving-own-add]").ClickAsync(new());
+        await cut.Find("[data-testid=serving-own-label]").InputAsync(new() { Value = "My mug" });
+        await cut.Find("[data-testid=serving-own-amount]").InputAsync(new() { Value = "200" });
+        // The serving is written, then the food can no longer be read (a fetch time that is no date), as when the database fails between the two calls.
+        await connection.ExecuteAsync("CREATE TRIGGER BreakFood AFTER INSERT ON Serving BEGIN UPDATE Food SET FetchedAt = -1 WHERE Id = NEW.FoodId; END");
+
+        await cut.Find("[data-testid=serving-own-save]").ClickAsync(new());
+
+        Assert.That(Text(cut, "serving-load-failed-error"), Is.EqualTo("Couldn't load this food"));
+    }
+
+    [Test]
+    public async Task AddingAnOwnServing_SavesItAsAUserRow_AndOpensOnItCountingOne()
+    {
+        await SeedCola();
+        var cut = Render(colaId, Meal.Snacks);
+
+        await cut.Find("[data-testid=serving-own-add]").ClickAsync(new());
+        await cut.Find("[data-testid=serving-own-label]").InputAsync(new() { Value = "My mug" });
+        await cut.Find("[data-testid=serving-own-amount]").InputAsync(new() { Value = "200" });
+        await cut.Find("[data-testid=serving-own-save]").ClickAsync(new());
+
+        var rows = await connection.QueryAsync<StoredServing>("SELECT * FROM Serving WHERE FoodId = ? AND Source = ?", colaId, (int)ServingSource.User);
+        Assert.Multiple(() =>
+        {
+            Assert.That(rows.Select(r => (r.Label, r.Amount)), Is.EqualTo(new[] { ("My mug", 200.0) }));
+            Assert.That(OptionTexts(cut), Is.EqualTo(new[] { "1 glass (250 ml)", "Whole pack (330 ml)", "My mug" }));
+            Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { false, false, true }));
+            Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("1"));
+            Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 200 ml"));
+            Assert.That(Exists(cut, "serving-own-label"), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task AddingAnOwnServing_ToAFoodWithNone_TurnsOnServings()
+    {
+        var cut = Render(cheddarId, Meal.Lunch);
+
+        await cut.Find("[data-testid=serving-own-add]").ClickAsync(new());
+        await cut.Find("[data-testid=serving-own-label]").InputAsync(new() { Value = "1 slice" });
+        await cut.Find("[data-testid=serving-own-amount]").InputAsync(new() { Value = "28" });
+        await cut.Find("[data-testid=serving-own-save]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "serving-label"), Is.EqualTo("1 slice"));
+            Assert.That(cut.Find("[data-testid=serving-mode-servings]").HasAttribute("checked"), Is.True);
+            Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 28 g"));
+        });
+    }
+
+    [Test]
+    public async Task AddingAnOwnServing_OfAnAmountTheFoodAlreadyHasOfItsOwn_SaysSoAndKeepsTheForm()
+    {
+        await SeedCola();
+        var cut = Render(colaId, Meal.Snacks);
+        async Task AddOwn(string label)
+        {
+            await cut.Find("[data-testid=serving-own-add]").ClickAsync(new());
+            await cut.Find("[data-testid=serving-own-label]").InputAsync(new() { Value = label });
+            await cut.Find("[data-testid=serving-own-amount]").InputAsync(new() { Value = "200" });
+            await cut.Find("[data-testid=serving-own-save]").ClickAsync(new());
+        }
+
+        await AddOwn("My mug");
+        await AddOwn("Big mug");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "serving-own-error"), Is.EqualTo("You already have a serving of that size."));
+            Assert.That(cut.Find("[data-testid=serving-own-label]").GetAttribute("value"), Is.EqualTo("Big mug"));
+        });
+    }
+
+    [Test]
+    public async Task OwnForm_CancelAndEditing_ClearTheError_AndCancelHidesTheForm()
+    {
+        await SeedCola();
+        var cut = Render(colaId, Meal.Snacks);
+        await cut.Find("[data-testid=serving-own-add]").ClickAsync(new());
+
+        await cut.Find("[data-testid=serving-own-cancel]").ClickAsync(new());
+
+        Assert.That(Exists(cut, "serving-own-label"), Is.False);
+    }
+
+    [Test]
+    public async Task OwnForm_AFailedSave_SaysSo()
+    {
+        await SeedCola();
+        var cut = Render(colaId, Meal.Snacks);
+        await cut.Find("[data-testid=serving-own-add]").ClickAsync(new());
+        await cut.Find("[data-testid=serving-own-label]").InputAsync(new() { Value = "My mug" });
+        await cut.Find("[data-testid=serving-own-amount]").InputAsync(new() { Value = "200" });
+        await connection.ExecuteAsync("DROP TABLE Serving");
+
+        await cut.Find("[data-testid=serving-own-save]").ClickAsync(new());
+
+        Assert.That(Text(cut, "serving-own-error"), Is.EqualTo("Couldn't save this serving. Try again."));
+    }
+
+    [Test]
+    public async Task DeletingAnOwnServing_RemovesIt_KeepsItsEntriesAndOpensOnTheFirstServing()
+    {
+        await SeedCola();
+        var own = (await core.GetRequiredService<ServingService>().AddAsync(colaId, "My mug", 200)).Serving!;
+        var entry = (await core.GetRequiredService<DiaryService>().AddAsync(Day, Meal.Snacks, colaId, 400, 2, own.Id)).Entry!;
+        var cut = Render(colaId, Meal.Snacks, more: p => p.Add(x => x.StartAmount, 400).Add(x => x.StartServings, 2).Add(x => x.StartServingId, own.Id));
+        var before = cut.Find("[data-testid=serving-own-delete]").TextContent.Trim();
+
+        await cut.Find("[data-testid=serving-own-delete]").ClickAsync(new());
+
+        var kept = await Kept(entry.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(before, Is.EqualTo("Delete serving: My mug"));
+            Assert.That(OptionTexts(cut), Is.EqualTo(new[] { "1 glass (250 ml)", "Whole pack (330 ml)" }));
+            Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { true, false }));
+            Assert.That(Exists(cut, "serving-own-delete"), Is.False);
+            Assert.That((kept!.Amount, kept.Servings, kept.ServingId), Is.EqualTo((400.0, (double?)2, (int?)null)));
+        });
+    }
+
+    [Test]
+    public async Task DeletingTheOnlyServing_FallsBackToGramsAtTheSameWeight()
+    {
+        var own = (await core.GetRequiredService<ServingService>().AddAsync(cheddarId, "1 slice", 28)).Serving!;
+        var cut = Render(cheddarId, Meal.Lunch, more: p => p.Add(x => x.StartAmount, 56).Add(x => x.StartServings, 2).Add(x => x.StartServingId, own.Id));
+
+        await cut.Find("[data-testid=serving-own-delete]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Exists(cut, "serving-mode"), Is.False);
+            Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("56"));
+            Assert.That(Text(cut, "serving-amount-unit"), Is.EqualTo("g"));
+        });
+    }
+
+    [Test]
+    public async Task OwnServingActions_LogNothingTheScreenOwns_AndNothingTyped()
+    {
+        var logger = new FakeLogger<ServingPage>();
+        Context.Services.AddSingleton<Microsoft.Extensions.Logging.ILogger<ServingPage>>(logger);
+        await SeedCola();
+        var cut = Render(colaId, Meal.Snacks);
+        await cut.Find("[data-testid=serving-own-add]").ClickAsync(new());
+        await cut.Find("[data-testid=serving-own-label]").InputAsync(new() { Value = "Grandma's secret mug" });
+        await cut.Find("[data-testid=serving-own-amount]").InputAsync(new() { Value = "123.4" });
+        await cut.Find("[data-testid=serving-own-save]").ClickAsync(new());
+
+        Assert.That(logger.Collector.GetSnapshot().Select(r => r.Message), Has.None.Contain("Grandma").And.None.Contain("123"));
     }
 }

@@ -4,7 +4,7 @@ namespace CalorieTracker.Core.Data;
 
 /// <summary>
 /// Step 11: sets the stored CoFID foods that seed 7 measures in millilitres (milk, juice, tea and other liquids) to <c>Millilitre</c>. It does not wait for the seed reload, which can leave a food a diary entry points at as it was.
-/// The ids are frozen here, so the step gives the same result whatever seed the app bundles later; <c>SeedUnitsTests</c> checks the list equals the seed 7 millilitre foods. The step only sets millilitres: a later seed's unit changes come from the seed load.
+/// The ids are frozen here, so the step gives the same result whatever seed the app bundles later; <c>SeedUnitsTests</c> checks the list, with step 12's, equals the seed's millilitre foods. The list stays as it was; step 12 (<c>FoodCordialUnitUpgrade</c>) adds the undiluted cordials and squashes. The step only sets millilitres: a later seed's unit changes come from the seed load.
 /// Only <c>Unit</c> changes: a diary entry keeps its amount, and its calories (amount / 100 * the food's per-100 values) are the same in either unit. Safe on a database with no Food table, and when run again.
 /// </summary>
 internal sealed class FoodUnitUpgrade : ISchemaUpgrade
