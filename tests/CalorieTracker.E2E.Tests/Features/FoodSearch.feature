@@ -51,3 +51,8 @@ Feature: Food search
     Given I have opened Foods
     When I go back to the Dashboard
     Then I am on the Dashboard
+
+  Scenario: An old link with a type still opens search with the query typed
+    When I open the old link "/foods?q=oat&type=Drink"
+    Then "oat" is still typed
+    And the results include a food named like "oat"

@@ -17,6 +17,14 @@ public sealed class FoodSearchSteps(FoodSearchScreen foods, NavigationBar naviga
         navigation.Open("Foods");
     }
 
+    [When(@"^I open the old link ""(.*)""$")]
+    public void WhenIOpenTheOldLink(string route)
+    {
+        journeys.WaitFor(Journeys.Screen.Dashboard);
+        web.NavigateTo(route);
+        foods.WaitUntilLoaded();
+    }
+
     [Given(@"^I have searched for ""(.*)""$")]
     [When(@"^I search for ""(.*)""$")]
     public void WhenISearchFor(string text) => foods.Search(text);

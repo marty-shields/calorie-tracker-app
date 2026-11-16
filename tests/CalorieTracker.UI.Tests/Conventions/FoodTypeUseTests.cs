@@ -12,20 +12,17 @@ public partial class FoodTypeUseTests
         "src/CalorieTracker.Core/Foods/OpenFoodFactsLookup.cs",
     ];
 
-    /// <summary>The Android <c>WindowInsets.Type</c> calls, which have nothing to do with a food.</summary>
-    private static readonly string[] WindowInsetsFiles =
-    [
-        "src/CalorieTracker.App/Keyboard/AndroidKeyboardRestore.cs",
-        "src/CalorieTracker.App/Components/SystemBarInsets.cs",
-    ];
-
     [GeneratedRegex(@"\bFoodType\b|\.\s*Type\b")]
     private static partial Regex TypeUse();
 
     [GeneratedRegex(@"//[^\r\n]*|/\*.*?\*/|@\*.*?\*@", RegexOptions.Singleline)]
     private static partial Regex Comments();
 
-    private static string WithoutComments(string source) => Comments().Replace(source, "");
+    /// <summary>The Android <c>WindowInsets.Type</c> and <c>WindowInsetsCompat.Type</c> calls, which have nothing to do with a food.</summary>
+    [GeneratedRegex(@"\bWindowInsets(Compat)?\s*\.\s*Type\b")]
+    private static partial Regex WindowInsetsType();
+
+    private static string WithoutComments(string source) => WindowInsetsType().Replace(Comments().Replace(source, ""), "");
 
     [Test]
     public void NoCodeOutsideCoreDataAndSeed_ReadsTheFoodType()
@@ -39,7 +36,6 @@ public partial class FoodTypeUseTests
         Assert.That(scanned, Is.Not.Empty);
 
         var offenders = scanned
-            .Where(file => !WindowInsetsFiles.Contains(file.Path))
             .Where(file => TypeUse().IsMatch(WithoutComments(File.ReadAllText(file.Full))))
             .Select(file => file.Path)
             .ToList();
