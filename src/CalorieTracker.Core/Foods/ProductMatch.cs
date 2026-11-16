@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+using System.Text;
 using CalorieTracker.Core.Data;
 
 namespace CalorieTracker.Core.Foods;
@@ -7,7 +7,7 @@ namespace CalorieTracker.Core.Foods;
 /// The strict rule for deciding that two Open Food Facts products are one food sold in different sizes (a 330 ml can and a 1 L bottle of the same drink).
 /// Every part must hold, so anything doubtful stays two foods: a missed merge costs a second food, a wrong one gives a person the wrong nutrients.
 /// </summary>
-internal static partial class ProductMatch
+internal static class ProductMatch
 {
     /// <summary>A nutrient per 100 matches when it differs by at most this fraction of the larger value, or by <see cref="AbsoluteTolerance"/>, whichever is more.</summary>
     public const double RelativeTolerance = 0.02;
@@ -54,7 +54,7 @@ internal static partial class ProductMatch
     /// A size word is a number with a unit: ml, cl, dl, l, litre(s), liter(s), g, kg, gram(s), oz. Words such as "zero", "light" or "sugar" are kept, which is what keeps variants apart.
     /// </summary>
     public static string NormaliseName(string? name) =>
-        name is null ? "" : NormaliseWords(Size().Replace(SearchFolding.Fold(name), " "));
+        name is null ? "" : NormaliseWords(RemoveSizes(SearchFolding.Fold(name)));
 
     private static string NormaliseWords(string? text)
     {
@@ -63,7 +63,14 @@ internal static partial class ProductMatch
             return "";
         }
 
-        var letters = NotLetterOrDigit().Replace(SearchFolding.Fold(text), " ");
+        var folded = SearchFolding.Fold(text);
+        var letters = string.Create(folded.Length, folded, static (span, source) =>
+        {
+            for (var i = 0; i < source.Length; i++)
+            {
+                span[i] = IsWordChar(source[i]) ? source[i] : ' ';
+            }
+        });
         return string.Join(' ', letters.Split(' ', StringSplitOptions.RemoveEmptyEntries));
     }
 
@@ -73,9 +80,70 @@ internal static partial class ProductMatch
     private static bool Within(double? a, double? b) =>
         a is null || b is null ? a is null && b is null : Within(a.Value, b.Value);
 
-    [GeneratedRegex(@"(?<![\p{L}\p{N}])\d+(?:[.,]\d+)?\s*(?:ml|cl|dl|ltr|litres|litre|liters|liter|l|kg|gram|grams|gr|g|oz)(?![\p{L}\p{N}])")]
-    private static partial Regex Size();
+    private static readonly HashSet<string> SizeUnits = new(StringComparer.Ordinal)
+    {
+        "ml", "cl", "dl", "ltr", "litres", "litre", "liters", "liter", "l", "kg", "gram", "grams", "gr", "g", "oz",
+    };
 
-    [GeneratedRegex(@"[^\p{L}\p{N}]+")]
-    private static partial Regex NotLetterOrDigit();
+    private static bool IsWordChar(char c) => char.IsLetter(c) || char.IsNumber(c);
+
+    /// <summary>Replaces each size (a number, an optional space, then a whole-word unit) with one space. A number glued to a letter or digit before it, or a unit that continues into more letters or digits, is not a size.</summary>
+    private static string RemoveSizes(string text)
+    {
+        var result = new StringBuilder(text.Length);
+        var i = 0;
+        while (i < text.Length)
+        {
+            var end = SizeEnd(text, i);
+            if (end > i)
+            {
+                result.Append(' ');
+                i = end;
+            }
+            else
+            {
+                result.Append(text[i]);
+                i++;
+            }
+        }
+
+        return result.ToString();
+    }
+
+    /// <summary>The index after the size that starts at <paramref name="start"/>, or <paramref name="start"/> when none does.</summary>
+    private static int SizeEnd(string text, int start)
+    {
+        if (!char.IsDigit(text[start]) || (start > 0 && IsWordChar(text[start - 1])))
+        {
+            return start;
+        }
+
+        var i = start;
+        while (i < text.Length && char.IsDigit(text[i]))
+        {
+            i++;
+        }
+
+        if (i + 1 < text.Length && text[i] is '.' or ',' && char.IsDigit(text[i + 1]))
+        {
+            i++;
+            while (i < text.Length && char.IsDigit(text[i]))
+            {
+                i++;
+            }
+        }
+
+        while (i < text.Length && char.IsWhiteSpace(text[i]))
+        {
+            i++;
+        }
+
+        var unitEnd = i;
+        while (unitEnd < text.Length && IsWordChar(text[unitEnd]))
+        {
+            unitEnd++;
+        }
+
+        return SizeUnits.Contains(text[i..unitEnd]) ? unitEnd : start;
+    }
 }

@@ -38,6 +38,14 @@ public class ProductMatchTests
     [TestCase("Cola 7up", "cola 7up")]
     [TestCase("  Pack of 6  ", "pack of 6")]
     [TestCase("330 ml", "")]
+    [TestCase("Cola 330 ml 6 pack", "cola 6 pack")]
+    [TestCase("Cola 5 kgs", "cola 5 kgs")]
+    [TestCase("Cola 1.ml", "cola 1 ml")]
+    [TestCase("Cola 1.5", "cola 1 5")]
+    [TestCase("Cola a1l", "cola a1l")]
+    [TestCase("Cola 12 ", "cola 12")]
+    [TestCase("Cola 6oz", "cola")]
+    [TestCase("Cola 2 gr", "cola")]
     [TestCase("", "")]
     public void NormaliseName_FoldsAndDropsSizeWordsOnly(string name, string expected)
     {
