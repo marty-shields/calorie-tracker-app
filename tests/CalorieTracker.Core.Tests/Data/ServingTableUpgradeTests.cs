@@ -88,7 +88,17 @@ public class ServingTableUpgradeTests
         await connection.CloseAsync();
         connection = new SQLiteAsyncConnection(databasePath);
         var logger = new Microsoft.Extensions.Logging.Testing.FakeLogger<DatabaseInitializer>();
-        await new DatabaseInitializer(connection, SchemaSteps.All(), logger).InitializeAsync();
+        await new DatabaseInitializer(connection, [.. SchemaSteps.All().Where(s => s.Version != 15), new NoStep15()], logger).InitializeAsync();
+    }
+
+    /// <summary>Stands in for step 15, which adds packs this step's tests do not expect.</summary>
+    private sealed class NoStep15 : ISchemaUpgrade
+    {
+        public int Version => 15;
+
+        public void Apply(SQLiteConnection db)
+        {
+        }
     }
 
     private async Task<DaySummary> Summary()

@@ -58,7 +58,8 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<ISchemaUpgrade, FoodUnitUpgrade>()
             .AddSingleton<ISchemaUpgrade, FoodCordialUnitUpgrade>()
             .AddSingleton<ISchemaUpgrade, ServingTableUpgrade>()
-            .AddSingleton<ISchemaUpgrade, BarcodeTableUpgrade>();
+            .AddSingleton<ISchemaUpgrade, BarcodeTableUpgrade>()
+            .AddSingleton<ISchemaUpgrade, PackServingUpgrade>();
 
     private static IServiceCollection AddServices(this IServiceCollection services)
     {

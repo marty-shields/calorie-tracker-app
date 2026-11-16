@@ -8,7 +8,7 @@ using SQLite;
 
 namespace CalorieTracker.Core.Tests.Data;
 
-/// <summary>Step 14 over a database built by the version before it (schema 13).</summary>
+/// <summary>Step 14 (and the steps after it) over a database built by the version before it (schema 13).</summary>
 public class BarcodeTableUpgradeTests
 {
     private const string ColaCode = "5449000214911";
@@ -186,7 +186,7 @@ public class BarcodeTableUpgradeTests
 
         await Assert.MultipleAsync(async () =>
         {
-            Assert.That(await connection.ExecuteScalarAsync<int>("PRAGMA user_version"), Is.EqualTo(14));
+            Assert.That(await connection.ExecuteScalarAsync<int>("PRAGMA user_version"), Is.EqualTo(15));
             Assert.That((result.Status, result.Food!.Id, result.PackAmount), Is.EqualTo((FoodImportStatus.Known, colaId, (double?)330)));
             Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(4));
         });
