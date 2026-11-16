@@ -72,6 +72,7 @@ LIQUID_NAME_RULES = [
 ]
 # sourceId -> why: single liquids that no group or name rule captures.
 LIQUID_IDS = {
+    "12-373": "sweetened lassi is a drink but sits in the yoghurt group (BN)",
     "13-607": "carrot juice sits in the vegetables group",
 }
 # sourceId -> why: single foods the liquid rules catch that stay in grams.
