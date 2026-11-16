@@ -13,7 +13,7 @@ public sealed class DiarySteps(ServingScreen serving, FoodSearchScreen foods, Da
     private IReadOnlyList<string> entryBefore = [];
     private int eatenBefore;
 
-    [Given(@"^I have added the first food found by ""([^""]*)"" to " + Meals + "$")]
+    [Given(@"^I have added 100 g of the first food found by ""([^""]*)"" to " + Meals + "$")]
     public void GivenIHaveAddedTheFirstFoodFoundByTo(string text, string meal)
     {
         journeys.WaitFor(Journeys.Screen.Dashboard);
@@ -21,6 +21,7 @@ public sealed class DiarySteps(ServingScreen serving, FoodSearchScreen foods, Da
         foods.Search(text);
         foods.OpenFirstResult();
         serving.WaitUntilOpen();
+        serving.EnterGrams("100");
         serving.Add();
         journeys.WaitFor(Journeys.Screen.Dashboard);
         web.Eventually(() => dashboard.Entries(meal).Count, Is.EqualTo(1));

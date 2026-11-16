@@ -12,7 +12,7 @@
 @inject ILogger<ServingPage> Logger
 
 <ServingView Food="food" Loading="loading" LoadFailed="loadFailed" Mode="mode" Amount="amount" Grams="Grams" Meal="meal" SuggestedAt="suggestedAt"
-             Saving="saving" SaveFailed="saveFailed" Editing="Editing" Date="Date" RemoveFailed="removeFailed" EntryGone="entryGone" OnSave="SaveAsync" OnRemove="RemoveAsync" OnModeChanged="ChangeMode" OnAmountChanged="ChangeAmount" OnUseServing="UseServing"
+             Saving="saving" Removing="removing" SaveFailed="saveFailed" Editing="Editing" Date="Date" RemoveFailed="removeFailed" EntryGone="entryGone" OnSave="SaveAsync" OnRemove="RemoveAsync" OnModeChanged="ChangeMode" OnAmountChanged="ChangeAmount" OnUseServing="UseServing"
              OnMealChanged="ChangeMeal" OnAdd="AddAsync" OnRetry="LoadAsync" OnBack="OnBack" />
 
 @code {
@@ -27,6 +27,7 @@
     private Meal meal;
     private TimeOnly? suggestedAt;
     private bool saving;
+    private bool removing;
     private bool saveFailed;
     private bool removeFailed;
     private bool entryGone;
@@ -41,11 +42,11 @@
     [Parameter, EditorRequired]
     public int FoodId { get; set; }
 
-    /// <summary>The meal chosen before coming here, such as from a meal's +. Null suggests one from the time of day and shows the time it was suggested from.</summary>
+    /// <summary>The meal chosen before coming here, such as from a meal's +. Null suggests one from the time of day and shows the time it was suggested from. Edit mode needs it: null opens "Food not found".</summary>
     [Parameter]
     public Meal? Meal { get; set; }
 
-    /// <summary>The day the entry is added to.</summary>
+    /// <summary>The day the entry is added to, or the entry's day in edit mode, where the default (no day) opens "Food not found" instead.</summary>
     [Parameter]
     public DateOnly Date { get; set; }
 
@@ -61,7 +62,7 @@
     [Parameter]
     public int? EntryId { get; set; }
 
-    /// <summary>The entry's stored weight in g or ml, for edit mode. Null opens with the same defaults as adding.</summary>
+    /// <summary>The entry's stored weight in g or ml, for edit mode. Null opens "Food not found" rather than defaults that would overwrite the entry.</summary>
     [Parameter]
     public double? EntryAmount { get; set; }
 
@@ -134,10 +135,19 @@
     private async Task LoadAsync()
     {
         var requested = FoodId;
+        var requestedEntry = EntryId;
         loading = true;
         loadFailed = false;
+        if (Editing && (Meal is null || Date == default || EntryAmount is null))
+        {
+            // The route can't say what the entry holds, so Save would overwrite it with defaults: show nothing to save.
+            loading = false;
+            food = null;
+            return;
+        }
+
         var result = await Foods.GetAsync(requested);
-        if (requested != FoodId)
+        if (requested != FoodId || requestedEntry != EntryId)
         {
             return;
         }
@@ -194,6 +204,7 @@
         var grams = Grams is { } raw ? Math.Min(raw, CarryLimit) : (double?)null;
         mode = next;
         saveFailed = false;
+        removeFailed = false;
         if (next == EntryMode.Grams)
         {
             amount = grams is { } g ? ToDecimal(g) : null;
@@ -222,6 +233,7 @@
         amount = 1;
         lockedGrams = null;
         saveFailed = false;
+        removeFailed = false;
     }
 
     private void ChangeAmount(decimal? value)
@@ -241,29 +253,37 @@
 
     private double? Servings => mode == EntryMode.Servings && HasServing && amount is { } count ? (double)count : null;
 
-    private async Task AddAsync()
+    /// <summary>Runs one save or remove with its busy flag on and the errors cleared. A throw clears the flag, since the screen stays.</summary>
+    private async Task<DiaryResult> RunAsync(bool removal, Func<Task<DiaryResult>> call)
     {
-        if (saving || food is null || Grams is not { } grams || !ServingRules.IsValidGrams(grams))
-        {
-            return;
-        }
-
-        var servings = Servings;
-        saving = true;
+        saving = !removal;
+        removing = removal;
         saveFailed = false;
+        removeFailed = false;
         try
         {
-            var result = await Diary.AddAsync(Date, meal, food.Id, grams, servings);
-            saveFailed = result.Status != DiaryStatus.Ok;
-            if (!saveFailed)
-            {
-                Announce(food.Name, meal, Date, result.Entry!);
-            }
+            return await call();
         }
         catch
         {
             saving = false;
+            removing = false;
             throw;
+        }
+    }
+
+    private async Task AddAsync()
+    {
+        if (saving || removing || food is null || Grams is not { } grams || !ServingRules.IsValidGrams(grams))
+        {
+            return;
+        }
+
+        var result = await RunAsync(false, () => Diary.AddAsync(Date, meal, food.Id, grams, Servings));
+        saveFailed = result.Status != DiaryStatus.Ok;
+        if (!saveFailed)
+        {
+            Announce(food.Name, meal, Date, result.Entry!);
         }
 
         // After a save the screen is left, so stay busy: a tap between the save and the navigation must not add a second entry.
@@ -278,25 +298,12 @@
     /// <summary>Saves the changed amount and meal of the entry. An entry gone meanwhile says so and keeps the screen.</summary>
     private async Task SaveAsync()
     {
-        if (saving || EntryId is not { } id || entryGone || food is null || Grams is not { } grams || !ServingRules.IsValidGrams(grams))
+        if (saving || removing || EntryId is not { } id || entryGone || food is null || Grams is not { } grams || !ServingRules.IsValidGrams(grams))
         {
             return;
         }
 
-        saving = true;
-        saveFailed = false;
-        removeFailed = false;
-        DiaryResult result;
-        try
-        {
-            result = await Diary.UpdateAsync(id, Date, meal, grams, Servings);
-        }
-        catch
-        {
-            saving = false;
-            throw;
-        }
-
+        var result = await RunAsync(false, () => Diary.UpdateAsync(id, Date, meal, grams, Servings));
         entryGone = result.Status == DiaryStatus.NotFound;
         saveFailed = result.Status is not (DiaryStatus.Ok or DiaryStatus.NotFound);
 
@@ -311,33 +318,21 @@
     /// <summary>Removes the entry and posts "{food} removed" with Undo. An entry already gone is left as removed, with no message.</summary>
     private async Task RemoveAsync()
     {
-        if (saving || EntryId is not { } id || food is null)
+        if (saving || removing || EntryId is not { } id)
         {
             return;
         }
 
-        saving = true;
-        saveFailed = false;
-        removeFailed = false;
-        DiaryResult result;
-        try
-        {
-            result = await Diary.RemoveAsync(id);
-        }
-        catch
-        {
-            saving = false;
-            throw;
-        }
-
+        var text = food is null ? "Entry removed" : $"{food.Name} removed";
+        var result = await RunAsync(true, () => Diary.RemoveAsync(id));
         if (result.Status == DiaryStatus.Ok)
         {
-            Snackbar.Show($"{food.Name} removed", "Undo", () => RestoreAsync(Diary, Snackbar, Logger, id));
+            Snackbar.Show(text, "Undo", () => RestoreAsync(Diary, Snackbar, Logger, id));
         }
 
         removeFailed = result.Status is not (DiaryStatus.Ok or DiaryStatus.NotFound);
-        saving = !removeFailed;
-        if (saving)
+        removing = !removeFailed;
+        if (removing)
         {
             await OnRemoved.InvokeAsync();
         }

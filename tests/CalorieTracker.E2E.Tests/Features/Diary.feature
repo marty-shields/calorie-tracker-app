@@ -2,14 +2,14 @@ Feature: Diary
   Tapping an entry on the Dashboard opens Serving in edit mode. Save changes the amount or moves the entry to another meal; the trash icon removes it, and the Dashboard offers Undo. Each scenario adds one entry first.
 
   Scenario: An entry opens Serving in edit mode with a named trash icon
-    Given I have added the first food found by "oat" to Lunch
+    Given I have added 100 g of the first food found by "oat" to Lunch
     When I tap the Lunch entry
     Then Serving is in edit mode with a Save button and no Add button
     And the trash icon is named "Remove entry"
     And Serving shows the Lunch meal and day
 
   Scenario: Editing the amount updates the entry and the totals
-    Given I have added the first food found by "oat" to Lunch
+    Given I have added 100 g of the first food found by "oat" to Lunch
     When I tap the Lunch entry
     And I enter an amount of "50"
     And I tap Save
@@ -18,7 +18,7 @@ Feature: Diary
     And the calories eaten went down
 
   Scenario: Changing the meal moves the entry
-    Given I have added the first food found by "oat" to Lunch
+    Given I have added 100 g of the first food found by "oat" to Lunch
     When I tap the Lunch entry
     And I choose Dinner on Serving
     And I tap Save
@@ -27,7 +27,7 @@ Feature: Diary
     And Dinner lists 1 entry
 
   Scenario: Back from edit mode leaves the entry as it was
-    Given I have added the first food found by "oat" to Lunch
+    Given I have added 100 g of the first food found by "oat" to Lunch
     When I tap the Lunch entry
     And I enter an amount of "50"
     And I tap Back on Serving in edit mode
@@ -35,7 +35,7 @@ Feature: Diary
     And the Lunch entry is the same as before
 
   Scenario: Removing an entry offers Undo, and Undo restores it exactly
-    Given I have added the first food found by "oat" to Lunch
+    Given I have added 100 g of the first food found by "oat" to Lunch
     When I tap the Lunch entry
     And I tap the trash icon
     Then I am on the Dashboard
@@ -47,7 +47,7 @@ Feature: Diary
     And the calories eaten are as before
 
   Scenario: Removing an entry and not tapping Undo leaves it removed
-    Given I have added the first food found by "oat" to Lunch
+    Given I have added 100 g of the first food found by "oat" to Lunch
     When I tap the Lunch entry
     And I tap the trash icon
     Then the snackbar says " removed" with the action "Undo"

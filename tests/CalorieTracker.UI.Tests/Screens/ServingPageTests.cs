@@ -937,4 +937,68 @@ public class ServingPageTests : ComponentTestBase
 
         Assert.That(back, Is.True);
     }
+
+    [Test]
+    public async Task Edit_ThenAnotherEntryOfTheSameFood_ShowsTheNewEntry_AndForgetsTheGoneNotice()
+    {
+        var (cut, idA) = await RenderEditing(cheddarId, Meal.Lunch, 30);
+        await core.GetRequiredService<DiaryService>().RemoveAsync(idA);
+        await cut.Find("[data-testid=serving-save]").ClickAsync(new());
+        var goneBefore = Exists(cut, "serving-gone");
+        var idB = (await core.GetRequiredService<DiaryService>().AddAsync(Day, Meal.Dinner, cheddarId, 70)).Entry!.Id;
+
+        cut.Render(p => p.Add(x => x.EntryId, idB).Add(x => x.EntryAmount, 70.0).Add(x => x.Meal, Meal.Dinner));
+        cut.WaitForState(() => cut.FindAll("[data-testid=serving-amount]").Count > 0 && cut.Find("[data-testid=serving-amount]").GetAttribute("value") == "70");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(goneBefore, Is.True);
+            Assert.That(Exists(cut, "serving-gone"), Is.False);
+            Assert.That(Text(cut, "serving-when"), Is.EqualTo("Dinner · 19 Jul"));
+            Assert.That(cut.Find("[data-testid=serving-save]").HasAttribute("disabled"), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task Edit_WithoutAValidAmountMealOrDay_ShowsNotFound_WithNoSaveOrTrash()
+    {
+        var entry = (await core.GetRequiredService<DiaryService>().AddAsync(Day, Meal.Lunch, cheddarId, 30)).Entry!;
+
+        foreach (var (name, meal, date, amount) in new (string, Meal?, DateOnly, double?)[]
+        {
+            ("amount", Meal.Lunch, Day, null),
+            ("meal", null, Day, 30),
+            ("date", Meal.Lunch, default, 30),
+        })
+        {
+            var cut = Loaded(Context.Render<ServingPage>(p => p.Add(x => x.FoodId, cheddarId).Add(x => x.Meal, meal).Add(x => x.Date, date)
+                .Add(x => x.EntryId, entry.Id).Add(x => x.EntryAmount, amount)));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(Exists(cut, "serving-not-found"), Is.True, name);
+                Assert.That(Exists(cut, "serving-save"), Is.False, name);
+                Assert.That(Exists(cut, "serving-remove"), Is.False, name);
+            });
+        }
+
+        Assert.That((await Kept(entry.Id))!.Amount, Is.EqualTo(30.0));
+    }
+
+    [Test]
+    public async Task Remove_ThenSwitchingModeOrUsingServing_ClearsTheRemoveError()
+    {
+        var (cut, _) = await RenderEditing(pizzaId, Meal.Lunch, 150, 0.74);
+        await connection.ExecuteAsync("DROP TABLE DiaryEntry");
+        await cut.Find("[data-testid=serving-remove]").ClickAsync(new());
+        var failed = Exists(cut, "serving-error");
+
+        await cut.Find("[data-testid=serving-mode-grams]").ChangeAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(failed, Is.True);
+            Assert.That(Exists(cut, "serving-error"), Is.False);
+        });
+    }
 }

@@ -8,7 +8,7 @@
 @using CalorieTracker.UI.Models.Serving
 <AppScreen Title="@(Food?.Name ?? (Editing ? "Edit entry" : "Add food"))" OnBack="OnBack">
     <Actions>
-        @if (Editing)
+        @if (Editing && Food is not null && !Loading && !LoadFailed)
         {
             <IconButton Icon="IconName.Delete" AriaLabel="Remove entry" TestId="serving-remove" OnClick="OnRemove" />
         }
@@ -39,7 +39,7 @@
                 {
                     <p class="when" data-testid="serving-when">@Meal · @Date.ToString("d MMM", CultureInfo.InvariantCulture)</p>
                 }
-                @if (!Editing)
+                else
                 {
                     <p class="per" data-testid="serving-per" data-wrap-ok>@PerLine(food)</p>
                 }
@@ -91,11 +91,11 @@
         {
             @if (Editing)
             {
-                <AppButton FullWidth Busy="Saving" Disabled="!Valid || EntryGone" TestId="serving-save" OnClick="OnSave">@(Saving ? "Saving…" : "Save")</AppButton>
+                <AppButton FullWidth Busy="Saving" Disabled="!Valid || EntryGone || Removing" TestId="serving-save" OnClick="OnSave">@(Saving ? "Saving…" : "Save")</AppButton>
             }
             else
             {
-                <AppButton FullWidth Busy="Saving" Disabled="!Valid" TestId="serving-add" OnClick="OnAdd">@(Saving ? "Adding…" : $"Add to {Meal}")</AppButton>
+                <AppButton FullWidth Busy="Saving" Disabled="!Valid || Removing" TestId="serving-add" OnClick="OnAdd">@(Saving ? "Adding…" : $"Add to {Meal}")</AppButton>
             }
         }
     </BottomBar>
@@ -151,6 +151,10 @@
     /// <summary>Shows Add as busy while the entry is saved.</summary>
     [Parameter]
     public bool Saving { get; set; }
+
+    /// <summary>Disables Save and Add while the entry is removed.</summary>
+    [Parameter]
+    public bool Removing { get; set; }
 
     /// <summary>Shows the save error above the Add button.</summary>
     [Parameter]

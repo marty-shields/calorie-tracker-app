@@ -5,13 +5,13 @@
 @inject TimeProvider Time
 
 @* Query: entry (an entry's id: edit mode, with amount and servings as the entry holds them; Back, Save and Remove then go to the day's Dashboard), meal (preset), date (yyyy-MM-dd, default today), return (an in-app route for Back and a saved entry), back (an in-app route for Back alone). *@
-<ServingPage FoodId="FoodId" Meal="ServingRoute.ParseMeal(MealText)" Date="ServingRoute.ParseDate(DateText, Today)"
+<ServingPage FoodId="FoodId" Meal="ServingRoute.ParseMeal(MealText)" Date="EntryId is null ? ServingRoute.ParseDate(DateText, Today) : RouteDate.Parse(DateText) ?? default"
              EntryId="EntryId" EntryAmount="ServingRoute.ParseNumber(AmountText)" EntryServings="ServingRoute.ParseNumber(ServingsText)"
-             OnSaved="@(() => Navigation.GoTo(ServingRoute.EditTarget(ServingRoute.ParseDate(DateText, Today))))"
-             OnRemoved="@(() => Navigation.GoTo(ServingRoute.EditTarget(ServingRoute.ParseDate(DateText, Today))))"
+             OnSaved="@(() => Navigation.GoTo(DashboardRoute.Url(EntryDay)))"
+             OnRemoved="@(() => Navigation.GoTo(DashboardRoute.Url(EntryDay)))"
              AfterAdd="ServingRoute.FollowUpFor(ReturnTo)"
              ViewDay="@(day => { Navigation.GoTo(DashboardRoute.Url(day)); return Task.CompletedTask; })"
-             OnBack="@(() => Navigation.GoTo(EntryId is null ? ServingRoute.BackTarget(BackTo, ReturnTo) : ServingRoute.EditTarget(ServingRoute.ParseDate(DateText, Today))))"
+             OnBack="@(() => Navigation.GoTo(EntryId is null ? ServingRoute.BackTarget(BackTo, ReturnTo) : DashboardRoute.Url(EntryDay)))"
              OnAdded="@(() => Navigation.GoTo(ServingRoute.AfterAddTarget(ReturnTo, RouteDate.Parse(DateText))))" />
 
 @code {
@@ -38,6 +38,9 @@
 
     [SupplyParameterFromQuery(Name = "back")]
     public string? BackTo { get; set; }
+
+    /// <summary>The entry's day, or today when the route names none, for where Back, Save and Remove go in edit mode.</summary>
+    private DateOnly EntryDay => ServingRoute.ParseDate(DateText, Today);
 
     private DateOnly Today => DateOnly.FromDateTime(Time.GetLocalNow().DateTime);
 }

@@ -155,6 +155,16 @@ public class ServingRouteTests
         Assert.That(ServingRoute.ParseNumber(text), Is.Null);
 
     [Test]
-    public void EditTarget_IsTheEntrysDayOnTheDashboard() =>
-        Assert.That(ServingRoute.EditTarget(new DateOnly(2031, 7, 15)), Is.EqualTo("/?date=2031-07-15"));
+    public void TheAppsPages_WireEditThroughTheEditRouteAndTheDashboard()
+    {
+        var serving = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Serving.razor");
+        var home = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Home.razor");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(serving, Does.Contain("Name = \"entry\"").And.Contain("Name = \"amount\"").And.Contain("Name = \"servings\""));
+            Assert.That(serving, Does.Contain("EntryId=\"EntryId\"").And.Contain("OnSaved=").And.Contain("OnRemoved=").And.Contain("DashboardRoute.Url(EntryDay)"));
+            Assert.That(home, Does.Contain("ServingRoute.EditUrl(request.Entry.EntryId, request.Entry.FoodId, request.Meal, request.Date, request.Entry.Amount, request.Entry.Servings)"));
+        });
+    }
 }

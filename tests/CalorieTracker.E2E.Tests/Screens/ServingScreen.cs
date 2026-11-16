@@ -23,6 +23,17 @@ public sealed class ServingScreen(WebView web)
 
     public void EnterAmount(string text) => web.Type("serving-amount", text);
 
+    /// <summary>Enters a weight, switching to Grams first when the food has a serving, so the amount does not depend on the food.</summary>
+    public void EnterGrams(string text)
+    {
+        if (HasModeSwitch())
+        {
+            web.Tap("serving-mode-grams");
+        }
+
+        EnterAmount(text);
+    }
+
     public string? AmountError() => web.Exists("serving-amount-error") ? web.Text("serving-amount-error") : null;
 
     /// <summary>The labels of the meal chips, in the order they show.</summary>

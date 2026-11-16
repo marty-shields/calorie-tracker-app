@@ -50,9 +50,6 @@ public static class ServingRoute
     public static string EditUrl(int entryId, int foodId, Meal meal, DateOnly date, double amount, double? servings = null) =>
         $"/serving/{foodId}?entry={entryId}&meal={meal}&date={RouteDate.ToText(date)}&amount={Text(amount)}" + (servings is { } count ? $"&servings={Text(count)}" : "");
 
-    /// <summary>Where Back and a saved or removed entry go in edit mode: the entry's day on the Dashboard.</summary>
-    public static string EditTarget(DateOnly date) => DashboardRoute.Url(date);
-
     private static string Text(double value) => value.ToString("R", CultureInfo.InvariantCulture);
 
     /// <summary>A positive, finite number in a query value (a point as the decimal separator), or null when it is missing or not one.</summary>

@@ -1,53 +1,47 @@
 @using CalorieTracker.UI.Components.Feedback
+@implements IDisposable
 @attribute [Stories("Screens/Dashboard")]
 
 <Stories TComponent="DashboardView" Layout="typeof(PhoneLayout)">
 
     <Story Name="First run">
         <Template>
-            @{ Snackbar.Dismiss(); }
             <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.FirstRun" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="No target">
         <Template>
-            @{ Snackbar.Dismiss(); }
             <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.NoTarget" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Loaded">
         <Template>
-            @{ Snackbar.Dismiss(); }
             <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.Loaded" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Over target">
         <Template>
-            @{ Snackbar.Dismiss(); }
             <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.OverTarget" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Loading">
         <Template>
-            @{ Snackbar.Dismiss(); }
             <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Loading OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Load failed">
         <Template>
-            @{ Snackbar.Dismiss(); }
             <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" LoadFailed OnRetry="() => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Future day">
         <Template>
-            @{ Snackbar.Dismiss(); }
             <DashboardView Date="DashboardSamples.Today.AddDays(1)" Today="DashboardSamples.Today" Summary="DashboardSamples.Loaded" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
@@ -62,15 +56,26 @@
 </Stories>
 
 @code {
+    private bool posted;
+
     [Inject]
     private SnackbarService Snackbar { get; set; } = null!;
 
-    /// <summary>Posts what the Serving screen posts after Remove, as the Dashboard's snackbar shows it; it stays until dismissed.</summary>
+    /// <summary>Posts what the Serving screen posts after Remove, as the Dashboard's snackbar shows it; it stays until this story is left, so no other story shows it.</summary>
     private void PostRemoved()
     {
-        if (Snackbar.Current is null)
+        if (!posted)
         {
+            posted = true;
             Snackbar.Show("Cheddar cheese removed", "Undo", () => Task.CompletedTask, Timeout.InfiniteTimeSpan);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (posted)
+        {
+            Snackbar.Dismiss();
         }
     }
 }
