@@ -30,6 +30,11 @@ A day diary for Android with a food search, a barcode scanner, a design system, 
 - **Serving**: set the amount in grams or ml, or a number of servings, and the meal. A food can have several servings (its own, its whole pack, and ones you add yourself, such as a mug); a dropdown picks which one the servings count, and you can add or delete your own.
 - **Settings**: the theme (System, Light or Dark), the daily calorie target and the app version.
 
+<p>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/readme/food-search-dark.png"><img src="docs/images/readme/food-search-light.png" alt="Foods: search results in groups" width="260" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/readme/serving-dark.png"><img src="docs/images/readme/serving-light.png" alt="Serving: amount, serving dropdown and meal" width="260" /></picture>
+</p>
+
 [AGENTS.md](AGENTS.md) lists the rules the code follows, and the [design system](https://marty-shields.github.io/calorie-tracker-app/) shows the tokens, components and screens.
 
 ## Install
