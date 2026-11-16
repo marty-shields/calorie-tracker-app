@@ -52,11 +52,12 @@ public sealed partial class FoodService
             return FoodResult.NotFound();
         }
 
-        Bound(food);
+        Bound(food, logger);
         return FoodResult.Found(food);
     }
 
-    private void Bound(Food food)
+    /// <summary>Applies the serving and nutrient caps of <see cref="GetAsync"/> to a food read elsewhere, in place. Nothing is written back to the database.</summary>
+    internal static void Bound(Food food, ILogger logger)
     {
         if (TryBoundServing(food.ServingLabel, food.ServingAmount, out var label, out _))
         {

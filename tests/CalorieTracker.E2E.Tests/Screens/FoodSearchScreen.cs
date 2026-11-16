@@ -52,7 +52,7 @@ public sealed class FoodSearchScreen(WebView web)
 
     public string PromptText() => web.Text("food-search-idle-message");
 
-    public string NoneText() => web.Text("food-search-none");
+    public string NoneText() => web.Exists("food-search-none-message") ? web.Text("food-search-none-message") : web.Text("food-search-none");
 
     /// <summary>The text of each result row, in order, once at least one shows.</summary>
     public IReadOnlyList<string> ResultRows()

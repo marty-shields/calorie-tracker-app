@@ -117,6 +117,7 @@ public static class ScreenStates
         new("Screens/FoodSearch", "Food selected", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, results: Ingredients, selected: Ingredients[0])),
         new("Screens/FoodSearch", "Add to a meal", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, results: Ingredients, meal: Meal.Lunch)),
         new("Screens/FoodSearch", "Add to a meal with nothing typed", c => FoodSearch(c, filter: FoodType.Ingredient, meal: Meal.Snacks)),
+        new("Screens/FoodSearch", "Add to a meal with no results", c => FoodSearch(c, query: "xyzzy", filter: FoodType.Ingredient, meal: Meal.Lunch)),
         new("Screens/FoodSearch", "Search failed", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, failed: true)),
         new("Screens/Scan", "Opening camera", c => Scan(c, ScanState.OpeningCamera)),
         new("Screens/Scan", "Closing camera", c => Scan(c, ScanState.Closing)),

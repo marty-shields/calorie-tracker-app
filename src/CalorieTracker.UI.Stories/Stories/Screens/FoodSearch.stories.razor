@@ -69,6 +69,12 @@
         </Template>
     </Story>
 
+    <Story Name="Add to a meal with no results">
+        <Template>
+            <FoodSearchView Meal="Meal.Lunch" Query="xyzzy" Filter="FoodType.Ingredient" OnQueryChanged="(string _) => { }" OnFilterChanged="(FoodType? _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
     <Story Name="Search failed">
         <Template>
             <FoodSearchView Query="oat" Filter="FoodType.Ingredient" Failed OnQueryChanged="(string _) => { }" OnRetry="() => { }" OnNavigate="(NavDestination _) => { }" />

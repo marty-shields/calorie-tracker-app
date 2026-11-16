@@ -51,3 +51,10 @@
     place-items: center;
     padding: var(--space-6) 0;
 }
+
+.actions {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--space-2);
+}
