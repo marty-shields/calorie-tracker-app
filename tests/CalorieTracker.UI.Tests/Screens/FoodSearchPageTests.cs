@@ -331,9 +331,99 @@ public class FoodSearchPageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(cut.Find("[data-testid=food-result-7] .aside").TextContent, Is.EqualTo("Drink"));
-            Assert.That(cut.Find("[data-testid=food-result-7] .detail").TextContent, Is.EqualTo("Oatly · 46 kcal / 100 ml"));
+            Assert.That(cut.FindAll("[data-testid=food-result-7] .aside"), Is.Empty);
+            Assert.That(cut.Find("[data-testid=food-result-7] .detail").TextContent, Is.EqualTo("Drink · Oatly · 46 kcal / 100 ml"));
         });
+    }
+
+    [Test]
+    public async Task ResultRow_WithoutABrand_ReadsTypeThenKcal()
+    {
+        search.Results = [new Food { Id = 8, Name = "Cheddar cheese", Type = FoodType.Ingredient, Unit = FoodUnit.Gram, Kcal = 416 }];
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch));
+
+        await cut.Find("[data-testid=food-search-input]").InputAsync("chedd");
+
+        Assert.That(cut.Find("[data-testid=food-result-8] .detail").TextContent, Is.EqualTo("Ingredient · 416 kcal / 100 g"));
+    }
+
+    [Test]
+    public async Task SelectedFood_PinsAddAndBackToTheBottomBar_NotTheScrollingValues()
+    {
+        search.Results = [Oats];
+        var cut = Context.Render<FoodSearchPage>();
+        await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
+        await cut.Find("[data-testid=food-result-1]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=bottom-bar] [data-testid=food-detail-add]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=bottom-bar] [data-testid=food-detail-close]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("main [data-testid=food-detail-add], main [data-testid=food-detail-close]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task SelectedFood_BackToResultsFromTheBottomBar_ClearsTheSelectionAndTheBar()
+    {
+        search.Results = [Oats];
+        var cut = Context.Render<FoodSearchPage>();
+        await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
+        await cut.Find("[data-testid=food-result-1]").ClickAsync(new());
+
+        await cut.Find("[data-testid=bottom-bar] [data-testid=food-detail-close]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=food-detail]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=bottom-bar]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task ResultsList_HasNoBottomBar()
+    {
+        search.Results = [Oats];
+        var cut = Context.Render<FoodSearchPage>();
+
+        await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
+
+        Assert.That(cut.FindAll("[data-testid=bottom-bar]"), Is.Empty);
+    }
+
+    [Test]
+    public async Task AddMode_NothingFound_ShowsTheMessageAndHint()
+    {
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch));
+
+        await cut.Find("[data-testid=food-search-input]").InputAsync("xyzzy");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=food-search-none-message]").TextContent, Is.EqualTo("No foods match"));
+            Assert.That(cut.Find("[data-testid=food-search-none-hint]").TextContent, Is.EqualTo("Try another word, or switch to All."));
+        });
+    }
+
+    [Test]
+    public async Task AddMode_NothingFoundUnderAll_HintsOnlyToTryAnotherWord()
+    {
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch));
+
+        await cut.Find("[data-testid=food-filter-all]").ChangeAsync(true);
+        await cut.Find("[data-testid=food-search-input]").InputAsync("xyzzy");
+
+        Assert.That(cut.Find("[data-testid=food-search-none-hint]").TextContent, Is.EqualTo("Try another word."));
+    }
+
+    [Test]
+    public async Task TabMode_NothingFound_StaysTheMessageOnly()
+    {
+        var cut = Context.Render<FoodSearchPage>();
+
+        await cut.Find("[data-testid=food-search-input]").InputAsync("xyzzy");
+
+        Assert.That(cut.FindAll("[data-testid=food-search-none-hint]"), Is.Empty);
     }
 
     [Test]

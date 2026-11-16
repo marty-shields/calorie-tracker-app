@@ -6,7 +6,7 @@
 @* AppScreen shows Status only with a navigation bar, and add mode has none. The snackbar there is shown by the Dashboard. *@
 <AppScreen Title="@(Meal is { } meal ? $"Add to {meal}" : "Search foods")" Destination="@(Meal is null ? NavDestination.Foods : null)" OnNavigate="OnNavigate"
            OnBack="@(Meal is not null ? OnBack : Selected is null ? default : OnClearSelection)" Toolbar="@(Selected is null && !Failed ? Tools : null)"
-           Status="@(Meal is null ? Notice : null)">
+           Status="@(Meal is null ? Notice : null)" BottomBar="@(Selected is { } chosen ? Actions(chosen) : null)">
     <ChildContent>
         @if (Selected is { } food)
         {
@@ -14,8 +14,6 @@
                 <FoodValues Name="@food.Name" Brand="@food.Brand" IsLiquid="@(food.Unit == FoodUnit.Millilitre)" Kcal="food.Kcal" Protein="food.ProteinG"
                             Carbs="food.CarbsG" Fat="food.FatG" Fibre="food.FibreG" Sugars="food.SugarsG" Saturates="food.SaturatesG" Salt="food.SaltG"
                             TestId="food-detail" />
-                <AppButton Variant="ButtonVariant.Primary" FullWidth TestId="food-detail-add" OnClick="@(() => OnAdd.InvokeAsync(food))">Add to diary</AppButton>
-                <AppButton Variant="ButtonVariant.Secondary" FullWidth TestId="food-detail-close" OnClick="OnClearSelection">Back to results</AppButton>
             </section>
         }
         else if (Loading)
@@ -34,7 +32,16 @@
         }
         else if (Results.Count == 0)
         {
-            <p class="none" data-testid="food-search-none">No foods match</p>
+            @if (Meal is null)
+            {
+                <p class="none" data-testid="food-search-none">No foods match</p>
+            }
+            else
+            {
+                <div class="add-none">
+                    <EmptyState Message="No foods match" Hint="@(Filter is null ? "Try another word." : "Try another word, or switch to All.")" TestId="food-search-none" />
+                </div>
+            }
         }
         else
         {
@@ -42,7 +49,7 @@
                 @foreach (var item in Results)
                 {
                     <li>
-                        <ListRow Text="@item.Name" Detail="@Subtitle(item)" Aside="@item.Type.ToString()"
+                        <ListRow Text="@item.Name" Detail="@Subtitle(item)"
                                  OnClick="@(() => OnSelect.InvokeAsync(item))" TestId="@($"food-result-{item.Id}")" />
                     </li>
                 }
@@ -112,6 +119,12 @@
     [Parameter]
     public EventCallback<NavDestination> OnNavigate { get; set; }
 
+    private RenderFragment Actions(Food chosen) =>
+        @<div class="actions">
+            <AppButton Variant="ButtonVariant.Primary" FullWidth TestId="food-detail-add" OnClick="@(() => OnAdd.InvokeAsync(chosen))">Add to diary</AppButton>
+            <AppButton Variant="ButtonVariant.Secondary" FullWidth TestId="food-detail-close" OnClick="OnClearSelection">Back to results</AppButton>
+        </div>;
+
     private RenderFragment Notice => @<Snackbar />;
 
     private RenderFragment Tools =>
@@ -137,7 +150,7 @@
     private static string Subtitle(Food food)
     {
         var kcal = $"{Number(food.Kcal)} kcal / 100 {UnitText(food)}";
-        return string.IsNullOrEmpty(food.Brand) ? kcal : $"{food.Brand} · {kcal}";
+        return string.IsNullOrEmpty(food.Brand) ? $"{food.Type} · {kcal}" : $"{food.Type} · {food.Brand} · {kcal}";
     }
 
     private static string UnitText(Food food) => food.Unit == FoodUnit.Millilitre ? "ml" : "g";

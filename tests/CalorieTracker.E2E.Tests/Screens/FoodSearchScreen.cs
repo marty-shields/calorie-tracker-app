@@ -52,7 +52,11 @@ public sealed class FoodSearchScreen(WebView web)
 
     public string PromptText() => web.Text("food-search-idle-message");
 
-    public string NoneText() => web.Text("food-search-none");
+    public string NoneText()
+    {
+        web.WaitUntil(() => web.Exists("food-search-none-message") || web.Exists("food-search-none"), "no 'No foods match' message showed");
+        return web.Exists("food-search-none-message") ? web.Text("food-search-none-message") : web.Text("food-search-none");
+    }
 
     /// <summary>The text of each result row, in order, once at least one shows.</summary>
     public IReadOnlyList<string> ResultRows()
@@ -61,11 +65,11 @@ public sealed class FoodSearchScreen(WebView web)
         return web.FindAll("[data-testid^=\"food-result-\"]").Select(row => row.Text.Trim()).ToList();
     }
 
-    /// <summary>The type shown at the right of each result row, in order, once at least one shows.</summary>
+    /// <summary>The type at the start of each result row's detail line, in order, once at least one shows.</summary>
     public IReadOnlyList<string> ResultTypes()
     {
         web.WaitUntil(() => web.Exists("food-results"), "no results showed");
-        return web.FindAll("[data-testid^=\"food-result-\"]").Select(row => row.FindElement(By.CssSelector(".aside")).Text.Trim()).ToList();
+        return web.FindAll("[data-testid^=\"food-result-\"]").Select(row => row.FindElement(By.CssSelector(".detail")).Text.Split('·')[0].Trim()).ToList();
     }
 
     /// <summary>Clicks the first row once the box holds what was typed; a row replaced by a newer search is found and clicked again.</summary>

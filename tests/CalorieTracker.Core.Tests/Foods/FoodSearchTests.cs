@@ -431,6 +431,110 @@ public class FoodSearchTests
         Assert.That(await Names("puree"), Is.EqualTo(new[] { "Purée" }));
     }
 
+    [TestCase(-0.1)]
+    [TestCase(100.1)]
+    [TestCase(double.PositiveInfinity)]
+    [TestCase(double.NaN)]
+    public async Task Search_NutrientOutOfRange_IsUnknownAndOthersStay(double value)
+    {
+        var food = NewFood("Oats", "oats");
+        (food.FibreG, food.SugarsG, food.SaturatesG, food.SaltG) = (2, value, 4, 0.5);
+        await connection.InsertAsync(food);
+
+        var found = (await search.SearchAsync("oats")).Foods.Single();
+
+        Assert.That((found.FibreG, found.SugarsG, found.SaturatesG, found.SaltG), Is.EqualTo(((double?)2, (double?)null, (double?)4, (double?)0.5)));
+    }
+
+    [TestCase(0.0)]
+    [TestCase(100.0)]
+    public async Task Search_NutrientAtTheLimits_IsKept(double value)
+    {
+        var food = NewFood("Oats", "oats");
+        (food.FibreG, food.SugarsG, food.SaturatesG, food.SaltG) = (value, value, value, value);
+        await connection.InsertAsync(food);
+
+        var found = (await search.SearchAsync("oats")).Foods.Single();
+
+        Assert.That((found.FibreG, found.SugarsG, found.SaturatesG, found.SaltG), Is.EqualTo(((double?)value, (double?)value, (double?)value, (double?)value)));
+    }
+
+    [TestCase(null)]
+    [TestCase(0.0)]
+    [TestCase(-5.0)]
+    [TestCase(10_000.5)]
+    [TestCase(double.PositiveInfinity)]
+    [TestCase(double.NaN)]
+    public async Task Search_ServingWeightOutOfRange_DropsTheWholeServing(double? amount)
+    {
+        var food = NewFood("Oats", "oats");
+        (food.ServingLabel, food.ServingAmount) = ("1 bowl", amount);
+        await connection.InsertAsync(food);
+
+        var found = (await search.SearchAsync("oats")).Foods.Single();
+
+        Assert.That((found.ServingLabel, found.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+    }
+
+    [TestCase(null)]
+    [TestCase("   ")]
+    public async Task Search_ServingLabelMissingOrBlank_DropsTheWholeServing(string? label)
+    {
+        var food = NewFood("Oats", "oats");
+        (food.ServingLabel, food.ServingAmount) = (label, 40);
+        await connection.InsertAsync(food);
+
+        var found = (await search.SearchAsync("oats")).Foods.Single();
+
+        Assert.That((found.ServingLabel, found.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+    }
+
+    [Test]
+    public async Task Search_ServingLabelTooLongOrPadded_IsDroppedOrTrimmed()
+    {
+        var tooLong = NewFood("Oats long", "oats");
+        (tooLong.ServingLabel, tooLong.ServingAmount) = (new string('x', FoodService.MaxServingLabelLength + 1), 40);
+        var padded = NewFood("Oats padded", "oats");
+        (padded.ServingLabel, padded.ServingAmount) = ("  1 bowl  ", 10_000);
+        await connection.InsertAsync(tooLong);
+        await connection.InsertAsync(padded);
+
+        var found = (await search.SearchAsync("oats")).Foods.ToDictionary(f => f.Name);
+
+        Assert.That((found["Oats long"].ServingLabel, found["Oats long"].ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+        Assert.That((found["Oats padded"].ServingLabel, found["Oats padded"].ServingAmount), Is.EqualTo(("1 bowl", (double?)10_000)));
+    }
+
+    [Test]
+    public async Task Search_OutOfRangeFood_LogsOnlyTheSearchAndNoContent()
+    {
+        var food = NewFood("Secret oats", "secret oats");
+        (food.Brand, food.ServingLabel, food.ServingAmount, food.SaltG) = ("Hidden brand", "1 bowl", 20_000, 500);
+        await connection.InsertAsync(food);
+
+        await search.SearchAsync("secret");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { CoreEvent.FoodSearched }));
+            var text = string.Join('\n', logger.Collector.GetSnapshot().Select(r => r.Message));
+            Assert.That(text, Does.Not.Contain("Secret").And.Not.Contain("Hidden").And.Not.Contain("1 bowl"));
+        });
+    }
+
+    [Test]
+    public async Task Search_Bounds_AreNotWrittenBack()
+    {
+        var food = NewFood("Oats", "oats");
+        (food.ServingLabel, food.ServingAmount, food.SaltG) = ("1 bowl", 20_000, 500);
+        await connection.InsertAsync(food);
+
+        await search.SearchAsync("oats");
+
+        var stored = (await connection.Table<Food>().ToListAsync()).Single();
+        Assert.That((stored.ServingAmount, stored.SaltG), Is.EqualTo(((double?)20_000, (double?)500)));
+    }
+
     private async Task<List<string>> Names(string query, FoodType? type = null) =>
         (await search.SearchAsync(query, type)).Foods.Select(f => f.Name).ToList();
 

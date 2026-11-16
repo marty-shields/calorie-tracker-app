@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CalorieTracker.Core.Foods;
 
-/// <summary>Splits the typed text into lowercase words and searches the food table. A failing store gives <see cref="FoodSearchStatus.Failed"/>, never an exception.</summary>
+/// <summary>Splits the typed text into lowercase words and searches the food table. Each food comes back bounded like <see cref="FoodService.GetAsync"/> (serving and optional nutrients out of range are dropped). A failing store gives <see cref="FoodSearchStatus.Failed"/>, never an exception.</summary>
 internal sealed partial class FoodSearch(FoodStore store, ILogger<FoodSearch> logger) : IFoodSearch
 {
     private const int MaxTerms = 10;
@@ -25,6 +25,11 @@ internal sealed partial class FoodSearch(FoodStore store, ILogger<FoodSearch> lo
         try
         {
             var foods = await store.SearchAsync(terms, string.Join(' ', words), Math.Clamp(limit, 1, IFoodSearch.MaxLimit), type, ct).WaitAsync(ct);
+            foreach (var food in foods)
+            {
+                FoodService.Bound(food);
+            }
+
             Log.Searched(logger, terms.Count, type, foods.Count);
             return FoodSearchResult.Found(foods);
         }
