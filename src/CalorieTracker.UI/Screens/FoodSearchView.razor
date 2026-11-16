@@ -1,5 +1,7 @@
 @using System.Globalization
 @using CalorieTracker.Core.Data
+@using CalorieTracker.Core.Foods
+@using CalorieTracker.Core.History
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Components.Inputs
 @using CalorieTracker.UI.Components.Lists
@@ -26,11 +28,11 @@
         {
             <LoadFailed Message="Couldn't search foods" TestId="food-search" OnRetry="OnRetry" />
         }
-        else if (string.IsNullOrWhiteSpace(Query))
+        else if (string.IsNullOrWhiteSpace(Query) && Groups.Count == 0)
         {
             <EmptyState Message="Search for a food" Hint="Type a name, like oats or cheddar." TestId="food-search-idle" />
         }
-        else if (Results.Count == 0)
+        else if (Groups.Count == 0)
         {
             @if (Meal is null)
             {
@@ -45,15 +47,34 @@
         }
         else
         {
-            <ul class="rows" data-testid="food-results">
-                @foreach (var item in Results)
+            <div class="groups" data-testid="food-results">
+                @foreach (var group in Groups)
                 {
-                    <li>
-                        <ListRow Text="@item.Name" Detail="@Subtitle(item)"
-                                 OnClick="@(() => OnSelect.InvokeAsync(item))" TestId="@($"food-result-{item.Id}")" />
-                    </li>
+                    var name = Key(group.Kind);
+                    var open = Expanded.Contains(group.Kind);
+                    var showsAll = open || group.Kind is FoodGroupKind.Usual or FoodGroupKind.Recent;
+                    var hidden = showsAll ? 0 : Math.Max(0, group.Foods.Count - ShownLimit);
+                    var shown = showsAll ? group.Foods.Count : Math.Min(group.Foods.Count, ShownLimit);
+                    <section class="group">
+                        <h2 class="group-heading" data-testid="@($"food-group-{name}")">@Heading(group.Kind)</h2>
+                        <ul class="rows">
+                            @foreach (var item in group.Foods.Take(shown))
+                            {
+                                <li>
+                                    <ListRow Text="@item.Food.Name" Detail="@Subtitle(item)"
+                                             OnClick="@(() => OnSelect.InvokeAsync(item.Food))" TestId="@($"food-result-{item.Food.Id}")" />
+                                </li>
+                            }
+                            @if (hidden > 0)
+                            {
+                                <li>
+                                    <ListRow Text="@($"Show {hidden} more")" OnClick="@(() => OnExpand.InvokeAsync(group.Kind))" TestId="@($"food-group-{name}-more")" />
+                                </li>
+                            }
+                        </ul>
+                    </section>
                 }
-            </ul>
+            </div>
         }
     </ChildContent>
 </AppScreen>
@@ -63,9 +84,18 @@
     [Parameter]
     public string Query { get; set; } = "";
 
-    /// <summary>Foods matching <see cref="Query"/>, best match first. Empty shows "No foods match" once something is typed.</summary>
+    /// <summary>The lists to show, each under its heading, in the order given. With a query they are its matches, best first; with none, the foods to start from. A typed group (diary, common, branded) shows <see cref="ShownLimit"/> foods and a "Show N more" row (N is the foods the group holds less those shown, so it is what the row reveals) for the rest; the usual and recent groups show all they hold.
+    /// With no groups, an empty query shows "Search for a food" and a typed one "No foods match".</summary>
     [Parameter]
-    public IReadOnlyList<Food> Results { get; set; } = [];
+    public IReadOnlyList<FoodGroup> Groups { get; set; } = [];
+
+    /// <summary>The groups already expanded to all their foods.</summary>
+    [Parameter]
+    public IReadOnlySet<FoodGroupKind> Expanded { get; set; } = new HashSet<FoodGroupKind>();
+
+    /// <summary>Raised with the group whose "Show N more" row was tapped.</summary>
+    [Parameter]
+    public EventCallback<FoodGroupKind> OnExpand { get; set; }
 
     /// <summary>The food whose values show in place of the list. Null shows the list.</summary>
     [Parameter]
@@ -130,11 +160,34 @@
 
     private Task OnInput(ChangeEventArgs args) => OnQueryChanged.InvokeAsync(args.Value?.ToString() ?? "");
 
-    private static string Subtitle(Food food)
+    /// <summary>Foods a group shows before its "Show N more" row.</summary>
+    public const int ShownLimit = 5;
+
+    private static string Key(FoodGroupKind kind) => kind.ToString().ToLowerInvariant();
+
+    private string Heading(FoodGroupKind kind) => kind switch
     {
-        var kcal = $"{Number(food.Kcal)} kcal / 100 {UnitText(food)}";
-        return string.IsNullOrEmpty(food.Brand) ? kcal : $"{food.Brand} · {kcal}";
+        FoodGroupKind.Usual => $"Usual for {(Meal?.ToString() ?? "meal").ToLowerInvariant()}",
+        FoodGroupKind.Recent => "Recent",
+        FoodGroupKind.Diary => "From your diary",
+        FoodGroupKind.Common => "Common",
+        _ => "Branded",
+    };
+
+    /// <summary>A food from the diary shows what was last had and its energy; any other shows the energy per 100 g or ml.</summary>
+    private static string Subtitle(FoodListing item)
+    {
+        var food = item.Food;
+        var values = item.History is { } last
+            ? $"{Last(last, food)} · {Number(Math.Round(food.Kcal * last.LastAmount / 100))} kcal"
+            : $"{Number(food.Kcal)} kcal / 100 {UnitText(food)}";
+        return string.IsNullOrEmpty(food.Brand) ? values : $"{food.Brand} · {values}";
     }
+
+    private static string Last(FoodHistory last, Food food) =>
+        last.LastServings is { } servings
+            ? $"{Number(servings)} {(servings == 1 ? "serving" : "servings")} ({Number(last.LastAmount)} {UnitText(food)})"
+            : $"{Number(last.LastAmount)} {UnitText(food)}";
 
     private static string UnitText(Food food) => food.Unit == FoodUnit.Millilitre ? "ml" : "g";
 

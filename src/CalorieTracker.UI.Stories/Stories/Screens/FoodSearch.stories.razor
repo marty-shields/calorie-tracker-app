@@ -1,4 +1,5 @@
 @using CalorieTracker.Core.Data
+@using CalorieTracker.Core.Foods
 @attribute [Stories("Screens/FoodSearch")]
 
 <Stories TComponent="FoodSearchView" Layout="typeof(PhoneLayout)">
@@ -15,9 +16,33 @@
         </Template>
     </Story>
 
+    <Story Name="Nothing typed with history">
+        <Template>
+            <FoodSearchView Groups="FoodSearchSamples.IdleRecent" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
     <Story Name="Results">
         <Template>
-            <FoodSearchView Query="oat" Results="FoodSearchSamples.Oats" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnNavigate="(NavDestination _) => { }" />
+            <FoodSearchView Query="oat" Groups="FoodSearchSamples.AllGroups" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Results in one group">
+        <Template>
+            <FoodSearchView Query="rolled" Groups="FoodSearchSamples.OneGroup" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Results with more to show">
+        <Template>
+            <FoodSearchView Query="oat" Groups="FoodSearchSamples.LongGroup" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnExpand="(FoodGroupKind _) => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Results with an expanded group">
+        <Template>
+            <FoodSearchView Query="oat" Groups="FoodSearchSamples.LongGroup" Expanded="@(new HashSet<FoodGroupKind> { FoodGroupKind.Common })" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnExpand="(FoodGroupKind _) => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
@@ -29,19 +54,25 @@
 
     <Story Name="Food selected">
         <Template>
-            <FoodSearchView Query="oat" Results="FoodSearchSamples.Oats" Selected="FoodSearchSamples.Oats[0]" OnQueryChanged="(string _) => { }" OnAdd="(Food _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <FoodSearchView Query="oat" Groups="FoodSearchSamples.AllGroups" Selected="FoodSearchSamples.Oats[0]" OnQueryChanged="(string _) => { }" OnAdd="(Food _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Add to a meal">
         <Template>
-            <FoodSearchView Meal="Meal.Lunch" Query="oat" Results="FoodSearchSamples.Oats" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <FoodSearchView Meal="Meal.Lunch" Query="oat" Groups="FoodSearchSamples.AllGroups" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Add to a meal with nothing typed">
         <Template>
             <FoodSearchView Meal="Meal.Snacks" OnQueryChanged="(string _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Add to a meal with history">
+        <Template>
+            <FoodSearchView Meal="Meal.Breakfast" Groups="FoodSearchSamples.Idle" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 

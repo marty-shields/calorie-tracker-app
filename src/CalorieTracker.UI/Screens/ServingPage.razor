@@ -70,6 +70,14 @@
     [Parameter]
     public double? EntryServings { get; set; }
 
+    /// <summary>The weight in g or ml to open an added food with, instead of 1 serving or 100 g. Ignored in edit mode and when it is not a valid amount.</summary>
+    [Parameter]
+    public double? StartAmount { get; set; }
+
+    /// <summary>The count of servings <see cref="StartAmount"/> was entered as; the screen opens in servings mode with it when the food has a serving. Null opens by weight.</summary>
+    [Parameter]
+    public double? StartServings { get; set; }
+
     /// <summary>Raised once an edited entry is saved.</summary>
     [Parameter]
     public EventCallback OnSaved { get; set; }
@@ -162,20 +170,13 @@
 
         if (Editing && EntryAmount is { } stored)
         {
-            if (HasServing && EntryServings is { } count)
-            {
-                mode = EntryMode.Servings;
-                amount = ToDecimal(Math.Min(count, CarryLimit));
-                lockedGrams = stored;
-            }
-            else
-            {
-                mode = EntryMode.Grams;
-                amount = ToDecimal(Math.Min(stored, CarryLimit));
-                lockedGrams = null;
-            }
+            Carry(stored, EntryServings);
+            return;
+        }
 
-            saveFailed = false;
+        if (StartAmount is { } start && ServingRules.IsValidGrams(start))
+        {
+            Carry(start, StartServings);
             return;
         }
 
@@ -219,6 +220,25 @@
     }
 
     /// <summary>The weight as a decimal without the binary noise of a double (201.8, not 201.80000000000001).</summary>
+    /// <summary>Opens with an amount already known: in servings when the food has a serving and <paramref name="servings"/> is above zero (the grams stay as given), else by weight. Either is held at <see cref="CarryLimit"/>.</summary>
+    private void Carry(double grams, double? servings)
+    {
+        if (HasServing && servings is > 0)
+        {
+            mode = EntryMode.Servings;
+            amount = ToDecimal(Math.Min(servings.Value, CarryLimit));
+            lockedGrams = grams;
+        }
+        else
+        {
+            mode = EntryMode.Grams;
+            amount = ToDecimal(Math.Min(grams, CarryLimit));
+            lockedGrams = null;
+        }
+
+        saveFailed = false;
+    }
+
     private static decimal ToDecimal(double value) =>
         decimal.Parse(value.ToString("0.####", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
 

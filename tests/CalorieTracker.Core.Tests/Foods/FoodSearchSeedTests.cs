@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
+using CalorieTracker.Core.History;
 using CalorieTracker.Core.Seed;
 using Microsoft.Extensions.Logging.Testing;
 using SQLite;
@@ -48,7 +49,7 @@ public class FoodSearchSeedTests
             SearchText = SearchFolding.Fold("Crème caramel"),
         });
         logger = new FakeLogger<FoodSearch>();
-        search = new FoodSearch(store, logger);
+        search = new FoodSearch(store, new FoodHistoryService(new FoodHistoryStore(connection, gate), TimeProvider.System, new FakeLogger<FoodHistoryService>()), logger);
     }
 
     [OneTimeTearDown]

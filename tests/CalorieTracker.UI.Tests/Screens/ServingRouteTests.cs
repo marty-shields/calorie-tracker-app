@@ -21,6 +21,17 @@ public class ServingRouteTests
     }
 
     [Test]
+    public void Url_WithAnAmount_AddsItAndTheServingsOnlyWithIt()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(ServingRoute.Url(5, Meal.Lunch, amount: 150), Is.EqualTo("/serving/5?meal=Lunch&amount=150"));
+            Assert.That(ServingRoute.Url(5, amount: 80.5, servings: 2), Is.EqualTo("/serving/5?amount=80.5&servings=2"));
+            Assert.That(ServingRoute.Url(5, servings: 2), Is.EqualTo("/serving/5"));
+        });
+    }
+
+    [Test]
     public void Url_WithBackTo_AddsBackAlone() =>
         Assert.That(ServingRoute.Url(5, backTo: "/"), Is.EqualTo("/serving/5?back=%2F"));
 

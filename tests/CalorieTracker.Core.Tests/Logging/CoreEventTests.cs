@@ -48,6 +48,8 @@ public class CoreEventTests
             [CoreEvent.FoodSearchBlock] = 1500,
             [CoreEvent.FoodSearched] = 1501,
             [CoreEvent.FoodSearchFailed] = 1502,
+            [CoreEvent.FoodSearchGrouped] = 1503,
+            [CoreEvent.FoodSuggested] = 1504,
             [CoreEvent.TargetServiceBlock] = 1600,
             [CoreEvent.TargetSaved] = 1601,
             [CoreEvent.TargetCleared] = 1602,

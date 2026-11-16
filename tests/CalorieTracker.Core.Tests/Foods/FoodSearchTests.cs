@@ -1,7 +1,10 @@
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Foods;
+using CalorieTracker.Core.History;
 using CalorieTracker.Core.Logging;
 using Microsoft.Extensions.Logging.Testing;
+using Microsoft.Extensions.Time.Testing;
 using SQLite;
 
 namespace CalorieTracker.Core.Tests.Foods;
@@ -13,6 +16,9 @@ public class FoodSearchTests
     private DatabaseGate gate = null!;
     private FakeLogger<FoodSearch> logger = null!;
     private FoodSearch search = null!;
+    private FoodHistoryService history = null!;
+    private DiaryService diary = null!;
+    private FakeTimeProvider time = null!;
     private int nextId;
 
     [SetUp]
@@ -21,9 +27,13 @@ public class FoodSearchTests
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
+        await connection.CreateTableAsync<DiaryEntry>();
         gate = new DatabaseGate();
         logger = new FakeLogger<FoodSearch>();
-        search = new FoodSearch(new FoodStore(connection, gate, new FakeLogger<FoodStore>()), logger);
+        time = new FakeTimeProvider(new DateTimeOffset(2031, 7, 19, 12, 0, 0, TimeSpan.Zero));
+        history = new FoodHistoryService(new FoodHistoryStore(connection, gate), time, new FakeLogger<FoodHistoryService>());
+        diary = new DiaryService(new DiaryStore(connection, gate), new FakeLogger<DiaryService>());
+        search = new FoodSearch(new FoodStore(connection, gate, new FakeLogger<FoodStore>()), history, logger);
         nextId = 0;
     }
 
@@ -637,6 +647,258 @@ public class FoodSearchTests
 
         var stored = (await connection.Table<Food>().ToListAsync()).Single();
         Assert.That((stored.ServingAmount, stored.SaltG), Is.EqualTo(((double?)20_000, (double?)500)));
+    }
+
+    private async Task<int> IdOf(string name) => (await connection.Table<Food>().FirstAsync(f => f.Name == name)).Id;
+
+    private Task<DiaryResult> Log(string name, Meal meal, double amount, int daysAgo = 0, double? servings = null) =>
+        IdOf(name).ContinueWith(id => diary.AddAsync(DateOnly.FromDateTime(time.GetLocalNow().DateTime).AddDays(-daysAgo), meal, id.Result, amount, servings)).Unwrap();
+
+    private static string[] Names(FoodGroupsResult result, FoodGroupKind kind) =>
+        result.Groups.Where(g => g.Kind == kind).SelectMany(g => g.Foods).Select(l => l.Food.Name).ToArray();
+
+    [Test]
+    public async Task Grouped_LoggedFoodIsOnlyInDiary_AndGroupsComeInOrder()
+    {
+        await Add("Zed pasta", "zed pasta");
+        await Add("Zed rice", "zed rice");
+        await Add("Zed crisps", "zed crisps", FoodSource.OpenFoodFacts, brand: "Acme");
+        await Add("Zed beans", "zed beans", FoodSource.OpenFoodFacts, brand: "Acme");
+        await Log("Zed beans", Meal.Lunch, 100);
+
+        var result = await search.SearchGroupedAsync("zed");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Groups.Select(g => g.Kind), Is.EqualTo(new[] { FoodGroupKind.Diary, FoodGroupKind.Common, FoodGroupKind.Branded }));
+            Assert.That(Names(result, FoodGroupKind.Diary), Is.EqualTo(new[] { "Zed beans" }));
+            Assert.That(Names(result, FoodGroupKind.Common), Is.EquivalentTo(new[] { "Zed pasta", "Zed rice" }));
+            Assert.That(Names(result, FoodGroupKind.Branded), Is.EqualTo(new[] { "Zed crisps" }));
+        });
+    }
+
+    [Test]
+    public async Task Grouped_GroupWithNoMatchesIsAbsent()
+    {
+        await Add("Zed pasta", "zed pasta");
+
+        var result = await search.SearchGroupedAsync("zed");
+
+        Assert.That(result.Groups.Select(g => g.Kind), Is.EqualTo(new[] { FoodGroupKind.Common }));
+    }
+
+    [Test]
+    public async Task Grouped_DiaryGroupHasMostLoggedFirst_AndCarriesTheLastAmount()
+    {
+        await Add("Zed pasta", "zed pasta");
+        await Add("Zed rice", "zed rice");
+        await Log("Zed pasta", Meal.Lunch, 80);
+        await Log("Zed rice", Meal.Lunch, 120, servings: 2);
+        await Log("Zed rice", Meal.Dinner, 140, servings: 2.5);
+
+        var result = await search.SearchGroupedAsync("zed");
+
+        var diaryFoods = result.Groups.Single().Foods;
+        Assert.Multiple(() =>
+        {
+            Assert.That(diaryFoods.Select(l => l.Food.Name), Is.EqualTo(new[] { "Zed rice", "Zed pasta" }));
+            Assert.That((diaryFoods[0].History!.LastAmount, diaryFoods[0].History!.LastServings), Is.EqualTo((140.0, (double?)2.5)));
+        });
+    }
+
+    [Test]
+    public async Task Grouped_WithAMeal_LastAmountIsThatMealsOrElseTheNewest()
+    {
+        await Add("Zed milk", "zed milk");
+        await Add("Zed tea", "zed tea");
+        await Log("Zed milk", Meal.Dinner, 200);
+        await Log("Zed milk", Meal.Breakfast, 150);
+        await Log("Zed milk", Meal.Dinner, 210);
+        await Log("Zed tea", Meal.Dinner, 90);
+
+        var fromBreakfast = (await search.SearchGroupedAsync("zed", Meal.Breakfast)).Groups.Single().Foods.ToDictionary(l => l.Food.Name, l => l.History!.LastAmount);
+        var fromDinner = (await search.SearchGroupedAsync("zed", Meal.Dinner)).Groups.Single().Foods.ToDictionary(l => l.Food.Name, l => l.History!.LastAmount);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fromBreakfast["Zed milk"], Is.EqualTo(150));
+            Assert.That(fromBreakfast["Zed tea"], Is.EqualTo(90));
+            Assert.That(fromDinner["Zed milk"], Is.EqualTo(210));
+        });
+    }
+
+    [Test]
+    public async Task Grouped_LongGroup_IsCappedAtTheGroupLimit_InRankedOrder()
+    {
+        for (var i = 0; i < IFoodSearch.GroupLimit + 5; i++)
+        {
+            await Add($"Zed item {i:000}", "zed item");
+        }
+
+        var group = (await search.SearchGroupedAsync("zed")).Groups.Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(group.Foods.Select(l => l.Food.Name), Is.EqualTo(Enumerable.Range(0, IFoodSearch.GroupLimit).Select(i => $"Zed item {i:000}")));
+            Assert.That(group.Total, Is.EqualTo(IFoodSearch.GroupLimit + 5));
+        });
+    }
+
+    [Test]
+    public async Task Grouped_MoreThanTheGroupLimitMatches_CountsEveryMatch()
+    {
+        for (var i = 0; i < 65; i++)
+        {
+            await Add($"Zed item {i:000}", "zed item");
+        }
+
+        var group = (await search.SearchGroupedAsync("zed")).Groups.Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(group.Total, Is.EqualTo(65));
+            Assert.That(group.Foods, Has.Count.EqualTo(IFoodSearch.GroupLimit));
+        });
+    }
+
+    [Test]
+    public async Task Grouped_BlankQuery_FindsNothing()
+    {
+        await Add("Zed pasta", "zed pasta");
+
+        Assert.That((await search.SearchGroupedAsync("  ")).Groups, Is.Empty);
+    }
+
+    [Test]
+    public async Task Grouped_HistoryFails_StillSearchesWithoutTheDiaryGroup()
+    {
+        await Add("Zed pasta", "zed pasta");
+        await connection.DropTableAsync<DiaryEntry>();
+
+        var result = await search.SearchGroupedAsync("zed");
+
+        Assert.That(result.Status, Is.EqualTo(FoodSearchStatus.Found));
+        Assert.That(result.Groups.Select(g => g.Kind), Is.EqualTo(new[] { FoodGroupKind.Common }));
+    }
+
+    [Test]
+    public async Task Grouped_StoreFails_ReturnsFailed()
+    {
+        await connection.DropTableAsync<Food>();
+
+        var result = await search.SearchGroupedAsync("zed");
+
+        Assert.That(result.Status, Is.EqualTo(FoodSearchStatus.Failed));
+        Assert.That(result.Groups, Is.Empty);
+    }
+
+    [Test]
+    public async Task Suggest_WithAMeal_UsualThenRecentWithNoFoodInBoth()
+    {
+        await Add("Zed oats", "zed oats");
+        await Add("Zed eggs", "zed eggs");
+        await Add("Zed soup", "zed soup");
+        await Log("Zed oats", Meal.Breakfast, 40, daysAgo: 1);
+        await Log("Zed oats", Meal.Breakfast, 50);
+        await Log("Zed soup", Meal.Lunch, 300);
+        await Log("Zed eggs", Meal.Dinner, 60);
+
+        var result = await search.SuggestAsync(Meal.Breakfast);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Groups.Select(g => g.Kind), Is.EqualTo(new[] { FoodGroupKind.Usual, FoodGroupKind.Recent }));
+            Assert.That(Names(result, FoodGroupKind.Usual), Is.EqualTo(new[] { "Zed oats" }));
+            Assert.That(Names(result, FoodGroupKind.Recent), Is.EqualTo(new[] { "Zed eggs", "Zed soup" }));
+        });
+    }
+
+    [Test]
+    public async Task Suggest_WithoutAMeal_HasNoUsualGroup()
+    {
+        await Add("Zed oats", "zed oats");
+        await Log("Zed oats", Meal.Breakfast, 50);
+
+        var result = await search.SuggestAsync();
+
+        Assert.That(result.Groups.Select(g => g.Kind), Is.EqualTo(new[] { FoodGroupKind.Recent }));
+    }
+
+    [Test]
+    public async Task Suggest_EmptyDiary_HasNoGroups()
+    {
+        await Add("Zed oats", "zed oats");
+
+        var result = await search.SuggestAsync(Meal.Breakfast);
+
+        Assert.That(result.Status, Is.EqualTo(FoodSearchStatus.Found));
+        Assert.That(result.Groups, Is.Empty);
+    }
+
+    [Test]
+    public async Task Suggest_LimitsUsualToFiveAndRecentToTen()
+    {
+        for (var i = 0; i < 20; i++)
+        {
+            await Add($"Zed food {i:00}", "zed food");
+            await Log($"Zed food {i:00}", i >= 13 ? Meal.Breakfast : Meal.Dinner, 50);
+        }
+
+        var result = await search.SuggestAsync(Meal.Breakfast);
+
+        var usual = result.Groups.Single(g => g.Kind == FoodGroupKind.Usual).Foods;
+        var recent = result.Groups.Single(g => g.Kind == FoodGroupKind.Recent).Foods;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(usual, Has.Count.EqualTo(IFoodSearch.UsualLimit));
+            Assert.That(recent, Has.Count.EqualTo(IFoodSearch.RecentLimit));
+            Assert.That(recent.Select(l => l.Food.Id).Intersect(usual.Select(l => l.Food.Id)), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task Suggest_FoodLoggedInAnotherMeal_ShowsTheNewestAmountAndOwnMealWins()
+    {
+        await Add("Zed milk", "zed milk");
+        await Log("Zed milk", Meal.Dinner, 200);
+        await Log("Zed milk", Meal.Breakfast, 150, daysAgo: 1);
+        await Log("Zed milk", Meal.Dinner, 220);
+
+        var fromBreakfast = (await search.SuggestAsync(Meal.Breakfast)).Groups.Single().Foods.Select(l => l.History!.LastAmount).ToArray();
+        var fromLunch = (await search.SuggestAsync(Meal.Lunch)).Groups.Single().Foods[0].History!.LastAmount;
+
+        Assert.That(fromBreakfast, Is.EqualTo(new[] { 150.0 }));
+        Assert.That(fromLunch, Is.EqualTo(220));
+    }
+
+    [Test]
+    public async Task Suggest_HistoryFails_ReturnsFailed()
+    {
+        await connection.DropTableAsync<DiaryEntry>();
+
+        Assert.That((await search.SuggestAsync(Meal.Lunch)).Status, Is.EqualTo(FoodSearchStatus.Failed));
+    }
+
+    [Test]
+    public async Task Logging_GroupedAndSuggest_LogCountsOnly()
+    {
+        await Add("Distinctive Name", "distinctive name", brand: "Secretbrand");
+        await Log("Distinctive Name", Meal.Lunch, 123.4);
+
+        await search.SearchGroupedAsync("Distinctive secretbrand", Meal.Lunch);
+        await search.SuggestAsync(Meal.Lunch);
+
+        var records = logger.Collector.GetSnapshot();
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { CoreEvent.FoodSearchGrouped, CoreEvent.FoodSuggested }));
+        foreach (var record in records)
+        {
+            var text = record.Message + string.Join(" ", record.StructuredState!.Select(p => $"{p.Key}={p.Value}"));
+            Assert.That(text, Does.Not.Contain("istinctive").And.Not.Contain("ecretbrand").And.Not.Contain("123"));
+        }
+
+        Assert.That(records[0].Message, Is.EqualTo("Grouped food search with 2 terms found 1 diary, 0 common and 0 branded foods"));
+        Assert.That(records[1].Message, Is.EqualTo("Foods before typing: 1 usual and 0 recent"));
     }
 
     private async Task<List<string>> Names(string query) =>
