@@ -9,7 +9,7 @@ internal sealed partial class FoodSearch(FoodStore store, ILogger<FoodSearch> lo
 {
     private const int MaxTerms = 10;
 
-    public async Task<FoodSearchResult> SearchAsync(string query, FoodType? type = null, int limit = IFoodSearch.DefaultLimit, CancellationToken ct = default)
+    public async Task<FoodSearchResult> SearchAsync(string query, int limit = IFoodSearch.DefaultLimit, CancellationToken ct = default)
     {
         var terms = FoodRanker.Words(SearchFolding.Fold(query ?? ""))
             .DistinctBy(FoodRanker.Normalise)
@@ -22,7 +22,7 @@ internal sealed partial class FoodSearch(FoodStore store, ILogger<FoodSearch> lo
 
         try
         {
-            var foods = await store.ListAsync(type, ct).WaitAsync(ct);
+            var foods = await store.ListAsync(ct).WaitAsync(ct);
             var ranked = FoodRanker.Rank(foods, terms, Math.Clamp(limit, 1, IFoodSearch.MaxLimit));
             foreach (var food in ranked)
             {

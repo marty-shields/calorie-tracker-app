@@ -1,5 +1,4 @@
 #if DEBUG
-using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Scanning;
@@ -65,7 +64,7 @@ internal static class E2EScanSeam
                 return await inner.LookupAsync(barcode, ct);
             }
 
-            var found = await search.SearchAsync("oat", FoodType.Ingredient, 1, ct);
+            var found = await search.SearchAsync("oat", 1, ct);
             return found.Foods is [var food, ..] ? BarcodeLookupResult.Found(food) : BarcodeLookupResult.NotFound();
         }
     }

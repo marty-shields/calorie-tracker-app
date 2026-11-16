@@ -276,53 +276,27 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task Opens_OnIngredientsAndSearchesWithThatType()
-    {
-        var cut = Context.Render<FoodSearchPage>();
-
-        await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(cut.Find("[data-testid=food-filter-ingredients]").HasAttribute("checked"), Is.True);
-            Assert.That(cut.FindAll("[data-testid=food-filter] input").Count(i => i.HasAttribute("checked")), Is.EqualTo(1));
-            Assert.That(search.Types, Is.EqualTo(new FoodType?[] { FoodType.Ingredient }));
-        });
-    }
-
-    [Test]
-    public void TypeChips_AreLabelledIngredientsFoodsDrinksAllInThatOrder()
-    {
-        var cut = Context.Render<FoodSearchPage>();
-
-        var labels = cut.FindAll("[data-testid=food-filter] label").Select(l => l.TextContent.Trim());
-
-        Assert.That(labels, Is.EqualTo(new[] { "Ingredients", "Foods", "Drinks", "All" }));
-    }
-
-    [TestCase("food-filter-foods", FoodType.Food)]
-    [TestCase("food-filter-drinks", FoodType.Drink)]
-    [TestCase("food-filter-all", null)]
-    public async Task ChoosingAChip_SearchesAgainWithItsType(string chip, FoodType? expected)
+    public async Task TheTabAndAddMode_ShowTheSearchBoxAndResultsOnly_WithNoFoodFilter()
     {
         search.Results = [Oats];
-        var cut = Context.Render<FoodSearchPage>();
-        await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
-
-        await cut.Find($"[data-testid={chip}]").ChangeAsync(true);
-        await WaitForRendererAsync();
-
-        Assert.Multiple(() =>
+        foreach (Meal? meal in new Meal?[] { null, Meal.Lunch })
         {
-            Assert.That(search.Queries, Is.EqualTo(new[] { "oat", "oat" }));
-            Assert.That(search.Types, Is.EqualTo(new FoodType?[] { FoodType.Ingredient, expected }));
-            Assert.That(cut.Find($"[data-testid={chip}]").HasAttribute("checked"), Is.True);
-            Assert.That(cut.Find("[data-testid=food-search-input]").GetAttribute("value"), Is.EqualTo("oat"));
-        });
+            var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, meal));
+
+            await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(cut.FindAll("[data-testid^=food-filter]"), Is.Empty);
+                Assert.That(cut.FindAll("[data-testid=food-search-input]"), Has.Count.EqualTo(1));
+                Assert.That(cut.FindAll("[data-testid=food-results] li"), Has.Count.EqualTo(1));
+                Assert.That(search.Queries.Last(), Is.EqualTo("oat"));
+            });
+        }
     }
 
     [Test]
-    public async Task ResultRow_ShowsTheTypeAndTheKcal()
+    public async Task ResultRow_ShowsTheBrandAndTheKcal_NotTheType()
     {
         search.Results = [new Food { Id = 7, Name = "Oat drink", Brand = "Oatly", Type = FoodType.Drink, Unit = FoodUnit.Millilitre, Kcal = 46 }];
         var cut = Context.Render<FoodSearchPage>();
@@ -332,19 +306,19 @@ public class FoodSearchPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(cut.FindAll("[data-testid=food-result-7] .aside"), Is.Empty);
-            Assert.That(cut.Find("[data-testid=food-result-7] .detail").TextContent, Is.EqualTo("Drink · Oatly · 46 kcal / 100 ml"));
+            Assert.That(cut.Find("[data-testid=food-result-7] .detail").TextContent, Is.EqualTo("Oatly · 46 kcal / 100 ml"));
         });
     }
 
     [Test]
-    public async Task ResultRow_WithoutABrand_ReadsTypeThenKcal()
+    public async Task ResultRow_WithoutABrand_ReadsKcalOnly()
     {
         search.Results = [new Food { Id = 8, Name = "Cheddar cheese", Type = FoodType.Ingredient, Unit = FoodUnit.Gram, Kcal = 416 }];
         var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch));
 
         await cut.Find("[data-testid=food-search-input]").InputAsync("chedd");
 
-        Assert.That(cut.Find("[data-testid=food-result-8] .detail").TextContent, Is.EqualTo("Ingredient · 416 kcal / 100 g"));
+        Assert.That(cut.Find("[data-testid=food-result-8] .detail").TextContent, Is.EqualTo("416 kcal / 100 g"));
     }
 
     [Test]
@@ -401,19 +375,8 @@ public class FoodSearchPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(cut.Find("[data-testid=food-search-none-message]").TextContent, Is.EqualTo("No foods match"));
-            Assert.That(cut.Find("[data-testid=food-search-none-hint]").TextContent, Is.EqualTo("Try another word, or switch to All."));
+            Assert.That(cut.Find("[data-testid=food-search-none-hint]").TextContent, Is.EqualTo("Try another word."));
         });
-    }
-
-    [Test]
-    public async Task AddMode_NothingFoundUnderAll_HintsOnlyToTryAnotherWord()
-    {
-        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch));
-
-        await cut.Find("[data-testid=food-filter-all]").ChangeAsync(true);
-        await cut.Find("[data-testid=food-search-input]").InputAsync("xyzzy");
-
-        Assert.That(cut.Find("[data-testid=food-search-none-hint]").TextContent, Is.EqualTo("Try another word."));
     }
 
     [Test]
@@ -427,14 +390,13 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task SeedLoading_FilterAndQueryStay_AndTheSearchUsesThemOnceItFinishes()
+    public async Task SeedLoading_TheQueryStays_AndTheSearchUsesItOnceItFinishes()
     {
         search.Results = [Oats];
         var load = seed.Start();
         var cut = Context.Render<FoodSearchPage>();
         await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
 
-        await cut.Find("[data-testid=food-filter-drinks]").ChangeAsync(true);
         var searchedWhileLoading = search.Queries.Count;
         loader.Complete(new SeedLoadResult(SeedLoadStatus.Loaded, 1, 3, 0, 0));
         await load;
@@ -444,23 +406,8 @@ public class FoodSearchPageTests : ComponentTestBase
         {
             Assert.That(searchedWhileLoading, Is.EqualTo(0));
             Assert.That(search.Queries, Is.EqualTo(new[] { "oat" }));
-            Assert.That(search.Types, Is.EqualTo(new FoodType?[] { FoodType.Drink }));
-            Assert.That(cut.Find("[data-testid=food-filter-drinks]").HasAttribute("checked"), Is.True);
+            Assert.That(cut.Find("[data-testid=food-search-input]").GetAttribute("value"), Is.EqualTo("oat"));
         });
-    }
-
-    [Test]
-    public async Task Logs_AfterChangingTheFilter_DoNotHoldWhatWasTyped()
-    {
-        const string Typed = "my-private-meal-xyz";
-        var cut = Context.Render<FoodSearchPage>();
-        await cut.Find("[data-testid=food-search-input]").InputAsync(Typed);
-
-        await cut.Find("[data-testid=food-filter-drinks]").ChangeAsync(true);
-        await WaitForRendererAsync();
-
-        Assert.That(search.Types, Is.EqualTo(new FoodType?[] { FoodType.Ingredient, FoodType.Drink }));
-        Assert.That(logger.Collector.GetSnapshot().Select(r => r.Message), Has.None.Contain(Typed));
     }
 
     [Test]
@@ -492,12 +439,11 @@ public class FoodSearchPageTests : ComponentTestBase
         var requests = new List<FoodAddRequest>();
         var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.OnAdd, requests.Add));
         await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
-        await cut.Find("[data-testid=food-filter-all]").ChangeAsync(true);
         await cut.Find("[data-testid=food-result-1]").ClickAsync(new());
 
         await cut.Find("[data-testid=food-detail-add]").ClickAsync(new());
 
-        Assert.That(requests, Is.EqualTo(new[] { new FoodAddRequest(Oats, "oat", null) }));
+        Assert.That(requests, Is.EqualTo(new[] { new FoodAddRequest(Oats, "oat") }));
     }
 
     [Test]
@@ -512,7 +458,7 @@ public class FoodSearchPageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(requests, Is.EqualTo(new[] { new FoodAddRequest(Oats, "oat", FoodType.Ingredient) }));
+            Assert.That(requests, Is.EqualTo(new[] { new FoodAddRequest(Oats, "oat") }));
             Assert.That(cut.FindAll("[data-testid=food-detail]"), Is.Empty);
         });
     }
@@ -575,19 +521,17 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
-    public void OpeningWithAQueryAndType_SearchesThemRightAway()
+    public void OpeningWithAQuery_RestoresItAndItsResultsRightAway()
     {
         search.Results = [Oats];
 
-        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.InitialQuery, "oat").Add(x => x.InitialFilter, (FoodType?)null));
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.InitialQuery, "oat"));
 
         Assert.Multiple(() =>
         {
             Assert.That(search.Queries, Is.EqualTo(new[] { "oat" }));
-            Assert.That(search.Types, Is.EqualTo(new FoodType?[] { null }));
             Assert.That(cut.Find("[data-testid=food-search-input]").GetAttribute("value"), Is.EqualTo("oat"));
             Assert.That(cut.FindAll("[data-testid=food-result-1]"), Has.Count.EqualTo(1));
-            Assert.That(cut.Find("[data-testid=food-filter-all]").HasAttribute("checked"), Is.True);
         });
     }
 
@@ -606,19 +550,13 @@ public class FoodSearchPageTests : ComponentTestBase
     {
         public List<string> Queries { get; } = [];
 
-        public List<FoodType?> Types { get; } = [];
-
         public IReadOnlyList<Food> Results { get; set; } = [];
 
         public bool Failing { get; set; }
 
         public Dictionary<string, TaskCompletionSource<FoodSearchResult>> Held { get; } = [];
 
-        public Task<FoodSearchResult> SearchAsync(string query, FoodType? type = null, int limit = IFoodSearch.DefaultLimit, CancellationToken ct = default)
-        {
-            Types.Add(type);
-            return Run(query);
-        }
+        public Task<FoodSearchResult> SearchAsync(string query, int limit = IFoodSearch.DefaultLimit, CancellationToken ct = default) => Run(query);
 
         private Task<FoodSearchResult> Run(string query)
         {

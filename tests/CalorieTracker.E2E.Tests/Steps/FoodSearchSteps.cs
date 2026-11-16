@@ -30,24 +30,9 @@ public sealed class FoodSearchSteps(FoodSearchScreen foods, NavigationBar naviga
     [When(@"^I tap Back to results$")]
     public void WhenITapBackToResults() => foods.BackToResults();
 
-    [When(@"^I choose the (Ingredients|Foods|Drinks|All) chip$")]
-    public void WhenIChooseTheChip(string chip) => foods.ChooseType(chip.ToLowerInvariant());
-
-    [Then(@"^the (Ingredients|Foods|Drinks|All) chip is chosen$")]
-    public void ThenTheChipIsChosen(string chip) =>
-        web.Eventually(() => foods.IsTypeChosen(chip.ToLowerInvariant()), Is.True, $"{chip} chip chosen");
-
-    [Then(@"^the type chips read Ingredients, Foods, Drinks, All in that order$")]
-    public void ThenTheTypeChipsReadInOrder() =>
-        web.Eventually(foods.TypeChipLabels, Is.EqualTo(new[] { "Ingredients", "Foods", "Drinks", "All" }));
-
-    [Then(@"^every result is a ""(Ingredient|Food|Drink)""$")]
-    public void ThenEveryResultIsOfType(string type) =>
-        web.Eventually(foods.ResultTypes, Has.Count.GreaterThan(0).And.All.EqualTo(type));
-
-    [Then(@"^the results include more than one type$")]
-    public void ThenTheResultsIncludeMoreThanOneType() =>
-        web.Eventually(() => foods.ResultTypes().Distinct().Count(), Is.GreaterThan(1));
+    [Then(@"^no type chips show$")]
+    public void ThenNoTypeChipsShow() =>
+        web.Eventually(foods.HasTypeChips, Is.False, "no type chips");
 
     [Then(@"^""(.*)"" is still typed$")]
     public void ThenIsStillTyped(string text) => web.Eventually(foods.Typed, Is.EqualTo(text));
@@ -85,5 +70,4 @@ public sealed class FoodSearchSteps(FoodSearchScreen foods, NavigationBar naviga
             Assert.That(foods.Typed(), Is.EqualTo(text));
         });
     }
-
 }

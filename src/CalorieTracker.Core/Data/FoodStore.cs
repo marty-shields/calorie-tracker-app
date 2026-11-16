@@ -31,14 +31,12 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
         return found;
     }
 
-    /// <summary>Every food, or every food of <paramref name="type"/>, in no particular order. Ranking happens in memory, which is fine at the seed's size.</summary>
-    public Task<List<Food>> ListAsync(FoodType? type = null, CancellationToken ct = default) =>
+    /// <summary>Every food, in no particular order. Ranking happens in memory, which is fine at the seed's size.</summary>
+    public Task<List<Food>> ListAsync(CancellationToken ct = default) =>
         gate.RunAsync(async () =>
         {
             ct.ThrowIfCancellationRequested();
-            return type is { } wanted
-                ? await connection.QueryAsync<Food>("SELECT * FROM Food WHERE Type = ?", (int)wanted)
-                : await connection.Table<Food>().ToListAsync();
+            return await connection.Table<Food>().ToListAsync();
         });
 
     /// <summary>

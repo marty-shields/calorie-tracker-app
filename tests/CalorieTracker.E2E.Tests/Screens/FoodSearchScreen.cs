@@ -1,5 +1,3 @@
-using OpenQA.Selenium;
-
 namespace CalorieTracker.E2E.Tests.Screens;
 
 /// <summary>Food search: the search box, the results, and one food's values.</summary>
@@ -31,24 +29,8 @@ public sealed class FoodSearchScreen(WebView web)
         web.Type("food-search-input", text);
     }
 
-    /// <summary>Taps a type chip (ingredients, foods, dishes, drinks or all) and waits until it is chosen.</summary>
-    public void ChooseType(string chip)
-    {
-        var radio = $"food-filter-{chip}";
-        web.WaitUntil(() => web.Exists(radio), $"the {chip} chip didn't show");
-        web.Find(radio).FindElement(By.XPath("..")).Click();
-        web.Eventually(() => web.Find(radio).Selected, Is.True, $"{chip} chip chosen");
-    }
-
-    /// <summary>Whether a type chip (ingredients, foods, dishes, drinks or all) is the chosen one.</summary>
-    public bool IsTypeChosen(string chip) => web.Find($"food-filter-{chip}").Selected;
-
-    /// <summary>The labels of the type chips, in the order they show.</summary>
-    public IReadOnlyList<string> TypeChipLabels()
-    {
-        web.WaitUntil(() => web.Exists("food-filter"), "the type chips didn't show");
-        return web.FindAll("[data-testid=\"food-filter\"] .chip").Select(chip => chip.Text.Trim()).ToList();
-    }
+    /// <summary>Whether any type chip shows. Search has none; this stays to prove it.</summary>
+    public bool HasTypeChips() => web.Exists("food-filter");
 
     public string PromptText() => web.Text("food-search-idle-message");
 
@@ -63,13 +45,6 @@ public sealed class FoodSearchScreen(WebView web)
     {
         web.WaitUntil(() => web.Exists("food-results"), "no results showed");
         return web.FindAll("[data-testid^=\"food-result-\"]").Select(row => row.Text.Trim()).ToList();
-    }
-
-    /// <summary>The type at the start of each result row's detail line, in order, once at least one shows.</summary>
-    public IReadOnlyList<string> ResultTypes()
-    {
-        web.WaitUntil(() => web.Exists("food-results"), "no results showed");
-        return web.FindAll("[data-testid^=\"food-result-\"]").Select(row => row.FindElement(By.CssSelector(".detail")).Text.Split('·')[0].Trim()).ToList();
     }
 
     /// <summary>Clicks the first row once the box holds what was typed; a row replaced by a newer search is found and clicked again.</summary>
