@@ -36,7 +36,7 @@
                             else
                             {
                                 <p class="figure" data-testid="dashboard-no-target" data-wrap-ok>No target set</p>
-                                <AppButton Variant="ButtonVariant.Secondary" TestId="dashboard-set-target" OnClick="OnSettings">Set one in Settings</AppButton>
+                                <AppButton Variant="ButtonVariant.Secondary" TestId="dashboard-set-target" OnClick="OnSettings">Set a target</AppButton>
                             }
                         </div>
                     </div>
@@ -129,7 +129,7 @@
     [Parameter]
     public EventCallback<NavDestination> OnNavigate { get; set; }
 
-    /// <summary>Raised by the Settings gear and by Set one in Settings.</summary>
+    /// <summary>Raised by the Settings gear and by Set a target.</summary>
     [Parameter]
     public EventCallback OnSettings { get; set; }
 
