@@ -119,6 +119,7 @@ internal static class FoodRanker
 
         var head = nameMain.Count - 1;
         var score = 0d;
+        var singleByTypo = false;
         foreach (var term in terms)
         {
             var best = BestMatch(term, main, qualifier, head);
@@ -128,11 +129,12 @@ internal static class FoodRanker
             }
 
             score += best.Value;
+            singleByTypo = best.Value == MainTypo;
         }
 
         score -= ExtraMainWordPenalty * Math.Min(Math.Max(0, main.Count - terms.Count), MaxPenalisedWords);
         score -= ExtraQualifierWordPenalty * Math.Min(qualifier.Count, MaxPenalisedWords);
-        if (terms.Count == 1)
+        if (terms.Count == 1 && !singleByTypo)
         {
             score += CommonFoodBoost(food, terms[0].Norm);
         }

@@ -114,7 +114,6 @@ public class FoodSearchSeedTests
     [TestCase("pot")]
     [TestCase("tom")]
     [TestCase("ric")]
-    [TestCase("egs")]
     [TestCase("mil")]
     public async Task ShortTypedWord_NeverMatchesByTypo(string typed)
     {
@@ -124,6 +123,13 @@ public class FoodSearchSeedTests
             var words = FoodRanker.Words(SearchFolding.Fold(name)).Select(FoodRanker.Normalise);
             Assert.That(words.Any(w => w.StartsWith(FoodRanker.Normalise(typed), StringComparison.Ordinal)), Is.True, name);
         }
+    }
+
+    [Test]
+    public async Task ShortTypedWordOneLetterOffAnEgg_FindsNothing()
+    {
+        // "egs" is one edit from "egg" but has only three letters, so it must not match by typo.
+        Assert.That(await Names("egs"), Is.Empty);
     }
 
     [Test]

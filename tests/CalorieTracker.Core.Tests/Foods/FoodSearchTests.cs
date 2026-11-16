@@ -216,6 +216,33 @@ public class FoodSearchTests
     }
 
     [Test]
+    public async Task Search_ExactMainWord_RanksAbovePrefixMatch()
+    {
+        await Add("Aaa pearl", "aaa pearl");
+        await Add("Pear", "pear");
+
+        Assert.That(await Names("pear"), Is.EqualTo(new[] { "Pear", "Aaa pearl" }));
+    }
+
+    [Test]
+    public async Task Search_TypoOnAMainWord_RanksAboveMatchOnlyInBrackets()
+    {
+        await Add("Aaa (milk)", "aaa (milk)");
+        await Add("Zzz mlik", "zzz mlik");
+
+        Assert.That(await Names("milk"), Is.EqualTo(new[] { "Zzz mlik", "Aaa (milk)" }));
+    }
+
+    [Test]
+    public async Task Search_CommonFoodBoost_NotAppliedWhenTheWordMatchedByTypo()
+    {
+        await Add("Zzz mlik", "zzz mlik", originalName: "Milk, whole, average");
+        await Add("Aaa milky", "aaa milky");
+
+        Assert.That(await Names("milk"), Is.EqualTo(new[] { "Aaa milky", "Zzz mlik" }));
+    }
+
+    [Test]
     public async Task Search_CommonFoodBoost_AppliesToOneWordQueriesOfCoFidFoodsOnly()
     {
         await Add("Aaa milk", "aaa milk");
