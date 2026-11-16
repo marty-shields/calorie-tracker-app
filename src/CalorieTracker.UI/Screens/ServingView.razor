@@ -6,7 +6,7 @@
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Components.Inputs
 @using CalorieTracker.UI.Models.Serving
-<AppScreen Title="@(Food is { } titled ? FoodDisplay.Of(titled).Title : Editing ? "Edit entry" : "Add food")" OnBack="OnBack">
+<AppScreen Title="@(Display is { } titled ? titled.Title : Editing ? "Edit entry" : "Add food")" OnBack="OnBack">
     <Actions>
         @if (Editing && Food is not null && !Loading && !LoadFailed)
         {
@@ -35,7 +35,7 @@
             var mode = HasServing ? Mode : EntryMode.Grams;
             var servings = mode == EntryMode.Servings;
             <div class="body">
-                @if (FoodDisplay.Of(food).Detail is { } detail)
+                @if (Display?.Detail is { } detail)
                 {
                     <p class="brand" data-testid="serving-brand" data-wrap-ok>@detail</p>
                 }
@@ -120,6 +120,10 @@
 </AppScreen>
 
 @code {
+    private FoodDisplay? Display { get; set; }
+
+    protected override void OnParametersSet() => Display = Food is null ? null : FoodDisplay.Of(Food);
+
     /// <summary>The food to add, with its values per 100 g or ml. Null shows "Food not found" unless <see cref="Loading"/> or <see cref="LoadFailed"/> is set.</summary>
     [Parameter]
     public Food? Food { get; set; }
@@ -258,7 +262,7 @@
 
     private string AddsDetail(Food food) =>
         HasServing
-            ? $"{Weight(Grams!.Value)} {UnitText(food)} of {FoodDisplay.Of(food).Title}"
+            ? $"{Weight(Grams!.Value)} {UnitText(food)} of {Display?.Title}"
             : $"Protein {Number(Share(food.ProteinG))} g · Carbs {Number(Share(food.CarbsG))} g · Fat {Number(Share(food.FatG))} g";
 
     private double Share(double per100) => per100 * Grams!.Value / 100;

@@ -641,6 +641,38 @@ public class ServingPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task Add_OfABrandedFood_NamesItWithItsBrandInTheSnackbar()
+    {
+        var id = await InsertWeetabix();
+        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
+        var cut = Render(id, Meal.Lunch);
+
+        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
+
+        Assert.That(snackbar.Current!.Text, Is.EqualTo("Weetabix Original added to Lunch"));
+    }
+
+    [Test]
+    public async Task Remove_OfABrandedFood_NamesItWithItsBrandInTheSnackbar()
+    {
+        var id = await InsertWeetabix();
+        var (cut, _) = await RenderEditing(id, Meal.Lunch, 30);
+
+        await cut.Find("[data-testid=serving-remove]").ClickAsync(new());
+
+        Assert.That(Context.Services.GetRequiredService<SnackbarService>().Current!.Text, Is.EqualTo("Weetabix Original removed"));
+    }
+
+    private async Task<int> InsertWeetabix()
+    {
+        var food = Stored(ScreenStates.Cheddar, "weetabix");
+        food.Name = "Original";
+        food.Brand = "Weetabix";
+        food.Brands = "Weetabix";
+        return await Insert(food);
+    }
+
+    [Test]
     public async Task Add_WithAReturnRoute_PostsViewDay_AndItOpensTheDayAfterThePageIsGone()
     {
         var snackbar = Context.Services.GetRequiredService<SnackbarService>();

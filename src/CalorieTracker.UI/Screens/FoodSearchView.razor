@@ -62,7 +62,8 @@
                             @foreach (var item in group.Foods.Take(shown))
                             {
                                 <li>
-                                    <ListRow Text="@FoodDisplay.Of(item.Food).Title" Detail="@Subtitle(item)"
+                                    @{ var display = FoodDisplay.Of(item.Food); }
+                                    <ListRow Text="@display.Title" Detail="@Subtitle(item, display)"
                                              OnClick="@(() => OnSelect.InvokeAsync(item.Food))" TestId="@($"food-result-{item.Food.Id}")" />
                                 </li>
                             }
@@ -176,10 +177,10 @@
     };
 
     /// <summary>A food from the diary shows what was last had and its energy; any other shows the energy per 100 g or ml.</summary>
-    private static string Subtitle(FoodListing item)
+    private static string Subtitle(FoodListing item, FoodDisplay display)
     {
         var food = item.Food;
-        var detail = FoodDisplay.Of(food).Detail;
+        var detail = display.Detail;
         var values = item.History is { } last
             ? $"{Last(last, food)} · {Number(Math.Round(food.Kcal * last.LastAmount / 100))} kcal"
             : $"{Number(food.Kcal)} kcal / 100 {UnitText(food)}";

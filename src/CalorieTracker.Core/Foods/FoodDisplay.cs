@@ -8,7 +8,7 @@ namespace CalorieTracker.Core.Foods;
 /// <param name="Title">The name when it already contains one of the brands, otherwise the first brand, a space and the name. Just the name when the food has no brand.</param>
 /// <param name="BrandLine">The first brand the title does not contain. Null when there is none.</param>
 /// <param name="Pack">The pack size as the source words it. Null when there is none.</param>
-/// <param name="GenericName">The source's generic name. Null when blank or when it is the title (compared the same way as brands).</param>
+/// <param name="GenericName">The source's generic name. Null when blank or when it is the title or the original name (compared the same way as brands).</param>
 public sealed record FoodDisplay(string Title, string? BrandLine, string? Pack, string? GenericName)
 {
     public static FoodDisplay Of(Food food) =>
@@ -35,7 +35,7 @@ public sealed record FoodDisplay(string Title, string? BrandLine, string? Pack, 
         var titleKey = Compare(title);
         var line = list.FirstOrDefault(b => !titleKey.Contains(Compare(b), StringComparison.Ordinal));
         var pack = string.IsNullOrWhiteSpace(packageLabel) ? null : packageLabel.Trim();
-        var generic = string.IsNullOrWhiteSpace(genericName) || Compare(genericName) == titleKey ? null : genericName.Trim();
+        var generic = string.IsNullOrWhiteSpace(genericName) || Compare(genericName) == titleKey || Compare(genericName) == Compare(trimmedName) ? null : genericName.Trim();
         return new FoodDisplay(title, line, pack, generic);
     }
 

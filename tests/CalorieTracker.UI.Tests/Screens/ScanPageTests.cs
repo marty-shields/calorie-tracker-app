@@ -152,6 +152,23 @@ public class ScanPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task Found_WithBrandsPackAndGenericName_ShowsThemAll()
+    {
+        var food = Product("Nutella", null, FoodUnit.Gram, 539, 6.3, 57.5, 30.9);
+        (food.Brands, food.PackageLabel, food.GenericName) = ("Ferrero, Nutella", "400 g", "Hazelnut spread");
+        lookup.Result = BarcodeLookupResult.Found(food);
+        var cut = await ScannedAsync();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.That(cut.Find("[data-testid=scan-name]").TextContent, Is.EqualTo("Nutella"));
+            Assert.That(cut.Find("[data-testid=scan-brand]").TextContent, Is.EqualTo("Ferrero"));
+            Assert.That(cut.Find("[data-testid=scan-pack]").TextContent, Is.EqualTo("400 g"));
+            Assert.That(cut.Find("[data-testid=scan-generic]").TextContent, Is.EqualTo("Hazelnut spread"));
+        });
+    }
+
+    [Test]
     public async Task Found_Liquid_ShowsPer100mlAndNoBrandWhenThereIsNone()
     {
         lookup.Result = BarcodeLookupResult.Found(Product("Semi-skimmed milk", null, FoodUnit.Millilitre, 47, 3.5, 4.8, 1.7));

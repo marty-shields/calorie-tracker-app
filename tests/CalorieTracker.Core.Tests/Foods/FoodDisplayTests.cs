@@ -74,6 +74,30 @@ public class FoodDisplayTests
     }
 
     [Test]
+    public void GenericName_SameAsTheOriginalNameBehindABrandPrefix_IsDropped()
+    {
+        var display = FoodDisplay.Of("Baked Beans", "Heinz", "Heinz", null, "Baked Beans");
+
+        Assert.That((display.Title, display.GenericName), Is.EqualTo(("Heinz Baked Beans", (string?)null)));
+    }
+
+    [Test]
+    public void Of_ABlankFirstBrand_IsSkippedForTheNextOne()
+    {
+        var display = FoodDisplay.Of("Original", null, "-, Weetabix", null);
+
+        Assert.That((display.Title, display.BrandLine), Is.EqualTo(("Weetabix Original", (string?)null)));
+    }
+
+    [Test]
+    public void Of_EmptyNameWithABrand_TitlesWithTheBrandAloneAndNoTrailingSpace()
+    {
+        var display = FoodDisplay.Of("  ", null, "Weetabix", null);
+
+        Assert.That(display.Title, Is.EqualTo("Weetabix"));
+    }
+
+    [Test]
     public void GenericName_SameAsTheTitle_IsDropped()
     {
         Assert.That(FoodDisplay.Of("Nutella", null, "Ferrero, Nutella", null, "nutella").GenericName, Is.Null);

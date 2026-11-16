@@ -35,7 +35,7 @@ public sealed record MacroShares(int ProteinPercent, int CarbsPercent, int FatPe
 public sealed record SummaryEntry(int EntryId, int FoodId, string Name, string? Brand, FoodUnit Unit, double Amount, double? Servings, Nutrition Nutrition, string? ServingLabel = null, string? Brands = null)
 {
     /// <summary>The title and brand line the diary row shows. The pack is not read for a diary row, so <see cref="FoodDisplay.Pack"/> is null.</summary>
-    public FoodDisplay Display => FoodDisplay.Of(Name, Brand, Brands, null);
+    public FoodDisplay Display { get; } = FoodDisplay.Of(Name, Brand, Brands, null);
 }
 
 /// <summary>One meal's entries in the order added, and their total. Empty meals are still listed.</summary>

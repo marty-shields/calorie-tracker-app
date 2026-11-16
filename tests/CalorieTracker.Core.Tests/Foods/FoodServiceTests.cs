@@ -115,10 +115,21 @@ public class FoodServiceTests
         Assert.That((food.ServingLabel, food.ServingAmount), Is.EqualTo(("1 serving", (double?)51)));
     }
 
+    [Test]
+    public async Task GetAsync_PackExactlyAtTheLimit_OffersItAsAServing()
+    {
+        var id = await Store(f => { f.ServingLabel = null; f.ServingAmount = null; f.PackageAmount = 350.0; });
+
+        var food = (await service.GetAsync(id)).Food!;
+
+        Assert.That((food.ServingLabel, food.ServingAmount), Is.EqualTo(("1 serving", (double?)350)));
+    }
+
     [TestCase(null)]
     [TestCase(0.0)]
     [TestCase(430.0)]
     [TestCase(1000.0)]
+    [TestCase(350.1)]
     public async Task GetAsync_NoServingAndNoSmallPack_OffersNoServing(double? pack)
     {
         var id = await Store(f => { f.ServingLabel = null; f.ServingAmount = null; f.PackageAmount = pack; });

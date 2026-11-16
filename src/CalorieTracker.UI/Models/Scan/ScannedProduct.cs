@@ -24,7 +24,7 @@ public sealed record ScannedProduct(string Name, string? Brand, decimal Kcal, de
     string? Brands = null, string? GenericName = null, string? PackageLabel = null)
 {
     /// <summary>The title, brand line, pack and generic name the screen shows.</summary>
-    public FoodDisplay Display => FoodDisplay.Of(Name, Brand, Brands, PackageLabel, GenericName);
+    public FoodDisplay Display { get; } = FoodDisplay.Of(Name, Brand, Brands, PackageLabel, GenericName);
 
     /// <summary>Largest allowed gap between <see cref="Kcal"/> and the energy the macros add up to, as a fraction of that energy. A placeholder to confirm.</summary>
     public const decimal KcalTolerance = 0.20m;
