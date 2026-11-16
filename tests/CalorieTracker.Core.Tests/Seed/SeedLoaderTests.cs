@@ -54,6 +54,7 @@ public class SeedLoaderTests
             Assert.That(foods["11-001"].Unit, Is.EqualTo(FoodUnit.Gram));
             Assert.That(foods["11-001"].Brand, Is.Null);
             Assert.That((foods["11-001"].OriginalName, foods["11-001"].FoodGroup), Is.EqualTo(("Arrowroot", "AA")));
+            Assert.That((foods["11-003"].OriginalName, foods["11-003"].FoodGroup), Is.EqualTo(("Barley, Pearl, Raw", "AB")));
         });
         Assert.That(await store.GetSeedVersionAsync(FoodSource.CoFID), Is.EqualTo(1));
     }
@@ -220,9 +221,9 @@ public class SeedLoaderTests
 
     [TestCase("not json")]
     [TestCase("")]
-    [TestCase("""{"seedVersion":1,"source":"CoFID 2021","foods":[{"source":"CoFID","sourceId":"1","name":"A","unit":"Gram","energyKcal":1,"proteinG":1,"carbsG":1}]}""")]
-    [TestCase("""{"seedVersion":1,"source":"CoFID 2021","foods":[{"source":"CoFID","sourceId":"1","name":"A","unit":"Gram","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1},{"source":"CoFID","sourceId":"1","name":"B","unit":"Gram","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}]}""")]
-    [TestCase("""{"seedVersion":1,"source":"CoFID 2021","foods":[{"source":"OpenFoodFacts","sourceId":"1","name":"A","unit":"Gram","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}]}""")]
+    [TestCase("""{"seedVersion":1,"source":"CoFID 2021","foods":[{"source":"CoFID","sourceId":"1","name":"A","originalName":"A","foodGroup":"AA","unit":"Gram","energyKcal":1,"proteinG":1,"carbsG":1}]}""")]
+    [TestCase("""{"seedVersion":1,"source":"CoFID 2021","foods":[{"source":"CoFID","sourceId":"1","name":"A","originalName":"A","foodGroup":"AA","unit":"Gram","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1},{"source":"CoFID","sourceId":"1","name":"B","unit":"Gram","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}]}""")]
+    [TestCase("""{"seedVersion":1,"source":"CoFID 2021","foods":[{"source":"OpenFoodFacts","sourceId":"1","name":"A","originalName":"A","foodGroup":"AA","unit":"Gram","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}]}""")]
     public async Task LoadAsync_BadSeed_FailsWritesNothingAndTheNextGoodRunLoads(string bad)
     {
         seedJson = bad;
@@ -300,13 +301,15 @@ public class SeedLoaderTests
         yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, unit: "Litre")])).SetName("unit Litre");
         yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, unit: "1")])).SetName("numeric unit");
         yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, unit: "99")])).SetName("undefined numeric unit");
-        yield return new TestCaseData(Wrap(1, ["""{"source":"CoFID","sourceId":"1","name":"A","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}"""])).SetName("missing unit");
+        yield return new TestCaseData(Wrap(1, ["""{"source":"CoFID","sourceId":"1","name":"A","originalName":"A","foodGroup":"AA","type":"Ingredient","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}"""])).SetName("missing unit");
         yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, type: "Snack")])).SetName("unknown type");
         yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, type: "1")])).SetName("numeric type");
-        yield return new TestCaseData(Wrap(1, ["""{"source":"CoFID","sourceId":"1","name":"A","unit":"Gram","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}"""])).SetName("missing type");
+        yield return new TestCaseData(Wrap(1, ["""{"source":"CoFID","sourceId":"1","name":"A","originalName":"A","foodGroup":"AA","unit":"Gram","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}"""])).SetName("missing type");
         yield return new TestCaseData(Wrap(1, ["""{"source":"CoFID","sourceId":"1","name":"A","foodGroup":"AA","unit":"Gram","type":"Ingredient","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}"""])).SetName("missing originalName");
         yield return new TestCaseData(Wrap(1, ["""{"source":"CoFID","sourceId":"1","name":"A","originalName":"A","unit":"Gram","type":"Ingredient","energyKcal":1,"proteinG":1,"carbsG":1,"fatG":1}"""])).SetName("missing foodGroup");
         yield return new TestCaseData(Wrap(1, [Row("1", "   ", 1)])).SetName("whitespace name");
+        yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, originalName: "   ")])).SetName("whitespace originalName");
+        yield return new TestCaseData(Wrap(1, [Row("1", "A", 1, foodGroup: "   ")])).SetName("whitespace foodGroup");
         yield return new TestCaseData(Wrap(0, [Row("1", "A", 1)])).SetName("seedVersion 0");
         yield return new TestCaseData("""{"foods":[]}""").SetName("missing seedVersion");
         yield return new TestCaseData(Wrap(1, [Row("1", "A", 1), Row("1", "B", 1)])).SetName("duplicate source id");
@@ -612,7 +615,7 @@ public class SeedLoaderTests
         {
             Row("11-001", version == 1 ? "Arrowroot" : "Arrowroot v2", changedKcal, fibre: "null", sugars: "0", saturates: "null", salt: "0.01", protein: "0.4", carbs: "94", fat: "0.1"),
             Row("11-002", "Gin", 250, unit: "Millilitre"),
-            Row("11-003", "  Barley, Pearl, Raw ", 360),
+            Row("11-003", "  Barley, Pearl, Raw ", 360, foodGroup: " AB "),
         };
         if (extra)
         {
@@ -625,6 +628,6 @@ public class SeedLoaderTests
     private static string Wrap(int version, IEnumerable<string> rows) =>
         $$"""{"seedVersion":{{version}},"source":"CoFID 2021","foods":[{{string.Join(",\n", rows)}}]}""";
 
-    private static string Row(string id, string name, double kcal, string unit = "Gram", string fibre = "1.5", string sugars = "1", string saturates = "0.5", string salt = "0.1", string protein = "1", string carbs = "2", string fat = "3", string type = "Ingredient") =>
-        $$"""{"source":"CoFID","sourceId":"{{id}}","name":"{{name}}","originalName":"{{name}}","foodGroup":"AA","unit":"{{unit}}","type":"{{type}}","energyKcal":{{kcal}},"proteinG":{{protein}},"carbsG":{{carbs}},"fatG":{{fat}},"fibreG":{{fibre}},"sugarsG":{{sugars}},"saturatesG":{{saturates}},"saltG":{{salt}}}""";
+    private static string Row(string id, string name, double kcal, string unit = "Gram", string fibre = "1.5", string sugars = "1", string saturates = "0.5", string salt = "0.1", string protein = "1", string carbs = "2", string fat = "3", string type = "Ingredient", string? originalName = null, string foodGroup = "AA") =>
+        $$"""{"source":"CoFID","sourceId":"{{id}}","name":"{{name}}","originalName":"{{originalName ?? name}}","foodGroup":"{{foodGroup}}","unit":"{{unit}}","type":"{{type}}","energyKcal":{{kcal}},"proteinG":{{protein}},"carbsG":{{carbs}},"fatG":{{fat}},"fibreG":{{fibre}},"sugarsG":{{sugars}},"saturatesG":{{saturates}},"saltG":{{salt}}}""";
 }

@@ -510,6 +510,12 @@ public class DatabaseInitializerTests
         }
     }
 
+    [Test]
+    public void CurrentVersion_IsNine()
+    {
+        Assert.That(DatabaseInitializer.CurrentVersion, Is.EqualTo(9));
+    }
+
     private const string ServingCheckedColumn = "SELECT name || ':' || type || ':' || \"notnull\" || ':' || pk FROM pragma_table_info('Food') WHERE name = 'ServingChecked'";
 
     [Test]
@@ -517,7 +523,6 @@ public class DatabaseInitializerTests
     {
         await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
 
-        Assert.That(DatabaseInitializer.CurrentVersion, Is.GreaterThanOrEqualTo(8));
         Assert.That(await connection.QueryScalarsAsync<string>(ServingCheckedColumn), Is.EqualTo(new[] { "ServingChecked:INTEGER:0:0" }));
         await connection.InsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "a", Name = "A", SearchText = "a" });
         Assert.That((await connection.Table<Food>().FirstAsync()).ServingChecked, Is.Null);
@@ -582,7 +587,7 @@ public class DatabaseInitializerTests
 
         await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
 
-        Assert.That(await Version(), Is.EqualTo(9));
+        Assert.That(await Version(), Is.EqualTo(DatabaseInitializer.CurrentVersion));
         Assert.That(LoggedEvents.Of(logger).Select(e => e.Message), Does.Contain("Schema upgrade step 9 applied"));
         var foods = await connection.Table<Food>().OrderBy(f => f.Id).ToListAsync();
         Assert.That(foods.Select(f => (f.Id, f.Name, f.OriginalName, f.FoodGroup)),
