@@ -16,7 +16,7 @@ public interface IFoodSearch
     /// <param name="limit">Most foods to return; kept between 1 and <see cref="MaxLimit"/>.</param>
     Task<FoodSearchResult> SearchAsync(string query, int limit = DefaultLimit, CancellationToken ct = default);
 
-    /// <summary>Most foods a typed group holds (its <see cref="FoodGroup.Total"/> can be higher), and so most shown once its "Show N more" row is tapped.</summary>
+    /// <summary>Most foods a typed group holds (its <see cref="FoodGroup.Total"/> can be higher), and so most shown once its "Show N more" row is tapped; N counts the foods held, not <see cref="FoodGroup.Total"/>.</summary>
     public const int GroupLimit = 50;
 
     /// <summary>Most foods in the usual group before typing.</summary>

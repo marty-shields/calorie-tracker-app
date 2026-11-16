@@ -53,7 +53,7 @@
                     var name = Key(group.Kind);
                     var open = Expanded.Contains(group.Kind);
                     var showsAll = open || group.Kind is FoodGroupKind.Usual or FoodGroupKind.Recent;
-                    var hidden = showsAll ? 0 : Math.Max(0, group.Total - ShownLimit);
+                    var hidden = showsAll ? 0 : Math.Max(0, group.Foods.Count - ShownLimit);
                     var shown = showsAll ? group.Foods.Count : Math.Min(group.Foods.Count, ShownLimit);
                     <section class="group">
                         <h2 class="group-heading" data-testid="@($"food-group-{name}")">@Heading(group.Kind)</h2>
@@ -84,7 +84,7 @@
     [Parameter]
     public string Query { get; set; } = "";
 
-    /// <summary>The lists to show, each under its heading, in the order given. With a query they are its matches, best first; with none, the foods to start from. A typed group (diary, common, branded) shows <see cref="ShownLimit"/> foods and a "Show N more" row (N is the group's true match count less those shown) for the rest; the usual and recent groups show all they hold.
+    /// <summary>The lists to show, each under its heading, in the order given. With a query they are its matches, best first; with none, the foods to start from. A typed group (diary, common, branded) shows <see cref="ShownLimit"/> foods and a "Show N more" row (N is the foods the group holds less those shown, so it is what the row reveals) for the rest; the usual and recent groups show all they hold.
     /// With no groups, an empty query shows "Search for a food" and a typed one "No foods match".</summary>
     [Parameter]
     public IReadOnlyList<FoodGroup> Groups { get; set; } = [];

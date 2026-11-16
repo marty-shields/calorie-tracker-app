@@ -577,7 +577,7 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task Typing_GroupWithMoreMatchesThanFoods_ShowsTheTrueCountInShowMore()
+    public async Task Typing_GroupWithMoreMatchesThanFoods_ShowsHowManyTheRowReveals()
     {
         var foods = Enumerable.Range(10, 50).Select(i => new FoodListing(new Food { Id = i, Name = $"Oat {i}", Unit = FoodUnit.Gram, Kcal = 100 }, null)).ToList();
         search.Groups = [new FoodGroup(FoodGroupKind.Common, foods, 80)];
@@ -585,7 +585,7 @@ public class FoodSearchPageTests : ComponentTestBase
 
         await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
 
-        Assert.That(cut.Find("[data-testid=food-group-common-more]").TextContent, Does.Contain("Show 75 more"));
+        Assert.That(cut.Find("[data-testid=food-group-common-more]").TextContent, Does.Contain("Show 45 more"));
     }
 
     [Test]
