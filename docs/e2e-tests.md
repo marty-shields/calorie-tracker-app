@@ -24,6 +24,9 @@ Running the E2E suite on a phone or an emulator, and where the results go. Set u
 - `@upgrade`: installs another build, so the shards leave it out and it runs in its own workflow (below).
 - `@upgrade-seed`: the first half of the next release's upgrade check ([Upgrade](#the-upgrade-check)). The shards and the Release E2E run it like any other scenario, so every release proves its own seed works.
 
+## Scan seam
+An emulator has no barcode to scan. In the Debug app only (`#if DEBUG`, `src/CalorieTracker.App/Scanning/E2EScanSeam.cs`), a file `e2e-barcode.txt` in the app's external files folder makes the scanner return its digits and delete it instead of opening the camera, and the barcode `5012345678900` finds the first Ingredient matching "oat" without the network. `Journeys.feature` uses it (`a barcode is held in front of the camera`). Every other scan and lookup is untouched, and the Release app has none of it, so scenarios that need it are not `@release`.
+
 ## Other builds
 Run settings choose the build under test. The Debug app is the default.
 - `AppPackage` and `AppApk`: the app's package and its APK. A package other than `uk.martinshields.calorietracker.debug` runs only on an emulator (`emulator-*`), so the app on a phone is never touched. The run fails before it installs anything when `AppApk` or `PreviousApk` holds another package than `AppPackage` (`aapt2 dump packagename`, from the newest build-tools in `ANDROID_HOME`), so the rule covers the app that is really installed. The Release app has no run-as, so the tests read its files as root, which emulator images allow.
@@ -54,12 +57,12 @@ The scenarios that need them:
 The check needs a last release: with no `v*` tag yet, the upgrade jobs skip their steps (`has-release.sh`) and pass. It starts once the first release is published.
 
 `upgrade-e2e.sh <previous apk> <tries>` runs it in two halves, so this commit's steps never drive the last release's screens. A change to a screen's selectors can't fail it.
-1. The last release saves its settings. `upgrade-e2e.sh` uninstalls the app, builds the E2E project of the latest `v*` tag, and runs that project's `@upgrade-seed` scenario (`UpgradeSeed.feature`) on the previous APK with its own steps and Appium. The scenario chooses the Dark theme through the last release's screens and leaves the app installed with it.
-2. This build checks them. This commit's `@upgrade` scenario (`Upgrade.feature`) runs with `PreviousApk` set. It checks that the installed APK is `PreviousApk` (same SHA-256), installs this build over it with `adb install -r`, then checks that the Dark theme is still chosen.
+1. The last release saves its settings. `upgrade-e2e.sh` uninstalls the app, builds the E2E project of the latest `v*` tag, and runs that project's `@upgrade-seed` scenario (`UpgradeSeed.feature`) on the previous APK with its own steps and Appium. The scenario chooses the Dark theme, sets a daily target of 2100 and adds one diary entry (100 g of the first food found by "oat", in Lunch, today) through the last release's screens, and leaves the app installed with them.
+2. This build checks them. This commit's `@upgrade` scenario (`Upgrade.feature`) runs with `PreviousApk` set. It checks that the installed APK is `PreviousApk` (same SHA-256), installs this build over it with `adb install -r`, then checks that the Dark theme is still chosen, the daily target is 2100 and Lunch still lists the one 100 g entry.
 
 The device state between the halves is the contract. The tag's project defines what the first half saves, and the current one checks it:
 - The app is installed from `PreviousApk`, under `AppPackage` (`E2E_APP_PACKAGE`), and has not been cleared.
-- Its Settings has the Dark theme chosen. As the app gains features, save more here and check it in `Upgrade.feature` once a release has it.
+- Its Settings has the Dark theme chosen and a daily target of 2100, and its Dashboard lists one 100 g entry under Lunch for today (a food found by "oat"). As the app gains features, save more here and check it in `Upgrade.feature` once a release has it.
 - The first half takes the run settings `AppPackage`, `AppApk` (the previous APK), `DeviceUdid` and `ChromedriverExecutable` and the `@upgrade-seed` category. Keep all of these, since a later release's check runs an older project with them.
 
 A failed try starts both halves again from an uninstalled app. A tag older than `UpgradeSeed.feature` has no seed scenario. For such a tag, the first half runs the E2E project of the commit that added the feature instead (`upgrade-seed-ref.sh` picks it). That commit's CI ran it against that release's build, and the commit never changes. `upgrade-seed-ref.sh` fails if a tag that contains that commit has no seed scenario.

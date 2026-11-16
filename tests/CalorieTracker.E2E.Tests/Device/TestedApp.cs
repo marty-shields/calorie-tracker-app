@@ -16,6 +16,9 @@ internal sealed record TestedApp(string Package, string Apk, string? PreviousApk
 
     public string LogPath => $"/sdcard/Android/data/{Package}/files/logs/calorietracker.log";
 
+    /// <summary>The app's external files folder, which holds <c>logs</c> and which adb can write to.</summary>
+    public string ExternalFilesFolder => $"/sdcard/Android/data/{Package}/files";
+
     /// <summary>The app's private folder, which holds <c>files</c> and <c>cache</c>.</summary>
     public string DataFolder => $"/data/data/{Package}";
 }

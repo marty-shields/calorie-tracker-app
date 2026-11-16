@@ -31,6 +31,18 @@ public partial class ReadmeDocsTests
     }
 
     [Test]
+    public void YourData_SaysTheDiaryAndTargetStayOnThePhoneAndWhatIsStored()
+    {
+        var start = Readme.IndexOf("## Your data", StringComparison.Ordinal);
+        var end = Readme.IndexOf("\n## ", start + 1, StringComparison.Ordinal);
+        var section = Readme[start..end];
+
+        Assert.That(section, Does.Contain("diary").And.Contain("daily target").And.Contain("foods").And.Contain("settings").And.Contain("stored on the phone only")
+            .And.Contain("food id").And.Contain("amount").And.Contain("meal").And.Contain("day"));
+        Assert.That(RepoFiles.Read("SECURITY.md"), Does.Contain("README.md#your-data").And.Contain("stay on the phone"));
+    }
+
+    [Test]
     public void Notice_CreditsBothDatasets()
     {
         var notice = RepoFiles.Read("NOTICE");

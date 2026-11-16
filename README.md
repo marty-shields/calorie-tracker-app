@@ -42,6 +42,7 @@ Cutting the first release needs the keystore and the `CERT_SHA256` pin: see [Rel
 
 ## Your data
 
+- Your diary, daily target, foods and settings are stored on the phone only, in that database. A diary entry holds the food id, the amount (g or ml, and the servings if you entered them), the meal, the day and whether it was removed. The daily target is one number of calories. Foods are the bundled food data plus the products you scanned, and settings hold the theme. None of it is sent anywhere.
 - Data lives in a SQLite database on the phone. Scanning a barcode the app hasn't stored sends that barcode to an external product database (Open Food Facts), and the app itself sends none of your food log or other data anywhere. The camera scanner is Google ML Kit, which may send usage metrics to Google as set by Google's terms.
 - Android Auto Backup copies that database, and only that, to your Google account, and a phone-to-phone transfer carries it too. The Dev build is never backed up.
 - Logs are in `Android/data/<package id>/files/logs`, readable over USB or `adb pull`. They hold events, ids, counts and non-personal data such as a scanned barcode, never personal information ([`Logging.feature`](tests/CalorieTracker.E2E.Tests/Features/Logging.feature) checks the start-up lines).
