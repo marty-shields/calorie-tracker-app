@@ -87,4 +87,14 @@ internal sealed class FoodHistoryStore(SQLiteAsyncConnection connection, Databas
 
             return found;
         });
+
+    /// <summary>Every food with a kept entry, in no set order; TimesLogged counts every kept entry. The last values come from <paramref name="meal"/> when set (see <see cref="LastEntryInMeal"/>).</summary>
+    public Task<List<FoodHistoryRow>> AllAsync(Meal? meal = null) =>
+        gate.RunAsync(() => connection.QueryAsync<FoodHistoryRow>(
+            $"""
+            SELECT {Columns}
+            FROM (SELECT FoodId, COUNT(*) AS Times FROM DiaryEntry WHERE IsRemoved = 0 GROUP BY FoodId) g
+            {LastEntryJoin(meal)}
+            """,
+            Args(meal, [])));
 }

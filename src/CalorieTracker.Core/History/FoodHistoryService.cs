@@ -54,6 +54,11 @@ public sealed partial class FoodHistoryService
             : ReadAsync(() => store.ForFoodsAsync(foodIds, meal), Log.ForFoods);
     }
 
+    /// <summary>For ranking a whole search: the history of every food ever logged, in no set order, in one read. TimesLogged counts all its kept entries.</summary>
+    /// <param name="meal">When set, each food's last values are those of its newest entry in that meal, or of its newest entry in any meal when it was never logged in that one.</param>
+    public Task<FoodHistoryResult> AllAsync(Meal? meal = null) =>
+        ReadAsync(() => store.AllAsync(meal), Log.ForFoods);
+
     private async Task<FoodHistoryResult> ReadAsync(Func<Task<List<FoodHistoryRow>>> read, Action<ILogger, int> logged)
     {
         try

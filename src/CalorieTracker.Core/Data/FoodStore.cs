@@ -22,13 +22,7 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
         gate.RunAsync(async () =>
         {
             var found = new List<Food>();
-            // Chunked so a long list stays under SQLite's limit on bound variables.
-            foreach (var chunk in ids.Distinct().Chunk(500))
-            {
-                var marks = string.Join(",", chunk.Select(_ => "?"));
-                found.AddRange(await connection.QueryAsync<Food>($"SELECT * FROM Food WHERE Id IN ({marks})", chunk.Cast<object>().ToArray()));
-            }
-
+            await connection.RunInTransactionAsync(db => found = FindIn(db, ids));
             return found;
         });
 

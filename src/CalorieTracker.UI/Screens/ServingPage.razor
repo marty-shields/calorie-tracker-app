@@ -170,39 +170,13 @@
 
         if (Editing && EntryAmount is { } stored)
         {
-            if (HasServing && EntryServings is { } count)
-            {
-                mode = EntryMode.Servings;
-                amount = ToDecimal(Math.Min(count, CarryLimit));
-                lockedGrams = stored;
-            }
-            else
-            {
-                mode = EntryMode.Grams;
-                amount = ToDecimal(Math.Min(stored, CarryLimit));
-                lockedGrams = null;
-            }
-
-            saveFailed = false;
+            Carry(stored, EntryServings);
             return;
         }
 
         if (StartAmount is { } start && ServingRules.IsValidGrams(start))
         {
-            if (HasServing && StartServings is { } startCount)
-            {
-                mode = EntryMode.Servings;
-                amount = ToDecimal(Math.Min(startCount, CarryLimit));
-                lockedGrams = start;
-            }
-            else
-            {
-                mode = EntryMode.Grams;
-                amount = ToDecimal(Math.Min(start, CarryLimit));
-                lockedGrams = null;
-            }
-
-            saveFailed = false;
+            Carry(start, StartServings);
             return;
         }
 
@@ -246,6 +220,25 @@
     }
 
     /// <summary>The weight as a decimal without the binary noise of a double (201.8, not 201.80000000000001).</summary>
+    /// <summary>Opens with an amount already known: in servings when the food has a serving and <paramref name="servings"/> is above zero (the grams stay as given), else by weight. Either is held at <see cref="CarryLimit"/>.</summary>
+    private void Carry(double grams, double? servings)
+    {
+        if (HasServing && servings is > 0)
+        {
+            mode = EntryMode.Servings;
+            amount = ToDecimal(Math.Min(servings.Value, CarryLimit));
+            lockedGrams = grams;
+        }
+        else
+        {
+            mode = EntryMode.Grams;
+            amount = ToDecimal(Math.Min(grams, CarryLimit));
+            lockedGrams = null;
+        }
+
+        saveFailed = false;
+    }
+
     private static decimal ToDecimal(double value) =>
         decimal.Parse(value.ToString("0.####", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
 

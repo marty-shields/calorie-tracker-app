@@ -18,7 +18,14 @@ public enum FoodGroupKind
 public sealed record FoodListing(Food Food, FoodHistory? History);
 
 /// <summary>One list of foods, best first.</summary>
-public sealed record FoodGroup(FoodGroupKind Kind, IReadOnlyList<FoodListing> Foods);
+/// <param name="Total">How many foods matched, which can be more than <see cref="Foods"/> holds (a typed group keeps the best <see cref="IFoodSearch.GroupLimit"/>).</param>
+public sealed record FoodGroup(FoodGroupKind Kind, IReadOnlyList<FoodListing> Foods, int Total)
+{
+    public FoodGroup(FoodGroupKind kind, IReadOnlyList<FoodListing> foods)
+        : this(kind, foods, foods.Count)
+    {
+    }
+}
 
 /// <summary>The outcome of a grouped search or of the foods shown before typing. <see cref="Groups"/> holds only groups with foods, and is empty unless <see cref="Status"/> is <see cref="FoodSearchStatus.Found"/>.</summary>
 public sealed record FoodGroupsResult

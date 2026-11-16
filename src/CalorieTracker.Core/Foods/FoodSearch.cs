@@ -53,7 +53,8 @@ internal sealed partial class FoodSearch(FoodStore store, FoodHistoryService his
         {
             var foods = await store.ListAsync(ct).WaitAsync(ct);
             var matches = FoodRanker.Rank(foods, terms, int.MaxValue);
-            var logged = await history.ForFoodsAsync(matches.Select(f => f.Id).ToList(), meal);
+            // The foods ever logged are few next to the matches, so one read of them beats asking for every match.
+            var logged = await history.AllAsync(meal);
             ct.ThrowIfCancellationRequested();
             var byFood = logged.Status == FoodHistoryStatus.Found ? logged.Foods.ToDictionary(h => h.FoodId) : [];
             var listings = matches.Select(f => new FoodListing(f, byFood.GetValueOrDefault(f.Id))).ToList();
@@ -65,7 +66,7 @@ internal sealed partial class FoodSearch(FoodStore store, FoodHistoryService his
                 Group(FoodGroupKind.Common, rest.Where(l => l.Food.Source == FoodSource.CoFID)),
                 Group(FoodGroupKind.Branded, rest.Where(l => l.Food.Source == FoodSource.OpenFoodFacts)),
             };
-            Log.Grouped(logger, terms.Count, groups[0].Foods.Count, groups[1].Foods.Count, groups[2].Foods.Count);
+            Log.Grouped(logger, terms.Count, groups[0].Total, groups[1].Total, groups[2].Total);
             return FoodGroupsResult.Found(groups);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -117,13 +118,14 @@ internal sealed partial class FoodSearch(FoodStore store, FoodHistoryService his
 
     private static FoodGroup Group(FoodGroupKind kind, IEnumerable<FoodListing> listings)
     {
-        var kept = listings.Take(kind is FoodGroupKind.Usual or FoodGroupKind.Recent ? int.MaxValue : IFoodSearch.GroupLimit).ToList();
+        var all = listings.ToList();
+        var kept = all.Take(kind is FoodGroupKind.Usual or FoodGroupKind.Recent ? int.MaxValue : IFoodSearch.GroupLimit).ToList();
         foreach (var listing in kept)
         {
             FoodService.Bound(listing.Food);
         }
 
-        return new FoodGroup(kind, kept);
+        return new FoodGroup(kind, kept, all.Count);
     }
 
     private static List<string> Terms(string? query) =>

@@ -152,6 +152,26 @@ public class ServingPageTests : ComponentTestBase
     }
 
     [Test]
+    public void StartServings_NotAboveZero_OpensInGramsWithTheAmount()
+    {
+        var cut = Render(pizzaId, Meal.Lunch, more: p => p.Add(x => x.StartAmount, 303).Add(x => x.StartServings, 0));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=serving-mode-grams]").HasAttribute("checked"), Is.True);
+            Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("303"));
+        });
+    }
+
+    [Test]
+    public void StartServings_AboveTheCarryLimit_IsHeldAtTheLimit()
+    {
+        var cut = Render(pizzaId, Meal.Lunch, more: p => p.Add(x => x.StartAmount, 303).Add(x => x.StartServings, 5_000_000));
+
+        Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("1000000"));
+    }
+
+    [Test]
     public void StartAmount_NotAValidAmount_OpensAtTheDefault()
     {
         var cut = Render(cheddarId, Meal.Lunch, more: p => p.Add(x => x.StartAmount, -5));

@@ -735,9 +735,30 @@ public class FoodSearchTests
             await Add($"Zed item {i:000}", "zed item");
         }
 
-        var common = (await search.SearchGroupedAsync("zed")).Groups.Single().Foods;
+        var group = (await search.SearchGroupedAsync("zed")).Groups.Single();
 
-        Assert.That(common.Select(l => l.Food.Name), Is.EqualTo(Enumerable.Range(0, IFoodSearch.GroupLimit).Select(i => $"Zed item {i:000}")));
+        Assert.Multiple(() =>
+        {
+            Assert.That(group.Foods.Select(l => l.Food.Name), Is.EqualTo(Enumerable.Range(0, IFoodSearch.GroupLimit).Select(i => $"Zed item {i:000}")));
+            Assert.That(group.Total, Is.EqualTo(IFoodSearch.GroupLimit + 5));
+        });
+    }
+
+    [Test]
+    public async Task Grouped_MoreThanTheGroupLimitMatches_CountsEveryMatch()
+    {
+        for (var i = 0; i < 65; i++)
+        {
+            await Add($"Zed item {i:000}", "zed item");
+        }
+
+        var group = (await search.SearchGroupedAsync("zed")).Groups.Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(group.Total, Is.EqualTo(65));
+            Assert.That(group.Foods, Has.Count.EqualTo(IFoodSearch.GroupLimit));
+        });
     }
 
     [Test]
@@ -820,13 +841,20 @@ public class FoodSearchTests
         for (var i = 0; i < 20; i++)
         {
             await Add($"Zed food {i:00}", "zed food");
-            await Log($"Zed food {i:00}", i < 7 ? Meal.Breakfast : Meal.Dinner, 50);
+            await Log($"Zed food {i:00}", i >= 13 ? Meal.Breakfast : Meal.Dinner, 50);
         }
 
         var result = await search.SuggestAsync(Meal.Breakfast);
 
-        Assert.That(result.Groups.Single(g => g.Kind == FoodGroupKind.Usual).Foods, Has.Count.EqualTo(IFoodSearch.UsualLimit));
-        Assert.That(result.Groups.Single(g => g.Kind == FoodGroupKind.Recent).Foods, Has.Count.EqualTo(IFoodSearch.RecentLimit));
+        var usual = result.Groups.Single(g => g.Kind == FoodGroupKind.Usual).Foods;
+        var recent = result.Groups.Single(g => g.Kind == FoodGroupKind.Recent).Foods;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(usual, Has.Count.EqualTo(IFoodSearch.UsualLimit));
+            Assert.That(recent, Has.Count.EqualTo(IFoodSearch.RecentLimit));
+            Assert.That(recent.Select(l => l.Food.Id).Intersect(usual.Select(l => l.Food.Id)), Is.Empty);
+        });
     }
 
     [Test]
@@ -837,10 +865,10 @@ public class FoodSearchTests
         await Log("Zed milk", Meal.Breakfast, 150, daysAgo: 1);
         await Log("Zed milk", Meal.Dinner, 220);
 
-        var fromBreakfast = (await search.SuggestAsync(Meal.Breakfast)).Groups.SelectMany(g => g.Foods).Select(l => l.History!.LastAmount).ToArray();
+        var fromBreakfast = (await search.SuggestAsync(Meal.Breakfast)).Groups.Single().Foods.Select(l => l.History!.LastAmount).ToArray();
         var fromLunch = (await search.SuggestAsync(Meal.Lunch)).Groups.Single().Foods[0].History!.LastAmount;
 
-        Assert.That(fromBreakfast, Is.All.EqualTo(150));
+        Assert.That(fromBreakfast, Is.EqualTo(new[] { 150.0 }));
         Assert.That(fromLunch, Is.EqualTo(220));
     }
 

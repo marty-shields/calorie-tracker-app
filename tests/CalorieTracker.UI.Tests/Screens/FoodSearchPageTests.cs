@@ -560,6 +560,35 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task NothingTyped_MoreThanFiveUsualAndRecentFoods_ShowsAllOfThemWithNoShowMoreRow()
+    {
+        FoodListing[] Many(int first) => Enumerable.Range(first, 7).Select(i => Logged(new Food { Id = i, Name = $"Oat {i}", Unit = FoodUnit.Gram, Kcal = 100 }, 40)).ToArray();
+        search.Idle = [new FoodGroup(FoodGroupKind.Usual, Many(10)), new FoodGroup(FoodGroupKind.Recent, Many(20))];
+
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Breakfast));
+        await WaitForRendererAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid^=food-result-]"), Has.Count.EqualTo(14));
+            Assert.That(cut.FindAll("[data-testid=food-group-usual-more]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=food-group-recent-more]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task Typing_GroupWithMoreMatchesThanFoods_ShowsTheTrueCountInShowMore()
+    {
+        var foods = Enumerable.Range(10, 50).Select(i => new FoodListing(new Food { Id = i, Name = $"Oat {i}", Unit = FoodUnit.Gram, Kcal = 100 }, null)).ToList();
+        search.Groups = [new FoodGroup(FoodGroupKind.Common, foods, 80)];
+        var cut = Context.Render<FoodSearchPage>();
+
+        await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
+
+        Assert.That(cut.Find("[data-testid=food-group-common-more]").TextContent, Does.Contain("Show 75 more"));
+    }
+
+    [Test]
     public async Task Typing_ANewSearch_CollapsesAnExpandedGroup()
     {
         var foods = Enumerable.Range(10, 7).Select(i => new FoodListing(new Food { Id = i, Name = $"Oat {i}", Unit = FoodUnit.Gram, Kcal = 100 }, null)).ToList();
