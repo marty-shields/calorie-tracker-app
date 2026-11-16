@@ -20,7 +20,7 @@ Running the E2E suite on a phone or an emulator, and where the results go. Set u
 
 ## Tags
 - `@smoke`: a quick check of the main paths.
-- `@release`: also runs on the Release build. These are the `@smoke` scenarios except Journey 3 (it needs the Debug-only [scan seam](#scan-seam)), the code a trimmed build is most likely to break, and the upgrade seed.
+- `@release`: also runs on the Release build. It is a separate tag, on the launch, app-lifecycle and settings `@smoke` scenarios (the code a trimmed build is most likely to break) and the upgrade seed. The diary journeys (`Journeys.feature`) and `FoodSearch.feature` are `@smoke` only; Journey 3 needs the Debug-only [scan seam](#scan-seam).
 - `@upgrade`: installs another build, so the shards leave it out and it runs in its own workflow (below).
 - `@upgrade-seed`: the first half of the next release's upgrade check ([Upgrade](#the-upgrade-check)). The shards and the Release E2E run it like any other scenario, so every release proves its own seed works.
 
