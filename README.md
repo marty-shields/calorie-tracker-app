@@ -22,12 +22,13 @@
 
 ## What's here
 
-This is the skeleton of the app: the architecture, design system, tests and CI, with no tracking features yet. It starts and shows two screens:
+This is the architecture, design system, tests and CI of the app, with a day diary on top. It starts on the Dashboard, and these screens are the main ones:
 
-- **Dashboard**: an empty home screen with the navigation bar and the Settings gear.
-- **Settings**: the theme (System, Light or Dark) and the app version.
+- **Dashboard**: the day diary, with a date strip, calories and macros, and four meals to add food to.
+- **Foods** and **Scan**: find a food by name or barcode and add it to a meal.
+- **Settings**: the theme (System, Light or Dark), the daily calorie target and the app version.
 
-Everything else is for you to add. [AGENTS.md](AGENTS.md) lists the rules the code follows, and the [design system](https://marty-shields.github.io/calorie-tracker-app/) shows the tokens, components and screens.
+More diary features are still to come. [AGENTS.md](AGENTS.md) lists the rules the code follows, and the [design system](https://marty-shields.github.io/calorie-tracker-app/) shows the tokens, components and screens.
 
 ## Install
 

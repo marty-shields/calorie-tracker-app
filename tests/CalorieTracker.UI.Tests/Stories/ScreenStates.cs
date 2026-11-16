@@ -1,10 +1,12 @@
 using AngleSharp.Dom;
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Summary;
 using CalorieTracker.UI.Models.Scan;
 using CalorieTracker.UI.Models.Serving;
 using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Screens;
+using CalorieTracker.UI.Stories.Stories.Screens;
 
 namespace CalorieTracker.UI.Tests.Stories;
 
@@ -86,9 +88,13 @@ public static class ScreenStates
         new("Screens/Startup", "Loading", c => c.Render<StartupView>().FindAll("*")),
         new("Screens/Startup", "Load failed", c => c.Render<StartupView>(p => p.Add(x => x.Failed, true)).FindAll("*")),
 
-        new("Screens/Dashboard", "Empty", c => c.Render<DashboardView>(p => p
-            .Add(x => x.OnSettings, () => { })
-            .Add(x => x.OnNavigate, (NavDestination _) => { })).FindAll("*")),
+        new("Screens/Dashboard", "First run", c => Dashboard(c, DashboardSamples.FirstRun)),
+        new("Screens/Dashboard", "No target", c => Dashboard(c, DashboardSamples.NoTarget)),
+        new("Screens/Dashboard", "Loaded", c => Dashboard(c, DashboardSamples.Loaded)),
+        new("Screens/Dashboard", "Over target", c => Dashboard(c, DashboardSamples.OverTarget)),
+        new("Screens/Dashboard", "Loading", c => Dashboard(c, null, loading: true)),
+        new("Screens/Dashboard", "Load failed", c => Dashboard(c, null, loadFailed: true)),
+        new("Screens/Dashboard", "Future day", c => Dashboard(c, DashboardSamples.Loaded, DashboardSamples.Today.AddDays(1))),
 
         new("Screens/Settings", "Default", c => Settings(c, version: "1.0.0", target: 2100)),
         new("Screens/Settings", "Dark chosen", c => Settings(c, version: "1.0.0", theme: ThemePreference.Dark, target: 2100)),
@@ -196,5 +202,18 @@ public static class ScreenStates
             .Add(x => x.OnTargetChanged, (decimal? _) => { })
             .Add(x => x.OnThemeChanged, (ThemePreference _) => { })
             .Add(x => x.OnBack, () => { }))
+            .FindAll("*");
+
+    private static IReadOnlyList<IElement> Dashboard(BunitContext context, DaySummary? summary, DateOnly? date = null, bool loading = false, bool loadFailed = false) =>
+        context.Render<DashboardView>(p => p
+            .Add(x => x.Date, date ?? DashboardSamples.Today)
+            .Add(x => x.Today, DashboardSamples.Today)
+            .Add(x => x.Summary, summary)
+            .Add(x => x.Loading, loading)
+            .Add(x => x.LoadFailed, loadFailed)
+            .Add(x => x.OnAdd, (MealAddRequest _) => { })
+            .Add(x => x.OnRetry, () => { })
+            .Add(x => x.OnSettings, () => { })
+            .Add(x => x.OnNavigate, (NavDestination _) => { }))
             .FindAll("*");
 }

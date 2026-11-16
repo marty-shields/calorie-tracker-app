@@ -5,11 +5,11 @@ using Reqnroll;
 namespace CalorieTracker.E2E.Tests.Steps;
 
 /// <summary>
-/// The Serving screen. Without a preset meal the steps tap through Foods (open a food, Add to diary). A preset meal comes from a meal's +, which
-/// the Dashboard does not have yet, so those steps find a food in Foods and open the route directly.
+/// The Serving screen. Without a preset meal the steps tap through Foods (open a food, Add to diary). A preset meal comes from a meal's + on the Dashboard,
+/// then search and a result. Only a food that does not exist is opened through the router, since no tap reaches it.
 /// </summary>
 [Binding]
-public sealed class ServingSteps(ServingScreen serving, FoodSearchScreen foods, Journeys journeys, WebView web)
+public sealed class ServingSteps(ServingScreen serving, FoodSearchScreen foods, DashboardScreen dashboard, Journeys journeys, WebView web)
 {
     private const string Meals = "(Breakfast|Lunch|Dinner|Snacks)";
 
@@ -21,17 +21,21 @@ public sealed class ServingSteps(ServingScreen serving, FoodSearchScreen foods, 
 
     private void OpenFirstFound(string text, string? meal)
     {
-        journeys.OpenFoods();
-        foods.Search(text);
         if (meal is null)
         {
+            journeys.OpenFoods();
+            foods.Search(text);
             foods.OpenFirstResult();
             foods.AddToDiary();
             serving.WaitUntilOpen();
             return;
         }
 
-        serving.Open(foods.FirstResultId(), meal);
+        journeys.WaitFor(Journeys.Screen.Dashboard);
+        dashboard.AddTo(meal);
+        foods.Search(text);
+        foods.OpenFirstResult();
+        serving.WaitUntilOpen();
     }
 
     [When(@"^I open Serving for a food that does not exist$")]

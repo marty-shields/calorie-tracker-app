@@ -4,7 +4,7 @@ Feature: Launch
   @smoke @release
   Scenario: A fresh install opens on the empty Dashboard
     Then I am on the Dashboard titled "Calorie Tracker"
-    And the Dashboard shows "Nothing here yet"
+    And the Dashboard shows "Nothing logged today"
     And I can open the Dashboard from the navigation bar
     And no startup error is shown
 

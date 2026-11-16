@@ -6,15 +6,16 @@ namespace CalorieTracker.E2E.Tests.Steps;
 
 /// <summary>Adding a food from search: a meal's search, Add to diary, and the snackbar that follows.</summary>
 [Binding]
-public sealed class AddFromSearchSteps(FoodSearchScreen foods, ServingScreen serving, SnackbarScreen snackbar, Journeys journeys, WebView web)
+public sealed class AddFromSearchSteps(FoodSearchScreen foods, ServingScreen serving, SnackbarScreen snackbar, DashboardScreen dashboard, Journeys journeys, WebView web)
 {
     private const string Meals = "(Breakfast|Lunch|Dinner|Snacks)";
 
     [Given(@"^I have opened search to add to " + Meals + "$")]
+    [When(@"^I tap \+ on " + Meals + "$")]
     public void GivenIHaveOpenedSearchToAddTo(string meal)
     {
         journeys.WaitFor(Journeys.Screen.Dashboard);
-        foods.OpenToAdd(meal);
+        dashboard.AddTo(meal);
     }
 
     [When(@"^I tap Back on Serving$")]

@@ -1,5 +1,5 @@
 Feature: Serving
-  The Serving screen adds a food to a meal. Without a preset the scenarios tap through Foods (open a food, Add to diary); a preset meal comes from a meal's +, which the Dashboard does not have yet, so those open the route for a food found in Foods; a food with a serving needs a scanned product, so the Grams and Servings switch is covered by bUnit, not here.
+  The Serving screen adds a food to a meal. Without a preset the scenarios tap through Foods (open a food, Add to diary); a preset meal comes from a meal's + on the Dashboard, then search and a result; a food with a serving needs a scanned product, so the Grams and Servings switch is covered by bUnit, not here.
 
   Scenario: A food from the CoFID seed is added by grams with no switch
     Given I have opened Serving for the first food found by "oat" with Lunch preset
@@ -38,10 +38,10 @@ Feature: Serving
     Then I am on the Dashboard
     And the log shows "added for food"
 
-  Scenario: The back arrow returns to Foods
+  Scenario: The back arrow returns to the meal's search
     Given I have opened Serving for the first food found by "oat" with Lunch preset
     When I go back with the back arrow
-    Then I am on Foods
+    Then search is titled "Add to Lunch" with no navigation bar
 
   Scenario: A food that does not exist says so
     Given I am on Foods
