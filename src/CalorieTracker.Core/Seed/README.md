@@ -31,7 +31,14 @@ The generator sets `name` from the entry and leaves `originalName` and `sourceId
 
 ## Format
 
-`{"seedVersion":5,"source":"CoFID 2021","foods":[...]}`, one food per line, sorted by `sourceId`, `\n` line endings. `seedVersion` is a constant in the script, bumped whenever the names or content change: 5 since the second food-type review (4 was the first food types, 3 was the everyday names, 2 the food-search change).
+`{"seedVersion":7,"source":"CoFID 2021","foods":[...]}`, one food per line, sorted by `sourceId`, `\n` line endings. `seedVersion` is a constant in the script, bumped whenever the names or content change. History:
+
+- 7: liquids moved to millilitres.
+- 6: the Dishes were dropped.
+- 5: the second food-type review.
+- 4: the first food types.
+- 3: the everyday names.
+- 2: the food-search change.
 
 | Key | Meaning |
 | --- | --- |
@@ -40,7 +47,7 @@ The generator sets `name` from the entry and leaves `originalName` and `sourceId
 | `name` | Everyday display name, set from `names/` |
 | `originalName` | CoFID food name, never edited; stored on the food as `OriginalName` |
 | `foodGroup` | CoFID group code, such as `AA`; stored on the food as `FoodGroup` |
-| `unit` | `Millilitre` when the group code starts with `Q` (alcoholic drinks, alcohol-free lager included), else `Gram` |
+| `unit` | `Millilitre` for alcoholic drinks (group code starts with `Q`, alcohol-free lager included) and for liquids, else `Gram`. Liquids are chosen by the constants `LIQUID_GROUPS`, `LIQUID_NAME_RULES`, `LIQUID_IDS`, `DRY_NAME` and `DRY_IDS` in `build-food-seed.py` (see their comments); a food that matches `DRY_NAME` (powder not made up, dried, concentrate, undiluted and so on) stays `Gram`, as do all other groups. Schema step 11 (`FoodUnitUpgrade`) sets the stored CoFID foods in its frozen list of seed 7 millilitre ids to `Millilitre` on upgrade, so a diary entry keeps its amount and its calories (they scale by amount / 100 whatever the unit) |
 | `type` | `Ingredient`, `Food` or `Drink`, from the group and the name rules in [Food types](#food-types) |
 | `energyKcal`, `proteinG`, `carbsG`, `fatG` | Per 100 g or 100 ml; a food with no value for any of these is left out |
 | `fibreG` | AOAC fibre (not NSP); `null` when not measured |

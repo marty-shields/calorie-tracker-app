@@ -702,6 +702,16 @@ public class OpenFoodFactsLookupTests
     }
 
     [Test]
+    public async Task ColaCan_ReportedInMillilitres_IsAMillilitreDrink()
+    {
+        handler.Respond(Fixture("details-cola-can-5000112637922.json"));
+
+        var food = (await lookup.LookupAsync("5000112637922")).Food!;
+
+        Assert.That((food.Unit, food.Type), Is.EqualTo((FoodUnit.Millilitre, FoodType.Drink)));
+    }
+
+    [Test]
     public async Task MarsBar_HasNoServingTheSourceFlaggedAsWrong_AndItsPackageAmount()
     {
         handler.Respond(Fixture("details-mars-5000159407236.json"));
