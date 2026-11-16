@@ -9,9 +9,13 @@ public static class ServingRules
     /// <summary>True when the food has at least one serving, which is what shows the serving switch.</summary>
     public static bool HasServing(IReadOnlyList<CalorieTracker.Core.Data.Serving>? servings) => servings is { Count: > 0 };
 
-    /// <summary>The serving with this id, or the first when the id is null or not among them; null when there are none.</summary>
-    public static CalorieTracker.Core.Data.Serving? Pick(IReadOnlyList<CalorieTracker.Core.Data.Serving> servings, int? id) =>
-        servings.FirstOrDefault(s => s.Id == id) ?? (servings.Count > 0 ? servings[0] : null);
+    /// <summary>
+    /// The serving to open on: the one with this id (such as the one last logged); else the one of <paramref name="packAmount"/> (the pack of the barcode that was scanned), the first when two have that amount; else the smallest, the first when two are as small. Null when there are none.
+    /// </summary>
+    public static CalorieTracker.Core.Data.Serving? Pick(IReadOnlyList<CalorieTracker.Core.Data.Serving> servings, int? id, double? packAmount = null) =>
+        servings.FirstOrDefault(s => s.Id == id)
+        ?? (packAmount is { } pack ? servings.FirstOrDefault(s => s.Amount == pack) : null)
+        ?? servings.MinBy(s => s.Amount);
 
     /// <summary>True when the weight is above zero and at most <see cref="DiaryService.MaxAmount"/>.</summary>
     public static bool IsValidGrams(double? grams) => grams is > 0 and <= DiaryService.MaxAmount;

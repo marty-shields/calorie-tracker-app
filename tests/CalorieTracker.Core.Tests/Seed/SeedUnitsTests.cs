@@ -24,7 +24,7 @@ public class SeedUnitsTests
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
         await connection.CreateTableAsync<Serving>();
-        await connection.CreateTableAsync<FoodBarcode>();
+        await connection.CreateTableAsync<Barcode>();
         await connection.CreateTableAsync<DiaryEntry>();
         await connection.CreateTableAsync<SeedVersion>();
         store = new FoodStore(connection, new DatabaseGate(), new FakeLogger<FoodStore>());

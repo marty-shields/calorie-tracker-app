@@ -4,10 +4,10 @@
 @inject NavigationManager Navigation
 @inject TimeProvider Time
 
-@* Query: entry (an entry's id: edit mode, with amount and servings as the entry holds them; Back, Save and Remove then go to the day's Dashboard), meal (preset), date (yyyy-MM-dd, default today), amount, servings and serving without entry (the amount to open with, such as what was last logged), return (an in-app route for Back and a saved entry), back (an in-app route for Back alone). *@
+@* Query: entry (an entry's id: edit mode, with amount and servings as the entry holds them; Back, Save and Remove then go to the day's Dashboard), meal (preset), date (yyyy-MM-dd, default today), amount, servings and serving without entry (the amount to open with, such as what was last logged), pack (the scanned barcode's pack in g or ml: opens on the serving of that size), return (an in-app route for Back and a saved entry), back (an in-app route for Back alone). *@
 <ServingPage FoodId="FoodId" Meal="ServingRoute.ParseMeal(MealText)" Date="EntryId is null ? ServingRoute.ParseDate(DateText, Today) : RouteDate.Parse(DateText) ?? default"
              EntryId="EntryId" EntryAmount="ServingRoute.ParseNumber(AmountText)" EntryServings="ServingRoute.ParseNumber(ServingsText)" EntryServingId="ServingRoute.ParseId(ServingText)"
-             StartAmount="EntryId is null ? ServingRoute.ParseNumber(AmountText) : null" StartServings="EntryId is null ? ServingRoute.ParseNumber(ServingsText) : null" StartServingId="EntryId is null ? ServingRoute.ParseId(ServingText) : null"
+             StartAmount="EntryId is null ? ServingRoute.ParseNumber(AmountText) : null" StartServings="EntryId is null ? ServingRoute.ParseNumber(ServingsText) : null" StartServingId="EntryId is null ? ServingRoute.ParseId(ServingText) : null" StartPackAmount="EntryId is null ? ServingRoute.ParseNumber(PackText) : null"
              OnSaved="@(() => Navigation.GoTo(DashboardRoute.Url(EntryDay)))"
              OnRemoved="@(() => Navigation.GoTo(DashboardRoute.Url(EntryDay)))"
              AfterAdd="ServingRoute.FollowUpFor(ReturnTo)"
@@ -30,6 +30,9 @@
 
     [SupplyParameterFromQuery(Name = "serving")]
     public string? ServingText { get; set; }
+
+    [SupplyParameterFromQuery(Name = "pack")]
+    public string? PackText { get; set; }
 
     [SupplyParameterFromQuery(Name = "meal")]
     public string? MealText { get; set; }

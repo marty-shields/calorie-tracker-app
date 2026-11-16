@@ -22,7 +22,7 @@ public class SeedLoaderTests
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
         await connection.CreateTableAsync<Serving>();
-        await connection.CreateTableAsync<FoodBarcode>();
+        await connection.CreateTableAsync<Barcode>();
         await connection.CreateTableAsync<DiaryEntry>();
         await connection.CreateTableAsync<SeedVersion>();
         store = new FoodStore(connection, new DatabaseGate(), new FakeLogger<FoodStore>());
@@ -212,14 +212,14 @@ public class SeedLoaderTests
         await connection.ExecuteAsync("UPDATE Food SET Type = ?", (int)FoodType.Food);
         await store.UpsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "5000000000017", Name = "Off", Unit = FoodUnit.Gram, SearchText = "off", Type = FoodType.Food }, "5000000000017");
         var arrowroot = await connection.Table<Food>().FirstAsync(f => f.SourceId == "11-001");
-        await connection.ExecuteAsync("INSERT INTO FoodBarcode (Barcode, FoodId) VALUES (?, ?)", "5000000000024", arrowroot.Id);
+        await connection.ExecuteAsync("INSERT INTO Barcode (Barcode, FoodId, FirstSeen) VALUES (?, ?, 0)", "5000000000024", arrowroot.Id);
         await store.SetSeedVersionAsync(FoodSource.CoFID, 3);
         seedJson = Wrap(4, [Row("11-001", "Arrowroot", 355, type: "Ingredient"), Row("11-002", "Gin", 250, unit: "Millilitre", type: "Drink"), Row("11-003", "Barley", 360, type: "Food")]);
 
         await Loader().LoadAsync();
 
         var after = (await connection.Table<Food>().Where(f => f.Source == FoodSource.CoFID).ToListAsync()).ToDictionary(f => f.SourceId);
-        var linked = await connection.QueryScalarsAsync<int>("SELECT FoodId FROM FoodBarcode WHERE Barcode = ?", "5000000000024");
+        var linked = await connection.QueryScalarsAsync<int>("SELECT FoodId FROM Barcode WHERE Barcode = ?", "5000000000024");
         Assert.Multiple(() =>
         {
             Assert.That(after["11-001"].Id, Is.EqualTo(arrowroot.Id));
@@ -423,7 +423,7 @@ public class SeedLoaderTests
             Assert.That(result.Status, Is.EqualTo(SeedLoadStatus.Loaded));
             Assert.That(foods.Select(f => (f.Source, f.SourceId)), Is.EquivalentTo(new[] { (FoodSource.CoFID, "11-001"), (FoodSource.OpenFoodFacts, "old-dish") }));
         });
-        Assert.That(await connection.QueryScalarsAsync<string>("SELECT Barcode FROM FoodBarcode"), Is.EqualTo(new[] { "5000000000024" }));
+        Assert.That(await connection.QueryScalarsAsync<string>("SELECT Barcode FROM Barcode"), Is.EqualTo(new[] { "5000000000024" }));
     }
 
     [Test]
@@ -466,7 +466,7 @@ public class SeedLoaderTests
 
         var foods = await connection.Table<Food>().ToListAsync();
         Assert.That(foods.Select(f => f.SourceId), Is.EquivalentTo(new[] { "11-001", "old-kept", "old-removed" }));
-        Assert.That(await connection.QueryScalarsAsync<string>("SELECT Barcode FROM FoodBarcode ORDER BY Barcode"), Is.EqualTo(new[] { "5000000000017", "5000000000024" }));
+        Assert.That(await connection.QueryScalarsAsync<string>("SELECT Barcode FROM Barcode ORDER BY Barcode"), Is.EqualTo(new[] { "5000000000017", "5000000000024" }));
         Assert.That(unused.Id, Is.Not.Zero);
     }
 

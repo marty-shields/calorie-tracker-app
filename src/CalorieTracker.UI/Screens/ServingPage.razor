@@ -81,7 +81,7 @@
     [Parameter]
     public double? EntryServings { get; set; }
 
-    /// <summary>The serving the entry counted its servings in, for edit mode. Null, or one the food no longer has, opens on the food's first serving.</summary>
+    /// <summary>The serving the entry counted its servings in, for edit mode. Null, or one the food no longer has, opens on the smallest serving.</summary>
     [Parameter]
     public int? EntryServingId { get; set; }
 
@@ -93,9 +93,13 @@
     [Parameter]
     public double? StartServings { get; set; }
 
-    /// <summary>The serving <see cref="StartServings"/> was counted in, such as the one last logged. Null, or one the food no longer has, opens on the food's first serving. Ignored in edit mode.</summary>
+    /// <summary>The serving <see cref="StartServings"/> was counted in, such as the one last logged. Null, or one the food no longer has, opens on the serving of <see cref="StartPackAmount"/>, else the smallest. Ignored in edit mode.</summary>
     [Parameter]
     public int? StartServingId { get; set; }
+
+    /// <summary>The pack, in g or ml, of the barcode that was scanned. With no <see cref="StartServingId"/> the screen opens on the serving of that amount; null or no such serving opens on the smallest. Ignored in edit mode.</summary>
+    [Parameter]
+    public double? StartPackAmount { get; set; }
 
     /// <summary>Raised once an edited entry is saved.</summary>
     [Parameter]
@@ -190,7 +194,7 @@
             return;
         }
 
-        chosen = ServingRules.Pick(offered, Editing ? EntryServingId : StartServingId);
+        chosen = ServingRules.Pick(offered, Editing ? EntryServingId : StartServingId, Editing ? null : StartPackAmount);
         if (Editing && EntryAmount is { } stored)
         {
             Carry(stored, EntryServings);
@@ -355,7 +359,7 @@
         }
     }
 
-    /// <summary>Deletes the chosen serving when it is the person's own. Entries that used it keep their amounts; the screen opens on the food's first serving.</summary>
+    /// <summary>Deletes the chosen serving when it is the person's own. Entries that used it keep their amounts; the screen opens on the smallest serving.</summary>
     private async Task DeleteOwnAsync()
     {
         if (savingOwn || chosen is not { Source: ServingSource.User } own)
@@ -396,7 +400,7 @@
         }
     }
 
-    /// <summary>Reads the food's servings again after one was added or deleted and picks <paramref name="pick"/>, or the first.</summary>
+    /// <summary>Reads the food's servings again after one was added or deleted and picks <paramref name="pick"/>, else as on opening.</summary>
     private async Task ReloadServingsAsync(int? pick)
     {
         var requested = FoodId;

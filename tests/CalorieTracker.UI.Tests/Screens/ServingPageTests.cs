@@ -1271,6 +1271,46 @@ public class ServingPageTests : ComponentTestBase
         });
     }
 
+    [Test]
+    public async Task StartPackAmount_OpensOnTheServingOfThatSize_WhenNoServingIsNamed()
+    {
+        await SeedCola();
+
+        var cut = Render(colaId, Meal.Snacks, more: p => p.Add(x => x.StartPackAmount, 330.0));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { false, true }));
+            Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 330 ml"));
+        });
+    }
+
+    [TestCase(500.0)]
+    [TestCase(null)]
+    public async Task StartPackAmount_NoServingOfThatSize_OpensOnTheSmallest(double? pack)
+    {
+        await SeedCola();
+
+        var cut = Render(colaId, Meal.Snacks, more: p => p.Add(x => x.StartPackAmount, pack));
+
+        Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { true, false }));
+    }
+
+    [Test]
+    public async Task StartServingId_BeatsTheScannedPack()
+    {
+        await SeedCola();
+
+        var cut = Render(colaId, Meal.Snacks, more: p => p.Add(x => x.StartAmount, 250).Add(x => x.StartServings, 1).Add(x => x.StartServingId, (int?)null).Add(x => x.StartPackAmount, 330.0));
+        var logged = Render(colaId, Meal.Snacks, more: p => p.Add(x => x.StartAmount, 250).Add(x => x.StartServings, 1).Add(x => x.StartServingId, glassId).Add(x => x.StartPackAmount, 330.0));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { false, true }));
+            Assert.That(logged.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { true, false }), "the serving last logged wins over the scanned pack");
+        });
+    }
+
     [TestCase(null)]
     [TestCase(99999)]
     public async Task StartServingId_NullOrOneTheFoodDoesNotHave_OpensOnTheFirstServing(int? unknown)

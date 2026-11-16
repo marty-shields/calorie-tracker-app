@@ -17,7 +17,7 @@ public class ServingStoreTests
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
-        await connection.CreateTableAsync<FoodBarcode>();
+        await connection.CreateTableAsync<Barcode>();
         await connection.CreateTableAsync<Serving>();
         await connection.CreateTableAsync<DiaryEntry>();
         var gate = new DatabaseGate();
@@ -52,7 +52,7 @@ public class ServingStoreTests
         Assert.That(rows.Select(r => (r.Label, r.Amount, r.Source)), Is.EqualTo(new[]
         {
             ("1 glass (250 ml)", 250.0, ServingSource.Product),
-            ("Whole pack (330 ml)", 330.0, ServingSource.Pack),
+            ("Can 330 ml", 330.0, ServingSource.Pack),
         }));
     }
 
@@ -78,7 +78,7 @@ public class ServingStoreTests
             Assert.That(rows.Select(r => (r.Label, r.Amount, r.Source)), Is.EqualTo(new[]
             {
                 ("1 tall glass (300 ml)", 300.0, ServingSource.Product),
-                ("Whole pack (330 ml)", 330.0, ServingSource.Pack),
+                ("Can 330 ml", 330.0, ServingSource.Pack),
             }));
             Assert.That(rows.Single(r => r.Source == ServingSource.Product).Id, Is.EqualTo(productId));
         });
@@ -107,7 +107,7 @@ public class ServingStoreTests
         Assert.That((await Rows(food.Id)).Select(r => (r.Label, r.Source)), Is.EqualTo(new[]
         {
             ("1 glass (250 ml)", ServingSource.Product),
-            ("Whole pack (330 ml)", ServingSource.Pack),
+            ("Can 330 ml", ServingSource.Pack),
             ("My mug", ServingSource.User),
         }));
         Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(1));

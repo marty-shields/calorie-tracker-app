@@ -1,6 +1,7 @@
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.UI.Logging;
+using CalorieTracker.UI.Models.Scan;
 using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Scanning;
@@ -415,13 +416,28 @@ public class ScanPageTests : ComponentTestBase
         var food = Product("Digestive biscuits", "Morning Mill", FoodUnit.Gram, 480, 7, 62, 22);
         (food.Id, food.ServingLabel, food.ServingAmount) = (42, "1 biscuit", 15);
         lookup.Result = BarcodeLookupResult.Found(food);
-        var added = new List<int>();
+        var added = new List<ScanAddRequest>();
         var cut = await ScannedAsync(p => p.Add(x => x.OnAddToDiary, added.Add));
 
         cut.WaitForAssertion(() => Assert.That(cut.Find("[data-testid=scan-serving]").TextContent, Is.EqualTo("Serving: 1 biscuit (15 g)")));
         cut.Find("[data-testid=scan-add]").Click();
 
-        Assert.That(added, Is.EqualTo(new[] { 42 }));
+        Assert.That(added, Is.EqualTo(new[] { new ScanAddRequest(42, null) }));
+    }
+
+    [Test]
+    public async Task Found_WithAScannedBarcodeOfAnotherSize_AddToDiaryCarriesThatPack()
+    {
+        var food = Product("Cola", "Fizz", FoodUnit.Millilitre, 42, 0, 10.6, 0);
+        food.Id = 7;
+        lookup.Result = BarcodeLookupResult.Found(food, 1000);
+        var added = new List<ScanAddRequest>();
+        var cut = await ScannedAsync(p => p.Add(x => x.OnAddToDiary, added.Add));
+
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-product]"), Has.Count.EqualTo(1)));
+        cut.Find("[data-testid=scan-add]").Click();
+
+        Assert.That(added, Is.EqualTo(new[] { new ScanAddRequest(7, 1000) }));
     }
 
     [Test]

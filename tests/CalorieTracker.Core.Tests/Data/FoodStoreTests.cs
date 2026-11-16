@@ -20,7 +20,7 @@ public class FoodStoreTests
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
         await connection.CreateTableAsync<Serving>();
-        await connection.CreateTableAsync<FoodBarcode>();
+        await connection.CreateTableAsync<Barcode>();
         await connection.CreateTableAsync<DiaryEntry>();
         await connection.CreateTableAsync<SeedVersion>();
         gate = new DatabaseGate();
@@ -161,7 +161,7 @@ public class FoodStoreTests
 
         Assert.That(second.Id, Is.Not.EqualTo(first.Id));
         Assert.That(found?.Id, Is.EqualTo(first.Id));
-        Assert.That(await connection.Table<FoodBarcode>().CountAsync(), Is.EqualTo(1));
+        Assert.That(await connection.Table<Barcode>().CountAsync(), Is.EqualTo(1));
     }
 
     [Test]
@@ -180,7 +180,7 @@ public class FoodStoreTests
     [Test]
     public async Task UpsertAsync_LinkFails_SavesNeitherTheFoodNorTheLink()
     {
-        await connection.ExecuteAsync("DROP TABLE FoodBarcode");
+        await connection.ExecuteAsync("DROP TABLE Barcode");
 
         Assert.That(() => store.UpsertAsync(NewFood("1"), "12345670"), Throws.Exception);
 
@@ -192,7 +192,7 @@ public class FoodStoreTests
     {
         await store.UpsertAsync(NewFood("1"));
 
-        Assert.That(await connection.Table<FoodBarcode>().CountAsync(), Is.Zero);
+        Assert.That(await connection.Table<Barcode>().CountAsync(), Is.Zero);
     }
 
     [Test]
@@ -204,7 +204,7 @@ public class FoodStoreTests
             await holding.Task;
             var inserted = NewFood("1");
             await connection.InsertAsync(inserted);
-            await connection.InsertAsync(new FoodBarcode { Barcode = "12345670", FoodId = inserted.Id });
+            await connection.InsertAsync(new Barcode { Code = "12345670", FoodId = inserted.Id, FirstSeen = DateTimeOffset.UtcNow });
         });
 
         var find = store.FindByBarcodeAsync("12345670");
@@ -650,7 +650,7 @@ public class FoodStoreTests
 
         Assert.That(deleted, Is.EqualTo(1));
         Assert.That((await connection.Table<Food>().ToListAsync()).Select(f => f.Id), Is.EquivalentTo(new[] { kept.Id, removedOnly.Id, listed.Id }));
-        Assert.That(await connection.QueryScalarsAsync<string>("SELECT Barcode FROM FoodBarcode ORDER BY Barcode"), Is.EqualTo(new[] { "5000000000017", "5000000000024" }));
+        Assert.That(await connection.QueryScalarsAsync<string>("SELECT Barcode FROM Barcode ORDER BY Barcode"), Is.EqualTo(new[] { "5000000000017", "5000000000024" }));
         Assert.That(stale.Id, Is.Not.Zero);
     }
 

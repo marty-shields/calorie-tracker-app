@@ -56,7 +56,8 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<ISchemaUpgrade, FoodSourceDetailsUpgrade>()
             .AddSingleton<ISchemaUpgrade, FoodUnitUpgrade>()
             .AddSingleton<ISchemaUpgrade, FoodCordialUnitUpgrade>()
-            .AddSingleton<ISchemaUpgrade, ServingTableUpgrade>();
+            .AddSingleton<ISchemaUpgrade, ServingTableUpgrade>()
+            .AddSingleton<ISchemaUpgrade, BarcodeTableUpgrade>();
 
     private static IServiceCollection AddServices(this IServiceCollection services)
     {
@@ -64,6 +65,7 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton(TimeProvider.System)
             .AddSingleton<IFoodSearch, FoodSearch>()
             .AddSingleton(provider => new FoodService(provider.GetRequiredService<FoodStore>(), provider.GetRequiredService<ILogger<FoodService>>()))
+            .AddSingleton(provider => new FoodImportService(provider.GetRequiredService<FoodStore>(), provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<FoodImportService>>()))
             .AddSingleton(provider => new ServingService(provider.GetRequiredService<ServingStore>(), provider.GetRequiredService<ILogger<ServingService>>()))
             .AddSingleton(provider => new TargetService(provider.GetRequiredService<TargetStore>(), provider.GetRequiredService<ILogger<TargetService>>()))
             .AddSingleton(provider => new DiaryService(provider.GetRequiredService<DiaryStore>(), provider.GetRequiredService<ILogger<DiaryService>>()))

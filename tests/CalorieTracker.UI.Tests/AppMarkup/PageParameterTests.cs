@@ -39,6 +39,7 @@ public partial class PageParameterTests
             Assert.That(serving, Does.Contain("StartAmount=\"EntryId is null ? ServingRoute.ParseNumber(AmountText) : null\""));
             Assert.That(serving, Does.Contain("StartServings=\"EntryId is null ? ServingRoute.ParseNumber(ServingsText) : null\""));
             Assert.That(serving, Does.Contain("StartServingId=\"EntryId is null ? ServingRoute.ParseId(ServingText) : null\""));
+            Assert.That(serving, Does.Contain("StartPackAmount=\"EntryId is null ? ServingRoute.ParseNumber(PackText) : null\""));
             Assert.That(serving, Does.Contain("EntryServingId=\"ServingRoute.ParseId(ServingText)\""));
         });
     }

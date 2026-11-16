@@ -23,7 +23,7 @@ public class FoodSearchSeedTests
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<Food>();
         await connection.CreateTableAsync<Serving>();
-        await connection.CreateTableAsync<FoodBarcode>();
+        await connection.CreateTableAsync<Barcode>();
         await connection.CreateTableAsync<DiaryEntry>();
         await connection.CreateTableAsync<SeedVersion>();
         var gate = new DatabaseGate();
