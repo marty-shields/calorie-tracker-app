@@ -135,12 +135,14 @@ public class DashboardPageTests : ComponentTestBase
 
         await core.GetRequiredService<DiaryService>().RemoveAsync(added.Entry!.Id);
 
-        await cut.WaitForAssertionAsync(() =>
+        await cut.WaitForStateAsync(() => Text(cut, "dashboard-eaten") == "125", TimeSpan.FromSeconds(10));
+
+        Assert.Multiple(() =>
         {
             Assert.That(Text(cut, "dashboard-eaten"), Is.EqualTo("125"));
             Assert.That(Text(cut, "meal-lunch-calories"), Is.EqualTo("125 kcal"));
             Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul .row"), Has.Count.EqualTo(1));
-        }, TimeSpan.FromSeconds(10));
+        });
     }
 
     [Test]
