@@ -14,9 +14,13 @@ namespace CalorieTracker.Core.Foods;
 /// <remarks>The client must have its <c>BaseAddress</c> set; the request path is relative.</remarks>
 internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
 {
-    private const string Fields = "product_name,brands,nutriments,product_quantity_unit,serving_quantity_unit,categories_tags,serving_size,serving_quantity";
+    private const string Fields = "product_name,brands,nutriments,product_quantity_unit,serving_quantity_unit,categories_tags,serving_size,serving_quantity,generic_name,quantity,product_quantity,pnns_groups_2,unique_scans_n,completeness,last_modified_t,data_quality_warnings_tags";
     private const int MaxAttempts = 3;
     private const double KcalPerKj = 1 / 4.184;
+    private const int MaxLabelLength = 100;
+    private const int MaxBrandsLength = 200;
+    private const double MaxUnixSeconds = 253402300799;
+    private const string ServingOverPackageWarning = "en:serving-quantity-over-product-quantity";
 
     /// <summary>The wait before a retry when the response names none, or names one over <see cref="MaxRetryAfter"/>.</summary>
     internal static readonly TimeSpan DefaultRetryWait = TimeSpan.FromSeconds(2);
@@ -143,7 +147,7 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
             try
             {
                 var code = ReadString(root, "code");
-                food = Map(product, code is not null && IsAsciiDigits(code, 1, int.MaxValue) ? code : barcode);
+                food = Map(product, code is not null && IsAsciiDigits(code, 1, int.MaxValue) ? code : barcode, time.GetUtcNow());
             }
             catch (InvalidOperationException)
             {
@@ -167,7 +171,7 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
     /// Null when the name or any of kcal, protein, carbs and fat is missing.
     /// <paramref name="sourceId"/> is the product's own code, so several barcodes of one product map to one food.
     /// </summary>
-    private static Food? Map(JsonElement product, string sourceId)
+    private static Food? Map(JsonElement product, string sourceId, DateTimeOffset fetchedAt)
     {
         var name = ReadString(product, "product_name");
         if (name is null)
@@ -187,10 +191,20 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
             return null;
         }
 
+        var brandList = ReadBrands(product);
         var brand = ReadString(product, "brands")?.Split(',')[0].Trim();
         brand = string.IsNullOrEmpty(brand) ? null : brand;
+        var brands = brandList.Count == 0 ? null : Truncate(string.Join(", ", brandList), MaxBrandsLength);
         var millilitre = IsMillilitre(product, "product_quantity_unit") || IsMillilitre(product, "serving_quantity_unit");
-        var (servingLabel, servingAmount) = ReadServing(product, millilitre);
+        var (servingLabel, servingAmount) = HasWarning(product, ServingOverPackageWarning) ? (null, null) : ReadServing(product, millilitre);
+        var genericName = Truncate(ReadString(product, "generic_name"), MaxLabelLength);
+        var category = ReadString(product, "pnns_groups_2");
+        category = string.Equals(category, "unknown", StringComparison.OrdinalIgnoreCase) ? null : Truncate(category, MaxLabelLength);
+        var packageAmount = ReadNumber(product, "product_quantity");
+        var packageMatches = string.Equals(ReadString(product, "product_quantity_unit"), millilitre ? "ml" : "g", StringComparison.OrdinalIgnoreCase);
+        var completeness = ReadNumber(product, "completeness");
+        var popularity = ReadNumber(product, "unique_scans_n");
+        var updated = ReadNumber(product, "last_modified_t");
 
         return new Food
         {
@@ -210,8 +224,43 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
             SaltG = Nutrient("salt_100g"),
             ServingLabel = servingLabel,
             ServingAmount = servingAmount,
-            SearchText = SearchFolding.Fold($"{name} {brand}".Trim()),
+            Brands = brands,
+            GenericName = genericName,
+            PackageLabel = Truncate(ReadString(product, "quantity"), MaxLabelLength),
+            PackageAmount = packageAmount is > 0 && packageMatches ? packageAmount : null,
+            Category = category,
+            Popularity = popularity is { } scans && scans <= int.MaxValue ? (int)scans : null,
+            Completeness = completeness is <= 1 ? completeness : null,
+            SourceUpdated = updated is { } seconds && seconds <= MaxUnixSeconds ? DateTimeOffset.FromUnixTimeSeconds((long)seconds) : null,
+            FetchedAt = fetchedAt,
+            SearchText = SearchFolding.Fold(string.Join(' ', new[] { name, string.Join(' ', brandList), genericName, category }.Where(t => !string.IsNullOrEmpty(t)))),
         };
+    }
+
+    /// <summary>Every brand in <c>brands</c>: trimmed, blanks and repeats (ignoring case) dropped, in the source's order.</summary>
+    private static List<string> ReadBrands(JsonElement product) =>
+        (ReadString(product, "brands")?.Split(',') ?? [])
+            .Select(b => b.Trim())
+            .Where(b => b.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    /// <summary>Whether <c>data_quality_warnings_tags</c> has <paramref name="tag"/>.</summary>
+    private static bool HasWarning(JsonElement product, string tag) =>
+        product.TryGetProperty("data_quality_warnings_tags", out var tags)
+        && tags.ValueKind == JsonValueKind.Array
+        && tags.EnumerateArray().Any(t => t.ValueKind == JsonValueKind.String && string.Equals(t.GetString(), tag, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Cuts the text to <paramref name="max"/> chars without splitting a surrogate pair.</summary>
+    private static string? Truncate(string? text, int max)
+    {
+        if (text is null || text.Length <= max)
+        {
+            return text;
+        }
+
+        var cut = char.IsHighSurrogate(text[max - 1]) ? max - 1 : max;
+        return text[..cut].TrimEnd();
     }
 
     /// <summary>

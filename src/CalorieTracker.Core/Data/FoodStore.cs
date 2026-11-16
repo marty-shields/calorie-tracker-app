@@ -84,15 +84,17 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
         });
 
     /// <summary>
-    /// Sets the serving and the nutrients (kcal, protein, carbs, fat, fibre, sugars, saturates, salt) of the food with <paramref name="id"/> from <paramref name="fresh"/>, which must have a serving; every other column stays as stored.
+    /// Sets the serving (both parts, or null when <paramref name="fresh"/> lacks either), the nutrients (kcal, protein, carbs, fat, fibre, sugars, saturates, salt) and the source details (brands, generic name, package, category, popularity, completeness, source update and fetch time) of the food with <paramref name="id"/> from <paramref name="fresh"/>; every other column stays as stored.
     /// False when no food has that id.
     /// </summary>
-    public Task<bool> RefreshServingAsync(int id, Food fresh) =>
+    public Task<bool> RefreshAsync(int id, Food fresh) =>
         gate.RunAsync(async () =>
         {
+            var hasServing = fresh is { ServingLabel: not null, ServingAmount: not null };
             var changed = await connection.ExecuteAsync(
-                "UPDATE Food SET ServingLabel = ?, ServingAmount = ?, Kcal = ?, ProteinG = ?, CarbsG = ?, FatG = ?, FibreG = ?, SugarsG = ?, SaturatesG = ?, SaltG = ? WHERE Id = ?",
-                fresh.ServingLabel, fresh.ServingAmount, fresh.Kcal, fresh.ProteinG, fresh.CarbsG, fresh.FatG, fresh.FibreG, fresh.SugarsG, fresh.SaturatesG, fresh.SaltG, id) > 0;
+                "UPDATE Food SET ServingLabel = ?, ServingAmount = ?, Kcal = ?, ProteinG = ?, CarbsG = ?, FatG = ?, FibreG = ?, SugarsG = ?, SaturatesG = ?, SaltG = ?, Brands = ?, GenericName = ?, PackageLabel = ?, PackageAmount = ?, Category = ?, Popularity = ?, Completeness = ?, SourceUpdated = ?, FetchedAt = ? WHERE Id = ?",
+                hasServing ? fresh.ServingLabel : null, hasServing ? fresh.ServingAmount : null, fresh.Kcal, fresh.ProteinG, fresh.CarbsG, fresh.FatG, fresh.FibreG, fresh.SugarsG, fresh.SaturatesG, fresh.SaltG,
+                fresh.Brands, fresh.GenericName, fresh.PackageLabel, fresh.PackageAmount, fresh.Category, fresh.Popularity, fresh.Completeness, fresh.SourceUpdated?.UtcTicks, fresh.FetchedAt?.UtcTicks, id) > 0;
             if (changed)
             {
                 Log.Updated(logger, id);

@@ -511,9 +511,9 @@ public class DatabaseInitializerTests
     }
 
     [Test]
-    public void CurrentVersion_IsNine()
+    public void CurrentVersion_IsTen()
     {
-        Assert.That(DatabaseInitializer.CurrentVersion, Is.EqualTo(9));
+        Assert.That(DatabaseInitializer.CurrentVersion, Is.EqualTo(10));
     }
 
     private const string ServingCheckedColumn = "SELECT name || ':' || type || ':' || \"notnull\" || ':' || pk FROM pragma_table_info('Food') WHERE name = 'ServingChecked'";
@@ -627,6 +627,74 @@ public class DatabaseInitializerTests
             new FoodOriginalNameUpgrade().Apply(db);
 
             Assert.That(db.ExecuteScalar<int>("SELECT COUNT(*) FROM pragma_table_info('Food') WHERE name IN ('OriginalName', 'FoodGroup')"), Is.EqualTo(2));
+        }
+        finally
+        {
+            db.Close();
+        }
+    }
+
+    [Test]
+    public async Task InitializeAsync_VersionNineDatabaseWithFoods_GetsEmptyDetailColumnsAndKeepsItsFoods()
+    {
+        await connection.ExecuteAsync(FoodTableSql);
+        await connection.ExecuteAsync("ALTER TABLE Food ADD COLUMN ServingChecked INTEGER");
+        await connection.ExecuteAsync("ALTER TABLE Food ADD COLUMN OriginalName varchar");
+        await connection.ExecuteAsync("ALTER TABLE Food ADD COLUMN FoodGroup varchar");
+        await connection.ExecuteAsync("INSERT INTO Food (Id, Source, SourceId, Name, Brand, Unit, Kcal, ServingLabel, ServingAmount, SearchText, Type) VALUES (1, 1, '3017620422003', 'Nutella', 'Ferrero', 0, 539, '15 g', 15, 'nutella ferrero', 1), (2, 0, '11-002', 'Pearl barley', NULL, 0, 360, NULL, NULL, 'pearl barley', 0)");
+        await connection.ExecuteAsync("CREATE TABLE FoodBarcode (Barcode varchar primary key not null, FoodId integer not null)");
+        await connection.ExecuteAsync("INSERT INTO FoodBarcode (Barcode, FoodId) VALUES ('3017620422003', 1)");
+        await connection.ExecuteAsync("CREATE TABLE AppSettings (Id integer not null primary key, DailyTargetKcal integer)");
+        await connection.ExecuteAsync(DiaryTableSql);
+        await connection.ExecuteAsync("INSERT INTO DiaryEntry (Date, Meal, FoodId, Amount, Servings, IsRemoved) VALUES ('2031-07-19', 1, 1, 30, 1, 0)");
+        await SetVersion(9);
+
+        await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
+
+        Assert.That(await Version(), Is.EqualTo(DatabaseInitializer.CurrentVersion));
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Message), Does.Contain("Schema upgrade step 10 applied"));
+        var foods = await connection.Table<Food>().OrderBy(f => f.Id).ToListAsync();
+        Assert.That(foods.Select(f => (f.Id, f.Name, f.Brand, f.Kcal, f.ServingLabel, f.ServingAmount)),
+            Is.EqualTo(new[] { (1, "Nutella", (string?)"Ferrero", 539.0, (string?)"15 g", (double?)15), (2, "Pearl barley", null, 360.0, null, null) }));
+        Assert.That(foods.Select(f => (f.Brands, f.GenericName, f.PackageLabel, f.PackageAmount, f.Category, f.Popularity, f.Completeness, f.SourceUpdated, f.FetchedAt)),
+            Is.All.EqualTo(((string?)null, (string?)null, (string?)null, (double?)null, (string?)null, (int?)null, (double?)null, (DateTimeOffset?)null, (DateTimeOffset?)null)));
+        Assert.That(await connection.ExecuteScalarAsync<string>("SELECT Barcode FROM FoodBarcode WHERE FoodId = 1"), Is.EqualTo("3017620422003"));
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM DiaryEntry WHERE FoodId = 1"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task InitializeAsync_VersionNineDatabase_GetsTheSameFoodSchemaAsANewDatabase()
+    {
+        await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
+        var created = await FoodSchema();
+        await connection.CloseAsync();
+        File.Delete(databasePath);
+
+        databasePath = TempDatabase.NewPath();
+        connection = new SQLiteAsyncConnection(databasePath);
+        await connection.ExecuteAsync(FoodTableSql);
+        await connection.ExecuteAsync("ALTER TABLE Food ADD COLUMN ServingChecked INTEGER");
+        await connection.ExecuteAsync("ALTER TABLE Food ADD COLUMN OriginalName varchar");
+        await connection.ExecuteAsync("ALTER TABLE Food ADD COLUMN FoodGroup varchar");
+        await SetVersion(9);
+        await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
+
+        Assert.That(await FoodSchema(), Is.EqualTo(created));
+        Assert.That(created, Does.Contain("FetchedAt:bigint:0:0").And.Contain("PackageAmount:float:0:0").And.Contain("Popularity:INTEGER:0:0"));
+    }
+
+    [Test]
+    public void FoodSourceDetailsUpgrade_Apply_RunTwiceOrWithNoTable_DoesNotFail()
+    {
+        var db = new SQLiteConnection(databasePath);
+        try
+        {
+            new FoodSourceDetailsUpgrade().Apply(db);
+            db.Execute(FoodTableSql);
+            new FoodSourceDetailsUpgrade().Apply(db);
+            new FoodSourceDetailsUpgrade().Apply(db);
+
+            Assert.That(db.ExecuteScalar<int>("SELECT COUNT(*) FROM pragma_table_info('Food') WHERE name IN ('Brands', 'GenericName', 'PackageLabel', 'PackageAmount', 'Category', 'Popularity', 'Completeness', 'SourceUpdated', 'FetchedAt')"), Is.EqualTo(9));
         }
         finally
         {
