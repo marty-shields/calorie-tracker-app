@@ -8,7 +8,7 @@ Top-level screen, reached from the **Foods** item of the navigation bar (route `
 
 | Part | Content |
 |---|---|
-| Top bar | Title "Search foods". No back arrow, except while a food's values show. |
+| Top bar | Title "Search foods". No back arrow, except while a food's values show; then the star too (`food-detail-favourite`, see Food selected). |
 | Navigation bar | `BottomNav` with Foods current. A snackbar posted by the Serving screen shows above it (`<Snackbar />` in the `Status` slot). |
 | Toolbar | Same layout as Exercises in the workout log app: the search box with the search `Icon` and "Search foods", pinned under the top bar with a line under it; the rows scroll beneath. Search box only, with no filter by kind of food. Hidden while a food's values or the load error show. Results update on every keystroke; a newer keystroke cancels the search still running. |
 | Loading | On the first launch the food list is still being loaded in the background: the search box shows and a spinner with "Loading foods…" replaces the results. What is typed meanwhile is kept and searched once loading finishes. If loading fails the screen shows "Couldn't search foods" and Try again, which loads again. |

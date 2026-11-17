@@ -1589,6 +1589,27 @@ public class ServingPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task EditMode_ForAFavourite_UnstarOffersUndoThatStarsAgain()
+    {
+        await core.GetRequiredService<FavouriteService>().AddAsync(cheddarId);
+        var (cut, _) = await RenderEditing(cheddarId, Meal.Lunch, 30);
+        WaitForStar(cut);
+        var before = Pressed(cut);
+
+        await TapStar(cut);
+        var afterRemove = (Pressed(cut), SnackbarText(cut), cut.Find("[data-testid=snackbar-action]").TextContent.Trim());
+        await cut.Find("[data-testid=snackbar-action]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(before, Is.EqualTo("true"));
+            Assert.That(afterRemove, Is.EqualTo(("false", "Removed from favourites", "Undo")));
+            Assert.That(Pressed(cut), Is.EqualTo("true"));
+        });
+        Assert.That(await IsFavourite(cheddarId), Is.True);
+    }
+
+    [Test]
     public async Task EditMode_StarThenRemove_StillRemovesTheEntry()
     {
         var removed = false;
