@@ -60,8 +60,8 @@ public sealed class DashboardSteps(WebView web, DashboardScreen dashboard, Navig
     [Then(@"^the Dashboard says ""(.*)""$")]
     public void ThenTheDashboardSays(string text) => web.Eventually(() => dashboard.NoTargetText(), Is.EqualTo(text));
 
-    [When(@"^I tap Set one in Settings$")]
-    public void WhenITapSetOneInSettings() => dashboard.SetTarget();
+    [When(@"^I tap Set a target$")]
+    public void WhenITapSetATarget() => dashboard.SetTarget();
 
     [When(@"^I tap the next day$")]
     public void WhenITapTheNextDay() => dashboard.NextDay();

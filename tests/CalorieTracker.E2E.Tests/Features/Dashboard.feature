@@ -22,7 +22,7 @@ Feature: Dashboard
     Given I am on the Dashboard
     Then the ring is captioned "kcal eaten"
     And the Dashboard says "No target set"
-    When I tap Set one in Settings
+    When I tap Set a target
     Then I am on Settings
 
   Scenario: The date strip changes the day and a future day looks like any other

@@ -102,6 +102,51 @@ public sealed class FoodSearchScreen(WebView web)
 
     public void ShowMore(string group) => web.Tap($"food-group-{group}-more");
 
+    /// <summary>How the "Search online" button shows: "primary" when no stored food matches, "secondary" under the results, or null when it is not offered.</summary>
+    public string? OnlineEntry()
+    {
+        var entry = web.FindAll("[data-testid=\"food-search-online\"]").FirstOrDefault();
+        return entry is null ? null : entry.TagName != "button" ? "not a button" : entry.GetDomAttribute("class")!.Contains("primary", StringComparison.Ordinal) ? "primary" : "secondary";
+    }
+
+    /// <summary>The first-use notice, or null when it is not shown.</summary>
+    public string? OnlineNotice() => web.Exists("food-search-online-notice") ? web.Text("food-search-online-notice") : null;
+
+    public void SearchOnline() => web.Tap("food-search-online");
+
+    public string OnlineHeading()
+    {
+        web.WaitUntil(() => web.Exists("food-group-online"), "no online group showed");
+        return web.Text("food-group-online");
+    }
+
+    /// <summary>The text of each online product row, in order, with its NEW marker last when it has one.</summary>
+    public IReadOnlyList<string> OnlineRows() =>
+        web.FindAll("[data-testid^=\"food-online-\"]").Select(row => row.Text.Replace("\n", " ").Trim()).ToList();
+
+    /// <summary>Taps the online product with this title and pack size, showing "Show N more" first when it hides the row.</summary>
+    public void OpenOnlineProduct(string title, string pack) =>
+        web.WaitUntil(() =>
+        {
+            var row = web.FindAll("[data-testid^=\"food-online-\"]").FirstOrDefault(r => r.FindElement(OpenQA.Selenium.By.CssSelector(".text")).Text.Trim() == title && r.Text.Contains(pack, StringComparison.Ordinal));
+            row?.Click();
+            return row is not null;
+        }, $"no online product '{title}' of '{pack}' to open");
+
+    public string OnlineMessage()
+    {
+        web.WaitUntil(() => web.Exists("food-search-online-error"), "no online message showed");
+        return web.Text("food-search-online-error");
+    }
+
+    public bool OnlineHasTryAgain() => web.Exists("food-search-online-retry");
+
+    public string OnlineNothingFound()
+    {
+        web.WaitUntil(() => web.Exists("food-search-online-none"), "no 'Nothing found' message showed");
+        return web.Text("food-search-online-none");
+    }
+
     public bool ShowsDetail() => web.Exists("food-detail");
 
     public string DetailName() => web.Text("food-detail-name");

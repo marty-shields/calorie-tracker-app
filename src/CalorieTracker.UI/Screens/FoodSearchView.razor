@@ -5,6 +5,7 @@
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Components.Inputs
 @using CalorieTracker.UI.Components.Lists
+@using CalorieTracker.UI.Models.Search
 @* AppScreen shows Status only with a navigation bar, and add mode has none. The snackbar there is shown by the Dashboard. *@
 <AppScreen Title="@(Meal is { } meal ? $"Add to {meal}" : "Search foods")" Destination="@(Meal is null ? NavDestination.Foods : null)" OnNavigate="OnNavigate"
            OnBack="@(Meal is not null ? OnBack : Selected is null ? default : OnClearSelection)" Toolbar="@(Selected is null && !Failed ? Tools : null)"
@@ -45,6 +46,8 @@
                     <EmptyState Message="No foods match" Hint="Try another word." TestId="food-search-none" />
                 </div>
             }
+
+            @Online(true)
         }
         else
         {
@@ -77,6 +80,11 @@
                     </section>
                 }
             </div>
+
+            @if (!string.IsNullOrWhiteSpace(Query))
+            {
+                @Online(false)
+            }
         }
     </ChildContent>
 </AppScreen>
@@ -98,6 +106,42 @@
     /// <summary>Raised with the group whose "Show N more" row was tapped.</summary>
     [Parameter]
     public EventCallback<FoodGroupKind> OnExpand { get; set; }
+
+    /// <summary>Where the online search is. Shown under the local groups once something is typed, never with the food's values, the loading state or a load error.</summary>
+    [Parameter]
+    public OnlineSearchState OnlineState { get; set; }
+
+    /// <summary>The products found, shown as a group headed "Online · country" in <see cref="OnlineSearchState.Results"/> and <see cref="OnlineSearchState.Importing"/>, and under a busy, offline, failed or "can't be added" message after a product could not be fetched. A group shows <see cref="ShownLimit"/> products and a "Show N more" row for the rest.</summary>
+    [Parameter]
+    public IReadOnlyList<OnlineProduct> OnlineProducts { get; set; } = [];
+
+    /// <summary>The country the search was limited to, as the group heading says it; null is "worldwide".</summary>
+    [Parameter]
+    public string? OnlineCountry { get; set; }
+
+    /// <summary>The products group shows all it holds.</summary>
+    [Parameter]
+    public bool OnlineExpanded { get; set; }
+
+    /// <summary>Shows the first-use notice ("This sends what you typed to an online database.") under the search button.</summary>
+    [Parameter]
+    public bool OnlineNoticeVisible { get; set; }
+
+    /// <summary>Raised by the "Search online" button: the tap that sends the typed text.</summary>
+    [Parameter]
+    public EventCallback OnSearchOnline { get; set; }
+
+    /// <summary>Raised with the product tapped in the online group.</summary>
+    [Parameter]
+    public EventCallback<OnlineProduct> OnSelectOnline { get; set; }
+
+    /// <summary>Raised by the products group's "Show N more" row.</summary>
+    [Parameter]
+    public EventCallback OnExpandOnline { get; set; }
+
+    /// <summary>Raised by Try again under a busy, offline or failed message.</summary>
+    [Parameter]
+    public EventCallback OnRetryOnline { get; set; }
 
     /// <summary>The food whose values show in place of the list. Null shows the list.</summary>
     [Parameter]
@@ -151,14 +195,97 @@
 
     private RenderFragment Notice => @<Snackbar />;
 
+    /// <summary>The online part under the local results. <paramref name="noMatches"/>: no stored food matched, so the button is primary instead of secondary.</summary>
+    private RenderFragment Online(bool noMatches) =>
+        @<div class="online" data-testid="food-search-online-section">
+            @switch (OnlineState)
+            {
+                case OnlineSearchState.Idle:
+                    <div class="online-action">
+                        <AppButton Variant="@(noMatches ? ButtonVariant.Primary : ButtonVariant.Secondary)" FullWidth TestId="food-search-online" OnClick="OnSearchOnline">Search online</AppButton>
+                    </div>
+
+                    @if (OnlineNoticeVisible)
+                    {
+                        <p class="online-notice" data-testid="food-search-online-notice">@OnlineSearchNotice.Text</p>
+                    }
+
+                    break;
+                case OnlineSearchState.Searching:
+                    <div class="loading">
+                        <Spinner Label="Searching online…" TestId="food-search-online-loading" />
+                    </div>
+                    break;
+                case OnlineSearchState.Importing:
+                    @OnlineGroup
+                    <div class="loading">
+                        <Spinner Label="Getting the product…" TestId="food-search-online-importing" />
+                    </div>
+                    break;
+                case OnlineSearchState.Results:
+                    @OnlineGroup
+                    break;
+                case OnlineSearchState.None:
+                    <p class="none" data-testid="food-search-online-none">Nothing found online</p>
+                    break;
+                case OnlineSearchState.Unavailable:
+                    <p class="none" data-testid="food-search-online-unavailable">That product can't be added</p>
+                    @OnlineGroup
+                    break;
+                default:
+                    <LoadFailed Message="@OnlineMessage" TestId="food-search-online" OnRetry="OnRetryOnline" />
+                    @OnlineGroup
+                    break;
+            }
+        </div>;
+
+    private string OnlineMessage => OnlineState switch
+    {
+        OnlineSearchState.Busy => "The online search is busy. Try again in a minute.",
+        OnlineSearchState.Offline => "You are offline",
+        _ => "Couldn't reach the online search",
+    };
+
+    private RenderFragment OnlineGroup =>
+        @<text>
+            @if (OnlineProducts.Count > 0)
+            {
+                var hidden = OnlineExpanded ? 0 : Math.Max(0, OnlineProducts.Count - ShownLimit);
+                var shown = OnlineProducts.Count - hidden;
+                <section class="group">
+                    <h2 class="group-heading" data-testid="food-group-online">Online · @(OnlineCountry ?? "worldwide")</h2>
+                    <ul class="rows">
+                        @foreach (var product in OnlineProducts.Take(shown))
+                        {
+                            var display = FoodDisplay.Of(product.Food);
+                            <li>
+                                <ListRow Text="@display.Title" Detail="@Subtitle(new FoodListing(product.Food, null), display)" Aside="@(product.IsNew ? "NEW" : null)"
+                                         OnClick="@(() => OnSelectOnline.InvokeAsync(product))" TestId="@($"food-online-{product.Barcode}")" />
+                            </li>
+                        }
+                        @if (hidden > 0)
+                        {
+                            <li>
+                                <ListRow Text="@($"Show {hidden} more")" OnClick="OnExpandOnline" TestId="food-group-online-more" />
+                            </li>
+                        }
+                    </ul>
+                </section>
+            }
+        </text>;
+
     private RenderFragment Tools =>
         @<div class="tools">
             <div class="search">
                 <span class="search-icon"><Icon Name="IconName.Search" Tone="IconTone.Muted" /></span>
-                <input type="search" class="search-input" placeholder="Search foods" aria-label="Search foods" autocomplete="off"
-                       value="@Query" data-testid="food-search-input" @oninput="OnInput" />
+                <input type="search" class="search-input" placeholder="Search foods" aria-label="Search foods" autocomplete="off" enterkeyhint="search"
+                       value="@Query" data-testid="food-search-input" @oninput="OnInput" @onkeydown="OnKeyDown" />
             </div>
         </div>;
+
+    /// <summary>The search key of the keyboard is a tap on "Search online" once something is typed.</summary>
+    private Task OnKeyDown(KeyboardEventArgs args) =>
+        args.Key == "Enter" && !Loading && !string.IsNullOrWhiteSpace(Query) ? OnSearchOnline.InvokeAsync() : Task.CompletedTask;
 
     private Task OnInput(ChangeEventArgs args) => OnQueryChanged.InvokeAsync(args.Value?.ToString() ?? "");
 

@@ -15,6 +15,15 @@ public class ScanSeamValuesTests
         Assert.That(Value(Constant(steps, "ScanSeamBarcode")), Is.EqualTo(Value(Constant(seam, "Barcode"))));
     }
 
+    [Test]
+    public void OnlineSearchSteps_UseTheSeamsFileName()
+    {
+        var seam = RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "E2EOnlineSearchSeam.cs");
+        var steps = RepoFiles.Read("tests", "CalorieTracker.E2E.Tests", "Steps", "FoodSearchOnlineSteps.cs");
+
+        Assert.That(Value(Constant(steps, "SeamFileName")), Is.EqualTo(Value(Constant(seam, "FileName"))));
+    }
+
     private static Match Constant(string source, string name) => Regex.Match(source, $@"const string {name} = ""([^""]+)"";");
 
     private static string Value(Match match)

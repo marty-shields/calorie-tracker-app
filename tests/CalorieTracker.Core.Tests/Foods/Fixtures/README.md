@@ -23,3 +23,16 @@ Saved responses of `GET https://world.openfoodfacts.org/api/v2/product/{barcode}
 The `details-*` files for Nutella, the Coca-Cola can, Mars and Weetabix were captured 2026-11-16 with one request each, using the current field list: `GET https://world.openfoodfacts.org/api/v2/product/{barcode}?fields=product_name,brands,nutriments,product_quantity_unit,serving_quantity_unit,categories_tags,serving_size,serving_quantity,generic_name,quantity,product_quantity,pnns_groups_2,unique_scans_n,completeness,last_modified_t,data_quality_warnings_tags`. The service also returned a few keys that were not asked for; they are ignored. No image field is requested. The older files above were captured with the shorter field list and stay as they were.
 
 The 1 L and 2 L sizes of Coca-Cola Original used by `FoodImportServiceTests` are not saved responses: the test changes the Original response's pack, name and serving in memory. The five responses of 2026-11-17 were each fetched once.
+
+## Search-a-licious fixtures
+
+Saved responses of `GET https://search.openfoodfacts.org/search?q=...&page_size=N&fields=code,product_name,brands,quantity,countries_tags,nutriments,categories_tags`, captured 2026-11-16 with one request each (at least 7 s apart, a generic User-Agent). The `debug` key (the whole Elasticsearch query) was removed from each; nothing else was changed. Tests never call the live service. A hit leaves out a field it has no value for, and the service does not return `product_quantity`, `serving_size` or the units, so a hit has only the `quantity` text.
+
+| File | Query | Notes |
+| --- | --- | --- |
+| search-coca-cola-uk.json | `coca-cola countries_tags:"en:united-kingdom"`, `page_size=50` | 50 of 455 hits: some with no `quantity`, no nutrition or no `product_name`; "Coca-cola" 0.3 kcal (5000112604856) has no quantity and no categories |
+| search-cola-variants.json | `code:(5000112637922 OR 5449000131805 OR 5449000050205 OR 5449000214911 OR 7622300336738 OR 5000112604856)` | Six hits for the products AC1 and AC2 use: the can and Original (330 ml, same name, pack and values), Zero, Light, Oreo and the 0.3 kcal "Coca-cola" |
+| search-none.json | `zxqvbnmkjh` | HTTP 200 with no hits |
+| details-cola-uk-03kcal-5000112604856.json | barcode lookup, same fields as the other `details-*` files | The UK "Coca-cola" with 0.3 kcal per 100 g or ml: no `quantity` and no unit, so a lookup reads it in grams (captured 2026-11-16) |
+
+The 1 L bottle used with the can by `OnlineFoodImportTests` is not a saved response: the test changes the can's response (name, quantity, pack, no serving) in memory.

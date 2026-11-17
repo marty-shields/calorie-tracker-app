@@ -131,9 +131,7 @@ public class ServingStoreTests
     public async Task GetAsync_And_FindByBarcodeAsync_SetTheFoodsServingFromItsProductRow()
     {
         var food = await foods.UpsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "1", Name = "A", ServingLabel = "1 bar", ServingAmount = 40, SearchText = "a" }, "5000000000017");
-        await connection.ExecuteAsync("UPDATE Food SET ServingLabel = 'stale', ServingAmount = 1");
         var noServing = await foods.UpsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "2", Name = "B", SearchText = "b" }, "5000000000024");
-        await connection.ExecuteAsync("UPDATE Food SET ServingLabel = 'stale', ServingAmount = 1 WHERE Id = ?", noServing.Id);
 
         var byId = await foods.GetAsync(food.Id);
         var byBarcode = await foods.FindByBarcodeAsync("5000000000017");

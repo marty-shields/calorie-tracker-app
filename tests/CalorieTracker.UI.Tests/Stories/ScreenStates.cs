@@ -4,6 +4,7 @@ using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Summary;
 using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Models.Scan;
+using CalorieTracker.UI.Models.Search;
 using CalorieTracker.UI.Models.Serving;
 using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Navigation;
@@ -117,6 +118,20 @@ public static class ScreenStates
         new("Screens/FoodSearch", "Add to a meal with nothing typed", c => FoodSearch(c, meal: Meal.Snacks)),
         new("Screens/FoodSearch", "Add to a meal with history", c => FoodSearch(c, groups: FoodSearchSamples.Idle, meal: Meal.Breakfast)),
         new("Screens/FoodSearch", "Add to a meal with no results", c => FoodSearch(c, query: "xyzzy", meal: Meal.Lunch)),
+        new("Screens/FoodSearch", "Online search button", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored, noticeVisible: true)),
+        new("Screens/FoodSearch", "Online search button after the notice", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored)),
+        new("Screens/FoodSearch", "No results with online search", c => FoodSearch(c, query: "zzz", noticeVisible: true)),
+        new("Screens/FoodSearch", "Online searching", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Searching)),
+        new("Screens/FoodSearch", "Online results", c => FoodSearch(c, query: "coca-cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Results, products: FoodSearchSamples.OnlineColas, country: "United Kingdom")),
+        new("Screens/FoodSearch", "Online results expanded", c => FoodSearch(c, query: "coca-cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Results, products: FoodSearchSamples.OnlineColas, country: "United Kingdom", onlineExpanded: true)),
+        new("Screens/FoodSearch", "Online results worldwide", c => FoodSearch(c, query: "coca-cola", online: OnlineSearchState.Results, products: FoodSearchSamples.OnlineFew)),
+        new("Screens/FoodSearch", "Online fetching a product", c => FoodSearch(c, query: "coca-cola", online: OnlineSearchState.Importing, products: FoodSearchSamples.OnlineFew, country: "United Kingdom")),
+        new("Screens/FoodSearch", "Online nothing found", c => FoodSearch(c, query: "zzz", online: OnlineSearchState.None)),
+        new("Screens/FoodSearch", "Online busy", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Busy)),
+        new("Screens/FoodSearch", "Online offline", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Offline)),
+        new("Screens/FoodSearch", "Online failed", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Failed)),
+        new("Screens/FoodSearch", "Online product unavailable", c => FoodSearch(c, query: "coca-cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Unavailable, products: FoodSearchSamples.OnlineFew, country: "United Kingdom")),
+        new("Screens/FoodSearch", "Online results in add mode", c => FoodSearch(c, query: "coca-cola", meal: Meal.Lunch, online: OnlineSearchState.Results, products: FoodSearchSamples.OnlineFew, country: "United Kingdom")),
         new("Screens/FoodSearch", "Search failed", c => FoodSearch(c, query: "oat", failed: true)),
         new("Screens/Scan", "Opening camera", c => Scan(c, ScanState.OpeningCamera)),
         new("Screens/Scan", "Closing camera", c => Scan(c, ScanState.Closing)),
@@ -160,7 +175,8 @@ public static class ScreenStates
         new("Screens/Error", "Error", c => c.Render<ErrorView>(p => p.Add(x => x.OnRestart, () => { })).FindAll("*")),
     ];
 
-    private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", IReadOnlyList<FoodGroup>? groups = null, Food? selected = null, bool loading = false, bool failed = false, Meal? meal = null, FoodGroupKind[]? expanded = null) =>
+    private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", IReadOnlyList<FoodGroup>? groups = null, Food? selected = null, bool loading = false, bool failed = false, Meal? meal = null, FoodGroupKind[]? expanded = null,
+        OnlineSearchState online = OnlineSearchState.Idle, IReadOnlyList<OnlineProduct>? products = null, string? country = null, bool onlineExpanded = false, bool noticeVisible = false) =>
         context.Render<FoodSearchView>(p => p
             .Add(x => x.Meal, meal)
             .Add(x => x.OnAdd, (Food _) => { })
@@ -176,6 +192,15 @@ public static class ScreenStates
             .Add(x => x.OnSelect, (Food _) => { })
             .Add(x => x.OnClearSelection, () => { })
             .Add(x => x.OnRetry, () => { })
+            .Add(x => x.OnlineState, online)
+            .Add(x => x.OnlineProducts, products ?? [])
+            .Add(x => x.OnlineCountry, country)
+            .Add(x => x.OnlineExpanded, onlineExpanded)
+            .Add(x => x.OnlineNoticeVisible, noticeVisible)
+            .Add(x => x.OnSearchOnline, () => { })
+            .Add(x => x.OnSelectOnline, (OnlineProduct _) => { })
+            .Add(x => x.OnExpandOnline, () => { })
+            .Add(x => x.OnRetryOnline, () => { })
             .Add(x => x.OnNavigate, (NavDestination _) => { }))
             .FindAll("*");
 

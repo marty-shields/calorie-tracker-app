@@ -4,7 +4,7 @@ namespace CalorieTracker.Core.Data;
 
 /// <summary>
 /// One barcode of a food, with the pack it sits on. A food has one or more (a 330 ml can, a 1 L bottle); a barcode belongs to one food.
-/// Replaces <see cref="FoodBarcode"/>, which schema step 14 copied from and which is no longer read or written.
+/// Replaces the <c>FoodBarcode</c> table, which schema step 14 copied from and step 16 dropped.
 /// </summary>
 public class Barcode
 {

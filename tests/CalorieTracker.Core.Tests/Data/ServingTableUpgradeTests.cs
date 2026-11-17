@@ -39,11 +39,13 @@ public class ServingTableUpgradeTests
     private async Task BuildVersion12()
     {
         await connection.CreateTableAsync<Food>();
-        await connection.CreateTableAsync<FoodBarcode>();
+        await connection.ExecuteAsync("ALTER TABLE Food ADD COLUMN ServingLabel varchar");
+        await connection.ExecuteAsync("ALTER TABLE Food ADD COLUMN ServingAmount float");
+        await connection.ExecuteAsync(SchemaSteps.FoodBarcodeTable);
         await connection.CreateTableAsync<SeedVersion>();
         await connection.CreateTableAsync<AppSettings>();
         await connection.ExecuteAsync(DiaryTableV12);
-        await connection.InsertAllAsync(new List<Food>
+        var legacyFoods = new List<Food>
         {
             // 1: a serving and a small pack: only the serving moves, the pack was never offered next to it.
             Food("slice", "Cheese slice", FoodUnit.Gram, 300, "1 slice (20 g)", 20, pack: 200),
@@ -60,7 +62,13 @@ public class ServingTableUpgradeTests
             Food("none", "Plain", FoodUnit.Gram, 100, null, null, pack: null, servingChecked: true),
             // 8: a serving that was out of range (the reader drops it) moves as it is.
             Food("huge", "Huge", FoodUnit.Gram, 100, "1 huge", 99_999, pack: null),
-        });
+        };
+        await connection.InsertAllAsync(legacyFoods);
+        foreach (var food in legacyFoods)
+        {
+            // The serving columns were dropped from the model, so schema 12's values are written by hand.
+            await connection.ExecuteAsync("UPDATE Food SET ServingLabel = ?, ServingAmount = ? WHERE SourceId = ?", food.ServingLabel, food.ServingAmount, food.SourceId);
+        }
         sliceId = (await connection.Table<Food>().FirstAsync(f => f.SourceId == "slice")).Id;
         canId = (await connection.Table<Food>().FirstAsync(f => f.SourceId == "can")).Id;
         await connection.ExecuteAsync(
@@ -88,7 +96,17 @@ public class ServingTableUpgradeTests
         await connection.CloseAsync();
         connection = new SQLiteAsyncConnection(databasePath);
         var logger = new Microsoft.Extensions.Logging.Testing.FakeLogger<DatabaseInitializer>();
-        await new DatabaseInitializer(connection, SchemaSteps.All(), logger).InitializeAsync();
+        await new DatabaseInitializer(connection, [.. SchemaSteps.Through(14), new NoStep15()], logger, 15).InitializeAsync();
+    }
+
+    /// <summary>Stands in for step 15, which adds packs this step's tests do not expect.</summary>
+    private sealed class NoStep15 : ISchemaUpgrade
+    {
+        public int Version => 15;
+
+        public void Apply(SQLiteConnection db)
+        {
+        }
     }
 
     private async Task<DaySummary> Summary()
@@ -100,6 +118,13 @@ public class ServingTableUpgradeTests
     private async Task<List<(string SourceId, string Label, double Amount, ServingSource Source)>> Rows() =>
         (await connection.QueryAsync<RowWithSource>("SELECT f.SourceId AS SourceId, s.Label AS Label, s.Amount AS Amount, s.Source AS Source FROM Serving s JOIN Food f ON f.Id = s.FoodId ORDER BY f.Id, s.SortOrder"))
         .Select(r => (r.SourceId, r.Label, r.Amount, (ServingSource)r.Source)).ToList();
+
+    private sealed class SliceColumns
+    {
+        public string? ServingLabel { get; set; }
+
+        public double? ServingAmount { get; set; }
+    }
 
     private sealed class RowWithSource
     {
@@ -144,11 +169,12 @@ public class ServingTableUpgradeTests
         await Upgrade();
 
         var foods = (await connection.Table<Food>().ToListAsync()).ToDictionary(f => f.SourceId);
+        var sliceColumns = (await connection.QueryAsync<SliceColumns>("SELECT ServingLabel, ServingAmount FROM Food WHERE SourceId = 'slice'")).Single();
         Assert.Multiple(() =>
         {
             Assert.That(foods["none"].ServingChecked, Is.EqualTo(true));
             Assert.That(foods["slice"].ServingChecked, Is.Null);
-            Assert.That((foods["slice"].ServingLabel, foods["slice"].ServingAmount), Is.EqualTo(("1 slice (20 g)", (double?)20)));
+            Assert.That((sliceColumns.ServingLabel, sliceColumns.ServingAmount), Is.EqualTo(("1 slice (20 g)", (double?)20)));
         });
     }
 
@@ -189,7 +215,7 @@ public class ServingTableUpgradeTests
     {
         await Upgrade();
 
-        Assert.That(await connection.ExecuteScalarAsync<int>("PRAGMA user_version"), Is.EqualTo(DatabaseInitializer.CurrentVersion));
+        Assert.That(await connection.ExecuteScalarAsync<int>("PRAGMA user_version"), Is.EqualTo(15));
     }
 
     [Test]
