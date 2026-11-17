@@ -2,6 +2,7 @@
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Foods
 @using CalorieTracker.Core.Seed
+@using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Models.Search
 @using Microsoft.Extensions.Logging
 @inject IFoodSearch Search
@@ -9,14 +10,17 @@
 @inject IOnlineFoodImport OnlineImport
 @inject IOnlineSearchNotice OnlineNotice
 @inject SeedProgress Seed
+@inject FavouriteService Favourites
+@inject SnackbarService Snackbar
 @inject ILogger<FoodSearchPage> Logger
 
-<FoodSearchView Meal="Meal" Query="@query" Groups="groups" Expanded="expanded" OnExpand="Expand" Selected="selected" Loading="loading" Failed="failed"
+<FoodSearchView Meal="Meal" Query="@query" Groups="groups" Expanded="expanded" OnExpand="Expand" Selected="selected" Favourite="star.IsFavourite" OnToggleFavourite="star.ToggleAsync" Loading="loading" Failed="failed"
                 OnQueryChanged="SearchAsync" OnSelect="SelectAsync" OnAdd="AddAsync" OnBack="OnBack" OnClearSelection="ClearSelection" OnRetry="Retry" OnNavigate="OnNavigate"
                 OnlineState="onlineState" OnlineProducts="onlineProducts" OnlineCountry="@onlineCountry" OnlineExpanded="onlineExpanded" OnlineNoticeVisible="noticeVisible"
                 OnSearchOnline="SearchOnlineAsync" OnSelectOnline="SelectOnlineAsync" OnExpandOnline="ExpandOnline" OnRetryOnline="RetryOnlineAsync" />
 
 @code {
+    private FavouriteStar star = null!;
     private string query = "";
     private IReadOnlyList<FoodGroup> groups = [];
     private readonly HashSet<FoodGroupKind> expanded = [];
@@ -62,6 +66,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        star = new FavouriteStar(Favourites, Snackbar, Logger, () => _ = InvokeAsync(StateHasChanged));
         query = InitialQuery ?? "";
         var notice = ReadNoticeAsync();
         if (Seed.Current is { } load)
@@ -151,26 +156,27 @@
         running = null;
     }
 
-    private Task SelectAsync(Food food)
+    private async Task SelectAsync(Food food)
     {
         if (onlineState == OnlineSearchState.Importing)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         if (Meal is null)
         {
             selected = food;
-            return Task.CompletedTask;
+            await star.LoadAsync(food.Id);
+            return;
         }
 
         if (added)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         added = true;
-        return AddAsync(food);
+        await AddAsync(food);
     }
 
     private void Expand(FoodGroupKind kind) => expanded.Add(kind);
@@ -291,6 +297,7 @@
         if (Meal is null)
         {
             selected = food;
+            await star.LoadAsync(food.Id);
             return;
         }
 
@@ -311,6 +318,7 @@
     private void ClearSelection()
     {
         selected = null;
+        star.Clear();
     }
 
     private Task Retry()
@@ -328,6 +336,7 @@
     public void Dispose()
     {
         disposed = true;
+        star.Dispose();
         CancelRunning();
         CancelOnline();
     }

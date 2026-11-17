@@ -10,6 +10,12 @@
 <AppScreen Title="@(Meal is { } meal ? $"Add to {meal}" : "Search foods")" Destination="@(Meal is null ? NavDestination.Foods : null)" OnNavigate="OnNavigate"
            OnBack="@(Meal is not null ? OnBack : Selected is null ? default : OnClearSelection)" Toolbar="@(Selected is null && !Failed ? Tools : null)"
            Status="@(Meal is null ? Notice : null)" BottomBar="@(Selected is { } chosen ? Actions(chosen) : null)">
+    <Actions>
+        @if (Selected is not null && Favourite is { } favourite)
+        {
+            <IconButton Icon="FavouriteStar.IconFor(favourite)" AriaLabel="@FavouriteStar.LabelFor(favourite)" Pressed="favourite" TestId="food-detail-favourite" OnClick="OnToggleFavourite" />
+        }
+    </Actions>
     <ChildContent>
         @if (Selected is { } food)
         {
@@ -146,6 +152,14 @@
     /// <summary>The food whose values show in place of the list. Null shows the list.</summary>
     [Parameter]
     public Food? Selected { get; set; }
+
+    /// <summary>Whether <see cref="Selected"/> is a favourite: the star in the top bar of its values is filled when true, outlined when false. Null shows no star, such as when the read failed.</summary>
+    [Parameter]
+    public bool? Favourite { get; set; }
+
+    /// <summary>Raised by the star on a food's values. The screen flips <see cref="Favourite"/> itself; a failed write puts it back.</summary>
+    [Parameter]
+    public EventCallback OnToggleFavourite { get; set; }
 
     /// <summary>Shows a spinner while the food list is loaded for the first time, instead of the results.</summary>
     [Parameter]

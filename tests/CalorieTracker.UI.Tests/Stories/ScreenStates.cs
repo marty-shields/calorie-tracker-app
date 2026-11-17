@@ -112,7 +112,9 @@ public static class ScreenStates
         new("Screens/FoodSearch", "Results with more to show", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.LongGroup)),
         new("Screens/FoodSearch", "Results with an expanded group", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.LongGroup, expanded: [FoodGroupKind.Common])),
         new("Screens/FoodSearch", "No results", c => FoodSearch(c, query: "zzz")),
-        new("Screens/FoodSearch", "Food selected", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups, selected: SampleFoods[0])),
+        new("Screens/FoodSearch", "Food selected", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups, selected: SampleFoods[0], favourite: false)),
+        new("Screens/FoodSearch", "Favourite food selected", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups, selected: SampleFoods[0], favourite: true, snackbar: "Added to favourites", snackbarAction: null)),
+        new("Screens/FoodSearch", "Favourite update failed", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups, selected: SampleFoods[0], favourite: false, snackbar: "Couldn't update favourites. Try again.", snackbarAction: null)),
         new("Screens/FoodSearch", "Branded food selected", c => FoodSearch(c, query: "nutella", groups: FoodSearchSamples.BrandedGroup, selected: FoodSearchSamples.BrandedFoods[1])),
         new("Screens/FoodSearch", "Add to a meal", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups, meal: Meal.Lunch)),
         new("Screens/FoodSearch", "Add to a meal with nothing typed", c => FoodSearch(c, meal: Meal.Snacks)),
@@ -145,7 +147,7 @@ public static class ScreenStates
         new("Screens/Scan", "Not found", c => Scan(c, ScanState.NotFound)),
         new("Screens/Scan", "Camera unavailable", c => Scan(c, ScanState.CameraUnavailable)),
 
-        new("Screens/Serving", "Servings", c => Serving(c, Pizza, EntryMode.Servings, 1, 201.8, Meal.Lunch, servings: ServingSamples.PizzaServings)),
+        new("Screens/Serving", "Servings", c => Serving(c, Pizza, EntryMode.Servings, 1, 201.8, Meal.Lunch, servings: ServingSamples.PizzaServings, favourite: false)),
         new("Screens/Serving", "Grams with a serving", c => Serving(c, Pizza, EntryMode.Grams, 150, 150, Meal.Lunch, servings: ServingSamples.PizzaServings)),
         new("Screens/Serving", "Pack as one serving", c => Serving(c, Mars, EntryMode.Servings, 1, 51, Meal.Snacks, servings: ServingSamples.MarsServings)),
         new("Screens/Serving", "Choose between two servings", c => Serving(c, ServingSamples.Cola, EntryMode.Servings, 1, 330, Meal.Snacks, servings: ServingSamples.ColaServings, servingId: 162)),
@@ -168,6 +170,10 @@ public static class ScreenStates
         new("Screens/Serving", "Entry save failed", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, saveFailed: true, editing: true)),
         new("Screens/Serving", "Entry remove failed", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, removeFailed: true, editing: true)),
         new("Screens/Serving", "Entry already removed", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, entryGone: true, editing: true)),
+        new("Screens/Serving", "Favourite", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, favourite: true, snackbar: "Added to favourites", snackbarAction: null)),
+        new("Screens/Serving", "Favourite update failed", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, favourite: false, snackbar: "Couldn't update favourites. Try again.", snackbarAction: null)),
+        new("Screens/Serving", "Edit entry favourite", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, editing: true, favourite: true)),
+        new("Screens/Serving", "Edit entry favourite removed", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, editing: true, favourite: false, snackbar: "Removed from favourites")),
         new("Screens/Serving", "Loading", c => Serving(c, null, loading: true)),
         new("Screens/Serving", "Load failed", c => Serving(c, null, loadFailed: true)),
         new("Screens/Serving", "Food not found", c => Serving(c, null)),
@@ -176,8 +182,11 @@ public static class ScreenStates
     ];
 
     private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", IReadOnlyList<FoodGroup>? groups = null, Food? selected = null, bool loading = false, bool failed = false, Meal? meal = null, FoodGroupKind[]? expanded = null,
-        OnlineSearchState online = OnlineSearchState.Idle, IReadOnlyList<OnlineProduct>? products = null, string? country = null, bool onlineExpanded = false, bool noticeVisible = false) =>
-        context.Render<FoodSearchView>(p => p
+        OnlineSearchState online = OnlineSearchState.Idle, IReadOnlyList<OnlineProduct>? products = null, string? country = null, bool onlineExpanded = false, bool noticeVisible = false,
+        bool? favourite = null, string? snackbar = null, string? snackbarAction = "Undo") =>
+        Posted(context, snackbar, snackbarAction).Render<FoodSearchView>(p => p
+            .Add(x => x.Favourite, favourite)
+            .Add(x => x.OnToggleFavourite, () => { })
             .Add(x => x.Meal, meal)
             .Add(x => x.OnAdd, (Food _) => { })
             .Add(x => x.OnBack, () => { })
@@ -206,8 +215,11 @@ public static class ScreenStates
 
     internal static IReadOnlyList<IElement> Serving(BunitContext context, Food? food, EntryMode mode = EntryMode.Servings, decimal? amount = null, double? grams = null, Meal meal = Meal.Breakfast,
         TimeOnly? suggestedAt = null, bool saving = false, bool saveFailed = false, bool loading = false, bool loadFailed = false, bool editing = false, bool removeFailed = false, bool entryGone = false,
-        IReadOnlyList<CalorieTracker.Core.Data.Serving>? servings = null, int? servingId = null, bool addingOwn = false, string? ownLabel = null, decimal? ownAmount = null, string? ownError = null) =>
-        context.Render<ServingView>(p => p
+        IReadOnlyList<CalorieTracker.Core.Data.Serving>? servings = null, int? servingId = null, bool addingOwn = false, string? ownLabel = null, decimal? ownAmount = null, string? ownError = null,
+        bool? favourite = null, string? snackbar = null, string? snackbarAction = "Undo") =>
+        Posted(context, snackbar, snackbarAction).Render<ServingView>(p => p
+            .Add(x => x.Favourite, favourite)
+            .Add(x => x.OnToggleFavourite, () => { })
             .Add(x => x.Food, food)
             .Add(x => x.Servings, servings ?? [])
             .Add(x => x.ServingId, servingId)
@@ -266,7 +278,7 @@ public static class ScreenStates
             .FindAll("*");
 
     private static IReadOnlyList<IElement> Dashboard(BunitContext context, DaySummary? summary, DateOnly? date = null, bool loading = false, bool loadFailed = false, string? snackbar = null) =>
-        Posted(context, snackbar).Render<DashboardView>(p => p
+        Posted(context, snackbar, "Undo").Render<DashboardView>(p => p
             .Add(x => x.Date, date ?? DashboardSamples.Today)
             .Add(x => x.Today, DashboardSamples.Today)
             .Add(x => x.Summary, summary)
@@ -279,12 +291,12 @@ public static class ScreenStates
             .Add(x => x.OnNavigate, (NavDestination _) => { }))
             .FindAll("*");
 
-    /// <summary>Posts the message with Undo to the context's snackbar before the screen renders, as another screen would; returns the context.</summary>
-    private static BunitContext Posted(BunitContext context, string? message)
+    /// <summary>Posts the message (with the action when given) to the context's snackbar before the screen renders, as another screen would; returns the context.</summary>
+    private static BunitContext Posted(BunitContext context, string? message, string? action)
     {
         if (message is not null)
         {
-            context.Services.GetRequiredService<SnackbarService>().Show(message, "Undo", () => Task.CompletedTask, Timeout.InfiniteTimeSpan);
+            context.Services.GetRequiredService<SnackbarService>().Show(message, action, () => Task.CompletedTask, Timeout.InfiniteTimeSpan);
         }
 
         return context;

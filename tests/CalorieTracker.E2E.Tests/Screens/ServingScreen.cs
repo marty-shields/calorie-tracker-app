@@ -105,4 +105,16 @@ public sealed class ServingScreen(WebView web)
     public void Save() => web.Tap("serving-save");
 
     public void Remove() => web.Tap("serving-remove");
+
+    /// <summary>The star's accessible name: "Add to favourites" or "Remove from favourites".</summary>
+    public string StarLabel() => web.Attribute("serving-favourite", "aria-label");
+
+    /// <summary>The star's <c>aria-pressed</c>: "true" when the food is a favourite.</summary>
+    public string StarPressed() => web.Attribute("serving-favourite", "aria-pressed");
+
+    public void TapStar() => web.Tap("serving-favourite");
+
+    /// <summary>The test ids in the top bar, in the order they show.</summary>
+    public List<string> TopBarOrder() =>
+        web.FindAll("header [data-testid]").Select(e => e.GetDomAttribute("data-testid")!).ToList();
 }
