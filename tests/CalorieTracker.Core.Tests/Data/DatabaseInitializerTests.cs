@@ -512,9 +512,9 @@ public class DatabaseInitializerTests
     }
 
     [Test]
-    public void CurrentVersion_IsSeventeen()
+    public void CurrentVersion_IsEighteen()
     {
-        Assert.That(DatabaseInitializer.CurrentVersion, Is.EqualTo(17));
+        Assert.That(DatabaseInitializer.CurrentVersion, Is.EqualTo(18));
     }
 
     private const string ServingCheckedColumn = "SELECT name || ':' || type || ':' || \"notnull\" || ':' || pk FROM pragma_table_info('Food') WHERE name = 'ServingChecked'";

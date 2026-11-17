@@ -26,6 +26,7 @@ public class SeedUnitsTests
         await connection.CreateTableAsync<Serving>();
         await connection.CreateTableAsync<Barcode>();
         await connection.CreateTableAsync<DiaryEntry>();
+        await connection.CreateTableAsync<Favourite>();
         await connection.CreateTableAsync<SeedVersion>();
         store = new FoodStore(connection, new DatabaseGate(), new FakeLogger<FoodStore>());
     }
