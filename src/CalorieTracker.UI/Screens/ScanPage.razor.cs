@@ -127,7 +127,7 @@ public partial class ScanPage : IDisposable
     /// The product to show, or null when a main value cannot be shown. The scan reads the food straight from the lookup, not through <c>FoodService.GetAsync</c>, so the serving and optional nutrients are
     /// bounded here with the same limits (<c>FoodService.Max*</c>): out of range, they are left out. The Serving screen reads the food again by id and bounds it itself.
     /// </summary>
-    internal static ScannedProduct? ToProduct(Food food, double? packAmount = null, ProductServing? serving = null)
+    internal static ScannedProduct? ToProduct(Food food, ProductServing? serving = null)
     {
         if (!TryToDecimal(food.Kcal, out var kcal) || !TryToDecimal(food.ProteinG, out var protein)
             || !TryToDecimal(food.CarbsG, out var carbs) || !TryToDecimal(food.FatG, out var fat))
@@ -139,7 +139,7 @@ public partial class ScanPage : IDisposable
         return new ScannedProduct(food.Name, food.Brand, kcal, protein, carbs, fat, food.Unit == FoodUnit.Millilitre,
             ToNutrient(food.FibreG), ToNutrient(food.SugarsG), ToNutrient(food.SaturatesG), ToNutrient(food.SaltG),
             food.Id > 0 ? food.Id : null, hasServing ? label : null, hasServing ? (decimal)servingAmount : null,
-            food.Brands, food.GenericName, food.PackageLabel, packAmount);
+            food.Brands, food.GenericName, food.PackageLabel);
     }
 
     private static decimal? ToNutrient(double? value) =>
@@ -172,7 +172,7 @@ public partial class ScanPage : IDisposable
 
         Log.LookupFinished(Logger, barcode, result.Status);
         product = null;
-        if (result is { Status: BarcodeLookupStatus.Found, Food: { } food } && ToProduct(food, result.PackAmount, result.Serving) is { } mapped)
+        if (result is { Status: BarcodeLookupStatus.Found, Food: { } food } && ToProduct(food, result.Serving) is { } mapped)
         {
             product = mapped;
             state = ScanState.Found;

@@ -35,9 +35,9 @@ public enum NotImportableReason
 }
 
 /// <summary>
-/// The outcome of an import. <see cref="Food"/> is the food the barcode now belongs to and <see cref="PackAmount"/> the pack of that barcode (null when it has none) and <see cref="Serving"/> the food's Product serving (null when it has none), all set for <see cref="FoodImportStatus.Created"/>, <see cref="FoodImportStatus.Attached"/> and <see cref="FoodImportStatus.Known"/>.
+/// The outcome of an import. <see cref="Food"/> is the food the barcode now belongs to and <see cref="Serving"/> the food's Product serving (null when it has none), all set for <see cref="FoodImportStatus.Created"/>, <see cref="FoodImportStatus.Attached"/> and <see cref="FoodImportStatus.Known"/>.
 /// </summary>
-public sealed record FoodImportResult(FoodImportStatus Status, Food? Food = null, double? PackAmount = null, NotImportableReason Reason = NotImportableReason.None, ProductServing? Serving = null);
+public sealed record FoodImportResult(FoodImportStatus Status, Food? Food = null, NotImportableReason Reason = NotImportableReason.None, ProductServing? Serving = null);
 
 /// <summary>
 /// Stores a looked-up Open Food Facts product under its barcode and says which food it ended up on. The product comes from anywhere that has looked one up (a barcode today, a search by name later):
@@ -107,7 +107,7 @@ public sealed partial class FoodImportService
                     break;
             }
 
-            return new FoodImportResult(status, stored.Food, stored.Barcode.PackageAmount, Serving: stored.Serving);
+            return new FoodImportResult(status, stored.Food, Serving: stored.Serving);
         }
         catch (Exception)
         {

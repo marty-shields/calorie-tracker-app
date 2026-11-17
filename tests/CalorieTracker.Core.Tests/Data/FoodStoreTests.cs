@@ -387,7 +387,7 @@ public class FoodStoreTests
     }
 
     private Task<List<Serving>> Servings(int foodId) =>
-        connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY SortOrder, Amount, Id", foodId);
+        connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY Amount, SortOrder, Id", foodId);
 
     private static readonly ProductServing Slice = new("1 slice (30 g)", 30);
 

@@ -112,15 +112,14 @@ public class FoodServiceTests
     }
 
     [Test]
-    public async Task GetAsync_ServingsOfOneAmount_GoProductThenPackThenOwn()
+    public async Task GetAsync_OwnServingOfTheProductsAmount_ListsProductFirstEvenWithALowerId()
     {
-        var id = await Store(f => f.Unit = FoodUnit.Millilitre, p => (p.ServingLabel, p.ServingAmount) = ("1 glass (250 ml)", 250), Own("My glass", 250), Pack(250, "Whole pack (250 ml)"));
+        var id = await Store(f => f.Unit = FoodUnit.Millilitre, p => p.ServingAmount = null, Own("My glass", 250));
+        await connection.ExecuteAsync("INSERT INTO Serving (FoodId, Label, Amount, Source, SortOrder) VALUES (?, '1 glass (250 ml)', 250, 0, 0)", id);
 
-        var stored = await connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ?", id);
         var result = await service.GetAsync(id);
 
-        Assert.That(stored, Has.Count.EqualTo(3));
-        Assert.That(result.Servings.Select(s => s.Source), Is.EqualTo(new[] { ServingSource.Product, ServingSource.User }), "a pack equal to the product serving is left out as a repeat");
+        Assert.That(result.Servings.Select(s => s.Source), Is.EqualTo(new[] { ServingSource.Product, ServingSource.User }));
     }
 
     [Test]
@@ -144,19 +143,10 @@ public class FoodServiceTests
     }
 
     [Test]
-    public async Task GetAsync_ServingsOfAllSources_AreListedSmallestFirst()
+    public async Task GetAsync_TiesAcrossSizes_GoProductBeforeOwnEvenWithALowerId()
     {
-        var id = await Store(f => f.Unit = FoodUnit.Millilitre, p => (p.ServingLabel, p.ServingAmount) = ("1 glass (250 ml)", 250), Pack(330, "Whole pack (330 ml)"), Own("My mug", 200));
-
-        var result = await service.GetAsync(id);
-
-        Assert.That(result.Servings.Select(s => s.Amount), Is.EqualTo(new[] { 200.0, 250.0, 330.0 }));
-    }
-
-    [Test]
-    public async Task GetAsync_TiesAcrossSizes_GoProductThenPackThenOwn()
-    {
-        var id = await Store(f => f.Unit = FoodUnit.Millilitre, p => (p.ServingLabel, p.ServingAmount) = ("1 can (330 ml)", 330), Pack(330, "Whole pack (330 ml)"), Own("My can", 330), Own("My sip", 100));
+        var id = await Store(f => f.Unit = FoodUnit.Millilitre, p => p.ServingAmount = null, Pack(330, "Whole pack (330 ml)"), Own("My can", 330), Own("My sip", 100));
+        await connection.ExecuteAsync("INSERT INTO Serving (FoodId, Label, Amount, Source, SortOrder) VALUES (?, '1 can (330 ml)', 330, 0, 0)", id);
         await connection.ExecuteAsync("INSERT INTO Serving (FoodId, Label, Amount, Source, SortOrder) VALUES (?, 'Bottle 500 ml', 500, 1, 1)", id);
 
         var result = await service.GetAsync(id);

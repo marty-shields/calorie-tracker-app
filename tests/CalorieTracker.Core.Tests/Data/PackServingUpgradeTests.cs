@@ -73,7 +73,7 @@ public class PackServingUpgradeTests
     }
 
     private async Task<List<(string Label, double Amount, ServingSource Source)>> ServingsOf(int foodId) =>
-        [.. (await connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY SortOrder, Amount", foodId)).Select(s => (s.Label, s.Amount, s.Source))];
+        [.. (await connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY Amount, SortOrder, Id", foodId)).Select(s => (s.Label, s.Amount, s.Source))];
 
     [Test]
     public async Task Upgrade_AddsPackServingsNextToTheProductServing_ForEachPackUpToAThousand()

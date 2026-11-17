@@ -48,7 +48,7 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             return found;
         });
 
-    /// <summary>The food with this id and its servings in listing order (see <see cref="Serving.SortOrder"/>), read together; null food when there is none.</summary>
+    /// <summary>The food with this id and its servings smallest amount first, ties by <see cref="Serving.SortOrder"/>, read together; null food when there is none.</summary>
     public Task<(Food? Food, List<Serving> Servings)> GetWithServingsAsync(int id) =>
         gate.RunAsync(async () =>
         {

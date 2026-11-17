@@ -1265,13 +1265,19 @@ public class ServingPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task NoServingNamed_OpensOnTheSmallest_NotTheLargerPack()
+    public async Task NoServingNamed_OpensOnTheSmallest_EvenWhenItWasAddedLast()
     {
         await SeedCola();
+        await connection.ExecuteAsync("INSERT INTO Serving (FoodId, Label, Amount, Source, SortOrder) VALUES (?, 'My sip', 100, 2, 2)", colaId);
 
         var cut = Render(colaId, Meal.Snacks);
 
-        Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { true, false }));
+        Assert.Multiple(() =>
+        {
+            Assert.That(OptionTexts(cut), Is.EqualTo(new[] { "My sip", "1 glass (250 ml)", "Whole pack (330 ml)" }));
+            Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { true, false, false }));
+            Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 100 ml"));
+        });
     }
 
     [TestCase(null)]

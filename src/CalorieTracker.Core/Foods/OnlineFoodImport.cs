@@ -22,9 +22,8 @@ public enum OnlineImportStatus
     Failed,
 }
 
-/// <summary>The outcome of an import. <see cref="Food"/> and <see cref="PackAmount"/> are set only when <see cref="Status"/> is <see cref="OnlineImportStatus.Imported"/>.</summary>
-/// <param name="PackAmount">The pack, in g or ml, of the barcode imported; null when it has none.</param>
-public sealed record OnlineImportResult(OnlineImportStatus Status, Food? Food = null, double? PackAmount = null);
+/// <summary>The outcome of an import. <see cref="Food"/> is set only when <see cref="Status"/> is <see cref="OnlineImportStatus.Imported"/>.</summary>
+public sealed record OnlineImportResult(OnlineImportStatus Status, Food? Food = null);
 
 /// <summary>Stores a product the person tapped in the search results.</summary>
 public interface IOnlineFoodImport
@@ -74,14 +73,14 @@ public sealed partial class OnlineFoodImport : IOnlineFoodImport
         if (food.Id > 0)
         {
             Log.Imported(logger, food.Id, FoodImportStatus.Known);
-            return new OnlineImportResult(OnlineImportStatus.Imported, food, result.PackAmount);
+            return new OnlineImportResult(OnlineImportStatus.Imported, food);
         }
 
         var imported = await importer.ImportAsync(normalised, food, result.Serving);
         if (imported is { Status: FoodImportStatus.Created or FoodImportStatus.Attached or FoodImportStatus.Known, Food: { } stored })
         {
             Log.Imported(logger, stored.Id, imported.Status);
-            return new OnlineImportResult(OnlineImportStatus.Imported, stored, imported.PackAmount);
+            return new OnlineImportResult(OnlineImportStatus.Imported, stored);
         }
 
         Log.StoreFailed(logger, imported.Status);

@@ -415,7 +415,7 @@ public class ScanPageTests : ComponentTestBase
     {
         var food = Product("Digestive biscuits", "Morning Mill", FoodUnit.Gram, 480, 7, 62, 22);
         food.Id = 42;
-        lookup.Result = BarcodeLookupResult.Found(food, null, new ProductServing("1 biscuit", 15));
+        lookup.Result = BarcodeLookupResult.Found(food, new ProductServing("1 biscuit", 15));
         var added = new List<ScanAddRequest>();
         var cut = await ScannedAsync(p => p.Add(x => x.OnAddToDiary, added.Add));
 
@@ -550,7 +550,7 @@ public class ScanPageTests : ComponentTestBase
     {
         var food = Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8);
         food.Id = 42;
-        lookup.Result = BarcodeLookupResult.Found(food, null, new ProductServing("1 bowl", 40));
+        lookup.Result = BarcodeLookupResult.Found(food, new ProductServing("1 bowl", 40));
         var cut = await ScannedAsync();
         cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-add]"), Has.Count.EqualTo(1)));
         cut.Find("[data-testid=scan-add]").Click();

@@ -41,7 +41,7 @@ public class ServingStoreTests
     }
 
     private Task<List<Serving>> Rows(int foodId) =>
-        connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY SortOrder, Amount, Id", foodId);
+        connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY Amount, SortOrder, Id", foodId);
 
     [Test]
     public async Task UpsertAsync_ServingAndPack_WritesAProductRowAndAPackRow()
@@ -93,7 +93,7 @@ public class ServingStoreTests
 
         await Stored("1");
 
-        Assert.That((await Rows(first.Id)).Select(r => r.Label), Is.EqualTo(new[] { "1 bar", "My bite" }));
+        Assert.That((await Rows(first.Id)).Select(r => r.Label), Is.EqualTo(new[] { "My bite", "1 bar" }));
     }
 
     [Test]
@@ -107,9 +107,9 @@ public class ServingStoreTests
 
         Assert.That((await Rows(food.Id)).Select(r => (r.Label, r.Source)), Is.EqualTo(new[]
         {
+            ("My mug", ServingSource.User),
             ("1 glass (250 ml)", ServingSource.Product),
             ("Can 330 ml", ServingSource.Pack),
-            ("My mug", ServingSource.User),
         }));
         Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(1));
     }

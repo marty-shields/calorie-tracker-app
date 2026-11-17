@@ -268,7 +268,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
     public async Task OnTheFoodsTab_TappingAResult_StoresItAndShowsItsValues_ThenAddRaisesOnAdd()
     {
         online.Answer(Found(OnlineSamples.Can));
-        import.Answer(new OnlineImportResult(OnlineImportStatus.Imported, Stored, 330));
+        import.Answer(new OnlineImportResult(OnlineImportStatus.Imported, Stored));
         var requests = new List<FoodAddRequest>();
         var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.OnAdd, requests.Add));
         await cut.Find("[data-testid=food-search-input]").InputAsync("coca-cola");
@@ -290,7 +290,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
     public async Task OnTheFoodsTab_AfterBackToResults_TheProductIsNoLongerNew()
     {
         online.Answer(Found(OnlineSamples.Can, OnlineSamples.Bottle));
-        import.Answer(new OnlineImportResult(OnlineImportStatus.Imported, Stored, 330));
+        import.Answer(new OnlineImportResult(OnlineImportStatus.Imported, Stored));
         local.Groups = [new FoodGroup(FoodGroupKind.Branded, [new FoodListing(Stored, null)])];
         var requests = new List<FoodAddRequest>();
         var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.OnAdd, requests.Add));
@@ -326,7 +326,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
         await WaitForRendererAsync();
         var fetching = cut.Find("[data-testid=food-search-online-importing]").TextContent;
         var rowsDuringFetch = cut.FindAll("[data-testid=food-online-5000112637922]").Count;
-        held.SetResult(new OnlineImportResult(OnlineImportStatus.Imported, Stored, 330));
+        held.SetResult(new OnlineImportResult(OnlineImportStatus.Imported, Stored));
         await tap;
         await cut.Find("[data-testid=food-online-5000112637922]").ClickAsync(new());
 
@@ -346,7 +346,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
     {
         online.Answer(Found(OnlineSamples.Can));
         import.Answer(new OnlineImportResult(status));
-        import.Answer(new OnlineImportResult(OnlineImportStatus.Imported, Stored, 330));
+        import.Answer(new OnlineImportResult(OnlineImportStatus.Imported, Stored));
         var requests = new List<FoodAddRequest>();
         var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch).Add(x => x.OnAdd, requests.Add));
         await cut.Find("[data-testid=food-search-input]").InputAsync("coca-cola");
@@ -371,7 +371,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
     {
         online.Answer(Found(OnlineSamples.Can, OnlineSamples.Bottle));
         import.Answer(new OnlineImportResult(OnlineImportStatus.NotFound));
-        import.Answer(new OnlineImportResult(OnlineImportStatus.Imported, Stored, 1000));
+        import.Answer(new OnlineImportResult(OnlineImportStatus.Imported, Stored));
         var requests = new List<FoodAddRequest>();
         var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch).Add(x => x.OnAdd, requests.Add));
         await cut.Find("[data-testid=food-search-input]").InputAsync("coca-cola");
@@ -540,7 +540,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
         await WaitForRendererAsync();
 
         await cut.Find("[data-testid=food-search-input]").InputAsync("cola");
-        held.SetResult(new OnlineImportResult(OnlineImportStatus.Imported, Stored, 330));
+        held.SetResult(new OnlineImportResult(OnlineImportStatus.Imported, Stored));
         await tap;
 
         Assert.That(cut.FindAll("[data-testid=food-detail-name]"), Is.Empty);
@@ -559,7 +559,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
         await WaitForRendererAsync();
 
         await cut.Find("[data-testid=food-search-input]").InputAsync("cola");
-        held.SetResult(new OnlineImportResult(OnlineImportStatus.Imported, Stored, 330));
+        held.SetResult(new OnlineImportResult(OnlineImportStatus.Imported, Stored));
         await tap;
 
         Assert.That(requests, Is.Empty);
@@ -580,7 +580,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
 
         await cut.Find("[data-testid=food-result-7]").ClickAsync(new());
         var duringFetch = requests.Count;
-        held.SetResult(new OnlineImportResult(OnlineImportStatus.Imported, Stored, 330));
+        held.SetResult(new OnlineImportResult(OnlineImportStatus.Imported, Stored));
         await tap;
 
         Assert.Multiple(() =>
