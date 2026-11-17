@@ -66,9 +66,9 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             return (found, servings);
         });
 
-    /// <summary>The servings of a food, product first, then packs, then the person's own, each by amount. Runs on the caller's connection, inside the gate.</summary>
+    /// <summary>The servings of a food, smallest amount first; one amount goes product, then pack, then the person's own. Runs on the caller's connection, inside the gate.</summary>
     internal static List<Serving> ServingsOf(SQLiteConnection db, int foodId) =>
-        db.Query<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY SortOrder, Amount, Id", foodId);
+        db.Query<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY Amount, SortOrder, Id", foodId);
 
     /// <summary>The food's Product serving row as a <see cref="ProductServing"/>, or null when it has none. Runs on the caller's connection, inside the gate.</summary>
     private static ProductServing? ProductServingOf(SQLiteConnection db, int foodId)

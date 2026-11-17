@@ -37,7 +37,6 @@
     private OnlineProduct? lastTapped;
 
     /// <summary>The pack, in g or ml, of the barcode of the product imported from the results, so Add to diary on its values opens Serving on that pack. Null for any other food.</summary>
-    private double? selectedPack;
 
     /// <summary>Set by the first result tapped in add mode, so a double tap adds once. The page is left on the way out, so it is never cleared.</summary>
     private bool added;
@@ -161,7 +160,6 @@
             return Task.CompletedTask;
         }
 
-        selectedPack = null;
         if (Meal is null)
         {
             selected = food;
@@ -294,13 +292,12 @@
         lastTapped = null;
         if (Meal is null)
         {
-            selectedPack = result.PackAmount;
             selected = food;
             return;
         }
 
         added = true;
-        await OnAdd.InvokeAsync(new FoodAddRequest(food, query, PackAmount: result.PackAmount));
+        await OnAdd.InvokeAsync(new FoodAddRequest(food, query));
     }
 
     private Task RetryOnlineAsync() => lastTapped is { } product ? SelectOnlineAsync(product) : SearchOnlineAsync();
@@ -309,13 +306,12 @@
     private Task AddAsync(Food food)
     {
         var last = groups.SelectMany(g => g.Foods).FirstOrDefault(l => l.Food.Id == food.Id)?.History;
-        return OnAdd.InvokeAsync(new FoodAddRequest(food, query, last?.LastAmount, last?.LastServings, last?.LastServingId, selectedPack));
+        return OnAdd.InvokeAsync(new FoodAddRequest(food, query, last?.LastAmount, last?.LastServings, last?.LastServingId));
     }
 
     private void ClearSelection()
     {
         selected = null;
-        selectedPack = null;
     }
 
     private Task Retry()

@@ -265,7 +265,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task OnTheFoodsTab_TappingAResult_StoresItAndShowsItsValues_ThenAddCarriesThePack()
+    public async Task OnTheFoodsTab_TappingAResult_StoresItAndShowsItsValues_ThenAddRaisesOnAdd()
     {
         online.Answer(Found(OnlineSamples.Can));
         import.Answer(new OnlineImportResult(OnlineImportStatus.Imported, Stored, 330));
@@ -282,12 +282,12 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
         {
             Assert.That(import.Barcodes, Is.EqualTo(new[] { "5000112637922" }));
             Assert.That(values, Does.Contain("Coca Cola"));
-            Assert.That(requests.Select(r => (r.Food.Id, r.Query, r.PackAmount)), Is.EqualTo(new[] { (7, "coca-cola", (double?)330) }));
+            Assert.That(requests.Select(r => (r.Food.Id, r.Query)), Is.EqualTo(new[] { (7, "coca-cola") }));
         });
     }
 
     [Test]
-    public async Task OnTheFoodsTab_AfterBackToResults_TheProductIsNoLongerNew_AndAnotherFoodCarriesNoPack()
+    public async Task OnTheFoodsTab_AfterBackToResults_TheProductIsNoLongerNew()
     {
         online.Answer(Found(OnlineSamples.Can, OnlineSamples.Bottle));
         import.Answer(new OnlineImportResult(OnlineImportStatus.Imported, Stored, 330));
@@ -309,12 +309,11 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
         {
             Assert.That(marker, Does.Not.Contain("NEW"));
             Assert.That(import.Barcodes, Is.EqualTo(new[] { "5000112637922", "5000112637939" }), "the second product is not stuck behind the first");
-            Assert.That(requests.Single().PackAmount, Is.Null);
         });
     }
 
     [Test]
-    public async Task InAddMode_TappingAResult_StoresItAndRaisesOnAddWithTheFoodAndItsPack_Once()
+    public async Task InAddMode_TappingAResult_StoresItAndRaisesOnAddWithTheFood_Once()
     {
         online.Answer(Found(OnlineSamples.Can));
         var held = import.Hold();
@@ -336,7 +335,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
             Assert.That(fetching, Does.Contain("Getting the product…"));
             Assert.That(rowsDuringFetch, Is.EqualTo(1));
             Assert.That(import.Barcodes, Has.Count.EqualTo(1));
-            Assert.That(requests.Select(r => (r.Food.Id, r.Query, r.PackAmount)), Is.EqualTo(new[] { (7, "coca-cola", (double?)330) }));
+            Assert.That(requests.Select(r => (r.Food.Id, r.Query)), Is.EqualTo(new[] { (7, "coca-cola") }));
         });
     }
 
@@ -390,7 +389,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
             Assert.That(shown, Is.EqualTo("That product can't be added"));
             Assert.That((tryAgain, errors, kept), Is.EqualTo((0, 0, 2)));
             Assert.That(import.Barcodes, Is.EqualTo(new[] { "5000112637922", "5000112637939" }));
-            Assert.That(requests.Select(r => r.PackAmount), Is.EqualTo(new[] { (double?)1000 }));
+            Assert.That(requests.Select(r => r.Food.Id), Is.EqualTo(new[] { 7 }));
         });
     }
 

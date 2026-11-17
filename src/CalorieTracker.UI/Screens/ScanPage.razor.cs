@@ -145,7 +145,7 @@ public partial class ScanPage : IDisposable
     private static decimal? ToNutrient(double? value) =>
         FoodService.BoundNutrient(value) is { } number ? (decimal)number : null;
 
-    private Task AddToDiaryAsync() => product?.FoodId is { } id ? OnAddToDiary.InvokeAsync(new ScanAddRequest(id, product.PackAmount)) : Task.CompletedTask;
+    private Task AddToDiaryAsync() => product?.FoodId is { } id ? OnAddToDiary.InvokeAsync(new ScanAddRequest(id)) : Task.CompletedTask;
 
     private Task SearchByNameAsync() => OnNavigate.InvokeAsync(NavDestination.Foods);
 
