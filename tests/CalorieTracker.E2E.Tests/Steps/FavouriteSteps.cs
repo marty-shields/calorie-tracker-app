@@ -18,6 +18,12 @@ public sealed class FavouriteSteps(ServingScreen serving, FoodSearchScreen foods
     }
 
     [Given(@"^I have starred the food on Serving$")]
+    public void GivenIHaveStarredTheFoodOnServing()
+    {
+        serving.TapStar();
+        web.Eventually(snackbar.Message, Does.EndWith("Added to favourites"));
+    }
+
     [When(@"^I tap the star on Serving$")]
     public void WhenITapTheStarOnServing() => serving.TapStar();
 

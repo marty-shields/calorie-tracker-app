@@ -10,7 +10,7 @@
     <Actions>
         @if (Favourite is { } favourite && Food is not null && !Loading && !LoadFailed)
         {
-            <IconButton Icon="@(favourite ? IconName.StarFilled : IconName.Star)" AriaLabel="@(favourite ? "Remove from favourites" : "Add to favourites")" Pressed="favourite" TestId="serving-favourite" OnClick="OnToggleFavourite" />
+            <IconButton Icon="FavouriteStar.IconFor(favourite)" AriaLabel="@FavouriteStar.LabelFor(favourite)" Pressed="favourite" TestId="serving-favourite" OnClick="OnToggleFavourite" />
         }
         @if (Editing && Food is not null && !Loading && !LoadFailed)
         {

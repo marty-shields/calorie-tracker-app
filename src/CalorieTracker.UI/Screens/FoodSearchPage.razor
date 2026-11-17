@@ -165,8 +165,8 @@
 
         if (Meal is null)
         {
-            await star.LoadAsync(food.Id);
             selected = food;
+            await star.LoadAsync(food.Id);
             return;
         }
 
@@ -296,8 +296,8 @@
         lastTapped = null;
         if (Meal is null)
         {
-            await star.LoadAsync(food.Id);
             selected = food;
+            await star.LoadAsync(food.Id);
             return;
         }
 

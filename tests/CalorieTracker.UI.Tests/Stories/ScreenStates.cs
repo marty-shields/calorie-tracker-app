@@ -291,7 +291,7 @@ public static class ScreenStates
             .Add(x => x.OnNavigate, (NavDestination _) => { }))
             .FindAll("*");
 
-    /// <summary>Posts the message with Undo to the context's snackbar before the screen renders, as another screen would; returns the context.</summary>
+    /// <summary>Posts the message (with the action when given) to the context's snackbar before the screen renders, as another screen would; returns the context.</summary>
     private static BunitContext Posted(BunitContext context, string? message, string? action)
     {
         if (message is not null)

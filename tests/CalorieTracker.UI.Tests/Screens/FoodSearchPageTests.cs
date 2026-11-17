@@ -901,6 +901,26 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task UndoAfterOpeningAnotherFood_StarsTheFirstFood_AndLeavesTheOthersStarAlone()
+    {
+        var oats = await StoreOats();
+        var other = new Food { Source = FoodSource.OpenFoodFacts, SourceId = "rice", Name = "Rice, boiled", Unit = FoodUnit.Gram, Kcal = 130, ProteinG = 3, CarbsG = 28, FatG = 0, SearchText = "rice, boiled" };
+        await favourites.InsertAsync(other);
+        search.Results = [oats, other];
+        await favourites.Service.AddAsync(oats.Id);
+        var cut = await OpenValues(oats);
+        await cut.Find("[data-testid=food-detail-favourite]").ClickAsync(new());
+        await cut.Find("[data-testid=food-detail-close]").ClickAsync(new());
+        await cut.Find($"[data-testid=food-result-{other.Id}]").ClickAsync(new());
+
+        await cut.Find("[data-testid=snackbar-action]").ClickAsync(new());
+
+        Assert.That(Pressed(cut), Is.EqualTo("false"));
+        Assert.That((await favourites.Service.IsFavouriteAsync(oats.Id)).IsFavourite, Is.True);
+        Assert.That((await favourites.Service.IsFavouriteAsync(other.Id)).IsFavourite, Is.False);
+    }
+
+    [Test]
     public async Task AFailedWrite_KeepsTheOldStar_AndSaysSo()
     {
         var food = await StoreOats();

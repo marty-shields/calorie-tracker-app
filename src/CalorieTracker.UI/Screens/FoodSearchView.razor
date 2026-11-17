@@ -13,7 +13,7 @@
     <Actions>
         @if (Selected is not null && Favourite is { } favourite)
         {
-            <IconButton Icon="@(favourite ? IconName.StarFilled : IconName.Star)" AriaLabel="@(favourite ? "Remove from favourites" : "Add to favourites")" Pressed="favourite" TestId="food-detail-favourite" OnClick="OnToggleFavourite" />
+            <IconButton Icon="FavouriteStar.IconFor(favourite)" AriaLabel="@FavouriteStar.LabelFor(favourite)" Pressed="favourite" TestId="food-detail-favourite" OnClick="OnToggleFavourite" />
         }
     </Actions>
     <ChildContent>

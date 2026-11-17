@@ -1,4 +1,5 @@
 using CalorieTracker.Core.Foods;
+using CalorieTracker.UI.Components.Actions;
 using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Logging;
 using Microsoft.Extensions.Logging;
@@ -18,6 +19,7 @@ internal sealed partial class FavouriteStar : IDisposable
     private readonly ILogger logger;
     private readonly Action changed;
     private int foodId;
+    private int epoch;
     private bool busy;
     private bool disposed;
 
@@ -33,13 +35,18 @@ internal sealed partial class FavouriteStar : IDisposable
     /// <summary>Null while unknown or when the read failed: the screen then shows no star.</summary>
     public bool? IsFavourite { get; private set; }
 
+    /// <summary>The icon of the star button: filled for a favourite.</summary>
+    public static IconName IconFor(bool favourite) => favourite ? IconName.StarFilled : IconName.Star;
+
+    /// <summary>The accessible label of the star button.</summary>
+    public static string LabelFor(bool favourite) => favourite ? "Remove from favourites" : "Add to favourites";
+
     /// <summary>Forgets the state and reads it for the food. An answer for a food the screen has left is dropped.</summary>
     public async Task LoadAsync(int id)
     {
-        foodId = id;
-        IsFavourite = null;
+        var mine = Reset(id);
         var result = await service.IsFavouriteAsync(id);
-        if (disposed || foodId != id)
+        if (disposed || epoch != mine)
         {
             return;
         }
@@ -54,10 +61,14 @@ internal sealed partial class FavouriteStar : IDisposable
     }
 
     /// <summary>Forgets the state, for a screen with no food to star.</summary>
-    public void Clear()
+    public void Clear() => Reset(0);
+
+    private int Reset(int id)
     {
-        foodId = 0;
+        foodId = id;
         IsFavourite = null;
+        busy = false;
+        return ++epoch;
     }
 
     /// <summary>
@@ -72,17 +83,21 @@ internal sealed partial class FavouriteStar : IDisposable
         }
 
         busy = true;
+        var mine = epoch;
         try
         {
             IsFavourite = !current;
-            if (!await WriteAsync(foodId, !current))
+            if (!await WriteAsync(foodId, !current) && epoch == mine)
             {
                 IsFavourite = current;
             }
         }
         finally
         {
-            busy = false;
+            if (epoch == mine)
+            {
+                busy = false;
+            }
         }
     }
 
@@ -113,6 +128,11 @@ internal sealed partial class FavouriteStar : IDisposable
 
     private async Task UndoAsync(int id)
     {
+        if (busy && foodId == id)
+        {
+            return;
+        }
+
         var done = await WriteAsync(id, true);
         if (done && !disposed && foodId == id)
         {

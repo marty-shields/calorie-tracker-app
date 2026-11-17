@@ -128,7 +128,12 @@
             ? lockedGrams ?? (amount is { } count ? (double)count * chosen!.Amount : null)
             : amount is { } typed ? (double)typed : null;
 
-    protected override void OnInitialized() => star = new FavouriteStar(Favourites, Snackbar, Logger, () => _ = InvokeAsync(StateHasChanged));
+    protected override void OnInitialized()
+    {
+        // A message carried over from another screen (such as the Dashboard's "removed" Undo) is not Serving's to show.
+        Snackbar.Dismiss();
+        star = new FavouriteStar(Favourites, Snackbar, Logger, () => _ = InvokeAsync(StateHasChanged));
+    }
 
     public void Dispose() => star.Dispose();
 
@@ -169,7 +174,20 @@
         }
     }
 
+    /// <summary>Shows the food first and reads the star after it, so the screen never waits on the star.</summary>
     private async Task LoadAsync()
+    {
+        var requested = FoodId;
+        var requestedEntry = EntryId;
+        await LoadFoodAsync();
+        if (!loading && food is { } loaded && requested == FoodId && requestedEntry == EntryId)
+        {
+            StateHasChanged();
+            await star.LoadAsync(loaded.Id);
+        }
+    }
+
+    private async Task LoadFoodAsync()
     {
         var requested = FoodId;
         var requestedEntry = EntryId;
@@ -190,19 +208,7 @@
             return;
         }
 
-        if (result.Food is null)
-        {
-            star.Clear();
-        }
-        else
-        {
-            await star.LoadAsync(result.Food.Id);
-            if (requested != FoodId || requestedEntry != EntryId)
-            {
-                return;
-            }
-        }
-
+        star.Clear();
         loading = false;
         loadFailed = result.Status == FoodStatus.Failed;
         food = result.Food;

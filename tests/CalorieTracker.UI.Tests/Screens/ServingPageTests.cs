@@ -92,7 +92,7 @@ public class ServingPageTests : ComponentTestBase
 
     private static FakeTimeProvider Clock(int hour, int minute) => new(new DateTimeOffset(2031, 7, 19, hour, minute, 0, TimeSpan.Zero));
 
-    private IRenderedComponent<ServingPage> Render(int foodId, Meal? meal = null, Action? onAdded = null, Action<ComponentParameterCollectionBuilder<ServingPage>>? more = null) =>
+    private IRenderedComponent<ServingPage> Render(int foodId, Meal? meal = null, Action? onAdded = null, Action<ComponentParameterCollectionBuilder<ServingPage>>? more = null, bool expectStar = true) =>
         Loaded(Context.Render<ServingPage>(p =>
         {
             p.Add(x => x.FoodId, foodId).Add(x => x.Meal, meal).Add(x => x.Date, Day);
@@ -102,12 +102,17 @@ public class ServingPageTests : ComponentTestBase
             }
 
             more?.Invoke(p);
-        }));
+        }), expectStar);
 
-    /// <summary>Waits until the page has read the food, so the spinner is gone.</summary>
-    private static IRenderedComponent<ServingPage> Loaded(IRenderedComponent<ServingPage> cut)
+    /// <summary>Waits until the page has read the food, so the spinner is gone, and its star (shown after the food) has too, so a late render can't land between a test's Find and its click. A page that shows no food or no star passes <paramref name="expectStar"/> false.</summary>
+    private static IRenderedComponent<ServingPage> Loaded(IRenderedComponent<ServingPage> cut, bool expectStar = true)
     {
         cut.WaitForState(() => cut.FindAll("[data-testid=serving-loading]").Count == 0);
+        if (expectStar)
+        {
+            cut.WaitForState(() => Exists(cut, "serving-favourite") || Exists(cut, "serving-not-found") || Exists(cut, "serving-load-failed-error"));
+        }
+
         return cut;
     }
 
@@ -1489,11 +1494,23 @@ public class ServingPageTests : ComponentTestBase
         Assert.That(logger.Collector.GetSnapshot().Select(r => r.Message), Has.None.Contain("Grandma").And.None.Contain("123"));
     }
 
-    private static string Pressed(IRenderedComponent<ServingPage> cut) => cut.Find("[data-testid=serving-favourite]").GetAttribute("aria-pressed")!;
+    /// <summary>The star shows once its read finishes, after the food itself.</summary>
+    private static IRenderedComponent<ServingPage> WaitForStar(IRenderedComponent<ServingPage> cut)
+    {
+        cut.WaitForState(() => Exists(cut, "serving-favourite"));
+        return cut;
+    }
 
-    private static string StarLabel(IRenderedComponent<ServingPage> cut) => cut.Find("[data-testid=serving-favourite]").GetAttribute("aria-label")!;
+    private static async Task TapStar(IRenderedComponent<ServingPage> cut)
+    {
+        await WaitForStar(cut).Find("[data-testid=serving-favourite]").ClickAsync(new());
+    }
 
-    private static string? StarPath(IRenderedComponent<ServingPage> cut) => cut.Find("[data-testid=serving-favourite] path").GetAttribute("d");
+    private static string Pressed(IRenderedComponent<ServingPage> cut) => WaitForStar(cut).Find("[data-testid=serving-favourite]").GetAttribute("aria-pressed")!;
+
+    private static string StarLabel(IRenderedComponent<ServingPage> cut) => WaitForStar(cut).Find("[data-testid=serving-favourite]").GetAttribute("aria-label")!;
+
+    private static string? StarPath(IRenderedComponent<ServingPage> cut) => WaitForStar(cut).Find("[data-testid=serving-favourite] path").GetAttribute("d");
 
     private static string SnackbarText(IRenderedComponent<ServingPage> cut) => cut.Find("[data-testid=snackbar-message]").TextContent.Trim();
 
@@ -1518,16 +1535,17 @@ public class ServingPageTests : ComponentTestBase
         var cut = Render(cheddarId, Meal.Lunch);
         var outlined = StarPath(cut);
 
-        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
+        await TapStar(cut);
+        var first = (Pressed(cut), StarLabel(cut), StarPath(cut), SnackbarText(cut), cut.FindAll("[data-testid=snackbar-action]").Count);
         var reopened = Render(cheddarId, Meal.Lunch);
 
         Assert.Multiple(() =>
         {
-            Assert.That(Pressed(cut), Is.EqualTo("true"));
-            Assert.That(StarLabel(cut), Is.EqualTo("Remove from favourites"));
-            Assert.That(StarPath(cut), Is.Not.EqualTo(outlined));
-            Assert.That(SnackbarText(cut), Is.EqualTo("Added to favourites"));
-            Assert.That(cut.FindAll("[data-testid=snackbar-action]"), Is.Empty);
+            Assert.That(first.Item1, Is.EqualTo("true"));
+            Assert.That(first.Item2, Is.EqualTo("Remove from favourites"));
+            Assert.That(first.Item3, Is.Not.EqualTo(outlined));
+            Assert.That(first.Item4, Is.EqualTo("Added to favourites"));
+            Assert.That(first.Item5, Is.Zero);
             Assert.That(Pressed(reopened), Is.EqualTo("true"));
         });
     }
@@ -1538,7 +1556,7 @@ public class ServingPageTests : ComponentTestBase
         await core.GetRequiredService<FavouriteService>().AddAsync(cheddarId);
         var cut = Render(cheddarId, Meal.Lunch);
 
-        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
+        await TapStar(cut);
         var afterRemove = (Pressed(cut), SnackbarText(cut), cut.Find("[data-testid=snackbar-action]").TextContent.Trim(), await IsFavourite(cheddarId));
         await cut.Find("[data-testid=snackbar-action]").ClickAsync(new());
 
@@ -1555,9 +1573,10 @@ public class ServingPageTests : ComponentTestBase
     {
         var saved = false;
         var (cut, id) = await RenderEditing(cheddarId, Meal.Lunch, 30, onSaved: () => saved = true);
+        WaitForStar(cut);
         var actions = cut.FindAll("header [data-testid]").Select(e => e.GetAttribute("data-testid")).ToList();
 
-        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
+        await TapStar(cut);
         await cut.Find("[data-testid=serving-save]").ClickAsync(new());
 
         Assert.Multiple(() =>
@@ -1575,7 +1594,7 @@ public class ServingPageTests : ComponentTestBase
         var removed = false;
         var (cut, id) = await RenderEditing(cheddarId, Meal.Lunch, 30, onRemoved: () => removed = true);
 
-        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
+        await TapStar(cut);
         await cut.Find("[data-testid=serving-remove]").ClickAsync(new());
 
         Assert.That(removed, Is.True);
@@ -1594,9 +1613,9 @@ public class ServingPageTests : ComponentTestBase
             Text(cut, "serving-weight"), Text(cut, "serving-add"), cut.Find("[data-testid=serving-meal-dinner]").HasAttribute("checked"), Text(cut, "serving-adds-kcal"));
         var before = Snapshot();
 
-        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
+        await TapStar(cut);
         var starred = Snapshot();
-        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
+        await TapStar(cut);
 
         Assert.Multiple(() =>
         {
@@ -1610,10 +1629,10 @@ public class ServingPageTests : ComponentTestBase
     [Test]
     public async Task AFailedWrite_KeepsTheOldStar_AndSaysSo()
     {
-        var cut = Render(cheddarId, Meal.Lunch);
+        var cut = WaitForStar(Render(cheddarId, Meal.Lunch));
         await connection.ExecuteAsync("DROP TABLE Favourite");
 
-        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
+        await TapStar(cut);
 
         Assert.Multiple(() =>
         {
@@ -1625,13 +1644,54 @@ public class ServingPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task AFailedUndo_KeepsTheStarEmpty_AndSaysSo()
+    {
+        await core.GetRequiredService<FavouriteService>().AddAsync(cheddarId);
+        var cut = WaitForStar(Render(cheddarId, Meal.Lunch));
+        await TapStar(cut);
+        await connection.ExecuteAsync("DROP TABLE Favourite");
+
+        await cut.Find("[data-testid=snackbar-action]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Pressed(cut), Is.EqualTo("false"));
+            Assert.That(SnackbarText(cut), Is.EqualTo("Couldn't update favourites. Try again."));
+        });
+    }
+
+    [Test]
+    public void OpeningServing_DropsAMessageCarriedOverFromAnotherScreen()
+    {
+        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
+        snackbar.Show("Oats removed", "Undo", () => Task.CompletedTask);
+
+        var cut = Render(cheddarId, Meal.Lunch);
+
+        Assert.That(snackbar.Current, Is.Null);
+        Assert.That(cut.FindAll("[data-testid=snackbar]"), Is.Empty);
+    }
+
+    [Test]
+    public async Task AddingAfterOpening_StillPostsItsMessageForTheNextScreen()
+    {
+        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
+        snackbar.Show("Oats removed", "Undo", () => Task.CompletedTask);
+        var cut = Render(cheddarId, Meal.Lunch);
+
+        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
+
+        Assert.That(snackbar.Current?.Text, Does.EndWith("added to Lunch"));
+    }
+
+    [Test]
     public async Task AFailedWriteOfAFilledStar_KeepsItFilled()
     {
         await core.GetRequiredService<FavouriteService>().AddAsync(cheddarId);
-        var cut = Render(cheddarId, Meal.Lunch);
+        var cut = WaitForStar(Render(cheddarId, Meal.Lunch));
         await connection.ExecuteAsync("DROP TABLE Favourite");
 
-        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
+        await TapStar(cut);
 
         Assert.Multiple(() =>
         {
@@ -1645,7 +1705,7 @@ public class ServingPageTests : ComponentTestBase
     {
         await connection.ExecuteAsync("DROP TABLE Favourite");
         var added = false;
-        var cut = Render(cheddarId, Meal.Lunch, onAdded: () => added = true);
+        var cut = Render(cheddarId, Meal.Lunch, onAdded: () => added = true, expectStar: false);
 
         await cut.Find("[data-testid=serving-add]").ClickAsync(new());
 
@@ -1663,10 +1723,11 @@ public class ServingPageTests : ComponentTestBase
     {
         var logger = new FakeLogger<ServingPage>();
         Context.Services.AddSingleton<ILogger<ServingPage>>(logger);
-        var cut = Render(cheddarId, Meal.Lunch);
+        var cut = WaitForStar(Render(cheddarId, Meal.Lunch));
         await connection.ExecuteAsync("DROP TABLE Favourite");
-        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
-        Render(cheddarId, Meal.Lunch);
+        await TapStar(cut);
+        var reopened = Render(cheddarId, Meal.Lunch, expectStar: false);
+        reopened.WaitForState(() => logger.Collector.Count == 2);
 
         var records = logger.Collector.GetSnapshot();
         Assert.Multiple(() =>
