@@ -19,12 +19,13 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
     private FakeFoodSearch local = null!;
 
     [SetUp]
-    public void SetUp()
+    public async Task SetUp()
     {
         online = new FakeOnlineSearch();
         import = new FakeOnlineImport();
         notice = new FakeOnlineNotice();
         local = new FakeFoodSearch();
+        await UseFavourites();
         Context.Services.AddSingleton<IFoodSearch>(local);
         Context.Services.AddSingleton<IOnlineFoodSearch>(online);
         Context.Services.AddSingleton<IOnlineFoodImport>(import);

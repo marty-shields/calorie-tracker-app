@@ -71,6 +71,12 @@ internal enum UiEvent
     /// <summary><see cref="Screens.ServingPage"/>: Undo could not restore the entry just removed, with the status.</summary>
     RestoreFailed = 3802,
 
+    /// <summary><see cref="Screens.FavouriteStar"/>: reading whether the food is a favourite failed, so no star shows.</summary>
+    FavouriteReadFailed = 3901,
+
+    /// <summary><see cref="Screens.FavouriteStar"/>: starring or unstarring the food failed, so the star stays as it was.</summary>
+    FavouriteWriteFailed = 3902,
+
     /// <summary><see cref="Components.Layout.AppScreen"/>: setting up pull to refresh failed, so the screen can't be pulled.</summary>
     PullRefreshFailed = 4001,
 }

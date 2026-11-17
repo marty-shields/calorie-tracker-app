@@ -77,4 +77,30 @@
         </Template>
     </Story>
 
+    <Story Name="Star">
+        <Template>
+            @foreach (var size in Enum.GetValues<IconSize>())
+            {
+                foreach (var tone in Enum.GetValues<IconTone>())
+                {
+                    @($"{size} {tone}")
+                    <Icon Name="IconName.Star" Tone="tone" Size="size" />
+                }
+            }
+        </Template>
+    </Story>
+
+    <Story Name="StarFilled">
+        <Template>
+            @foreach (var size in Enum.GetValues<IconSize>())
+            {
+                foreach (var tone in Enum.GetValues<IconTone>())
+                {
+                    @($"{size} {tone}")
+                    <Icon Name="IconName.StarFilled" Tone="tone" Size="size" />
+                }
+            }
+        </Template>
+    </Story>
+
 </Stories>

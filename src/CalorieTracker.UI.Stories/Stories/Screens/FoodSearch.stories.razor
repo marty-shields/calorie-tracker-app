@@ -1,6 +1,8 @@
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Foods
+@using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Models.Search
+@implements IDisposable
 @attribute [Stories("Screens/FoodSearch")]
 
 <Stories TComponent="FoodSearchView" Layout="typeof(PhoneLayout)">
@@ -61,7 +63,21 @@
 
     <Story Name="Food selected">
         <Template>
-            <FoodSearchView Query="oat" Groups="FoodSearchSamples.AllGroups" Selected="FoodSearchSamples.Oats[0]" OnQueryChanged="(string _) => { }" OnAdd="(Food _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <FoodSearchView Query="oat" Groups="FoodSearchSamples.AllGroups" Selected="FoodSearchSamples.Oats[0]" Favourite="false" OnToggleFavourite="() => { }" OnQueryChanged="(string _) => { }" OnAdd="(Food _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Favourite food selected">
+        <Template>
+            @{ Post("Added to favourites"); }
+            <FoodSearchView Query="oat" Groups="FoodSearchSamples.AllGroups" Selected="FoodSearchSamples.Oats[0]" Favourite="true" OnToggleFavourite="() => { }" OnQueryChanged="(string _) => { }" OnAdd="(Food _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Favourite update failed">
+        <Template>
+            @{ Post("Couldn't update favourites. Try again."); }
+            <FoodSearchView Query="oat" Groups="FoodSearchSamples.AllGroups" Selected="FoodSearchSamples.Oats[0]" Favourite="false" OnToggleFavourite="() => { }" OnQueryChanged="(string _) => { }" OnAdd="(Food _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
@@ -190,3 +206,28 @@
     </Story>
 
 </Stories>
+
+@code {
+    private bool posted;
+
+    [Inject]
+    private SnackbarService Snackbar { get; set; } = null!;
+
+    /// <summary>Posts what the screen posts after a tap on the star, as the snackbar shows it; it stays until this story is left, so no other story shows it.</summary>
+    private void Post(string text, string? action = null)
+    {
+        if (!posted)
+        {
+            posted = true;
+            Snackbar.Show(text, action, action is null ? null : () => Task.CompletedTask, Timeout.InfiniteTimeSpan);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (posted)
+        {
+            Snackbar.Dismiss();
+        }
+    }
+}

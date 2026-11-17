@@ -27,8 +27,28 @@ public abstract class ComponentTestBase
         Context.Services.AddSingleton<TimeProvider>(new FakeTimeProvider());
     }
 
+    /// <summary>The temporary database behind <see cref="UseFavourites"/>; null until a test asks for it.</summary>
+    private FavouriteDatabase? favourites;
+
     [TearDown]
     public void DisposeContext() => Context.Dispose();
+
+    [TearDown]
+    public async Task DisposeFavourites()
+    {
+        if (favourites is not null)
+        {
+            await favourites.DisposeAsync();
+        }
+    }
+
+    /// <summary>Registers Core's real <see cref="CalorieTracker.Core.Foods.FavouriteService"/> over a temporary database, for a page that needs it. Call once, from a test's set-up.</summary>
+    protected async Task<FavouriteDatabase> UseFavourites()
+    {
+        favourites = await FavouriteDatabase.CreateAsync();
+        Context.Services.AddSingleton(favourites.Service);
+        return favourites;
+    }
 
     /// <summary>
     /// Waits until the renderer has run the work queued so far, such as a component continuing after a fake call completes or

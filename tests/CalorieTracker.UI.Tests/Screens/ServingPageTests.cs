@@ -44,6 +44,7 @@ public class ServingPageTests : ComponentTestBase
         Context.Services.AddSingleton(core.GetRequiredService<FoodService>());
         Context.Services.AddSingleton(core.GetRequiredService<ServingService>());
         Context.Services.AddSingleton(core.GetRequiredService<DiaryService>());
+        Context.Services.AddSingleton(core.GetRequiredService<FavouriteService>());
         Context.Services.AddSingleton<TimeProvider>(Clock(12, 40));
     }
 
@@ -1486,5 +1487,194 @@ public class ServingPageTests : ComponentTestBase
         await cut.Find("[data-testid=serving-own-save]").ClickAsync(new());
 
         Assert.That(logger.Collector.GetSnapshot().Select(r => r.Message), Has.None.Contain("Grandma").And.None.Contain("123"));
+    }
+
+    private static string Pressed(IRenderedComponent<ServingPage> cut) => cut.Find("[data-testid=serving-favourite]").GetAttribute("aria-pressed")!;
+
+    private static string StarLabel(IRenderedComponent<ServingPage> cut) => cut.Find("[data-testid=serving-favourite]").GetAttribute("aria-label")!;
+
+    private static string? StarPath(IRenderedComponent<ServingPage> cut) => cut.Find("[data-testid=serving-favourite] path").GetAttribute("d");
+
+    private static string SnackbarText(IRenderedComponent<ServingPage> cut) => cut.Find("[data-testid=snackbar-message]").TextContent.Trim();
+
+    private async Task<bool> IsFavourite(int id) => (await core.GetRequiredService<FavouriteService>().IsFavouriteAsync(id)).IsFavourite;
+
+    [Test]
+    public void NotAFavourite_ShowsAnOutlinedStarThatIsNotPressed()
+    {
+        var cut = Render(cheddarId, Meal.Lunch);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(StarLabel(cut), Is.EqualTo("Add to favourites"));
+            Assert.That(Pressed(cut), Is.EqualTo("false"));
+            Assert.That(cut.FindAll("header [data-testid=serving-favourite]"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task TappingTheStar_FillsIt_SaysSo_AndTheFoodStaysAFavouriteWhenReopened()
+    {
+        var cut = Render(cheddarId, Meal.Lunch);
+        var outlined = StarPath(cut);
+
+        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
+        var reopened = Render(cheddarId, Meal.Lunch);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Pressed(cut), Is.EqualTo("true"));
+            Assert.That(StarLabel(cut), Is.EqualTo("Remove from favourites"));
+            Assert.That(StarPath(cut), Is.Not.EqualTo(outlined));
+            Assert.That(SnackbarText(cut), Is.EqualTo("Added to favourites"));
+            Assert.That(cut.FindAll("[data-testid=snackbar-action]"), Is.Empty);
+            Assert.That(Pressed(reopened), Is.EqualTo("true"));
+        });
+    }
+
+    [Test]
+    public async Task TappingAFilledStar_EmptiesIt_SaysSoWithUndo_AndUndoStarsItAgain()
+    {
+        await core.GetRequiredService<FavouriteService>().AddAsync(cheddarId);
+        var cut = Render(cheddarId, Meal.Lunch);
+
+        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
+        var afterRemove = (Pressed(cut), SnackbarText(cut), cut.Find("[data-testid=snackbar-action]").TextContent.Trim(), await IsFavourite(cheddarId));
+        await cut.Find("[data-testid=snackbar-action]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(afterRemove, Is.EqualTo(("false", "Removed from favourites", "Undo", false)));
+            Assert.That(Pressed(cut), Is.EqualTo("true"));
+        });
+        Assert.That(await IsFavourite(cheddarId), Is.True);
+    }
+
+    [Test]
+    public async Task EditMode_ShowsTheStarBeforeTheTrash_StarsAndStillSavesAndRemoves()
+    {
+        var saved = false;
+        var (cut, id) = await RenderEditing(cheddarId, Meal.Lunch, 30, onSaved: () => saved = true);
+        var actions = cut.FindAll("header [data-testid]").Select(e => e.GetAttribute("data-testid")).ToList();
+
+        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
+        await cut.Find("[data-testid=serving-save]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(actions.IndexOf("serving-favourite"), Is.GreaterThanOrEqualTo(0).And.LessThan(actions.IndexOf("serving-remove")));
+            Assert.That(saved, Is.True);
+        });
+        Assert.That(await IsFavourite(cheddarId), Is.True);
+        Assert.That(await Kept(id), Is.Not.Null);
+    }
+
+    [Test]
+    public async Task EditMode_StarThenRemove_StillRemovesTheEntry()
+    {
+        var removed = false;
+        var (cut, id) = await RenderEditing(cheddarId, Meal.Lunch, 30, onRemoved: () => removed = true);
+
+        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
+        await cut.Find("[data-testid=serving-remove]").ClickAsync(new());
+
+        Assert.That(removed, Is.True);
+        Assert.That(await Kept(id), Is.Null);
+    }
+
+    [Test]
+    public async Task Starring_DoesNotChangeTheAmountServingsOrMeal()
+    {
+        await SeedCola();
+        var cut = Render(colaId, Meal.Snacks);
+        await cut.Find("[data-testid=serving-select]").ChangeAsync(new() { Value = canId.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+        await cut.Find("[data-testid=serving-amount-plus]").ClickAsync(new());
+        await cut.Find("[data-testid=serving-meal-dinner]").ChangeAsync(true);
+        string Snapshot() => string.Join("|", cut.Find("[data-testid=serving-amount]").GetAttribute("value"), cut.Find("[data-testid=serving-select]").GetAttribute("value"),
+            Text(cut, "serving-weight"), Text(cut, "serving-add"), cut.Find("[data-testid=serving-meal-dinner]").HasAttribute("checked"), Text(cut, "serving-adds-kcal"));
+        var before = Snapshot();
+
+        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
+        var starred = Snapshot();
+        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(before, Does.Contain("Add to Dinner"));
+            Assert.That(starred, Is.EqualTo(before));
+            Assert.That(Snapshot(), Is.EqualTo(before));
+            Assert.That(cut.Find("[data-testid=serving-add]").HasAttribute("disabled"), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task AFailedWrite_KeepsTheOldStar_AndSaysSo()
+    {
+        var cut = Render(cheddarId, Meal.Lunch);
+        await connection.ExecuteAsync("DROP TABLE Favourite");
+
+        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Pressed(cut), Is.EqualTo("false"));
+            Assert.That(StarLabel(cut), Is.EqualTo("Add to favourites"));
+            Assert.That(SnackbarText(cut), Is.EqualTo("Couldn't update favourites. Try again."));
+            Assert.That(cut.Find("[data-testid=serving-add]").HasAttribute("disabled"), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task AFailedWriteOfAFilledStar_KeepsItFilled()
+    {
+        await core.GetRequiredService<FavouriteService>().AddAsync(cheddarId);
+        var cut = Render(cheddarId, Meal.Lunch);
+        await connection.ExecuteAsync("DROP TABLE Favourite");
+
+        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Pressed(cut), Is.EqualTo("true"));
+            Assert.That(SnackbarText(cut), Is.EqualTo("Couldn't update favourites. Try again."));
+        });
+    }
+
+    [Test]
+    public async Task AFailedRead_ShowsNoStar_AndTheRestOfTheScreenWorks()
+    {
+        await connection.ExecuteAsync("DROP TABLE Favourite");
+        var added = false;
+        var cut = Render(cheddarId, Meal.Lunch, onAdded: () => added = true);
+
+        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Exists(cut, "serving-favourite"), Is.False);
+            Assert.That(Exists(cut, "serving-load-failed"), Is.False);
+            Assert.That(added, Is.True);
+        });
+        Assert.That(await Entries(), Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public async Task TheFavouriteLogLines_CarryTheFoodIdAndStatusOnly()
+    {
+        var logger = new FakeLogger<ServingPage>();
+        Context.Services.AddSingleton<ILogger<ServingPage>>(logger);
+        var cut = Render(cheddarId, Meal.Lunch);
+        await connection.ExecuteAsync("DROP TABLE Favourite");
+        await cut.Find("[data-testid=serving-favourite]").ClickAsync(new());
+        Render(cheddarId, Meal.Lunch);
+
+        var records = logger.Collector.GetSnapshot();
+        Assert.Multiple(() =>
+        {
+            Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { UiEvent.FavouriteWriteFailed, UiEvent.FavouriteReadFailed }));
+            Assert.That(records[0].Message, Is.EqualTo($"Updating the favourite of food {cheddarId} failed: Failed"));
+            Assert.That(records[1].Message, Is.EqualTo($"Reading whether food {cheddarId} is a favourite failed"));
+            Assert.That(records.Select(r => r.Message), Has.None.Contain("Cheddar").And.None.Contain("Lunch"));
+        });
     }
 }

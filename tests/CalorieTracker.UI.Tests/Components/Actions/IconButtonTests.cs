@@ -19,6 +19,16 @@ public class IconButtonTests : ComponentTestBase
         Assert.That(clicked, Is.True);
     }
 
+    [TestCase(true, "true")]
+    [TestCase(false, "false")]
+    [TestCase(null, null)]
+    public void Pressed_SetsAriaPressedOnlyWhenGiven(bool? pressed, string? expected)
+    {
+        var cut = Context.Render<IconButton>(p => p.Add(x => x.Icon, IconName.Star).Add(x => x.AriaLabel, "Star").Add(x => x.Pressed, pressed));
+
+        Assert.That(cut.Find("button").GetAttribute("aria-pressed"), Is.EqualTo(expected));
+    }
+
     [Test]
     public async Task FocusAsync_FocusesTheButton()
     {

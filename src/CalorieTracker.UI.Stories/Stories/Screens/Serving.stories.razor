@@ -1,13 +1,15 @@
 @using CalorieTracker.Core.Data
+@using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Models.Serving
 @using CalorieTracker.UI.Stories.Stories.Screens
+@implements IDisposable
 @attribute [Stories("Screens/Serving")]
 
 <Stories TComponent="ServingView" Layout="typeof(PhoneLayout)">
 
     <Story Name="Servings">
         <Template>
-            <ServingView Food="ServingSamples.Pizza" Servings="ServingSamples.PizzaServings" Mode="EntryMode.Servings" Amount="1" Grams="201.8" Meal="Meal.Lunch" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+            <ServingView Favourite="false" OnToggleFavourite="() => { }" Food="ServingSamples.Pizza" Servings="ServingSamples.PizzaServings" Mode="EntryMode.Servings" Amount="1" Grams="201.8" Meal="Meal.Lunch" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
         </Template>
     </Story>
 
@@ -143,6 +145,33 @@
         </Template>
     </Story>
 
+    <Story Name="Favourite">
+        <Template>
+            @{ Post("Added to favourites"); }
+            <ServingView Favourite="true" OnToggleFavourite="() => { }" Food="ServingSamples.Cheddar" Mode="EntryMode.Grams" Amount="30" Grams="30" Meal="Meal.Lunch" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnSave="() => { }" OnRemove="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Favourite update failed">
+        <Template>
+            @{ Post("Couldn't update favourites. Try again."); }
+            <ServingView Favourite="false" OnToggleFavourite="() => { }" Food="ServingSamples.Cheddar" Mode="EntryMode.Grams" Amount="30" Grams="30" Meal="Meal.Lunch" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnSave="() => { }" OnRemove="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Edit entry favourite">
+        <Template>
+            <ServingView Favourite="true" OnToggleFavourite="() => { }" Food="ServingSamples.Cheddar" Mode="EntryMode.Grams" Amount="30" Grams="30" Meal="Meal.Lunch" Editing Date="DashboardSamples.Today" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnSave="() => { }" OnRemove="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Edit entry favourite removed">
+        <Template>
+            @{ Post("Removed from favourites", "Undo"); }
+            <ServingView Favourite="false" OnToggleFavourite="() => { }" Food="ServingSamples.Cheddar" Mode="EntryMode.Grams" Amount="30" Grams="30" Meal="Meal.Lunch" Editing Date="DashboardSamples.Today" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnSave="() => { }" OnRemove="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+        </Template>
+    </Story>
+
     <Story Name="Loading">
         <Template>
             <ServingView Loading OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
@@ -162,3 +191,28 @@
     </Story>
 
 </Stories>
+
+@code {
+    private bool posted;
+
+    [Inject]
+    private SnackbarService Snackbar { get; set; } = null!;
+
+    /// <summary>Posts what the screen posts after a tap on the star, as the snackbar shows it; it stays until this story is left, so no other story shows it.</summary>
+    private void Post(string text, string? action = null)
+    {
+        if (!posted)
+        {
+            posted = true;
+            Snackbar.Show(text, action, action is null ? null : () => Task.CompletedTask, Timeout.InfiniteTimeSpan);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (posted)
+        {
+            Snackbar.Dismiss();
+        }
+    }
+}

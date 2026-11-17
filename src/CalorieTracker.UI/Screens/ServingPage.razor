@@ -5,14 +5,16 @@
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Models.Serving
 @using Microsoft.Extensions.Logging
+@implements IDisposable
 @inject FoodService Foods
 @inject ServingService ServingsApi
 @inject DiaryService Diary
 @inject TimeProvider Time
 @inject SnackbarService Snackbar
+@inject FavouriteService Favourites
 @inject ILogger<ServingPage> Logger
 
-<ServingView Food="food" Servings="offered" ServingId="chosen?.Id" OnServingChanged="ChangeServing"
+<ServingView Favourite="star.IsFavourite" OnToggleFavourite="star.ToggleAsync" Food="food" Servings="offered" ServingId="chosen?.Id" OnServingChanged="ChangeServing"
              AddingOwn="addingOwn" OwnLabel="@ownLabel" OwnAmount="ownAmount" OwnError="@ownError" SavingOwn="savingOwn"
              OnOwnOpen="OpenOwn" OnOwnLabelChanged="ChangeOwnLabel" OnOwnAmountChanged="ChangeOwnAmount" OnOwnSave="SaveOwnAsync" OnOwnCancel="CancelOwn" OnDeleteOwn="DeleteOwnAsync"
              Loading="loading" LoadFailed="loadFailed" Mode="mode" Amount="amount" Grams="Grams" Meal="meal" SuggestedAt="suggestedAt"
@@ -20,6 +22,7 @@
              OnMealChanged="ChangeMeal" OnAdd="AddAsync" OnRetry="LoadAsync" OnBack="OnBack" />
 
 @code {
+    private FavouriteStar star = null!;
     private Food? food;
     private IReadOnlyList<Serving> offered = [];
     private Serving? chosen;
@@ -125,6 +128,10 @@
             ? lockedGrams ?? (amount is { } count ? (double)count * chosen!.Amount : null)
             : amount is { } typed ? (double)typed : null;
 
+    protected override void OnInitialized() => star = new FavouriteStar(Favourites, Snackbar, Logger, () => _ = InvokeAsync(StateHasChanged));
+
+    public void Dispose() => star.Dispose();
+
     protected override async Task OnParametersSetAsync()
     {
         var foodChanged = FoodId != loadedId || EntryId != loadedEntry;
@@ -173,6 +180,7 @@
             // The route can't say what the entry holds, so Save would overwrite it with defaults: show nothing to save.
             loading = false;
             food = null;
+            star.Clear();
             return;
         }
 
@@ -180,6 +188,19 @@
         if (requested != FoodId || requestedEntry != EntryId)
         {
             return;
+        }
+
+        if (result.Food is null)
+        {
+            star.Clear();
+        }
+        else
+        {
+            await star.LoadAsync(result.Food.Id);
+            if (requested != FoodId || requestedEntry != EntryId)
+            {
+                return;
+            }
         }
 
         loading = false;

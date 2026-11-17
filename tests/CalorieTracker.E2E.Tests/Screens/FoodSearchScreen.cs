@@ -157,6 +157,17 @@ public sealed class FoodSearchScreen(WebView web)
 
     public void BackToResults() => web.Tap("food-detail-close");
 
+    /// <summary>The star on a food's values: its accessible name.</summary>
+    public string DetailStarLabel() => web.Attribute("food-detail-favourite", "aria-label");
+
+    /// <summary>The star on a food's values: <c>aria-pressed</c>, "true" when the food is a favourite.</summary>
+    public string DetailStarPressed() => web.Attribute("food-detail-favourite", "aria-pressed");
+
+    public void TapDetailStar() => web.Tap("food-detail-favourite");
+
+    /// <summary>Whether a result row holds a star button; none does.</summary>
+    public bool RowsShowAStar() => web.FindAll("[data-testid^=\"food-result-\"] button").Count > 0;
+
     /// <summary>What is in the search box.</summary>
     public string Typed() => web.Value("food-search-input");
 }

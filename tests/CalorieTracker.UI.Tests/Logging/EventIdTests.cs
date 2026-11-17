@@ -46,6 +46,8 @@ public partial class EventIdTests
             [UiEvent.NumberFieldFocusFailed] = 3701,
             [UiEvent.UndoFailed] = 3801,
             [UiEvent.RestoreFailed] = 3802,
+            [UiEvent.FavouriteReadFailed] = 3901,
+            [UiEvent.FavouriteWriteFailed] = 3902,
             [UiEvent.PullRefreshFailed] = 4001,
         }));
 
