@@ -17,6 +17,7 @@ public class FoodSearchTests
     private FakeLogger<FoodSearch> logger = null!;
     private FoodSearch search = null!;
     private FoodHistoryService history = null!;
+    private FavouriteService favourites = null!;
     private DiaryService diary = null!;
     private FakeTimeProvider time = null!;
     private int nextId;
@@ -35,7 +36,8 @@ public class FoodSearchTests
         time = new FakeTimeProvider(new DateTimeOffset(2031, 7, 19, 12, 0, 0, TimeSpan.Zero));
         history = new FoodHistoryService(new FoodHistoryStore(connection, gate), time, new FakeLogger<FoodHistoryService>());
         diary = new DiaryService(new DiaryStore(connection, gate), new FakeLogger<DiaryService>());
-        search = new FoodSearch(new FoodStore(connection, gate, new FakeLogger<FoodStore>()), history, logger);
+        favourites = new FavouriteService(new FavouriteStore(connection, gate), time, new FakeLogger<FavouriteService>());
+        search = new FoodSearch(new FoodStore(connection, gate, new FakeLogger<FoodStore>()), history, favourites, logger);
         nextId = 0;
     }
 
@@ -897,8 +899,209 @@ public class FoodSearchTests
             Assert.That(text, Does.Not.Contain("istinctive").And.Not.Contain("ecretbrand").And.Not.Contain("123"));
         }
 
-        Assert.That(records[0].Message, Is.EqualTo("Grouped food search with 2 terms found 1 diary, 0 common and 0 branded foods"));
-        Assert.That(records[1].Message, Is.EqualTo("Foods before typing: 1 usual and 0 recent"));
+        Assert.That(records[0].Message, Is.EqualTo("Grouped food search with 2 terms found 0 favourite, 1 diary, 0 common and 0 branded foods"));
+        Assert.That(records[1].Message, Is.EqualTo("Foods before typing: 0 favourite, 1 usual and 0 recent"));
+    }
+
+    private async Task Star(params string[] names)
+    {
+        foreach (var name in names)
+        {
+            Assert.That((await favourites.AddAsync(await IdOf(name))).Status, Is.EqualTo(FavouriteStatus.Added));
+        }
+    }
+
+    [Test]
+    public async Task Suggest_Favourites_ComeFirstAtoZIgnoringCaseAndAccents_WithNoLimit()
+    {
+        foreach (var name in new[] { "Zed pear", "Éclair zed", "zed apple", "Zed Banana", "Zed cherry", "Zed date", "Zed egg" })
+        {
+            await Add(name, name.ToLowerInvariant());
+        }
+
+        await Star("Zed pear", "Éclair zed", "zed apple", "Zed Banana", "Zed cherry", "Zed date", "Zed egg");
+
+        var result = await search.SuggestAsync(Meal.Breakfast);
+
+        var group = result.Groups.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(group.Kind, Is.EqualTo(FoodGroupKind.Favourites));
+            Assert.That(group.Foods.Select(l => l.Food.Name), Is.EqualTo(new[] { "zed apple", "Zed Banana", "Zed cherry", "Zed date", "Éclair zed", "Zed egg", "Zed pear" }.OrderBy(n => n == "Éclair zed" ? "eclair zed" : n.ToLowerInvariant(), StringComparer.Ordinal)));
+            Assert.That(group.Total, Is.EqualTo(7));
+        });
+    }
+
+    [Test]
+    public async Task Suggest_FavouritesWithEmptyDiary_ShowOnlyTheFavouritesGroup()
+    {
+        await Add("Zed oats", "zed oats");
+        await Star("Zed oats");
+
+        var result = await search.SuggestAsync(Meal.Lunch);
+
+        Assert.That(result.Groups.Select(g => g.Kind), Is.EqualTo(new[] { FoodGroupKind.Favourites }));
+        Assert.That(result.Groups[0].Foods[0].History, Is.Null);
+    }
+
+    [Test]
+    public async Task Suggest_LoggedFavourite_CarriesItsHistory_AndIsNotRepeatedInUsualOrRecent()
+    {
+        await Add("Zed oats", "zed oats");
+        await Add("Zed eggs", "zed eggs");
+        await Add("Zed soup", "zed soup");
+        await Log("Zed oats", Meal.Breakfast, 50);
+        await Log("Zed eggs", Meal.Breakfast, 60);
+        await Log("Zed soup", Meal.Lunch, 300);
+        await Star("Zed oats", "Zed soup");
+
+        var result = await search.SuggestAsync(Meal.Breakfast);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Groups.Select(g => g.Kind), Is.EqualTo(new[] { FoodGroupKind.Favourites, FoodGroupKind.Usual }));
+            Assert.That(Names(result, FoodGroupKind.Favourites), Is.EqualTo(new[] { "Zed oats", "Zed soup" }));
+            Assert.That(result.Groups[0].Foods.Select(l => l.History?.LastAmount), Is.EqualTo(new double?[] { 50, 300 }));
+            Assert.That(Names(result, FoodGroupKind.Usual), Is.EqualTo(new[] { "Zed eggs" }));
+        });
+    }
+
+    [Test]
+    public async Task Suggest_FavouritesTakeNoneOfTheUsualAndRecentRoom()
+    {
+        for (var i = 0; i < 20; i++)
+        {
+            await Add($"Zed food {i:00}", "zed food");
+            await Log($"Zed food {i:00}", i >= 8 ? Meal.Breakfast : Meal.Dinner, 50);
+        }
+
+        await Star("Zed food 19", "Zed food 18", "Zed food 17", "Zed food 05", "Zed food 04");
+
+        var result = await search.SuggestAsync(Meal.Breakfast);
+
+        var favouriteIds = result.Groups.Single(g => g.Kind == FoodGroupKind.Favourites).Foods.Select(l => l.Food.Id).ToHashSet();
+        var usual = result.Groups.Single(g => g.Kind == FoodGroupKind.Usual).Foods;
+        var recent = result.Groups.Single(g => g.Kind == FoodGroupKind.Recent).Foods;
+        Assert.Multiple(() =>
+        {
+            Assert.That(usual, Has.Count.EqualTo(IFoodSearch.UsualLimit));
+            Assert.That(recent, Has.Count.EqualTo(IFoodSearch.RecentLimit));
+            Assert.That(usual.Concat(recent).Select(l => l.Food.Id).Intersect(favouriteIds), Is.Empty);
+            Assert.That(usual.Select(l => l.Food.Id).Intersect(recent.Select(l => l.Food.Id)), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task Suggest_FavouritesReadFails_LeavesOutTheGroupOnly()
+    {
+        await Add("Zed oats", "zed oats");
+        await Log("Zed oats", Meal.Breakfast, 50);
+        await Star("Zed oats");
+        await connection.DropTableAsync<Favourite>();
+
+        var result = await search.SuggestAsync(Meal.Breakfast);
+
+        Assert.That(result.Status, Is.EqualTo(FoodSearchStatus.Found));
+        Assert.That(result.Groups.Select(g => g.Kind), Is.EqualTo(new[] { FoodGroupKind.Usual }));
+    }
+
+    [Test]
+    public async Task Grouped_Favourites_AreFirstAndOnlyTheMatchingOnesInRankedOrder()
+    {
+        await Add("Zed milk", "zed milk");
+        await Add("Zed milk shake", "zed milk shake");
+        await Add("Zed rice", "zed rice");
+        await Add("Zed milk logged", "zed milk logged");
+        await Add("Zed milk brand", "zed milk brand", FoodSource.OpenFoodFacts, brand: "Acme");
+        await Log("Zed milk logged", Meal.Lunch, 100);
+        await Star("Zed milk shake", "Zed milk", "Zed rice", "Zed milk logged", "Zed milk brand");
+
+        var result = await search.SearchGroupedAsync("zed milk", Meal.Lunch);
+
+        var ranked = (await search.SearchAsync("zed milk")).Foods.Select(f => f.Name).ToList();
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Groups.Select(g => g.Kind), Is.EqualTo(new[] { FoodGroupKind.Favourites }));
+            Assert.That(Names(result, FoodGroupKind.Favourites), Is.EqualTo(ranked.Where(n => n != "Zed rice")));
+            Assert.That(result.Groups[0].Foods.Single(l => l.Food.Name == "Zed milk logged").History!.LastAmount, Is.EqualTo(100));
+        });
+    }
+
+    [Test]
+    public async Task Grouped_FavouriteIsNotRepeatedInTheOtherGroups_AndNoMatchGivesNoGroup()
+    {
+        await Add("Zed pasta", "zed pasta");
+        await Add("Zed rice", "zed rice");
+        await Add("Zed crisps", "zed crisps", FoodSource.OpenFoodFacts, brand: "Acme");
+        await Add("Zed beans", "zed beans", FoodSource.OpenFoodFacts, brand: "Acme");
+        await Log("Zed beans", Meal.Lunch, 100);
+        await Star("Zed pasta", "Zed crisps", "Zed beans");
+
+        var result = await search.SearchGroupedAsync("zed");
+        var none = await search.SearchGroupedAsync("rice");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Groups.Select(g => g.Kind), Is.EqualTo(new[] { FoodGroupKind.Favourites, FoodGroupKind.Common }));
+            Assert.That(Names(result, FoodGroupKind.Favourites), Is.EquivalentTo(new[] { "Zed pasta", "Zed crisps", "Zed beans" }));
+            Assert.That(Names(result, FoodGroupKind.Common), Is.EqualTo(new[] { "Zed rice" }));
+            Assert.That(none.Groups.Select(g => g.Kind), Is.EqualTo(new[] { FoodGroupKind.Common }));
+        });
+    }
+
+    [Test]
+    public async Task Grouped_FavouritesHoldTheBestGroupLimit_AndTotalCountsAll()
+    {
+        for (var i = 0; i < IFoodSearch.GroupLimit + 5; i++)
+        {
+            await Add($"Zed food {i:000}", "zed food");
+        }
+
+        await Star((await connection.Table<Food>().ToListAsync()).Select(f => f.Name).ToArray());
+
+        var group = (await search.SearchGroupedAsync("zed")).Groups.Single();
+
+        Assert.That(group.Kind, Is.EqualTo(FoodGroupKind.Favourites));
+        Assert.That(group.Foods, Has.Count.EqualTo(IFoodSearch.GroupLimit));
+        Assert.That(group.Total, Is.EqualTo(IFoodSearch.GroupLimit + 5));
+    }
+
+    [Test]
+    public async Task Grouped_FavouritesReadFails_LeavesTheOtherGroupsWorking()
+    {
+        await Add("Zed pasta", "zed pasta");
+        await Add("Zed beans", "zed beans");
+        await Log("Zed beans", Meal.Lunch, 100);
+        await Star("Zed pasta");
+        await connection.DropTableAsync<Favourite>();
+
+        var result = await search.SearchGroupedAsync("zed");
+
+        Assert.That(result.Status, Is.EqualTo(FoodSearchStatus.Found));
+        Assert.That(result.Groups.Select(g => g.Kind), Is.EqualTo(new[] { FoodGroupKind.Diary, FoodGroupKind.Common }));
+    }
+
+    [Test]
+    public async Task Logging_GroupedAndSuggestWithFavourites_LogCountsOnly()
+    {
+        await Add("Distinctive Name", "distinctive name", brand: "Secretbrand");
+        await Star("Distinctive Name");
+
+        await search.SearchGroupedAsync("Distinctive secretbrand", Meal.Lunch);
+        await search.SuggestAsync(Meal.Lunch);
+
+        var records = logger.Collector.GetSnapshot();
+        Assert.Multiple(() =>
+        {
+            foreach (var record in records)
+            {
+                var text = record.Message + string.Join(" ", record.StructuredState!.Select(p => $"{p.Key}={p.Value}"));
+                Assert.That(text, Does.Not.Contain("istinctive").And.Not.Contain("ecretbrand"));
+            }
+
+            Assert.That(records[0].Message, Is.EqualTo("Grouped food search with 2 terms found 1 favourite, 0 diary, 0 common and 0 branded foods"));
+            Assert.That(records[1].Message, Is.EqualTo("Foods before typing: 1 favourite, 0 usual and 0 recent"));
+        });
     }
 
     private async Task<List<string>> Names(string query) =>

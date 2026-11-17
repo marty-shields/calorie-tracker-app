@@ -3,9 +3,10 @@ using CalorieTracker.Core.History;
 
 namespace CalorieTracker.Core.Foods;
 
-/// <summary>The lists search shows, in the order they appear: Usual and Recent before typing, then Diary, Common and Branded while typing.</summary>
+/// <summary>The lists search shows, in the order they appear: Favourites first, always (every favourite before typing, the matching ones while typing), then Usual and Recent before typing, or Diary, Common and Branded while typing.</summary>
 public enum FoodGroupKind
 {
+    Favourites,
     Usual,
     Recent,
     Diary,

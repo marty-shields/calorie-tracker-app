@@ -100,7 +100,7 @@
     [Parameter]
     public string Query { get; set; } = "";
 
-    /// <summary>The lists to show, each under its heading, in the order given. With a query they are its matches, best first; with none, the foods to start from. A typed group (diary, common, branded) shows <see cref="ShownLimit"/> foods and a "Show N more" row (N is the foods the group holds less those shown, so it is what the row reveals) for the rest; the usual and recent groups show all they hold.
+    /// <summary>The lists to show, each under its heading, in the order given. With a query they are its matches, best first; with none, the foods to start from. The favourites group, typed or not, and a typed group (diary, common, branded) show <see cref="ShownLimit"/> foods and a "Show N more" row (N is the foods the group holds less those shown, so it is what the row reveals) for the rest; the usual and recent groups show all they hold. A favourite row looks like any other row, with no star marker.
     /// With no groups, an empty query shows "Search for a food" and a typed one "No foods match".</summary>
     [Parameter]
     public IReadOnlyList<FoodGroup> Groups { get; set; } = [];
@@ -310,6 +310,7 @@
 
     private string Heading(FoodGroupKind kind) => kind switch
     {
+        FoodGroupKind.Favourites => "Favourites",
         FoodGroupKind.Usual => $"Usual for {(Meal?.ToString() ?? "meal").ToLowerInvariant()}",
         FoodGroupKind.Recent => "Recent",
         FoodGroupKind.Diary => "From your diary",

@@ -25,6 +25,36 @@
         </Template>
     </Story>
 
+    <Story Name="Nothing typed with favourites">
+        <Template>
+            <FoodSearchView Groups="FoodSearchSamples.IdleWithFavourites" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnExpand="(FoodGroupKind _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Add to a meal with favourites">
+        <Template>
+            <FoodSearchView Meal="Meal.Breakfast" Groups="FoodSearchSamples.IdleWithManyFavourites" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnExpand="(FoodGroupKind _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Favourites expanded">
+        <Template>
+            <FoodSearchView Meal="Meal.Breakfast" Groups="FoodSearchSamples.IdleWithManyFavourites" Expanded="@(new HashSet<FoodGroupKind> { FoodGroupKind.Favourites })" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnExpand="(FoodGroupKind _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Results with favourites">
+        <Template>
+            <FoodSearchView Query="milk" Groups="FoodSearchSamples.MilkWithFavourites" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnExpand="(FoodGroupKind _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Favourites with an empty diary">
+        <Template>
+            <FoodSearchView Meal="Meal.Lunch" Groups="FoodSearchSamples.OnlyFavourites" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnExpand="(FoodGroupKind _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
     <Story Name="Results">
         <Template>
             <FoodSearchView Query="oat" Groups="FoodSearchSamples.AllGroups" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnNavigate="(NavDestination _) => { }" />

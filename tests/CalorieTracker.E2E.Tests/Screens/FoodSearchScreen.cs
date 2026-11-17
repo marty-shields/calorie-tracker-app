@@ -65,7 +65,7 @@ public sealed class FoodSearchScreen(WebView web)
             return first is not null;
         }, "no result to open");
 
-    /// <summary>The group headings on the screen, in order, as the testid keys (usual, recent, diary, common, branded). Only headings count: a group's "Show N more" row has a testid of its own.</summary>
+    /// <summary>The group headings on the screen, in order, as the testid keys (favourites, usual, recent, diary, common, branded). Only headings count: a group's "Show N more" row has a testid of its own.</summary>
     public IReadOnlyList<string> Groups() =>
         web.FindAll("h2[data-testid^=\"food-group-\"]").Select(h => h.GetDomAttribute("data-testid")!["food-group-".Length..]).ToList();
 

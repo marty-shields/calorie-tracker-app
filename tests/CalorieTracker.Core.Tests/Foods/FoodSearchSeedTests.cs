@@ -51,7 +51,7 @@ public class FoodSearchSeedTests
             SearchText = SearchFolding.Fold("Crème caramel"),
         });
         logger = new FakeLogger<FoodSearch>();
-        search = new FoodSearch(store, new FoodHistoryService(new FoodHistoryStore(connection, gate), TimeProvider.System, new FakeLogger<FoodHistoryService>()), logger);
+        search = new FoodSearch(store, new FoodHistoryService(new FoodHistoryStore(connection, gate), TimeProvider.System, new FakeLogger<FoodHistoryService>()), new FavouriteService(new FavouriteStore(connection, gate), TimeProvider.System, new FakeLogger<FavouriteService>()), logger);
     }
 
     [OneTimeTearDown]
