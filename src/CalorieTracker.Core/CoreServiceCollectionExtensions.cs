@@ -60,7 +60,8 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<ISchemaUpgrade, ServingTableUpgrade>()
             .AddSingleton<ISchemaUpgrade, BarcodeTableUpgrade>()
             .AddSingleton<ISchemaUpgrade, PackServingUpgrade>()
-            .AddSingleton<ISchemaUpgrade, StorageCleanupUpgrade>();
+            .AddSingleton<ISchemaUpgrade, StorageCleanupUpgrade>()
+            .AddSingleton<ISchemaUpgrade, OnlineSearchNoticeUpgrade>();
 
     private static IServiceCollection AddServices(this IServiceCollection services)
     {

@@ -1,9 +1,9 @@
 namespace CalorieTracker.UI.Models.Search;
 
-/// <summary>Where the Open Food Facts part of the search screen is. Nothing is sent until the person taps, so a search starts at <see cref="Idle"/>.</summary>
+/// <summary>Where the online part of the search screen is. Nothing is sent until the person taps, so a search starts at <see cref="Idle"/>.</summary>
 public enum OnlineSearchState
 {
-    /// <summary>Nothing sent: the "Search Open Food Facts" row, or the button when no stored food matches.</summary>
+    /// <summary>Nothing sent: the "Search online" row, or the button when no stored food matches.</summary>
     Idle,
 
     /// <summary>A search is running: a spinner.</summary>
@@ -18,15 +18,15 @@ public enum OnlineSearchState
     /// <summary>The search ran and found nothing usable.</summary>
     None,
 
-    /// <summary>Open Food Facts answered HTTP 429: "Open Food Facts is busy. Try again in a minute." with Try again.</summary>
+    /// <summary>The online search answered HTTP 429: "The online search is busy. Try again in a minute." with Try again.</summary>
     Busy,
 
     /// <summary>No response: "You are offline" with Try again.</summary>
     Offline,
 
-    /// <summary>Any other failure: "Couldn't reach Open Food Facts" with Try again.</summary>
+    /// <summary>Any other failure: "Couldn't reach the online search" with Try again.</summary>
     Failed,
 
-    /// <summary>A tapped product has no usable data on Open Food Facts: "That product can't be added" without Try again, the results stay.</summary>
+    /// <summary>A tapped product has no usable data online: "That product can't be added" without Try again, the results stay.</summary>
     Unavailable,
 }

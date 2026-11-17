@@ -568,12 +568,24 @@ public class OnlineFoodSearchTests
         Assert.Multiple(() =>
         {
             Assert.That(handler.Queries, Is.EqualTo(new[] { "cola countries_tags:\"en:united-kingdom\"", "cola" }));
-            Assert.That(waits, Is.EqualTo(new[] { OnlineFoodSearch.MinGap }), "the repeat is a request too");
+            Assert.That(waits, Is.Empty, "the repeat is part of the same search and goes at once");
             Assert.That(result.Status, Is.EqualTo(OnlineSearchStatus.Found));
             Assert.That(result.Country, Is.Null);
             Assert.That(cached.Country, Is.Null);
             Assert.That(handler.Requests, Has.Count.EqualTo(2));
         });
+    }
+
+    [Test]
+    public async Task Search_AfterAWorldwideRepeat_AnotherUserSearchStillWaitsTheFullGap()
+    {
+        handler.Respond(Fixture("search-none.json"));
+        handler.Respond(Fixture("search-cola-variants.json"));
+        await search.SearchAsync("cola");
+
+        await search.SearchAsync("oreo");
+
+        Assert.That(waits, Is.EqualTo(new[] { OnlineFoodSearch.MinGap }));
     }
 
     [Test]

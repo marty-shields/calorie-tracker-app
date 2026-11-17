@@ -107,11 +107,11 @@
     [Parameter]
     public EventCallback<FoodGroupKind> OnExpand { get; set; }
 
-    /// <summary>Where Open Food Facts search is. Shown under the local groups once something is typed, never with the food's values, the loading state or a load error.</summary>
+    /// <summary>Where the online search is. Shown under the local groups once something is typed, never with the food's values, the loading state or a load error.</summary>
     [Parameter]
     public OnlineSearchState OnlineState { get; set; }
 
-    /// <summary>The products found, shown as a group headed "Open Food Facts · country" in <see cref="OnlineSearchState.Results"/> and <see cref="OnlineSearchState.Importing"/>, and under a busy, offline, failed or "can't be added" message after a product could not be fetched. A group shows <see cref="ShownLimit"/> products and a "Show N more" row for the rest.</summary>
+    /// <summary>The products found, shown as a group headed "Online · country" in <see cref="OnlineSearchState.Results"/> and <see cref="OnlineSearchState.Importing"/>, and under a busy, offline, failed or "can't be added" message after a product could not be fetched. A group shows <see cref="ShownLimit"/> products and a "Show N more" row for the rest.</summary>
     [Parameter]
     public IReadOnlyList<OnlineProduct> OnlineProducts { get; set; } = [];
 
@@ -123,15 +123,15 @@
     [Parameter]
     public bool OnlineExpanded { get; set; }
 
-    /// <summary>Shows the first-use notice ("This sends what you typed to Open Food Facts.") next to the search row.</summary>
+    /// <summary>Shows the first-use notice ("This sends what you typed to an online database.") under the search button.</summary>
     [Parameter]
     public bool OnlineNoticeVisible { get; set; }
 
-    /// <summary>Raised by the "Search Open Food Facts" row or button: the tap that sends the typed text.</summary>
+    /// <summary>Raised by the "Search online" row or button: the tap that sends the typed text.</summary>
     [Parameter]
     public EventCallback OnSearchOnline { get; set; }
 
-    /// <summary>Raised with the product tapped in the Open Food Facts group.</summary>
+    /// <summary>Raised with the product tapped in the online group.</summary>
     [Parameter]
     public EventCallback<OnlineProduct> OnSelectOnline { get; set; }
 
@@ -195,26 +195,15 @@
 
     private RenderFragment Notice => @<Snackbar />;
 
-    /// <summary>The Open Food Facts part under the local results. <paramref name="noMatches"/>: no stored food matched, so the way in is a primary button instead of a row.</summary>
+    /// <summary>The online part under the local results. <paramref name="noMatches"/>: no stored food matched, so the button is primary instead of secondary.</summary>
     private RenderFragment Online(bool noMatches) =>
         @<div class="online" data-testid="food-search-online-section">
             @switch (OnlineState)
             {
                 case OnlineSearchState.Idle:
-                    @if (noMatches)
-                    {
-                        <div class="online-action">
-                            <AppButton Variant="ButtonVariant.Primary" FullWidth TestId="food-search-online" OnClick="OnSearchOnline">Search Open Food Facts</AppButton>
-                        </div>
-                    }
-                    else
-                    {
-                        <ul class="rows">
-                            <li>
-                                <ListRow Text="Search Open Food Facts" OnClick="OnSearchOnline" TestId="food-search-online" />
-                            </li>
-                        </ul>
-                    }
+                    <div class="online-action">
+                        <AppButton Variant="@(noMatches ? ButtonVariant.Primary : ButtonVariant.Secondary)" FullWidth TestId="food-search-online" OnClick="OnSearchOnline">Search online</AppButton>
+                    </div>
 
                     @if (OnlineNoticeVisible)
                     {
@@ -224,7 +213,7 @@
                     break;
                 case OnlineSearchState.Searching:
                     <div class="loading">
-                        <Spinner Label="Searching Open Food Facts…" TestId="food-search-online-loading" />
+                        <Spinner Label="Searching online…" TestId="food-search-online-loading" />
                     </div>
                     break;
                 case OnlineSearchState.Importing:
@@ -237,7 +226,7 @@
                     @OnlineGroup
                     break;
                 case OnlineSearchState.None:
-                    <p class="none" data-testid="food-search-online-none">Nothing found on Open Food Facts</p>
+                    <p class="none" data-testid="food-search-online-none">Nothing found online</p>
                     break;
                 case OnlineSearchState.Unavailable:
                     <p class="none" data-testid="food-search-online-unavailable">That product can't be added</p>
@@ -252,9 +241,9 @@
 
     private string OnlineMessage => OnlineState switch
     {
-        OnlineSearchState.Busy => "Open Food Facts is busy. Try again in a minute.",
+        OnlineSearchState.Busy => "The online search is busy. Try again in a minute.",
         OnlineSearchState.Offline => "You are offline",
-        _ => "Couldn't reach Open Food Facts",
+        _ => "Couldn't reach the online search",
     };
 
     private RenderFragment OnlineGroup =>
@@ -264,7 +253,7 @@
                 var hidden = OnlineExpanded ? 0 : Math.Max(0, OnlineProducts.Count - ShownLimit);
                 var shown = OnlineProducts.Count - hidden;
                 <section class="group">
-                    <h2 class="group-heading" data-testid="food-group-online">Open Food Facts · @(OnlineCountry ?? "worldwide")</h2>
+                    <h2 class="group-heading" data-testid="food-group-online">Online · @(OnlineCountry ?? "worldwide")</h2>
                     <ul class="rows">
                         @foreach (var product in OnlineProducts.Take(shown))
                         {
@@ -294,7 +283,7 @@
             </div>
         </div>;
 
-    /// <summary>The search key of the keyboard is a tap on "Search Open Food Facts" once something is typed.</summary>
+    /// <summary>The search key of the keyboard is a tap on "Search online" once something is typed.</summary>
     private Task OnKeyDown(KeyboardEventArgs args) =>
         args.Key == "Enter" && !Loading && !string.IsNullOrWhiteSpace(Query) ? OnSearchOnline.InvokeAsync() : Task.CompletedTask;
 

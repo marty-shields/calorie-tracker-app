@@ -181,7 +181,7 @@
 
     private void ExpandOnline() => onlineExpanded = true;
 
-    /// <summary>The typed text changed: what Open Food Facts answered belongs to the old text, so it goes (the session cache brings it back for the same text), and a search or fetch still running is let go.</summary>
+    /// <summary>The typed text changed: what the online search answered belongs to the old text, so it goes (the session cache brings it back for the same text), and a search or fetch still running is let go.</summary>
     private void ResetOnline()
     {
         CancelOnline();
@@ -199,7 +199,7 @@
         onlineRunning = null;
     }
 
-    /// <summary>The tap that sends the typed text to Open Food Facts. Nothing else does; the first tap also counts as the person having seen the notice.</summary>
+    /// <summary>The tap that sends the typed text to the online search. Nothing else does; the first tap also counts as the person having seen the notice.</summary>
     private async Task SearchOnlineAsync()
     {
         if (string.IsNullOrWhiteSpace(query) || onlineState is OnlineSearchState.Searching or OnlineSearchState.Importing)

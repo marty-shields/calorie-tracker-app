@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CalorieTracker.Core.Foods;
 
-/// <summary>Whether the first-use notice of Open Food Facts search was shown.</summary>
+/// <summary>Whether the first-use notice of the online search was shown.</summary>
 public interface IOnlineSearchNotice
 {
     /// <summary>Whether the notice was shown before. False when it was not, or when reading failed.</summary>
@@ -14,7 +14,7 @@ public interface IOnlineSearchNotice
     Task MarkShownAsync();
 }
 
-/// <summary>Remembers that the first-use notice of Open Food Facts search ("This sends what you typed to Open Food Facts.") was shown, in <see cref="AppSettings"/>. A failing database never throws: the notice then shows again.</summary>
+/// <summary>Remembers that the first-use notice of the online search ("This sends what you typed to an online database.") was shown, in <see cref="AppSettings"/>. A failing database never throws: the notice then shows again.</summary>
 public sealed partial class OnlineSearchNotice : IOnlineSearchNotice
 {
     private readonly NoticeStore store;
@@ -27,7 +27,7 @@ public sealed partial class OnlineSearchNotice : IOnlineSearchNotice
     }
 
     /// <summary>The words of the notice.</summary>
-    public const string Text = "This sends what you typed to Open Food Facts.";
+    public const string Text = "This sends what you typed to an online database.";
 
     public async Task<bool> WasShownAsync()
     {

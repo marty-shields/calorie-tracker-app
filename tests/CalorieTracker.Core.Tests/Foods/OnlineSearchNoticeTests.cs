@@ -97,5 +97,5 @@ public class OnlineSearchNoticeTests
 
     [Test]
     public void TheText_IsTheOwnersLine() =>
-        Assert.That(OnlineSearchNotice.Text, Is.EqualTo("This sends what you typed to Open Food Facts."));
+        Assert.That(OnlineSearchNotice.Text, Is.EqualTo("This sends what you typed to an online database."));
 }

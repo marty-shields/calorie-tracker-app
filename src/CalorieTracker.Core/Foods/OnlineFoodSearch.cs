@@ -10,7 +10,7 @@ namespace CalorieTracker.Core.Foods;
 
 /// <summary>
 /// Searches Open Food Facts by text through Search-a-licious (<c>search.openfoodfacts.org</c>), limited to the device's country by <c>countries_tags:"en:..."</c> inside the query.
-/// One request for each explicit call, at most one every <see cref="MinGap"/> (a call that comes sooner waits, and the worldwide repeat of a country that gave nothing counts as a request), and a finished search is kept in memory for the session, so the same text asks once.
+/// One request for each explicit call, at most one every <see cref="MinGap"/> (a call that comes sooner waits; the worldwide repeat of a country that gave nothing goes at once, as part of the same search, and the gap counts from it), and a finished search is kept in memory for the session, so the same text asks once.
 /// Hits are cleaned before they are returned: a hit with no barcode, name, unit or nutrition is skipped, hits that match on name, pack size and per-100 values collapse into the first, and at most <see cref="IOnlineFoodSearch.MaxProducts"/> stay.
 /// Sends the query and the country filter only, with a User-Agent of the app's name and version. The query and barcodes are never logged.
 /// </summary>
@@ -78,7 +78,7 @@ internal sealed partial class OnlineFoodSearch : IOnlineFoodSearch, IDisposable
             if (answer.Status == OnlineSearchStatus.None && inCountry)
             {
                 Log.WorldwideRepeat(logger);
-                answer = await RequestAsync(text, null, ct);
+                answer = await RequestAsync(text, null, ct, skipGap: true);
                 country = null;
             }
 
@@ -132,10 +132,10 @@ internal sealed partial class OnlineFoodSearch : IOnlineFoodSearch, IDisposable
         return OnlineSearchResult.Found(cached.Products.Select(p => p with { IsNew = !stored.Contains(p.Barcode) }).ToList(), cached.Country);
     }
 
-    private async Task<Answer> RequestAsync(string text, string? countryTag, CancellationToken ct)
+    private async Task<Answer> RequestAsync(string text, string? countryTag, CancellationToken ct, bool skipGap = false)
     {
         var wait = lastSent + MinGap - time.GetUtcNow();
-        if (wait > TimeSpan.Zero)
+        if (!skipGap && wait > TimeSpan.Zero)
         {
             Log.Waiting(logger, (int)wait.TotalMilliseconds);
             await delay(wait, ct);

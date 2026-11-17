@@ -13,6 +13,6 @@ public class AppSettings
     /// <summary>Calories a day, a whole number above zero; null when no target is set.</summary>
     public int? DailyTargetKcal { get; set; }
 
-    /// <summary>True once the first-use notice of Open Food Facts search was shown; null before. A column added after schema 14, which the table creation at start adds to a database that has the table.</summary>
+    /// <summary>True once the first-use notice of the online search was shown; null before. Added by schema step 17.</summary>
     public bool? OnlineSearchNoticeSeen { get; set; }
 }

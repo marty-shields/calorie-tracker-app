@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging.Testing;
 
 namespace CalorieTracker.UI.Tests.Screens;
 
-/// <summary>The Open Food Facts part of the search page: nothing is sent until a tap, and a tap on a result stores the product and carries its pack.</summary>
+/// <summary>The online part of the search page: nothing is sent until a tap, and a tap on a result stores the product and carries its pack.</summary>
 public class FoodSearchOnlinePageTests : ComponentTestBase
 {
     private static readonly Food Stored = new() { Id = 7, Name = "Coca Cola", Brand = "Coca-Cola", Unit = FoodUnit.Millilitre, Kcal = 42, ProteinG = 0, CarbsG = 10.6, FatG = 0 };
@@ -43,7 +43,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
     private static OnlineSearchResult Found(params OnlineProduct[] products) => OnlineSearchResult.Found(products, "United Kingdom");
 
     [Test]
-    public async Task Typing_SendsNothing_AndShowsTheRowAndTheFirstUseNotice()
+    public async Task Typing_SendsNothing_AndShowsTheButtonAndTheFirstUseNotice()
     {
         var cut = await Typed("coca-cola");
 
@@ -51,8 +51,8 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
         {
             Assert.That(online.Queries, Is.Empty);
             Assert.That(import.Barcodes, Is.Empty);
-            Assert.That(cut.Find("[data-testid=food-search-online]").TextContent, Does.Contain("Search Open Food Facts"));
-            Assert.That(cut.Find("[data-testid=food-search-online-notice]").TextContent, Is.EqualTo("This sends what you typed to Open Food Facts."));
+            Assert.That(cut.Find("button[data-testid=food-search-online]").TextContent, Does.Contain("Search online"));
+            Assert.That(cut.Find("[data-testid=food-search-online-notice]").TextContent, Is.EqualTo("This sends what you typed to an online database."));
         });
     }
 
@@ -66,6 +66,16 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
             Assert.That(online.Queries, Is.Empty);
             Assert.That(cut.FindAll("[data-testid=food-search-online]"), Is.Empty);
         });
+    }
+
+    [Test]
+    public async Task LocalResults_ShowSearchOnlineAsASecondaryButton()
+    {
+        local.Groups = [new FoodGroup(FoodGroupKind.Branded, [new FoodListing(Stored, null)])];
+
+        var cut = await Typed("coca-cola");
+
+        Assert.That(cut.Find("button[data-testid=food-search-online]").ClassList, Does.Contain("secondary"));
     }
 
     [Test]
@@ -92,7 +102,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
         {
             Assert.That(online.Queries, Is.EqualTo(new[] { "coca-cola" }));
             Assert.That(notice.Marked, Is.EqualTo(1));
-            Assert.That(cut.Find("[data-testid=food-group-online]").TextContent, Is.EqualTo("Open Food Facts · United Kingdom"));
+            Assert.That(cut.Find("[data-testid=food-group-online]").TextContent, Is.EqualTo("Online · United Kingdom"));
             Assert.That(cut.Find("[data-testid=food-online-5000112637922]").TextContent, Does.Contain("Coca Cola").And.Contain("330 ml").And.Contain("42 kcal / 100 ml").And.Contain("NEW"));
             Assert.That(cut.Find("[data-testid=food-online-5000112641981]").TextContent, Does.Not.Contain("NEW"));
             Assert.That(cut.FindAll("[data-testid=food-search-online]"), Is.Empty);
@@ -146,7 +156,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(spinner, Does.Contain("Searching Open Food Facts…"));
+            Assert.That(spinner, Does.Contain("Searching online…"));
             Assert.That(online.Queries, Has.Count.EqualTo(1));
             Assert.That(cut.FindAll("[data-testid=food-online-5000112637922]"), Has.Count.EqualTo(1));
         });
@@ -203,15 +213,15 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That((before, more, heading), Is.EqualTo((5, "Show 3 more", "Open Food Facts · worldwide")));
+            Assert.That((before, more, heading), Is.EqualTo((5, "Show 3 more", "Online · worldwide")));
             Assert.That(cut.FindAll("[data-testid^=food-online-]"), Has.Count.EqualTo(8));
             Assert.That(cut.FindAll("[data-testid=food-group-online-more]"), Is.Empty);
         });
     }
 
-    [TestCase(OnlineSearchStatus.Limited, "Open Food Facts is busy. Try again in a minute.")]
+    [TestCase(OnlineSearchStatus.Limited, "The online search is busy. Try again in a minute.")]
     [TestCase(OnlineSearchStatus.Offline, "You are offline")]
-    [TestCase(OnlineSearchStatus.Failed, "Couldn't reach Open Food Facts")]
+    [TestCase(OnlineSearchStatus.Failed, "Couldn't reach the online search")]
     public async Task AFailedSearch_ShowsItsMessageAndTryAgain_WithTheLocalGroupsStillThere(OnlineSearchStatus status, string message)
     {
         local.Groups = [new FoodGroup(FoodGroupKind.Branded, [new FoodListing(Stored, null)])];
@@ -247,7 +257,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
 
         await cut.Find("[data-testid=food-search-online]").ClickAsync(new());
 
-        Assert.That(cut.Find("[data-testid=food-search-online-none]").TextContent, Is.EqualTo("Nothing found on Open Food Facts"));
+        Assert.That(cut.Find("[data-testid=food-search-online-none]").TextContent, Is.EqualTo("Nothing found online"));
     }
 
     [Test]
@@ -326,9 +336,9 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
         });
     }
 
-    [TestCase(OnlineImportStatus.Limited, "Open Food Facts is busy. Try again in a minute.")]
+    [TestCase(OnlineImportStatus.Limited, "The online search is busy. Try again in a minute.")]
     [TestCase(OnlineImportStatus.Offline, "You are offline")]
-    [TestCase(OnlineImportStatus.Failed, "Couldn't reach Open Food Facts")]
+    [TestCase(OnlineImportStatus.Failed, "Couldn't reach the online search")]
     public async Task AProductThatCannotBeFetched_ShowsTheMessageUnderTheResults_AndTryAgainFetchesItAgain(OnlineImportStatus status, string message)
     {
         online.Answer(Found(OnlineSamples.Can));

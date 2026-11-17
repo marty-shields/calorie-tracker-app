@@ -71,7 +71,7 @@ public class StorageCleanupUpgradeTests
             Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM sqlite_master WHERE name = 'FoodBarcode'"), Is.Zero);
             Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM sqlite_master WHERE name = 'FoodBarcode_FoodId'"), Is.Zero);
             Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM pragma_table_info('Food') WHERE name IN ('ServingLabel', 'ServingAmount')"), Is.Zero);
-            Assert.That(await connection.ExecuteScalarAsync<int>("PRAGMA user_version"), Is.EqualTo(16));
+            Assert.That(await connection.ExecuteScalarAsync<int>("PRAGMA user_version"), Is.EqualTo(17));
         });
     }
 
