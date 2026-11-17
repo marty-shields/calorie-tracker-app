@@ -1,5 +1,6 @@
 using System.Text;
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Logging;
 using CalorieTracker.Core.Seed;
 using Microsoft.Extensions.Logging.Testing;
@@ -457,7 +458,7 @@ public class SeedLoaderTests
     {
         var kept = await store.UpsertAsync(new Food { Source = FoodSource.CoFID, SourceId = "old-kept", Name = "Kept", SearchText = "kept" }, "5000000000017");
         var removedOnly = await store.UpsertAsync(new Food { Source = FoodSource.CoFID, SourceId = "old-removed", Name = "Removed", SearchText = "removed" }, "5000000000024");
-        var unused = await store.UpsertAsync(new Food { Source = FoodSource.CoFID, SourceId = "old-unused", Name = "Unused", SearchText = "unused" }, "5000000000031");
+        await store.UpsertAsync(new Food { Source = FoodSource.CoFID, SourceId = "old-unused", Name = "Unused", SearchText = "unused" }, "5000000000031");
         await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = kept.Id, Amount = 10 });
         await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = removedOnly.Id, Amount = 10, IsRemoved = true });
         await Loader().LoadAsync();
@@ -468,7 +469,23 @@ public class SeedLoaderTests
         var foods = await connection.Table<Food>().ToListAsync();
         Assert.That(foods.Select(f => f.SourceId), Is.EquivalentTo(new[] { "11-001", "old-kept", "old-removed" }));
         Assert.That(await connection.QueryScalarsAsync<string>("SELECT Barcode FROM Barcode ORDER BY Barcode"), Is.EqualTo(new[] { "5000000000017", "5000000000024" }));
-        Assert.That(unused.Id, Is.Not.Zero);
+    }
+
+    [Test]
+    public async Task LoadAsync_NewerSeedWithoutAFavouriteCoFidFood_KeepsItAsAFavouriteAndDeletesAnUnusedOne()
+    {
+        await Loader().LoadAsync();
+        var favourite = await store.UpsertAsync(new Food { Source = FoodSource.CoFID, SourceId = "old-fav", Name = "Fav", SearchText = "fav" }, "5000000000017");
+        await store.UpsertAsync(new Food { Source = FoodSource.CoFID, SourceId = "old-unused", Name = "Unused", SearchText = "unused" });
+        var favourites = new FavouriteService(new FavouriteStore(connection, new DatabaseGate()), TimeProvider.System, new FakeLogger<FavouriteService>());
+        await favourites.AddAsync(favourite.Id);
+        seedJson = Wrap(2, [Row("11-001", "Arrowroot", 355)]);
+
+        await Loader().LoadAsync();
+
+        var foods = await connection.Table<Food>().ToListAsync();
+        Assert.That(foods.Select(f => f.SourceId), Is.EquivalentTo(new[] { "11-001", "old-fav" }));
+        Assert.That((await favourites.IdsAsync()).FoodIds, Is.EqualTo(new[] { favourite.Id }));
     }
 
     [Test]

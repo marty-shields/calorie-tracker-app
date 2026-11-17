@@ -681,7 +681,7 @@ public class FoodStoreTests
     public async Task DeleteMissingAsync_KeepsADroppedFavourite_AndStillDeletesAnUnusedOne()
     {
         var favourite = await store.UpsertAsync(NewFood("favourite"), "5000000000048");
-        var stale = await store.UpsertAsync(NewFood("stale"));
+        await store.UpsertAsync(NewFood("stale"));
         await connection.InsertAsync(new Favourite { FoodId = favourite.Id, CreatedAt = DateTimeOffset.UtcNow });
 
         var deleted = await store.DeleteMissingAsync(FoodSource.CoFID, new HashSet<string>());
@@ -690,7 +690,6 @@ public class FoodStoreTests
         Assert.That((await connection.Table<Food>().ToListAsync()).Select(f => f.Id), Is.EqualTo(new[] { favourite.Id }));
         Assert.That(await connection.QueryScalarsAsync<int>("SELECT FoodId FROM Favourite"), Is.EqualTo(new[] { favourite.Id }));
         Assert.That(await connection.QueryScalarsAsync<string>("SELECT Barcode FROM Barcode"), Is.EqualTo(new[] { "5000000000048" }));
-        Assert.That(stale.Id, Is.Not.Zero);
     }
 
     private static Food NewFood(string sourceId, FoodSource source = FoodSource.CoFID, double kcal = 100) => new()

@@ -15,6 +15,7 @@ public class FavouriteServiceTests
     private string databasePath = "";
     private SQLiteAsyncConnection connection = null!;
     private FakeLogger<FavouriteService> logger = null!;
+    private DatabaseGate gate = null!;
     private FavouriteService service = null!;
     private int foodId;
     private int otherId;
@@ -32,8 +33,9 @@ public class FavouriteServiceTests
         await connection.InsertAsync(other);
         foodId = food.Id;
         otherId = other.Id;
+        gate = new DatabaseGate();
         logger = new FakeLogger<FavouriteService>();
-        service = new FavouriteService(new FavouriteStore(connection, new DatabaseGate()), new FakeTimeProvider(Now), logger);
+        service = new FavouriteService(new FavouriteStore(connection, gate), new FakeTimeProvider(Now), logger);
     }
 
     [TearDown]
@@ -113,6 +115,33 @@ public class FavouriteServiceTests
             Assert.That((ids.Status, ids.FoodIds), Is.EqualTo((FavouriteReadStatus.Found, new[] { foodId, otherId })));
         });
     }
+
+    private async Task AssertWaitsForTheGate<T>(Func<Task<T>> call)
+    {
+        var holding = new TaskCompletionSource();
+        var busy = gate.RunAsync(async () => await holding.Task);
+
+        var pending = call();
+        await Task.Delay(100);
+        var finishedEarly = pending.IsCompleted;
+        holding.SetResult();
+
+        await busy;
+        await pending;
+        Assert.That(finishedEarly, Is.False);
+    }
+
+    [Test]
+    public Task AddAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes() => AssertWaitsForTheGate(() => service.AddAsync(foodId));
+
+    [Test]
+    public Task RemoveAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes() => AssertWaitsForTheGate(() => service.RemoveAsync(foodId));
+
+    [Test]
+    public Task IsFavouriteAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes() => AssertWaitsForTheGate(() => service.IsFavouriteAsync(foodId));
+
+    [Test]
+    public Task IdsAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes() => AssertWaitsForTheGate(() => service.IdsAsync());
 
     [Test]
     public async Task EveryCall_DatabaseFails_IsFailedWithoutThrowing()
