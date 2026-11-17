@@ -992,6 +992,50 @@ public class FoodSearchTests
     }
 
     [Test]
+    public async Task Suggest_Favourites_AreSortedByTheirShownTitle_NotByName()
+    {
+        await Add("Oat drink", "oat drink", brand: "Alpro");
+        await Add("Bananas", "bananas");
+        await Star("Bananas", "Oat drink");
+
+        var result = await search.SuggestAsync();
+
+        Assert.That(result.Groups.Single().Foods.Select(l => FoodDisplay.Of(l.Food).Title), Is.EqualTo(new[] { "Alpro Oat drink", "Bananas" }));
+    }
+
+    [Test]
+    public async Task Suggest_FavouritesWithTheSameTitle_ComeInAscendingIdOrder()
+    {
+        await Add("Zed twin", "zed twin");
+        await Add("zed twin", "zed twin");
+        var ids = new[] { await IdOf("Zed twin"), await IdOf("zed twin") };
+        await favourites.AddAsync(ids[1]);
+        await favourites.AddAsync(ids[0]);
+
+        var result = await search.SuggestAsync();
+
+        Assert.That(result.Groups.Single().Foods.Select(l => l.Food.Id), Is.EqualTo(ids.Order()));
+    }
+
+    [Test]
+    public async Task Suggest_FavouriteHistory_TakesTheMealIntoAccount()
+    {
+        await Add("Zed oats", "zed oats");
+        await Log("Zed oats", Meal.Breakfast, 50);
+        await Log("Zed oats", Meal.Lunch, 300);
+        await Star("Zed oats");
+
+        var breakfast = await search.SuggestAsync(Meal.Breakfast);
+        var any = await search.SuggestAsync(null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(breakfast.Groups.Single(g => g.Kind == FoodGroupKind.Favourites).Foods[0].History?.LastAmount, Is.EqualTo(50));
+            Assert.That(any.Groups.Single(g => g.Kind == FoodGroupKind.Favourites).Foods[0].History?.LastAmount, Is.EqualTo(300));
+        });
+    }
+
+    [Test]
     public async Task Suggest_FavouritesReadFails_LeavesOutTheGroupOnly()
     {
         await Add("Zed oats", "zed oats");

@@ -21,6 +21,7 @@
 
 @code {
     private FavouriteStar star = null!;
+    private bool? starAtOpen;
     private string query = "";
     private IReadOnlyList<FoodGroup> groups = [];
     private readonly HashSet<FoodGroupKind> expanded = [];
@@ -165,8 +166,7 @@
 
         if (Meal is null)
         {
-            selected = food;
-            await star.LoadAsync(food.Id);
+            await OpenValuesAsync(food);
             return;
         }
 
@@ -296,8 +296,7 @@
         lastTapped = null;
         if (Meal is null)
         {
-            selected = food;
-            await star.LoadAsync(food.Id);
+            await OpenValuesAsync(food);
             return;
         }
 
@@ -311,14 +310,28 @@
     private async Task AddAsync(Food food)
     {
         var listed = groups.SelectMany(g => g.Foods).FirstOrDefault(l => l.Food.Id == food.Id);
-        var last = listed is not null ? listed.History : await Search.LastLoggedAsync(food.Id, Meal);
+        var last = listed?.History ?? await Search.LastLoggedAsync(food.Id, Meal);
         await OnAdd.InvokeAsync(new FoodAddRequest(food, query, last?.LastAmount, last?.LastServings, last?.LastServingId));
     }
 
-    private void ClearSelection()
+    private async Task OpenValuesAsync(Food food)
     {
+        selected = food;
+        await star.LoadAsync(food.Id);
+        starAtOpen = star.IsFavourite;
+    }
+
+    /// <summary>Closes the values panel. A star changed on it moves the food between groups, so the list is read again for the current text.</summary>
+    private async Task ClearSelection()
+    {
+        var changed = starAtOpen is { } before && star.IsFavourite is { } now && before != now;
         selected = null;
+        starAtOpen = null;
         star.Clear();
+        if (changed)
+        {
+            await SearchAsync(query);
+        }
     }
 
     private Task Retry()

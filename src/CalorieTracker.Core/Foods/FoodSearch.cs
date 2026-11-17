@@ -56,8 +56,9 @@ internal sealed partial class FoodSearch(FoodStore store, FoodHistoryService his
             // The foods ever logged are few next to the matches, so one read of them beats asking for every match.
             var logged = await history.AllAsync(meal);
             ct.ThrowIfCancellationRequested();
-            var byFood = logged.Status == FoodHistoryStatus.Found ? logged.Foods.ToDictionary(h => h.FoodId) : [];
             var favouriteIds = await FavouriteIdsAsync();
+            ct.ThrowIfCancellationRequested();
+            var byFood = logged.Status == FoodHistoryStatus.Found ? logged.Foods.ToDictionary(h => h.FoodId) : [];
             var listings = matches.Select(f => new FoodListing(f, byFood.GetValueOrDefault(f.Id))).ToList();
             var favourite = listings.Where(l => favouriteIds.Contains(l.Food.Id)).ToList();
             var others = listings.Where(l => !favouriteIds.Contains(l.Food.Id)).ToList();

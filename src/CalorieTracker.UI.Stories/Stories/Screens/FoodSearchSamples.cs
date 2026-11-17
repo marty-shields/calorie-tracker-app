@@ -68,9 +68,9 @@ public static class FoodSearchSamples
     public static IReadOnlyList<FoodGroup> IdleWithManyFavourites { get; } = [new(FoodGroupKind.Favourites, FavouriteFoods), Idle[0], Idle[1]];
 
     /// <summary>Favourites and nothing logged yet.</summary>
-    public static IReadOnlyList<FoodGroup> OnlyFavourites { get; } = [new(FoodGroupKind.Favourites, [FavouriteFoods[0], FavouriteFoods[1], FavouriteFoods[3], FavouriteFoods[8]])];
+    public static IReadOnlyList<FoodGroup> OnlyFavourites { get; } = [new(FoodGroupKind.Favourites, [FavouriteFoods[0], FavouriteFoods[3], FavouriteFoods[4], FavouriteFoods[8]])];
 
-    /// <summary>Typing "milk": the two matching favourites, a logged food and ten common foods.</summary>
+    /// <summary>Typing "milk": the two matching favourites, a logged food and eight common foods.</summary>
     public static IReadOnlyList<FoodGroup> MilkWithFavourites { get; } =
     [
         new(FoodGroupKind.Favourites, [FavouriteFoods[5], FavouriteFoods[0]]),
