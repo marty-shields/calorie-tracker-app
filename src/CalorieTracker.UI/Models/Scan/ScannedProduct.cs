@@ -19,7 +19,7 @@ namespace CalorieTracker.UI.Models.Scan;
 /// <param name="Brands">Every brand, joined with ", ". Null when the source lists none, which leaves <paramref name="Brand"/> as the only brand.</param>
 /// <param name="GenericName">The source's generic name. Null when it gives none.</param>
 /// <param name="PackageLabel">The pack size as the source words it, such as "430 gram". Null when it gives none.</param>
-/// <param name="PackAmount">The pack, in g or ml, of the barcode that was scanned: a food can have several barcodes (a can and a bottle). The Serving screen opens on the serving of that size. Null when unknown.</param>
+/// <param name="PackAmount">The pack, in g or ml, of the barcode that was scanned: a food can have several barcodes (a can and a bottle). Null when unknown.</param>
 public sealed record ScannedProduct(string Name, string? Brand, decimal Kcal, decimal Protein, decimal Carbs, decimal Fat, bool IsLiquid = false,
     decimal? Fibre = null, decimal? Sugars = null, decimal? Saturates = null, decimal? Salt = null, int? FoodId = null, string? ServingLabel = null, decimal? ServingAmount = null,
     string? Brands = null, string? GenericName = null, string? PackageLabel = null, double? PackAmount = null)

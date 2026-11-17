@@ -36,8 +36,6 @@
     /// <summary>The product tapped last, so Try again fetches it again; null when the last tap was the search.</summary>
     private OnlineProduct? lastTapped;
 
-    /// <summary>The pack, in g or ml, of the barcode of the product imported from the results, so Add to diary on its values opens Serving on that pack. Null for any other food.</summary>
-
     /// <summary>Set by the first result tapped in add mode, so a double tap adds once. The page is left on the way out, so it is never cleared.</summary>
     private bool added;
     private CancellationTokenSource? running;
