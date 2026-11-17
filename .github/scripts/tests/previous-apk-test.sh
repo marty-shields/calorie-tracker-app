@@ -11,16 +11,17 @@ repo="$work/repo"
 mkdir -p "$work/bin"
 cat > "$work/bin/dotnet" << 'STUB'
 #!/usr/bin/env bash
-verb=$1 app=$2 framework=- out= lock=locked
+verb=$1 app=$2 framework=- out= lock=locked conf=-
 while (( $# )); do
   case "$1" in
     -f) framework=$2 ;;
     -o) out=$2 ;;
     -p:RestoreLockedMode=false) lock=unlocked ;;
+    -p:Configuration=Release) conf=Release ;;
   esac
   shift
 done
-echo "$verb $framework $lock" >> "$DOTNET_LOG"
+echo "$verb $framework $lock $conf" >> "$DOTNET_LOG"
 case "$verb" in
   build) mkdir -p "$app/bin/Debug/$framework" && touch "$app/bin/Debug/$framework/uk.martinshields.calorietracker.debug-Signed.apk" ;;
   publish) mkdir -p "$out" && touch "$out/uk.martinshields.calorietracker-Signed.apk" ;;
@@ -63,34 +64,34 @@ fresh; commit_net net10.0; git_ tag v1.0.0; commit_net net11.0
 run "a tag on an older NetVersion builds Debug for its own NetVersion, unlocked" Debug "v1.0.0
 exit=0
 apk
-build net10.0-android unlocked"
+build net10.0-android unlocked -"
 run "a tag on an older NetVersion restores and publishes Release unlocked" Release "v1.0.0
 exit=0
 apk
-restore - unlocked
-publish net10.0-android unlocked"
+restore - unlocked Release
+publish net10.0-android unlocked -"
 
 git_ tag v1.1.0; commit_net net11.0
 run "a tag on this commit's NetVersion builds Debug locked" Debug "v1.1.0
 exit=0
 apk
-build net11.0-android locked"
+build net11.0-android locked -"
 run "a tag on this commit's NetVersion restores and publishes Release locked" Release "v1.1.0
 exit=0
 apk
-restore - locked
-publish net11.0-android locked"
+restore - locked Release
+publish net11.0-android locked -"
 
 fresh; commit_net net11.0; git_ tag v1.11.0; sdk 11.0.101; commit_net net11.0
 run "a tag on this commit's NetVersion but another SDK builds Debug unlocked" Debug "v1.11.0
 exit=0
 apk
-build net11.0-android unlocked"
+build net11.0-android unlocked -"
 run "a tag on this commit's NetVersion but another SDK restores and publishes Release unlocked" Release "v1.11.0
 exit=0
 apk
-restore - unlocked
-publish net11.0-android unlocked"
+restore - unlocked Release
+publish net11.0-android unlocked -"
 
 fresh; commit_net ""; git_ tag v1.0.0; commit_net net11.0
 run "a tag with no NetVersion fails before building" Debug "exit=1"
