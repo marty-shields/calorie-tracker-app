@@ -20,9 +20,8 @@ public static class ServingRoute
     /// <param name="backTo">An in-app route for Back alone, when it differs from where a saved entry goes; null uses <paramref name="returnTo"/>.</param>
     /// <param name="amount">Grams or ml to open with instead of the default, such as what was last logged of the food; null for the default.</param>
     /// <param name="servings">The count of servings to open with, with <paramref name="amount"/>; null opens by weight.</param>
-    /// <param name="servingId">The serving the count is in, with <paramref name="servings"/>; null opens on the serving of the pack, else the smallest.</param>
-    /// <param name="pack">The pack, in g or ml, of the barcode that was scanned; the screen opens on the serving of that size when no serving is named. Null for none.</param>
-    public static string Url(int foodId, Meal? meal = null, DateOnly? date = null, string? returnTo = null, string? backTo = null, double? amount = null, double? servings = null, int? servingId = null, double? pack = null)
+    /// <param name="servingId">The serving the count is in, with <paramref name="servings"/>; null opens on the smallest.</param>
+    public static string Url(int foodId, Meal? meal = null, DateOnly? date = null, string? returnTo = null, string? backTo = null, double? amount = null, double? servings = null, int? servingId = null)
     {
         var query = new List<string>();
         if (meal is { } m)
@@ -56,11 +55,6 @@ public static class ServingRoute
                     query.Add($"serving={serving.ToString(CultureInfo.InvariantCulture)}");
                 }
             }
-        }
-
-        if (pack is { } size)
-        {
-            query.Add($"pack={Text(size)}");
         }
 
         return $"/serving/{foodId}" + (query.Count == 0 ? "" : "?" + string.Join('&', query));

@@ -132,7 +132,7 @@ public class FoodImportServiceTests
         var barcode = (await BarcodeRows()).Single();
         Assert.Multiple(async () =>
         {
-            Assert.That((result.Status, result.Food!.Id, result.PackAmount), Is.EqualTo((FoodImportStatus.Created, food.Id, (double?)330)));
+            Assert.That((result.Status, result.Food!.Id), Is.EqualTo((FoodImportStatus.Created, food.Id)));
             Assert.That((food.Name, food.Brand, food.Unit, food.SourceId), Is.EqualTo(("Coca Cola", "Coca-Cola", FoodUnit.Millilitre, CanCode)));
             Assert.That((barcode.FoodId, barcode.Code, barcode.PackageAmount, barcode.PackageLabel, barcode.FirstSeen), Is.EqualTo((food.Id, CanCode, (double?)330, "330 ml", Now)));
             Assert.That((await ServingRows(food.Id)).Select(s => (s.Label, s.Amount, s.Source)), Is.EqualTo(new[] { ("Can 330 ml", 330.0, ServingSource.Pack) }));
@@ -273,7 +273,6 @@ public class FoodImportServiceTests
                 (TwoLitreCode, food.Id, (double?)2000, "2 litres"),
             }));
             Assert.That(barcodes.Select(b => b.FirstSeen), Is.All.EqualTo(Now));
-            Assert.That((one.PackAmount, two.PackAmount), Is.EqualTo(((double?)1000, (double?)2000)));
         });
     }
 

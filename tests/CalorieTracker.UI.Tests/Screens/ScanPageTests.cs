@@ -19,6 +19,7 @@ public class ScanPageTests : ComponentTestBase
 
     private FakeScanner scanner = null!;
     private FakeLookup lookup = null!;
+    private FakeFoodSearch search = null!;
     private FakeLogger<ScanPage> logger = null!;
 
     [SetUp]
@@ -26,10 +27,12 @@ public class ScanPageTests : ComponentTestBase
     {
         scanner = new FakeScanner();
         lookup = new FakeLookup();
+        search = new FakeFoodSearch();
         logger = new FakeLogger<ScanPage>();
         Context.JSInterop.Setup<string>("calorieTrackerTheme.get").SetResult("dark");
         Context.Services.AddSingleton<IBarcodeScanner>(scanner);
         Context.Services.AddSingleton<IBarcodeLookup>(lookup);
+        Context.Services.AddSingleton<IFoodSearch>(search);
         Context.Services.AddSingleton<ILogger<ScanPage>>(logger);
     }
 
@@ -415,29 +418,30 @@ public class ScanPageTests : ComponentTestBase
     {
         var food = Product("Digestive biscuits", "Morning Mill", FoodUnit.Gram, 480, 7, 62, 22);
         food.Id = 42;
-        lookup.Result = BarcodeLookupResult.Found(food, null, new ProductServing("1 biscuit", 15));
+        lookup.Result = BarcodeLookupResult.Found(food, new ProductServing("1 biscuit", 15));
         var added = new List<ScanAddRequest>();
         var cut = await ScannedAsync(p => p.Add(x => x.OnAddToDiary, added.Add));
 
         cut.WaitForAssertion(() => Assert.That(cut.Find("[data-testid=scan-serving]").TextContent, Is.EqualTo("Serving: 1 biscuit (15 g)")));
         cut.Find("[data-testid=scan-add]").Click();
 
-        Assert.That(added, Is.EqualTo(new[] { new ScanAddRequest(42, null) }));
+        Assert.That(added, Is.EqualTo(new[] { new ScanAddRequest(42) }));
     }
 
     [Test]
-    public async Task Found_WithAScannedBarcodeOfAnotherSize_AddToDiaryCarriesThatPack()
+    public async Task Found_WithAStoredFoodLoggedBefore_AddToDiaryCarriesItsLastServing()
     {
-        var food = Product("Cola", "Fizz", FoodUnit.Millilitre, 42, 0, 10.6, 0);
-        food.Id = 7;
-        lookup.Result = BarcodeLookupResult.Found(food, 1000);
+        var food = Product("Digestive biscuits", "Morning Mill", FoodUnit.Gram, 480, 7, 62, 22);
+        food.Id = 42;
+        lookup.Result = BarcodeLookupResult.Found(food, new ProductServing("1 biscuit", 15));
+        search.Last[42] = new CalorieTracker.Core.History.FoodHistory(42, 3, 9, new DateOnly(2031, 7, 19), 45, 3, 77);
         var added = new List<ScanAddRequest>();
         var cut = await ScannedAsync(p => p.Add(x => x.OnAddToDiary, added.Add));
 
-        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-product]"), Has.Count.EqualTo(1)));
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-add]"), Has.Count.EqualTo(1)));
         cut.Find("[data-testid=scan-add]").Click();
 
-        Assert.That(added, Is.EqualTo(new[] { new ScanAddRequest(7, 1000) }));
+        Assert.That(added, Is.EqualTo(new[] { new ScanAddRequest(42, 45, 3, 77) }));
     }
 
     [Test]
@@ -565,7 +569,7 @@ public class ScanPageTests : ComponentTestBase
     {
         var food = Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8);
         food.Id = 42;
-        lookup.Result = BarcodeLookupResult.Found(food, null, new ProductServing("1 bowl", 40));
+        lookup.Result = BarcodeLookupResult.Found(food, new ProductServing("1 bowl", 40));
         var cut = await ScannedAsync();
         cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-add]"), Has.Count.EqualTo(1)));
         cut.Find("[data-testid=scan-add]").Click();
@@ -593,6 +597,19 @@ public class ScanPageTests : ComponentTestBase
 
     private static Food Product(string name, string? brand, FoodUnit unit, double kcal, double protein, double carbs, double fat) =>
         new() { Source = FoodSource.OpenFoodFacts, SourceId = Barcode, Name = name, Brand = brand, Unit = unit, Kcal = kcal, ProteinG = protein, CarbsG = carbs, FatG = fat };
+
+    private sealed class FakeFoodSearch : IFoodSearch
+    {
+        public Dictionary<int, CalorieTracker.Core.History.FoodHistory> Last { get; } = [];
+
+        public Task<CalorieTracker.Core.History.FoodHistory?> LastLoggedAsync(int foodId, Meal? meal = null) => Task.FromResult(Last.GetValueOrDefault(foodId));
+
+        public Task<FoodSearchResult> SearchAsync(string query, int limit = IFoodSearch.DefaultLimit, CancellationToken ct = default) => throw new NotSupportedException();
+
+        public Task<FoodGroupsResult> SearchGroupedAsync(string query, Meal? meal = null, CancellationToken ct = default) => throw new NotSupportedException();
+
+        public Task<FoodGroupsResult> SuggestAsync(Meal? meal = null, CancellationToken ct = default) => throw new NotSupportedException();
+    }
 
     private sealed class FakeScanner : IBarcodeScanner
     {

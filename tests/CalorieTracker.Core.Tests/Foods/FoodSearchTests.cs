@@ -685,6 +685,27 @@ public class FoodSearchTests
     }
 
     [Test]
+    public async Task LastLogged_IsTheFoodsNewestEntry_ThatMealsWhenGiven_AndNullForAFoodNeverLogged()
+    {
+        await Add("Zed milk", "zed milk");
+        await Add("Zed tea", "zed tea");
+        await Log("Zed milk", Meal.Dinner, 200);
+        await Log("Zed milk", Meal.Breakfast, 150);
+        await Log("Zed milk", Meal.Dinner, 210);
+
+        var newest = await search.LastLoggedAsync(await IdOf("Zed milk"));
+        var breakfast = await search.LastLoggedAsync(await IdOf("Zed milk"), Meal.Breakfast);
+        var never = await search.LastLoggedAsync(await IdOf("Zed tea"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(newest!.LastAmount, Is.EqualTo(210));
+            Assert.That(breakfast!.LastAmount, Is.EqualTo(150));
+            Assert.That(never, Is.Null);
+        });
+    }
+
+    [Test]
     public async Task Grouped_WithAMeal_LastAmountIsThatMealsOrElseTheNewest()
     {
         await Add("Zed milk", "zed milk");

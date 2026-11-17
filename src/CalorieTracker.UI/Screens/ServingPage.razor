@@ -96,13 +96,9 @@
     [Parameter]
     public double? StartServings { get; set; }
 
-    /// <summary>The serving <see cref="StartServings"/> was counted in, such as the one last logged. Null, or one the food no longer has, opens on the serving of <see cref="StartPackAmount"/>, else the smallest. Ignored in edit mode.</summary>
+    /// <summary>The serving <see cref="StartServings"/> was counted in, such as the one last logged. Null, or one the food no longer has, opens on the smallest. Ignored in edit mode.</summary>
     [Parameter]
     public int? StartServingId { get; set; }
-
-    /// <summary>The pack, in g or ml, of the barcode that was scanned. With no <see cref="StartServingId"/> the screen opens on the serving of that amount; null or no such serving opens on the smallest. Ignored in edit mode.</summary>
-    [Parameter]
-    public double? StartPackAmount { get; set; }
 
     /// <summary>Raised once an edited entry is saved.</summary>
     [Parameter]
@@ -197,7 +193,7 @@
             return;
         }
 
-        chosen = ServingRules.Pick(offered, Editing ? EntryServingId : StartServingId, Editing ? null : StartPackAmount);
+        chosen = ServingRules.Pick(offered, Editing ? EntryServingId : StartServingId);
         entryServingUnmatched = Editing && offered.All(s => s.Id != EntryServingId);
         if (Editing && EntryAmount is { } stored)
         {

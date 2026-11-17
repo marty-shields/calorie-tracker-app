@@ -37,6 +37,21 @@ public class FoodStoreTests
     }
 
     [Test]
+    public async Task ServingsOf_ProductAndPackOfOneAmount_ProductComesFirstWhateverTheIds()
+    {
+        var food = new Food { Source = FoodSource.OpenFoodFacts, SourceId = "1", Name = "Cola", Unit = FoodUnit.Millilitre, Kcal = 42, SearchText = "cola" };
+        await connection.InsertAsync(food);
+        await connection.InsertAsync(new Serving { FoodId = food.Id, Label = "Can 330 ml", Amount = 330, Source = ServingSource.Pack, SortOrder = (int)ServingSource.Pack });
+        await connection.InsertAsync(new Serving { FoodId = food.Id, Label = "1 can (330 ml)", Amount = 330, Source = ServingSource.Product, SortOrder = (int)ServingSource.Product });
+
+        List<Serving> servings = [];
+        await connection.RunInTransactionAsync(db => servings = FoodStore.ServingsOf(db, food.Id));
+
+        Assert.That(servings.Select(s => s.Source), Is.EqualTo(new[] { ServingSource.Product, ServingSource.Pack }));
+        Assert.That(servings[0].Id, Is.GreaterThan(servings[1].Id));
+    }
+
+    [Test]
     public async Task FindByBarcodeAsync_StoredBarcode_ReturnsTheFood()
     {
         var saved = await store.UpsertAsync(NewFood("1"), "5000000000017");
@@ -386,8 +401,12 @@ public class FoodStoreTests
         Assert.That((await connection.Table<Food>().FirstAsync()).SearchText, Is.EqualTo(after));
     }
 
-    private Task<List<Serving>> Servings(int foodId) =>
-        connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY SortOrder, Amount, Id", foodId);
+    private async Task<List<Serving>> Servings(int foodId)
+    {
+        List<Serving> servings = [];
+        await connection.RunInTransactionAsync(db => servings = FoodStore.ServingsOf(db, foodId));
+        return servings;
+    }
 
     private static readonly ProductServing Slice = new("1 slice (30 g)", 30);
 

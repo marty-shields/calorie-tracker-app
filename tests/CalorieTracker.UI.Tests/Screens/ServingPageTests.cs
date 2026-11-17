@@ -1265,42 +1265,18 @@ public class ServingPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task StartPackAmount_OpensOnTheServingOfThatSize_WhenNoServingIsNamed()
+    public async Task NoServingNamed_OpensOnTheSmallest_EvenWhenItWasAddedLast()
     {
         await SeedCola();
+        await connection.ExecuteAsync("INSERT INTO Serving (FoodId, Label, Amount, Source, SortOrder) VALUES (?, 'My sip', 100, 2, 2)", colaId);
 
-        var cut = Render(colaId, Meal.Snacks, more: p => p.Add(x => x.StartPackAmount, 330.0));
+        var cut = Render(colaId, Meal.Snacks);
 
         Assert.Multiple(() =>
         {
-            Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { false, true }));
-            Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 330 ml"));
-        });
-    }
-
-    [TestCase(500.0)]
-    [TestCase(null)]
-    public async Task StartPackAmount_NoServingOfThatSize_OpensOnTheSmallest(double? pack)
-    {
-        await SeedCola();
-
-        var cut = Render(colaId, Meal.Snacks, more: p => p.Add(x => x.StartPackAmount, pack));
-
-        Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { true, false }));
-    }
-
-    [Test]
-    public async Task StartServingId_BeatsTheScannedPack()
-    {
-        await SeedCola();
-
-        var cut = Render(colaId, Meal.Snacks, more: p => p.Add(x => x.StartAmount, 250).Add(x => x.StartServings, 1).Add(x => x.StartServingId, (int?)null).Add(x => x.StartPackAmount, 330.0));
-        var logged = Render(colaId, Meal.Snacks, more: p => p.Add(x => x.StartAmount, 250).Add(x => x.StartServings, 1).Add(x => x.StartServingId, glassId).Add(x => x.StartPackAmount, 330.0));
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { false, true }));
-            Assert.That(logged.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { true, false }), "the serving last logged wins over the scanned pack");
+            Assert.That(OptionTexts(cut), Is.EqualTo(new[] { "My sip", "1 glass (250 ml)", "Whole pack (330 ml)" }));
+            Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { true, false, false }));
+            Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 100 ml"));
         });
     }
 
@@ -1383,8 +1359,8 @@ public class ServingPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(rows.Select(r => (r.Label, r.Amount)), Is.EqualTo(new[] { ("My mug", 200.0) }));
-            Assert.That(OptionTexts(cut), Is.EqualTo(new[] { "1 glass (250 ml)", "Whole pack (330 ml)", "My mug" }));
-            Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { false, false, true }));
+            Assert.That(OptionTexts(cut), Is.EqualTo(new[] { "My mug", "1 glass (250 ml)", "Whole pack (330 ml)" }));
+            Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { true, false, false }));
             Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("1"));
             Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 200 ml"));
             Assert.That(Exists(cut, "serving-own-label"), Is.False);

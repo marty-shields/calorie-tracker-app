@@ -19,11 +19,10 @@ public enum BarcodeLookupStatus
 /// <summary>The outcome of a barcode lookup. <see cref="Food"/> is set only when <see cref="Status"/> is <see cref="BarcodeLookupStatus.Found"/>.</summary>
 public sealed record BarcodeLookupResult
 {
-    private BarcodeLookupResult(BarcodeLookupStatus status, Food? food, double? packAmount = null, ProductServing? serving = null)
+    private BarcodeLookupResult(BarcodeLookupStatus status, Food? food, ProductServing? serving = null)
     {
         Status = status;
         Food = food;
-        PackAmount = packAmount;
         Serving = serving;
     }
 
@@ -31,13 +30,10 @@ public sealed record BarcodeLookupResult
 
     public Food? Food { get; }
 
-    /// <summary>The pack, in g or ml, of the barcode that was looked up, which differs from the food's own pack when the food has several barcodes. Null when unknown or the lookup is not through the stored barcodes.</summary>
-    public double? PackAmount { get; }
-
     /// <summary>The product's own serving (Open Food Facts' wording and weight), for the store to write as the food's Product row; for a stored food, that row. Null when the product has none, or the source flags it as wrong.</summary>
     public ProductServing? Serving { get; }
 
-    public static BarcodeLookupResult Found(Food food, double? packAmount = null, ProductServing? serving = null) => new(BarcodeLookupStatus.Found, food ?? throw new ArgumentNullException(nameof(food)), packAmount, serving);
+    public static BarcodeLookupResult Found(Food food, ProductServing? serving = null) => new(BarcodeLookupStatus.Found, food ?? throw new ArgumentNullException(nameof(food)), serving);
 
     public static BarcodeLookupResult NotFound() => new(BarcodeLookupStatus.NotFound, null);
 

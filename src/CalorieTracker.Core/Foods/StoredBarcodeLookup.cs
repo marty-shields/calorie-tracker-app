@@ -46,11 +46,10 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
             }
 
             Food? stored = null;
-            Barcode? row = null;
             ProductServing? storedServing = null;
             try
             {
-                (stored, row, storedServing) = await store.FindWithBarcodeAsync(barcode);
+                (stored, _, storedServing) = await store.FindWithBarcodeAsync(barcode);
             }
             catch (Exception)
             {
@@ -65,7 +64,7 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
                     StartRefresh(barcode, stored, storedServing);
                 }
 
-                return BarcodeLookupResult.Found(stored, row?.PackageAmount, storedServing);
+                return BarcodeLookupResult.Found(stored, storedServing);
             }
 
             var result = await inner.LookupAsync(barcode, CancellationToken.None);
@@ -78,7 +77,7 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
                     {
                         case FoodImportStatus.Created or FoodImportStatus.Attached or FoodImportStatus.Known:
                             Log.Fetched(logger, result.Status, imported.Food!.Id);
-                            return BarcodeLookupResult.Found(imported.Food, imported.PackAmount, imported.Serving);
+                            return BarcodeLookupResult.Found(imported.Food, imported.Serving);
                         case FoodImportStatus.NotImportable:
                             // Same as a product the lookup could not use: not found, and not asked for again.
                             notFound.TryAdd(barcode, 0);
