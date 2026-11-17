@@ -24,7 +24,7 @@ count_scenarios() {
 # Prints the refusal for <reason> and exits 64.
 refuse_broad() {
   cat >&2 << EOF
-Refused: $1. CI's 8 shards run the full suite after a push; one local emulator would take an hour.
+Refused: $1. CI's 4 shards run the full suite after a push; one local emulator would take an hour.
 Run what you changed, e.g. "Category=upgrade" or "FullyQualifiedName~.SettingsFeature.".
 To run it anyway, set E2E_ALLOW_BROAD=1.
 EOF

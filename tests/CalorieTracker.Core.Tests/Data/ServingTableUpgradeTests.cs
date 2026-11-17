@@ -45,7 +45,7 @@ public class ServingTableUpgradeTests
         await connection.CreateTableAsync<SeedVersion>();
         await connection.CreateTableAsync<AppSettings>();
         await connection.ExecuteAsync(DiaryTableV12);
-        var legacyFoods = new List<Food>
+        var legacyFoods = new List<(Food Food, string? Label, double? Amount)>
         {
             // 1: a serving and a small pack: only the serving moves, the pack was never offered next to it.
             Food("slice", "Cheese slice", FoodUnit.Gram, 300, "1 slice (20 g)", 20, pack: 200),
@@ -63,11 +63,11 @@ public class ServingTableUpgradeTests
             // 8: a serving that was out of range (the reader drops it) moves as it is.
             Food("huge", "Huge", FoodUnit.Gram, 100, "1 huge", 99_999, pack: null),
         };
-        await connection.InsertAllAsync(legacyFoods);
+        await connection.InsertAllAsync(legacyFoods.Select(f => f.Food));
         foreach (var food in legacyFoods)
         {
             // The serving columns were dropped from the model, so schema 12's values are written by hand.
-            await connection.ExecuteAsync("UPDATE Food SET ServingLabel = ?, ServingAmount = ? WHERE SourceId = ?", food.ServingLabel, food.ServingAmount, food.SourceId);
+            await connection.ExecuteAsync("UPDATE Food SET ServingLabel = ?, ServingAmount = ? WHERE SourceId = ?", food.Label, food.Amount, food.Food.SourceId);
         }
         sliceId = (await connection.Table<Food>().FirstAsync(f => f.SourceId == "slice")).Id;
         canId = (await connection.Table<Food>().FirstAsync(f => f.SourceId == "can")).Id;
@@ -77,19 +77,17 @@ public class ServingTableUpgradeTests
         await connection.ExecuteAsync("PRAGMA user_version = 12");
     }
 
-    private static Food Food(string sourceId, string name, FoodUnit unit, double kcal, string? label, double? amount, double? pack, FoodSource source = FoodSource.OpenFoodFacts, bool? servingChecked = null) => new()
+    private static (Food Food, string? Label, double? Amount) Food(string sourceId, string name, FoodUnit unit, double kcal, string? label, double? amount, double? pack, FoodSource source = FoodSource.OpenFoodFacts, bool? servingChecked = null) => (new()
     {
         Source = source,
         SourceId = sourceId,
         Name = name,
         Unit = unit,
         Kcal = kcal,
-        ServingLabel = label,
-        ServingAmount = amount,
         PackageAmount = pack,
         ServingChecked = servingChecked,
         SearchText = name.ToLowerInvariant(),
-    };
+    }, label, amount);
 
     private async Task Upgrade()
     {
@@ -140,7 +138,8 @@ public class ServingTableUpgradeTests
     [Test]
     public async Task Upgrade_AServingWithAZeroAmount_GetsNoProductRow_AndItsFoodGetsTheSmallPackRow()
     {
-        await connection.InsertAsync(Food("zero", "Zero", FoodUnit.Gram, 100, "1 nothing", 0, pack: 200));
+        await connection.InsertAsync(Food("zero", "Zero", FoodUnit.Gram, 100, null, null, pack: 200).Food);
+        await connection.ExecuteAsync("UPDATE Food SET ServingLabel = '1 nothing', ServingAmount = 0 WHERE SourceId = 'zero'");
 
         await Upgrade();
 

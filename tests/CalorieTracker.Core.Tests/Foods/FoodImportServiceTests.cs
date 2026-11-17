@@ -58,31 +58,37 @@ public class FoodImportServiceTests
     private static string FixtureText(string file) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Foods", "Fixtures", file));
 
     /// <summary>The product a lookup of the fixture gives (the same mapping a scan uses).</summary>
-    private static async Task<Food> Looked(string json, string barcode)
+    private static async Task<LookedProduct> Looked(string json, string barcode)
     {
         using var http = new HttpClient(new JsonHandler(json)) { BaseAddress = new Uri("https://world.openfoodfacts.org/") };
         var lookup = new OpenFoodFactsLookup(http, new FakeLogger<OpenFoodFactsLookup>(), TimeProvider.System);
         var result = await lookup.LookupAsync(barcode);
         Assert.That(result.Status, Is.EqualTo(BarcodeLookupStatus.Found));
-        return result.Food!;
+        return new LookedProduct(result.Food!, result.Serving);
     }
 
-    private static Task<Food> Fixture(string file, string barcode) => Looked(FixtureText(file), barcode);
+    /// <summary>Imports the way the lookup does: the product with the serving its fixture carries.</summary>
+    private Task<FoodImportResult> Import(string barcode, LookedProduct product) => importer.ImportAsync(barcode, product.Food, product.Serving);
 
-    private static Task<Food> Can() => Fixture("details-cola-can-5000112637922.json", CanCode);
+    /// <summary>A looked-up product and the serving its lookup returned beside it.</summary>
+    private sealed record LookedProduct(Food Food, ProductServing? Serving);
 
-    private static Task<Food> Original() => Fixture("details-cola-original-5449000214911.json", OriginalCode);
+    private static Task<LookedProduct> Fixture(string file, string barcode) => Looked(FixtureText(file), barcode);
 
-    private static Task<Food> Zero() => Fixture("details-cola-zero-5449000131805.json", ZeroCode);
+    private static Task<LookedProduct> Can() => Fixture("details-cola-can-5000112637922.json", CanCode);
 
-    private static Task<Food> Light() => Fixture("details-cola-light-5449000050205.json", LightCode);
+    private static Task<LookedProduct> Original() => Fixture("details-cola-original-5449000214911.json", OriginalCode);
 
-    private static Task<Food> OriginalTaste() => Fixture("details-cola-original-taste-1-5l-5449000000439.json", OriginalTasteCode);
+    private static Task<LookedProduct> Zero() => Fixture("details-cola-zero-5449000131805.json", ZeroCode);
 
-    private static Task<Food> Oreo() => Fixture("details-oreo-7622300336738.json", OreoCode);
+    private static Task<LookedProduct> Light() => Fixture("details-cola-light-5449000050205.json", LightCode);
+
+    private static Task<LookedProduct> OriginalTaste() => Fixture("details-cola-original-taste-1-5l-5449000000439.json", OriginalTasteCode);
+
+    private static Task<LookedProduct> Oreo() => Fixture("details-oreo-7622300336738.json", OreoCode);
 
     /// <summary>Coca-Cola Original's saved response with another pack: the quantity, the pack amount, the name and a serving of 250 ml.</summary>
-    private static Task<Food> Resized(string barcode, string name, string quantity, double packMl, Action<JsonObject>? change = null)
+    private static Task<LookedProduct> Resized(string barcode, string name, string quantity, double packMl, Action<JsonObject>? change = null)
     {
         var root = JsonNode.Parse(FixtureText("details-cola-original-5449000214911.json"))!.AsObject();
         root["code"] = barcode;
@@ -120,7 +126,7 @@ public class FoodImportServiceTests
     [Test]
     public async Task Import_AnUnknownProduct_CreatesTheFoodItsBarcodeRowAndItsPackServing()
     {
-        var result = await importer.ImportAsync(CanCode, await Can());
+        var result = await Import(CanCode, await Can());
 
         var food = await OnlyFood();
         var barcode = (await BarcodeRows()).Single();
@@ -134,14 +140,54 @@ public class FoodImportServiceTests
     }
 
     [Test]
+    public async Task Import_AnUnknownProductWithAServing_ReturnsTheServingItStored()
+    {
+        var product = await Original();
+
+        var result = await Import(OriginalCode, product);
+
+        Assert.That(product.Serving, Is.Not.Null);
+        Assert.That(result.Status, Is.EqualTo(FoodImportStatus.Created));
+        Assert.That(result.Serving, Is.EqualTo(product.Serving));
+        Assert.That((await ServingRows(result.Food!.Id)).Where(s => s.Source == ServingSource.Product).Select(s => new ProductServing(s.Label, s.Amount)), Is.EqualTo(new[] { product.Serving }));
+    }
+
+    [Test]
+    public async Task Import_ANewBarcodeOfAProductAlreadyStoredBySourceId_ReturnsTheServingOfThatFood()
+    {
+        var product = await Original();
+        var first = await Import(OriginalCode, product);
+
+        var second = await Import(OneLitreCode, await Original());
+
+        Assert.That((second.Status, second.Food!.Id), Is.EqualTo((FoodImportStatus.Known, first.Food!.Id)));
+        Assert.That(second.Serving, Is.EqualTo(product.Serving));
+        Assert.That(second.Serving, Is.Not.Null);
+    }
+
+    [Test]
+    public async Task Import_AttachedToAFoodWithAServing_ReturnsTheStoredServingNotThePassedOne()
+    {
+        var can = await Import(OriginalCode, await Original());
+        var oneLitre = await Resized(OneLitreCode, "Coca-Cola Original 1L", "1L", 1000);
+        var passed = new ProductServing("1 big glass (400 ml)", 400);
+
+        var result = await Import(OneLitreCode, oneLitre with { Serving = passed });
+
+        Assert.That(result.Status, Is.EqualTo(FoodImportStatus.Attached));
+        Assert.That(can.Serving, Is.Not.Null.And.Not.EqualTo(passed));
+        Assert.That(result.Serving, Is.EqualTo(can.Serving));
+    }
+
+    [Test]
     public async Task Import_ABarcodeAlreadyStored_ReturnsItsFoodAndChangesNothing()
     {
-        var first = await importer.ImportAsync(CanCode, await Can());
+        var first = await Import(CanCode, await Can());
         var changed = await Can();
-        changed.Kcal = 999;
-        changed.Name = "Something else";
+        changed.Food.Kcal = 999;
+        changed.Food.Name = "Something else";
 
-        var second = await importer.ImportAsync(CanCode, changed);
+        var second = await Import(CanCode, changed);
 
         var food = await OnlyFood();
         Assert.Multiple(async () =>
@@ -156,8 +202,8 @@ public class FoodImportServiceTests
     [Test]
     public async Task Import_TheSameUnknownProductTwice_MakesOneFood()
     {
-        await importer.ImportAsync(OriginalCode, await Original());
-        var again = await importer.ImportAsync(OriginalCode, await Original());
+        await Import(OriginalCode, await Original());
+        var again = await Import(OriginalCode, await Original());
 
         Assert.Multiple(async () =>
         {
@@ -172,7 +218,7 @@ public class FoodImportServiceTests
     {
         var products = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Original()));
 
-        var results = await Task.WhenAll(products.Select(p => importer.ImportAsync(OriginalCode, p)));
+        var results = await Task.WhenAll(products.Select(p => Import(OriginalCode, p)));
 
         Assert.Multiple(async () =>
         {
@@ -194,7 +240,7 @@ public class FoodImportServiceTests
             (TwoLitreCode, await Resized(TwoLitreCode, "Coca-Cola Original 2 litres", "2 litres", 2000)),
         };
 
-        await Task.WhenAll(sizes.Select(s => importer.ImportAsync(s.Item1, s.Item2)));
+        await Task.WhenAll(sizes.Select(s => Import(s.Item1, s.Item2)));
 
         Assert.Multiple(async () =>
         {
@@ -206,12 +252,12 @@ public class FoodImportServiceTests
     [Test]
     public async Task Import_CokeOriginalInThreeSizes_IsOneFoodWithThreeBarcodes_KeepingTheStoredFoodsData()
     {
-        var can = await importer.ImportAsync(OriginalCode, await Original());
+        var can = await Import(OriginalCode, await Original());
         var oneLitre = await Resized(OneLitreCode, "Coca-Cola Original 1L", "1L", 1000, p => p["nutriments"]!["energy-kcal_100g"] = 42.5);
         var twoLitre = await Resized(TwoLitreCode, "Coca-Cola Original 2 litres", "2 litres", 2000);
 
-        var one = await importer.ImportAsync(OneLitreCode, oneLitre);
-        var two = await importer.ImportAsync(TwoLitreCode, twoLitre);
+        var one = await Import(OneLitreCode, oneLitre);
+        var two = await Import(TwoLitreCode, twoLitre);
 
         var food = await OnlyFood();
         var barcodes = await BarcodeRows();
@@ -234,9 +280,9 @@ public class FoodImportServiceTests
     [Test]
     public async Task Import_CokeOriginalSizes_GetPackServingsByAmount_ProductServingStaysTheStoredFoods()
     {
-        await importer.ImportAsync(OriginalCode, await Original());
-        await importer.ImportAsync(OneLitreCode, await Resized(OneLitreCode, "Coca-Cola Original 1L", "1L", 1000));
-        await importer.ImportAsync(TwoLitreCode, await Resized(TwoLitreCode, "Coca-Cola Original 2 litres", "2 litres", 2000));
+        await Import(OriginalCode, await Original());
+        await Import(OneLitreCode, await Resized(OneLitreCode, "Coca-Cola Original 1L", "1L", 1000));
+        await Import(TwoLitreCode, await Resized(TwoLitreCode, "Coca-Cola Original 2 litres", "2 litres", 2000));
 
         var food = await OnlyFood();
 
@@ -251,12 +297,12 @@ public class FoodImportServiceTests
     [Test]
     public async Task Import_ACanThenALitreOfTheSameProduct_GivesCanAndBottlePackServings_AndTheSameAmountCollapses()
     {
-        await importer.ImportAsync(CanCode, await Can());
+        await Import(CanCode, await Can());
         var litre = await Resized("5000112637939", "Coca Cola 1 L", "1 L", 1000, LikeTheCan);
         var another = await Resized("5000112637946", "Coca Cola 330 ml", "330 ml", 330, LikeTheCan);
 
-        var one = await importer.ImportAsync("5000112637939", litre);
-        var same = await importer.ImportAsync("5000112637946", another);
+        var one = await Import("5000112637939", litre);
+        var same = await Import("5000112637946", another);
 
         var food = await OnlyFood();
         Assert.Multiple(async () =>
@@ -274,9 +320,9 @@ public class FoodImportServiceTests
     [Test]
     public async Task Import_APackServingNamedByTheLabelOrByShape_OtherwiseJustPack()
     {
-        var weetabix = await importer.ImportAsync("5010029000023", await Fixture("details-weetabix-5010029000023.json", "5010029000023"));
-        var mars = await importer.ImportAsync("5000159407236", await Fixture("details-mars-5000159407236.json", "5000159407236"));
-        var nutella = await importer.ImportAsync("3017620422003", await Fixture("details-nutella-3017620422003.json", "3017620422003"));
+        var weetabix = await Import("5010029000023", await Fixture("details-weetabix-5010029000023.json", "5010029000023"));
+        var mars = await Import("5000159407236", await Fixture("details-mars-5000159407236.json", "5000159407236"));
+        var nutella = await Import("3017620422003", await Fixture("details-nutella-3017620422003.json", "3017620422003"));
 
         Assert.Multiple(async () =>
         {
@@ -291,12 +337,12 @@ public class FoodImportServiceTests
     {
         var results = new List<FoodImportResult>
         {
-            await importer.ImportAsync(OriginalCode, await Original()),
-            await importer.ImportAsync(ZeroCode, await Zero()),
-            await importer.ImportAsync(LightCode, await Light()),
-            await importer.ImportAsync(OriginalTasteCode, await OriginalTaste()),
-            await importer.ImportAsync(OreoCode, await Oreo()),
-            await importer.ImportAsync(CanCode, await Can()),
+            await Import(OriginalCode, await Original()),
+            await Import(ZeroCode, await Zero()),
+            await Import(LightCode, await Light()),
+            await Import(OriginalTasteCode, await OriginalTaste()),
+            await Import(OreoCode, await Oreo()),
+            await Import(CanCode, await Can()),
         };
 
         Assert.Multiple(async () =>
@@ -311,7 +357,7 @@ public class FoodImportServiceTests
     [Test]
     public async Task Import_VariantsWithTheNameOfTheStoredFood_StillDoNotMergeWhenNutrientsDiffer()
     {
-        await importer.ImportAsync(OriginalCode, await Original());
+        await Import(OriginalCode, await Original());
         var sugarFree = await Resized(OneLitreCode, "Coca-Cola Original 1L", "1L", 1000, p =>
         {
             var n = p["nutriments"]!;
@@ -321,8 +367,8 @@ public class FoodImportServiceTests
         });
         var olderRecipe = await Resized(TwoLitreCode, "Coca-Cola Original 2 litres", "2 litres", 2000, p => p["nutriments"]!["energy-kcal_100g"] = 45);
 
-        var first = await importer.ImportAsync(OneLitreCode, sugarFree);
-        var second = await importer.ImportAsync(TwoLitreCode, olderRecipe);
+        var first = await Import(OneLitreCode, sugarFree);
+        var second = await Import(TwoLitreCode, olderRecipe);
 
         Assert.Multiple(async () =>
         {
@@ -334,14 +380,14 @@ public class FoodImportServiceTests
     [Test]
     public async Task Import_ASameNameAndNutrientsInGrams_NeverMergesIntoTheMillilitreFood()
     {
-        await importer.ImportAsync(OriginalCode, await Original());
+        await Import(OriginalCode, await Original());
         var grams = await Resized(OneLitreCode, "Coca-Cola Original 1L", "1L", 1000, p =>
         {
             p["product_quantity_unit"] = "g";
             p["serving_quantity_unit"] = "g";
         });
 
-        var result = await importer.ImportAsync(OneLitreCode, grams);
+        var result = await Import(OneLitreCode, grams);
 
         Assert.That((result.Status, result.Food!.Unit), Is.EqualTo((FoodImportStatus.Created, FoodUnit.Gram)));
         Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(2));
@@ -350,9 +396,9 @@ public class FoodImportServiceTests
     [Test]
     public async Task Import_TheRealOriginalAnd1_5LOriginalTaste_AreTwoFoods_BecauseTheirNamesAndNutrientsDiffer()
     {
-        await importer.ImportAsync(OriginalCode, await Original());
+        await Import(OriginalCode, await Original());
 
-        var result = await importer.ImportAsync(OriginalTasteCode, await OriginalTaste());
+        var result = await Import(OriginalTasteCode, await OriginalTaste());
 
         Assert.That(result.Status, Is.EqualTo(FoodImportStatus.Created));
     }
@@ -360,8 +406,8 @@ public class FoodImportServiceTests
     [Test]
     public async Task Import_Nutella_TheTwoSavedResponsesOfOneBarcode_AreOneFood()
     {
-        var first = await importer.ImportAsync("3017620422003", await Fixture("solid-3017620422003.json", "3017620422003"));
-        var second = await importer.ImportAsync("3017620422003", await Fixture("details-nutella-3017620422003.json", "3017620422003"));
+        var first = await Import("3017620422003", await Fixture("solid-3017620422003.json", "3017620422003"));
+        var second = await Import("3017620422003", await Fixture("details-nutella-3017620422003.json", "3017620422003"));
 
         Assert.That((first.Status, second.Status, second.Food!.Id), Is.EqualTo((FoodImportStatus.Created, FoodImportStatus.Known, first.Food!.Id)));
     }
@@ -369,10 +415,10 @@ public class FoodImportServiceTests
     [Test]
     public async Task Import_ASourceIdAlreadyStoredWithoutABarcodeRow_IsThatFoodRefreshedAndLinked()
     {
-        var stored = await store.UpsertAsync(await Can());
+        var stored = await store.UpsertAsync((await Can()).Food);
         await connection.ExecuteAsync("DELETE FROM Barcode");
 
-        var result = await importer.ImportAsync(CanCode, await Can());
+        var result = await Import(CanCode, await Can());
 
         Assert.Multiple(async () =>
         {
@@ -385,11 +431,11 @@ public class FoodImportServiceTests
     [Test]
     public async Task Import_AMergedFood_KeepsItsDiaryEntriesAndOwnServings()
     {
-        var can = await importer.ImportAsync(OriginalCode, await Original());
+        var can = await Import(OriginalCode, await Original());
         await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = can.Food!.Id, Amount = 330 });
         await connection.InsertAsync(new Serving { FoodId = can.Food.Id, Label = "My glass", Amount = 200, Source = ServingSource.User, SortOrder = 2 });
 
-        await importer.ImportAsync(OneLitreCode, await Resized(OneLitreCode, "Coca-Cola Original 1L", "1L", 1000));
+        await Import(OneLitreCode, await Resized(OneLitreCode, "Coca-Cola Original 1L", "1L", 1000));
 
         Assert.Multiple(async () =>
         {
@@ -403,7 +449,7 @@ public class FoodImportServiceTests
     {
         await connection.ExecuteAsync("INSERT INTO Barcode (FoodId, Barcode, FirstSeen) VALUES (999, ?, 0)", OriginalCode);
 
-        var result = await importer.ImportAsync(OriginalCode, await Original());
+        var result = await Import(OriginalCode, await Original());
 
         Assert.That(result.Status, Is.EqualTo(FoodImportStatus.Created));
         Assert.That((await BarcodeRows()).Single().FoodId, Is.EqualTo(result.Food!.Id));
@@ -413,10 +459,10 @@ public class FoodImportServiceTests
     public async Task Import_FillsInSearchTextAndSourceIdWhenBlank()
     {
         var product = await Original();
-        product.SearchText = "";
-        product.SourceId = " ";
+        product.Food.SearchText = "";
+        product.Food.SourceId = " ";
 
-        var result = await importer.ImportAsync(OriginalCode, product);
+        var result = await Import(OriginalCode, product);
 
         Assert.That((result.Food!.SourceId, result.Food.SearchText), Is.EqualTo((OriginalCode, "coca-cola original coca-cola boisson rafraichissante aux extraits vegetaux sweetened beverages")));
     }
@@ -437,21 +483,21 @@ public class FoodImportServiceTests
         switch (problem)
         {
             case "noname":
-                product.Name = "  ";
+                product.Food.Name = "  ";
                 expected = NotImportableReason.NoName;
                 break;
             case "nokcal":
-                product.Kcal = double.NaN;
+                product.Food.Kcal = double.NaN;
                 break;
             case "negativefat":
-                product.FatG = -1;
+                product.Food.FatG = -1;
                 break;
             case "nounit":
-                product.Unit = (FoodUnit)7;
+                product.Food.Unit = (FoodUnit)7;
                 expected = NotImportableReason.NoUnit;
                 break;
             case "cofid":
-                product.Source = FoodSource.CoFID;
+                product.Food.Source = FoodSource.CoFID;
                 expected = NotImportableReason.NotOpenFoodFacts;
                 break;
             case "badbarcode":
@@ -463,11 +509,11 @@ public class FoodImportServiceTests
                 expected = NotImportableReason.NoBarcode;
                 break;
             case "badoptional":
-                product.SugarsG = double.PositiveInfinity;
+                product.Food.SugarsG = double.PositiveInfinity;
                 break;
         }
 
-        var result = await importer.ImportAsync(barcode, product);
+        var result = await Import(barcode, product);
 
         Assert.Multiple(async () =>
         {
@@ -481,11 +527,11 @@ public class FoodImportServiceTests
     [Test]
     public async Task Import_ANotImportableProductForAStoredBarcode_ChangesNothing()
     {
-        await importer.ImportAsync(OriginalCode, await Original());
+        await Import(OriginalCode, await Original());
         var broken = await Original();
-        broken.Name = "";
+        broken.Food.Name = "";
 
-        var result = await importer.ImportAsync(OriginalCode, broken);
+        var result = await Import(OriginalCode, broken);
 
         Assert.That(result.Status, Is.EqualTo(FoodImportStatus.NotImportable));
         Assert.That((await OnlyFood()).Name, Is.EqualTo("Coca-Cola Original"));
@@ -496,7 +542,7 @@ public class FoodImportServiceTests
     {
         await connection.DropTableAsync<Barcode>();
 
-        var result = await importer.ImportAsync(OriginalCode, await Original());
+        var result = await Import(OriginalCode, await Original());
 
         Assert.That((result.Status, result.Food), Is.EqualTo((FoodImportStatus.Failed, (Food?)null)));
         Assert.That(await connection.Table<Food>().CountAsync(), Is.Zero, "the failed transaction was rolled back");
@@ -507,14 +553,14 @@ public class FoodImportServiceTests
     {
         var oneLitre = await Resized(OneLitreCode, "Coca-Cola Original 1L", "1L", 1000);
         var incomplete = await Original();
-        incomplete.Name = "";
-        await importer.ImportAsync(OriginalCode, await Original());
-        await importer.ImportAsync(OriginalCode, await Original());
-        await importer.ImportAsync(OneLitreCode, oneLitre);
-        await importer.ImportAsync(OreoCode, await Oreo());
-        await importer.ImportAsync(ZeroCode, incomplete);
+        incomplete.Food.Name = "";
+        await Import(OriginalCode, await Original());
+        await Import(OriginalCode, await Original());
+        await Import(OneLitreCode, oneLitre);
+        await Import(OreoCode, await Oreo());
+        await Import(ZeroCode, incomplete);
         await connection.DropTableAsync<Barcode>();
-        await importer.ImportAsync(LightCode, await Light());
+        await Import(LightCode, await Light());
 
         var ids = LoggedEvents.Of(logger).Select(e => e.Id).ToList();
         Assert.That(ids, Is.EqualTo(new[]
@@ -543,13 +589,13 @@ public class FoodImportServiceTests
     [Test]
     public async Task DuplicateGroups_OverTheSavedProducts_AreNoneUnderTheStrictRule_AndOneOverTheResizedColas()
     {
-        var saved = new[] { await Can(), await Original(), await Zero(), await Light(), await OriginalTaste(), await Oreo(),
-            await Fixture("details-mars-5000159407236.json", "5000159407236"), await Fixture("details-weetabix-5010029000023.json", "5010029000023"), await Fixture("details-nutella-3017620422003.json", "3017620422003") };
+        var saved = new[] { (await Can()).Food, (await Original()).Food, (await Zero()).Food, (await Light()).Food, (await OriginalTaste()).Food, (await Oreo()).Food,
+            (await Fixture("details-mars-5000159407236.json", "5000159407236")).Food, (await Fixture("details-weetabix-5010029000023.json", "5010029000023")).Food, (await Fixture("details-nutella-3017620422003.json", "3017620422003")).Food };
         var constructed = new List<Food>
         {
-            await Original(),
-            await Resized(OneLitreCode, "Coca-Cola Original 1L", "1L", 1000),
-            await Resized(TwoLitreCode, "Coca-Cola Original 2 litres", "2 litres", 2000),
+            (await Original()).Food,
+            (await Resized(OneLitreCode, "Coca-Cola Original 1L", "1L", 1000)).Food,
+            (await Resized(TwoLitreCode, "Coca-Cola Original 2 litres", "2 litres", 2000)).Food,
         };
 
         Assert.Multiple(() =>
@@ -584,7 +630,7 @@ public class FoodImportServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(method.GetParameters().Select(p => (p.Name, p.ParameterType)), Is.EqualTo(new[] { ("barcode", typeof(string)), ("product", typeof(Food)) }));
+            Assert.That(method.GetParameters().Select(p => (p.Name, p.ParameterType)), Is.EqualTo(new[] { ("barcode", typeof(string)), ("product", typeof(Food)), ("serving", typeof(ProductServing)) }));
             Assert.That(typeof(FoodImportService).Assembly.GetTypes().Where(t => t.Namespace == typeof(FoodImportService).Namespace && t.Name.StartsWith("FoodImport", StringComparison.Ordinal)).Select(t => t.Name), Has.None.Contain("Scan"));
         });
     }

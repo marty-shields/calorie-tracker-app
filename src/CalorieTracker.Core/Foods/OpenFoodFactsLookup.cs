@@ -144,10 +144,11 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
             }
 
             Food? food;
+            ProductServing? serving;
             try
             {
                 var code = ReadString(root, "code");
-                food = Map(product, code is not null && IsAsciiDigits(code, 1, int.MaxValue) ? code : barcode, time.GetUtcNow());
+                (food, serving) = Map(product, code is not null && IsAsciiDigits(code, 1, int.MaxValue) ? code : barcode, time.GetUtcNow());
             }
             catch (InvalidOperationException)
             {
@@ -163,7 +164,7 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
             }
 
             Log.Found(logger);
-            return BarcodeLookupResult.Found(food);
+            return BarcodeLookupResult.Found(food, serving: serving);
         }
     }
 
@@ -171,12 +172,12 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
     /// Null when the name or any of kcal, protein, carbs and fat is missing.
     /// <paramref name="sourceId"/> is the product's own code, so several barcodes of one product map to one food.
     /// </summary>
-    private static Food? Map(JsonElement product, string sourceId, DateTimeOffset fetchedAt)
+    private static (Food? Food, ProductServing? Serving) Map(JsonElement product, string sourceId, DateTimeOffset fetchedAt)
     {
         var name = ReadString(product, "product_name");
         if (name is null)
         {
-            return null;
+            return (null, null);
         }
 
         var hasNutriments = product.TryGetProperty("nutriments", out var nutriments) && nutriments.ValueKind == JsonValueKind.Object;
@@ -188,7 +189,7 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
         var fat = Nutrient("fat_100g");
         if (kcal is null || protein is null || carbs is null || fat is null)
         {
-            return null;
+            return (null, null);
         }
 
         var brandList = ReadBrands(product);
@@ -197,7 +198,7 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
         var brands = brandList.Count == 0 ? null : Truncate(string.Join(", ", brandList), MaxBrandsLength);
         var millilitre = IsMillilitre(product, "product_quantity_unit") || IsMillilitre(product, "serving_quantity_unit");
         var servingFlagged = HasWarning(product, ServingOverPackageWarning);
-        var (servingLabel, servingAmount) = servingFlagged ? (null, null) : ReadServing(product, millilitre);
+        var serving = servingFlagged ? null : ReadServing(product, millilitre);
         var genericName = Truncate(ReadString(product, "generic_name"), MaxLabelLength);
         var category = ReadString(product, "pnns_groups_2");
         category = string.Equals(category, "unknown", StringComparison.OrdinalIgnoreCase) ? null : Truncate(category, MaxLabelLength);
@@ -207,7 +208,7 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
         var popularity = ReadNumber(product, "unique_scans_n");
         var updated = ReadNumber(product, "last_modified_t");
 
-        return new Food
+        var food = new Food
         {
             Source = FoodSource.OpenFoodFacts,
             SourceId = sourceId,
@@ -223,8 +224,6 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
             SugarsG = Nutrient("sugars_100g"),
             SaturatesG = Nutrient("saturated-fat_100g"),
             SaltG = Nutrient("salt_100g"),
-            ServingLabel = servingLabel,
-            ServingAmount = servingAmount,
             Brands = brands,
             GenericName = genericName,
             PackageLabel = Truncate(ReadString(product, "quantity"), MaxLabelLength),
@@ -237,6 +236,7 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
             FetchedAt = fetchedAt,
             SearchText = SearchFolding.Fold(string.Join(' ', new[] { name, string.Join(' ', brandList), genericName, category }.Where(t => !string.IsNullOrEmpty(t)))),
         };
+        return (food, serving);
     }
 
     /// <summary>Every brand in <c>brands</c>: trimmed, blanks and repeats (ignoring case) dropped, in the source's order.</summary>
@@ -266,15 +266,15 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
     }
 
     /// <summary>
-    /// Both parts or neither: a label, a weight above zero, and a <c>serving_quantity_unit</c> that is the food's unit (absent counts as grams, as OFF defaults to).
+    /// A serving that <see cref="FoodService.TryBoundServing"/> accepts, with its trimmed label, and a <c>serving_quantity_unit</c> that is the food's unit (absent counts as grams, as OFF defaults to); otherwise null.
     /// </summary>
-    private static (string? Label, double? Amount) ReadServing(JsonElement product, bool millilitre)
+    private static ProductServing? ReadServing(JsonElement product, bool millilitre)
     {
         var label = ReadString(product, "serving_size");
         var amount = ReadNumber(product, "serving_quantity");
         var unit = ReadString(product, "serving_quantity_unit");
         var matches = string.Equals(unit ?? "g", millilitre ? "ml" : "g", StringComparison.OrdinalIgnoreCase);
-        return label is not null && amount is > 0 && matches ? (label, amount) : (null, null);
+        return matches && FoodService.TryBoundServing(label, amount, out var trimmed, out var weight) ? new ProductServing(trimmed, weight) : null;
     }
 
     private static bool IsAsciiDigits(string text, int minLength, int maxLength) =>

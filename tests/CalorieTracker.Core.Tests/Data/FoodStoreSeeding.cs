@@ -1,4 +1,5 @@
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Foods;
 
 namespace CalorieTracker.Core.Tests;
 
@@ -9,15 +10,15 @@ internal static class FoodStoreSeeding
     /// Stores the food (an insert, or an update of the row with the same source and source id) with its servings, and with <paramref name="barcode"/> links it, as a lookup that scanned that barcode would.
     /// Returns the food as stored, with its id. A barcode that is linked to another food gives that food, as <see cref="FoodStore.ImportAsync"/> does.
     /// </summary>
-    public static async Task<Food> UpsertAsync(this FoodStore store, Food food, string? barcode = null)
+    public static async Task<Food> UpsertAsync(this FoodStore store, Food food, string? barcode = null, ProductServing? serving = null)
     {
         if (barcode is not null)
         {
-            return (await store.ImportAsync(barcode, food, food.FetchedAt ?? DateTimeOffset.UnixEpoch)).Food;
+            return (await store.ImportAsync(barcode, food, food.FetchedAt ?? DateTimeOffset.UnixEpoch, serving)).Food;
         }
 
         await store.UpsertManyAsync([food]);
-        await store.RefreshAsync(food.Id, food);
+        await store.RefreshAsync(food.Id, food, serving: serving);
         return food;
     }
 

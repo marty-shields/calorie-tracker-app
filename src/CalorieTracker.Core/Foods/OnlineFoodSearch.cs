@@ -18,7 +18,7 @@ namespace CalorieTracker.Core.Foods;
 internal sealed partial class OnlineFoodSearch : IOnlineFoodSearch, IDisposable
 {
     /// <summary>The least time between two requests.</summary>
-    internal static readonly TimeSpan MinGap = TimeSpan.FromSeconds(6);
+    internal static readonly TimeSpan MinGap = TimeSpan.FromSeconds(2);
 
     private const string Fields = "code,product_name,brands,quantity,categories_tags,nutriments";
     private const int PageSize = 50;

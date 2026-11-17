@@ -1,4 +1,5 @@
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Foods;
 using Microsoft.Extensions.Logging.Testing;
 using SQLite;
 
@@ -99,13 +100,13 @@ public class StorageCleanupUpgradeTests
         await Upgrade();
         var store = new FoodStore(connection, new DatabaseGate(), new FakeLogger<FoodStore>());
 
-        var bar = await store.FindByBarcodeAsync("5000000000017");
-        var pizza = await store.FindByBarcodeAsync("5000000000024");
+        var bar = (await store.FindWithBarcodeAsync("5000000000017")).Serving;
+        var pizza = (await store.FindWithBarcodeAsync("5000000000024")).Serving;
 
         Assert.Multiple(() =>
         {
-            Assert.That((bar?.ServingLabel, bar?.ServingAmount), Is.EqualTo(("1 bar", (double?)40)));
-            Assert.That((pizza?.ServingLabel, pizza?.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+            Assert.That(bar, Is.EqualTo(new ProductServing("1 bar", 40)));
+            Assert.That(pizza, Is.Null);
         });
     }
 

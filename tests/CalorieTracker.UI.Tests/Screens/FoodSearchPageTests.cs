@@ -467,7 +467,7 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     private static readonly Food Milk = new() { Id = 2, Name = "Milk", Unit = FoodUnit.Millilitre, Kcal = 50 };
-    private static readonly Food Brand = new() { Id = 3, Name = "Oat bar", Brand = "Acme", Unit = FoodUnit.Gram, Kcal = 400, ServingLabel = "1 bar", ServingAmount = 40 };
+    private static readonly Food Brand = new() { Id = 3, Name = "Oat bar", Brand = "Acme", Unit = FoodUnit.Gram, Kcal = 400 };
     private static readonly Food Rice = new() { Id = 4, Name = "Rice", Unit = FoodUnit.Gram, Kcal = 130 };
 
     private static FoodListing Logged(Food food, double amount, double? servings = null, int times = 1, int? servingId = null) =>

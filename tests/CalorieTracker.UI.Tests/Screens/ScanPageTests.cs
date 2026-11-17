@@ -414,8 +414,8 @@ public class ScanPageTests : ComponentTestBase
     public async Task Found_WithAStoredFood_AddToDiaryRaisesOnAddToDiaryWithItsId()
     {
         var food = Product("Digestive biscuits", "Morning Mill", FoodUnit.Gram, 480, 7, 62, 22);
-        (food.Id, food.ServingLabel, food.ServingAmount) = (42, "1 biscuit", 15);
-        lookup.Result = BarcodeLookupResult.Found(food);
+        food.Id = 42;
+        lookup.Result = BarcodeLookupResult.Found(food, null, new ProductServing("1 biscuit", 15));
         var added = new List<ScanAddRequest>();
         var cut = await ScannedAsync(p => p.Add(x => x.OnAddToDiary, added.Add));
 
@@ -473,9 +473,8 @@ public class ScanPageTests : ComponentTestBase
     public void ToProduct_ServingOutOfRange_IsLeftOut(string label, double amount)
     {
         var food = Product("Biscuits", null, FoodUnit.Gram, 480, 7, 62, 22);
-        (food.ServingLabel, food.ServingAmount) = (label, amount);
 
-        var product = ScanPage.ToProduct(food)!;
+        var product = ScanPage.ToProduct(food, serving: new ProductServing(label, amount))!;
 
         Assert.That((product.ServingLabel, product.ServingAmount), Is.EqualTo(((string?)null, (decimal?)null)));
     }
@@ -484,9 +483,8 @@ public class ScanPageTests : ComponentTestBase
     public void ToProduct_ServingAtTheLimits_IsKeptTrimmed()
     {
         var food = Product("Biscuits", null, FoodUnit.Gram, 480, 7, 62, 22);
-        (food.ServingLabel, food.ServingAmount) = ($" {new string('a', FoodService.MaxServingLabelLength)} ", FoodService.MaxServingAmount);
 
-        var product = ScanPage.ToProduct(food)!;
+        var product = ScanPage.ToProduct(food, serving: new ProductServing($" {new string('a', FoodService.MaxServingLabelLength)} ", FoodService.MaxServingAmount))!;
 
         Assert.That((product.ServingLabel, product.ServingAmount), Is.EqualTo((new string('a', FoodService.MaxServingLabelLength), (decimal?)10_000)));
     }
@@ -497,7 +495,7 @@ public class ScanPageTests : ComponentTestBase
         var food = Product("Biscuits", null, FoodUnit.Gram, 480, 7, 62, 22);
         (food.FibreG, food.SugarsG, food.SaturatesG, food.SaltG) = (FoodService.MaxNutrientPer100 + 1, -1, FoodService.MaxNutrientPer100, 0);
 
-        var product = ScanPage.ToProduct(food)!;
+        var product = ScanPage.ToProduct(food, serving: null)!;
 
         Assert.That((product.Fibre, product.Sugars, product.Saturates, product.Salt), Is.EqualTo(((decimal?)null, (decimal?)null, (decimal?)100, (decimal?)0)));
     }
@@ -566,8 +564,8 @@ public class ScanPageTests : ComponentTestBase
     public async Task Logs_TheBarcodeAndStatus_ButNeverTheProductNameOrBrand()
     {
         var food = Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8);
-        (food.Id, food.ServingLabel, food.ServingAmount) = (42, "1 bowl", 40);
-        lookup.Result = BarcodeLookupResult.Found(food);
+        food.Id = 42;
+        lookup.Result = BarcodeLookupResult.Found(food, null, new ProductServing("1 bowl", 40));
         var cut = await ScannedAsync();
         cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-add]"), Has.Count.EqualTo(1)));
         cut.Find("[data-testid=scan-add]").Click();

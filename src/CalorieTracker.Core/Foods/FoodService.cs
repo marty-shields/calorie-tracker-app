@@ -99,19 +99,9 @@ public sealed partial class FoodService
         return offered;
     }
 
-    /// <summary>Applies the nutrient caps of <see cref="GetAsync"/> (and drops an out-of-range product serving from the food's own serving fields) to a food read elsewhere, in place. Nothing is written back to the database. Null <paramref name="logger"/> bounds silently, as search does on every keystroke.</summary>
+    /// <summary>Applies the nutrient caps of <see cref="GetAsync"/> to a food read elsewhere, in place. Nothing is written back to the database. Null <paramref name="logger"/> bounds silently, as search does on every keystroke.</summary>
     internal static void Bound(Food food, ILogger? logger = null)
     {
-        if (TryBoundServing(food.ServingLabel, food.ServingAmount, out var label, out _))
-        {
-            food.ServingLabel = label;
-        }
-        else
-        {
-            food.ServingLabel = null;
-            food.ServingAmount = null;
-        }
-
         var dropped = 0;
         food.FibreG = Nutrient(food.FibreG, ref dropped);
         food.SugarsG = Nutrient(food.SugarsG, ref dropped);

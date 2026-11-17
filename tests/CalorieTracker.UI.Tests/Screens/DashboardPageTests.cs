@@ -44,8 +44,6 @@ public class DashboardPageTests : ComponentTestBase
             ProteinG = 25.4,
             CarbsG = 0.1,
             FatG = 34.9,
-            ServingLabel = "1 slice (20 g)",
-            ServingAmount = 20,
             SearchText = "cheddar cheese",
         };
         await connection.InsertAsync(cheddar);

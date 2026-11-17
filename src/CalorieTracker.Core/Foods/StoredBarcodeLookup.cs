@@ -47,9 +47,10 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
 
             Food? stored = null;
             Barcode? row = null;
+            ProductServing? storedServing = null;
             try
             {
-                (stored, row) = await store.FindWithBarcodeAsync(barcode);
+                (stored, row, storedServing) = await store.FindWithBarcodeAsync(barcode);
             }
             catch (Exception)
             {
@@ -59,12 +60,12 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
             if (stored is not null)
             {
                 Log.StoreHit(logger, stored.Id);
-                if (WantsServing(stored) || WantsDetails(stored))
+                if (WantsServing(stored, storedServing) || WantsDetails(stored))
                 {
-                    StartRefresh(barcode, stored);
+                    StartRefresh(barcode, stored, storedServing);
                 }
 
-                return BarcodeLookupResult.Found(stored, row?.PackageAmount);
+                return BarcodeLookupResult.Found(stored, row?.PackageAmount, storedServing);
             }
 
             var result = await inner.LookupAsync(barcode, CancellationToken.None);
@@ -72,12 +73,12 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
             {
                 case BarcodeLookupStatus.Found:
                     var food = result.Food!;
-                    var imported = await importer.ImportAsync(barcode, food);
+                    var imported = await importer.ImportAsync(barcode, food, result.Serving);
                     switch (imported.Status)
                     {
                         case FoodImportStatus.Created or FoodImportStatus.Attached or FoodImportStatus.Known:
                             Log.Fetched(logger, result.Status, imported.Food!.Id);
-                            return BarcodeLookupResult.Found(imported.Food, imported.PackAmount);
+                            return BarcodeLookupResult.Found(imported.Food, imported.PackAmount, imported.Serving);
                         case FoodImportStatus.NotImportable:
                             // Same as a product the lookup could not use: not found, and not asked for again.
                             notFound.TryAdd(barcode, 0);
@@ -85,7 +86,7 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
                             return BarcodeLookupResult.NotFound();
                         default:
                             Log.SaveFailed(logger);
-                            return BarcodeLookupResult.Found(food);
+                            return BarcodeLookupResult.Found(food, serving: result.Serving);
                     }
                 case BarcodeLookupStatus.NotFound:
                     notFound.TryAdd(barcode, 0);
@@ -106,7 +107,7 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
     /// <summary>Completes when the serving refreshes running now have finished. Never faults.</summary>
     internal Task RefreshesIdle() => Task.WhenAll(refreshing.Values);
 
-    private void StartRefresh(string barcode, Food stored)
+    private void StartRefresh(string barcode, Food stored, ProductServing? storedServing)
     {
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         if (!refreshing.TryAdd(barcode, started.Task))
@@ -118,7 +119,7 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
         {
             try
             {
-                await RefreshStoredAsync(barcode, stored);
+                await RefreshStoredAsync(barcode, stored, storedServing);
             }
             finally
             {
@@ -128,7 +129,7 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
         });
     }
 
-    private static bool WantsServing(Food stored) => stored.ServingAmount is null && stored.ServingChecked is not true;
+    private static bool WantsServing(Food stored, ProductServing? serving) => serving is null && stored.ServingChecked is not true;
 
     private static bool WantsDetails(Food stored) => stored.Source == FoodSource.OpenFoodFacts && stored.FetchedAt is null;
 
@@ -136,7 +137,7 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
     /// Asks the inner lookup again for <paramref name="stored"/>. A Found answer with the same source id and unit refreshes the row (serving, nutrients and source details) when it has a serving or the food was stored before its details were (see <see cref="Food.FetchedAt"/>).
     /// A food with no serving is marked checked in the store, so it is not asked again, when the answer is NotFound or a Found one for the same source id and unit without a usable serving. A Found answer of the scanned barcode's own product (a barcode merged into the food) with the same unit marks a food with no serving checked and changes nothing else. An offline or rate-limited answer, or a Found one for another unit or product, leaves it unmarked for a later scan. Never throws.
     /// </summary>
-    private async Task RefreshStoredAsync(string barcode, Food stored)
+    private async Task RefreshStoredAsync(string barcode, Food stored, ProductServing? storedServing)
     {
         try
         {
@@ -146,11 +147,11 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
             var sameProduct = sameUnit && fresh!.SourceId == stored.SourceId;
             // A barcode merged into this food answers with its own product: the food's values stay, but the barcode is not asked about for a serving again.
             var mergedBarcode = sameUnit && !sameProduct && fresh!.SourceId == barcode;
-            var wantsServing = WantsServing(stored);
+            var wantsServing = WantsServing(stored, storedServing);
             if (result.Status == BarcodeLookupStatus.Found && sameProduct)
             {
-                var hasServing = fresh is { ServingLabel: not null, ServingAmount: not null };
-                var refreshed = (hasServing || WantsDetails(stored)) && await store.RefreshAsync(stored.Id, fresh!, barcode);
+                var hasServing = result.Serving is not null;
+                var refreshed = (hasServing || WantsDetails(stored)) && await store.RefreshAsync(stored.Id, fresh!, barcode, result.Serving);
                 if (refreshed)
                 {
                     Log.Refreshed(logger, stored.Id, hasServing);

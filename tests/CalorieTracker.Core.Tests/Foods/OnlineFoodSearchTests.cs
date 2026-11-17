@@ -528,18 +528,18 @@ public class OnlineFoodSearchTests
     }
 
     [Test]
-    public async Task Search_RequestsAreAtLeastSixSecondsApart_ASoonerOneWaitsTheRest()
+    public async Task Search_RequestsAreAtLeastTwoSecondsApart_ASoonerOneWaitsTheRest()
     {
         handler.Respond(Fixture("search-cola-variants.json"));
         await search.SearchAsync("cola");
-        clock.Advance(TimeSpan.FromSeconds(2.5));
+        clock.Advance(TimeSpan.FromSeconds(0.5));
 
         await search.SearchAsync("oreo");
         await search.SearchAsync("zero");
 
         Assert.Multiple(() =>
         {
-            Assert.That(waits, Is.EqualTo(new[] { TimeSpan.FromSeconds(3.5), TimeSpan.FromSeconds(6) }));
+            Assert.That(waits, Is.EqualTo(new[] { TimeSpan.FromSeconds(1.5), OnlineFoodSearch.MinGap }));
             Assert.That(handler.Requests, Has.Count.EqualTo(3));
         });
     }
@@ -549,7 +549,7 @@ public class OnlineFoodSearchTests
     {
         handler.Respond(Fixture("search-cola-variants.json"));
         await search.SearchAsync("cola");
-        clock.Advance(TimeSpan.FromSeconds(6));
+        clock.Advance(TimeSpan.FromSeconds(2));
 
         await search.SearchAsync("oreo");
 

@@ -1,4 +1,5 @@
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using SQLite;
@@ -95,10 +96,8 @@ public class FoodStoreTests
         first.ServingChecked = true;
         await store.UpsertAsync(first);
         var fresh = NewFood("1");
-        fresh.ServingLabel = "1 slice";
-        fresh.ServingAmount = 30;
 
-        await store.UpsertAsync(fresh);
+        await store.UpsertAsync(fresh, serving: new ProductServing("1 slice", 30));
 
         Assert.That((await connection.Table<Food>().FirstAsync()).ServingChecked, Is.Null);
     }
@@ -312,7 +311,7 @@ public class FoodStoreTests
         var other = await store.UpsertAsync(NewFood("2", FoodSource.OpenFoodFacts));
         var fresh = WithDetails(Fresh());
 
-        await store.RefreshAsync(target.Id, fresh);
+        await store.RefreshAsync(target.Id, fresh, serving: Slice);
 
         var rows = await connection.Table<Food>().ToListAsync();
         var row = rows.Single(r => r.Id == target.Id);
@@ -326,15 +325,25 @@ public class FoodStoreTests
         Assert.That((await store.FindByBarcodeAsync("5000000000017"))!.Id, Is.EqualTo(target.Id));
     }
 
-    [Test]
-    public async Task RefreshAsync_FreshWithNoServing_KeepsTheStoredServing_AndHalfAServingCountsAsNone()
+    [TestCase("", 50.0)]
+    [TestCase("1 slice", 0.0)]
+    public async Task RefreshAsync_HalfAServing_CountsAsNone_KeepsTheStoredServingAndWritesNone(string label, double amount)
     {
-        var original = NewFood("1");
-        original.ServingLabel = "100 g";
-        original.ServingAmount = 100;
-        var target = await store.UpsertAsync(original);
+        var withServing = await store.UpsertAsync(NewFood("1"), serving: new ProductServing("100 g", 100));
+        var without = await store.UpsertAsync(NewFood("2"));
+
+        await store.RefreshAsync(withServing.Id, Fresh(), serving: new ProductServing(label, amount));
+        await store.RefreshAsync(without.Id, Fresh(), serving: new ProductServing(label, amount));
+
+        Assert.That((await Servings(withServing.Id)).Select(x => (x.Label, x.Amount)), Is.EqualTo(new[] { ("100 g", 100.0) }));
+        Assert.That(await Servings(without.Id), Is.Empty);
+    }
+
+    [Test]
+    public async Task RefreshAsync_FreshWithNoServing_KeepsTheStoredServing()
+    {
+        var target = await store.UpsertAsync(NewFood("1"), serving: new ProductServing("100 g", 100));
         var fresh = Fresh();
-        fresh.ServingLabel = null;
         await store.RefreshAsync(target.Id, fresh);
 
         var row = await connection.Table<Food>().FirstAsync();
@@ -346,16 +355,11 @@ public class FoodStoreTests
     [Test]
     public async Task RefreshAsync_FreshFlaggedAsHavingNoServing_RemovesTheProductServingKeepsTheOwnAndMarksItChecked()
     {
-        var original = NewFood("1");
-        original.ServingLabel = "100 g";
-        original.ServingAmount = 100;
-        var target = await store.UpsertAsync(original);
+        var target = await store.UpsertAsync(NewFood("1"), serving: new ProductServing("100 g", 100));
         await connection.InsertAsync(new Serving { FoodId = target.Id, Label = "My cup", Amount = 240, Source = ServingSource.User, SortOrder = 2 });
         var product = (await Servings(target.Id)).Single(x => x.Source == ServingSource.Product);
         await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = target.Id, Amount = 200, Servings = 2, ServingId = product.Id });
         var fresh = Fresh();
-        fresh.ServingLabel = null;
-        fresh.ServingAmount = null;
         fresh.ServingChecked = true;
         await store.RefreshAsync(target.Id, fresh);
 
@@ -385,10 +389,10 @@ public class FoodStoreTests
     private Task<List<Serving>> Servings(int foodId) =>
         connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY SortOrder, Amount, Id", foodId);
 
+    private static readonly ProductServing Slice = new("1 slice (30 g)", 30);
+
     private static Food Fresh() => new()
     {
-        ServingLabel = "1 slice (30 g)",
-        ServingAmount = 30,
         Kcal = 111,
         ProteinG = 11,
         CarbsG = 12,
@@ -416,7 +420,7 @@ public class FoodStoreTests
         var target = await store.UpsertAsync(original, "5000000000017");
         var other = await store.UpsertAsync(NewFood("2", kcal: 200));
 
-        var changed = await store.RefreshAsync(target.Id, Fresh());
+        var changed = await store.RefreshAsync(target.Id, Fresh(), serving: Slice);
 
         Assert.That(changed, Is.True);
         var rows = await connection.Table<Food>().ToListAsync();
@@ -499,7 +503,7 @@ public class FoodStoreTests
             await connection.InsertAsync(inserted);
         });
 
-        var set = store.RefreshAsync(1, Fresh());
+        var set = store.RefreshAsync(1, Fresh(), serving: Slice);
         holding.SetResult();
 
         await busy;
@@ -518,8 +522,9 @@ public class FoodStoreTests
         Assert.That(changed, Is.True);
         var rows = await connection.Table<Food>().ToListAsync();
         var row = rows.Single(r => r.Id == target.Id);
-        Assert.That((row.ServingChecked, row.ServingAmount, row.Kcal, row.Name), Is.EqualTo(((bool?)true, (double?)null, 100.0, "Oats")));
+        Assert.That((row.ServingChecked, row.Kcal, row.Name), Is.EqualTo(((bool?)true, 100.0, "Oats")));
         Assert.That(rows.Single(r => r.Id == other.Id).ServingChecked, Is.Null);
+        Assert.That(await Servings(target.Id), Is.Empty, "marking it checked adds no serving");
     }
 
     [Test]
