@@ -1,4 +1,5 @@
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Foods;
 using Microsoft.Extensions.Logging.Testing;
 using SQLite;
 
@@ -32,11 +33,11 @@ public class ServingStoreTests
         File.Delete(databasePath);
     }
 
-    private Task<Food> Stored(string sourceId, Action<Food>? change = null)
+    private Task<Food> Stored(string sourceId, Action<Food>? change = null, ProductServing? serving = null)
     {
         var food = new Food { Source = FoodSource.OpenFoodFacts, SourceId = sourceId, Name = "Cola", Unit = FoodUnit.Millilitre, Kcal = 42, SearchText = "cola" };
         change?.Invoke(food);
-        return foods.UpsertAsync(food);
+        return foods.UpsertAsync(food, serving: serving);
     }
 
     private Task<List<Serving>> Rows(int foodId) =>
@@ -45,7 +46,7 @@ public class ServingStoreTests
     [Test]
     public async Task UpsertAsync_ServingAndPack_WritesAProductRowAndAPackRow()
     {
-        var food = await Stored("1", f => (f.ServingLabel, f.ServingAmount, f.PackageAmount) = ("1 glass (250 ml)", 250, 330));
+        var food = await Stored("1", f => f.PackageAmount = 330, new ProductServing("1 glass (250 ml)", 250));
 
         var rows = await Rows(food.Id);
 
@@ -67,10 +68,10 @@ public class ServingStoreTests
     [Test]
     public async Task UpsertAsync_SameFoodTwice_KeepsOneRowOfEachAndTheProductRowsId()
     {
-        var first = await Stored("1", f => (f.ServingLabel, f.ServingAmount, f.PackageAmount) = ("1 glass (250 ml)", 250, 330));
+        var first = await Stored("1", f => f.PackageAmount = 330, new ProductServing("1 glass (250 ml)", 250));
         var productId = (await Rows(first.Id)).Single(r => r.Source == ServingSource.Product).Id;
 
-        await Stored("1", f => (f.ServingLabel, f.ServingAmount, f.PackageAmount) = ("1 tall glass (300 ml)", 300, 330));
+        await Stored("1", f => f.PackageAmount = 330, new ProductServing("1 tall glass (300 ml)", 300));
 
         var rows = await Rows(first.Id);
         Assert.Multiple(() =>
@@ -87,7 +88,7 @@ public class ServingStoreTests
     [Test]
     public async Task UpsertAsync_LookupWithNoServing_LeavesTheStoredRowsAlone()
     {
-        var first = await Stored("1", f => (f.ServingLabel, f.ServingAmount) = ("1 bar", 40));
+        var first = await Stored("1", serving: new ProductServing("1 bar", 40));
         await servings.AddUserAsync(first.Id, "My bite", 10);
 
         await Stored("1");
@@ -100,9 +101,9 @@ public class ServingStoreTests
     {
         var food = await Stored("1");
         await servings.AddUserAsync(food.Id, "My mug", 200);
-        var fresh = new Food { ServingLabel = "1 glass (250 ml)", ServingAmount = 250, PackageAmount = 330, Unit = FoodUnit.Millilitre, Kcal = 40, SearchText = "cola" };
+        var fresh = new Food { PackageAmount = 330, Unit = FoodUnit.Millilitre, Kcal = 40, SearchText = "cola" };
 
-        Assert.That(await foods.RefreshAsync(food.Id, fresh), Is.True);
+        Assert.That(await foods.RefreshAsync(food.Id, fresh, serving: new ProductServing("1 glass (250 ml)", 250)), Is.True);
 
         Assert.That((await Rows(food.Id)).Select(r => (r.Label, r.Source)), Is.EqualTo(new[]
         {
@@ -116,11 +117,11 @@ public class ServingStoreTests
     [Test]
     public async Task RefreshAsync_AChangedProductServing_UpdatesTheRowInPlaceSoEntriesKeepTheirLink()
     {
-        var food = await Stored("1", f => (f.ServingLabel, f.ServingAmount) = ("1 glass (250 ml)", 250));
+        var food = await Stored("1", serving: new ProductServing("1 glass (250 ml)", 250));
         var product = (await Rows(food.Id)).Single();
         await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = food.Id, Amount = 250, Servings = 1, ServingId = product.Id });
 
-        await foods.RefreshAsync(food.Id, new Food { ServingLabel = "1 tall glass (300 ml)", ServingAmount = 300, Unit = FoodUnit.Millilitre, SearchText = "cola" });
+        await foods.RefreshAsync(food.Id, new Food { Unit = FoodUnit.Millilitre, SearchText = "cola" }, serving: new ProductServing("1 tall glass (300 ml)", 300));
 
         var rows = await Rows(food.Id);
         var entry = await connection.Table<DiaryEntry>().FirstAsync();
@@ -128,20 +129,21 @@ public class ServingStoreTests
     }
 
     [Test]
-    public async Task GetAsync_And_FindByBarcodeAsync_SetTheFoodsServingFromItsProductRow()
+    public async Task FindWithBarcodeAsync_And_ImportAsync_GiveTheFoodsProductServingFromItsRow()
     {
-        var food = await foods.UpsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "1", Name = "A", ServingLabel = "1 bar", ServingAmount = 40, SearchText = "a" }, "5000000000017");
-        var noServing = await foods.UpsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "2", Name = "B", SearchText = "b" }, "5000000000024");
+        var imported = await foods.ImportAsync("5000000000017", new Food { Source = FoodSource.OpenFoodFacts, SourceId = "1", Name = "A", SearchText = "a" }, DateTimeOffset.UnixEpoch, new ProductServing("1 bar", 40));
+        await foods.UpsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "2", Name = "B", SearchText = "b" }, "5000000000024");
 
-        var byId = await foods.GetAsync(food.Id);
-        var byBarcode = await foods.FindByBarcodeAsync("5000000000017");
-        var none = await foods.GetAsync(noServing.Id);
+        var byBarcode = await foods.FindWithBarcodeAsync("5000000000017");
+        var none = await foods.FindWithBarcodeAsync("5000000000024");
+        var again = await foods.ImportAsync("5000000000017", new Food { Source = FoodSource.OpenFoodFacts, SourceId = "1", Name = "A", SearchText = "a" }, DateTimeOffset.UnixEpoch);
 
         Assert.Multiple(() =>
         {
-            Assert.That((byId!.ServingLabel, byId.ServingAmount), Is.EqualTo(("1 bar", (double?)40)));
-            Assert.That((byBarcode!.ServingLabel, byBarcode.ServingAmount), Is.EqualTo(("1 bar", (double?)40)));
-            Assert.That((none!.ServingLabel, none.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+            Assert.That(imported.Serving, Is.EqualTo(new ProductServing("1 bar", 40)));
+            Assert.That(byBarcode.Serving, Is.EqualTo(new ProductServing("1 bar", 40)));
+            Assert.That(none.Serving, Is.Null);
+            Assert.That(again.Serving, Is.EqualTo(new ProductServing("1 bar", 40)), "a known barcode gives the stored serving, not the one passed");
         });
     }
 
@@ -173,7 +175,7 @@ public class ServingStoreTests
     [Test]
     public async Task AddUserAsync_TheAmountOfAProductOrPackRow_IsAllowed()
     {
-        var food = await Stored("1", f => (f.ServingLabel, f.ServingAmount) = ("1 bar", 40));
+        var food = await Stored("1", serving: new ProductServing("1 bar", 40));
 
         var (outcome, _) = await servings.AddUserAsync(food.Id, "My bar", 40);
 
@@ -201,7 +203,7 @@ public class ServingStoreTests
     [Test]
     public async Task RemoveUserAsync_DeletesTheRowAndClearsOnlyTheLinksToIt()
     {
-        var food = await Stored("1", f => (f.ServingLabel, f.ServingAmount) = ("1 bar", 40));
+        var food = await Stored("1", serving: new ProductServing("1 bar", 40));
         var mug = (await servings.AddUserAsync(food.Id, "My mug", 200)).Serving!;
         var bar = (await Rows(food.Id)).Single(r => r.Source == ServingSource.Product);
         await connection.InsertAllAsync(new List<DiaryEntry>
@@ -225,7 +227,7 @@ public class ServingStoreTests
     [Test]
     public async Task RemoveUserAsync_AProductOrPackRowOrAnUnknownId_DeletesNothing()
     {
-        var food = await Stored("1", f => (f.ServingLabel, f.ServingAmount, f.PackageAmount) = ("1 glass (250 ml)", 250, 330));
+        var food = await Stored("1", f => f.PackageAmount = 330, new ProductServing("1 glass (250 ml)", 250));
         var rows = await Rows(food.Id);
 
         var results = new[] { await servings.RemoveUserAsync(rows[0].Id), await servings.RemoveUserAsync(rows[1].Id), await servings.RemoveUserAsync(999) };

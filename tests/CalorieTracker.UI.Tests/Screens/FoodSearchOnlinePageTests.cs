@@ -128,7 +128,11 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
 
         await cut.Find("[data-testid=food-search-input]").KeyDownAsync(Key.Enter);
 
-        Assert.That(online.Queries, Is.EqualTo(new[] { "coca-cola" }));
+        Assert.Multiple(() =>
+        {
+            Assert.That(online.Queries, Is.EqualTo(new[] { "coca-cola" }));
+            Assert.That(notice.Marked, Is.EqualTo(1), "Enter is the first tap too: the notice counts as seen");
+        });
     }
 
     [Test]

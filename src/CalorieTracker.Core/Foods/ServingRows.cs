@@ -7,13 +7,13 @@ namespace CalorieTracker.Core.Foods;
 internal static class ServingRows
 {
     /// <summary>
-    /// The Product row when the food carries a usable serving (see <see cref="FoodService.TryBoundServing"/>), and the Pack row when its package size is finite, above zero and at most <see cref="FoodService.MaxPackServingAmount"/>
+    /// The Product row when <paramref name="serving"/> is usable (see <see cref="FoodService.TryBoundServing"/>), and the Pack row when its package size is finite, above zero and at most <see cref="FoodService.MaxPackServingAmount"/>
     /// and not the same amount as the product serving (that pack would only repeat it). Ids and food ids are not set.
     /// </summary>
-    public static List<Serving> Of(Food food)
+    public static List<Serving> Of(Food food, ProductServing? serving)
     {
         var rows = new List<Serving>();
-        var hasProduct = FoodService.TryBoundServing(food.ServingLabel, food.ServingAmount, out var label, out var amount);
+        var hasProduct = FoodService.TryBoundServing(serving?.Label, serving?.Amount, out var label, out var amount);
         if (hasProduct)
         {
             rows.Add(new Serving { Label = label, Amount = amount, Source = ServingSource.Product, SortOrder = (int)ServingSource.Product });

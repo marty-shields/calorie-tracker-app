@@ -354,7 +354,8 @@ public class DatabaseInitializerTests
 
         var foods = await connection.QueryAsync<Food>("SELECT * FROM Food ORDER BY Id");
         Assert.That(foods.Select(f => f.Name), Is.EqualTo(new[] { "A", "B" }));
-        Assert.That(foods.Select(f => (f.ServingLabel, f.ServingAmount)), Is.All.EqualTo(((string?)null, (double?)null)));
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM pragma_table_info('Food') WHERE name IN ('ServingLabel', 'ServingAmount')"), Is.EqualTo(0), "step 16 drops the columns");
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM Serving"), Is.EqualTo(0));
         Assert.That(await Version(), Is.EqualTo(DatabaseInitializer.CurrentVersion));
     }
 

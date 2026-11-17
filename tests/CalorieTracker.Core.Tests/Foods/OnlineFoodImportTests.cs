@@ -176,7 +176,8 @@ public class OnlineFoodImportTests
     [Test]
     public async Task Import_AFoodTheLookupAlreadyStored_IsReturnedAsItIs_WithoutImportingAgain()
     {
-        var stored = (await importer.ImportAsync(CanCode, (await realLookup.LookupAsync(CanCode)).Food!)).Food!;
+        var looked = await realLookup.LookupAsync(CanCode);
+        var stored = (await importer.ImportAsync(CanCode, looked.Food!, looked.Serving)).Food!;
         var lookup = new FakeLookup(BarcodeLookupResult.Found(stored, 330));
         var tap = new OnlineFoodImport(lookup, importer, logger);
         var servings = await connection.Table<Serving>().CountAsync();
@@ -217,6 +218,18 @@ public class OnlineFoodImportTests
             Assert.That(lookup.Asked, Is.EqualTo(new[] { "0123456789012" }));
             Assert.That((await connection.Table<Barcode>().ToListAsync()).Select(b => b.Code), Is.EqualTo(new[] { "0123456789012" }));
         });
+    }
+
+    [Test]
+    public async Task Import_AnUnsavedProductWithAServing_StoresItAsTheProductRow()
+    {
+        var food = new Food { Source = FoodSource.OpenFoodFacts, SourceId = "0123456789012", Name = "Serving food", Unit = FoodUnit.Gram, Kcal = 100, ProteinG = 1, CarbsG = 2, FatG = 3 };
+        var tap = new OnlineFoodImport(new FakeLookup(BarcodeLookupResult.Found(food, serving: new ProductServing("1 bar (40 g)", 40))), importer, logger);
+
+        var result = await tap.ImportAsync("123456789012");
+
+        var rows = await connection.Table<Serving>().ToListAsync();
+        Assert.That(rows.Select(r => (r.FoodId, r.Label, r.Amount, r.Source)), Is.EqualTo(new[] { (result.Food!.Id, "1 bar (40 g)", 40.0, ServingSource.Product) }));
     }
 
     [TestCase(BarcodeLookupStatus.NotFound, OnlineImportStatus.NotFound)]

@@ -69,8 +69,6 @@ public class ServingPageTests : ComponentTestBase
         CarbsG = from.CarbsG,
         FatG = from.FatG,
         PackageAmount = from.PackageAmount,
-        ServingLabel = from.ServingLabel,
-        ServingAmount = from.ServingAmount,
         SearchText = from.Name.ToLowerInvariant(),
     };
 
@@ -276,16 +274,16 @@ public class ServingPageTests : ComponentTestBase
     [Test]
     public async Task FoodWithAServingOutOfRange_ShowsNoSwitch()
     {
-        var id = await Insert(new Food
+        var long_ = new Food
         {
             Source = FoodSource.OpenFoodFacts,
             SourceId = "long",
             Name = "Long label",
             Kcal = 100,
-            ServingLabel = new string('x', FoodService.MaxServingLabelLength + 1),
-            ServingAmount = 50,
             SearchText = "long label",
-        });
+        };
+        (long_.ServingLabel, long_.ServingAmount) = (new string('x', FoodService.MaxServingLabelLength + 1), 50);
+        var id = await Insert(long_);
 
         var cut = Render(id, Meal.Lunch);
 

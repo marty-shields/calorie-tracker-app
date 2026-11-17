@@ -67,7 +67,8 @@ public class ServingViewTests : ComponentTestBase
     [Test]
     public void MillilitreFood_WithAServing_ShowsMlOnTheAmountTheServingAndThePer100Labels()
     {
-        var drink = new Food { Id = 15, Name = "Oat drink", Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 1, CarbsG = 6.7, FatG = 1.5, ServingLabel = "1 glass", ServingAmount = 200, ServingChecked = true };
+        var drink = new Food { Id = 15, Name = "Oat drink", Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 1, CarbsG = 6.7, FatG = 1.5, ServingChecked = true };
+        (drink.ServingLabel, drink.ServingAmount) = ("1 glass", 200);
         var inMl = Render(drink, EntryMode.Grams, 250, 250);
         var inServings = Render(drink, EntryMode.Servings, 2, 400);
 

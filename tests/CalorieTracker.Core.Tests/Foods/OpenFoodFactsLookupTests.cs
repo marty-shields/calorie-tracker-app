@@ -78,8 +78,7 @@ public class OpenFoodFactsLookupTests
 
         var result = await lookup.LookupAsync("5060198643156");
 
-        Assert.That(result.Food!.ServingLabel, Is.EqualTo("0.5 pizza (201.8 g)"));
-        Assert.That(result.Food.ServingAmount, Is.EqualTo(201.8));
+        Assert.That(result.Serving, Is.EqualTo(new ProductServing("0.5 pizza (201.8 g)", 201.8)));
     }
 
     [Test]
@@ -89,7 +88,7 @@ public class OpenFoodFactsLookupTests
 
         var result = await lookup.LookupAsync("5449000000996");
 
-        Assert.That((result.Food!.ServingLabel, result.Food.ServingAmount), Is.EqualTo(("1 portion (330 ml)", 330.0)));
+        Assert.That((result.Serving?.Label, result.Serving?.Amount), Is.EqualTo(("1 portion (330 ml)", 330.0)));
     }
 
     [Test]
@@ -99,7 +98,7 @@ public class OpenFoodFactsLookupTests
 
         var result = await lookup.LookupAsync(Barcode);
 
-        Assert.That((result.Food!.ServingLabel, result.Food.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+        Assert.That((result.Serving?.Label, result.Serving?.Amount), Is.EqualTo(((string?)null, (double?)null)));
     }
 
     [TestCase("\"serving_quantity\":330", "\"serving_quantity\":0", TestName = "Serving_WithZeroWeight_IsIgnored")]
@@ -117,7 +116,7 @@ public class OpenFoodFactsLookupTests
 
         Assert.That(result.Status, Is.EqualTo(BarcodeLookupStatus.Found));
         Assert.That(result.Food!.Unit, Is.EqualTo(FoodUnit.Millilitre));
-        Assert.That((result.Food.ServingLabel, result.Food.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+        Assert.That((result.Serving?.Label, result.Serving?.Amount), Is.EqualTo(((string?)null, (double?)null)));
     }
 
     [Test]
@@ -131,7 +130,7 @@ public class OpenFoodFactsLookupTests
         var result = await lookup.LookupAsync("5060198643156");
 
         Assert.That(result.Food!.Unit, Is.EqualTo(FoodUnit.Gram));
-        Assert.That((result.Food.ServingLabel, result.Food.ServingAmount), Is.EqualTo(("0.5 pizza (201.8 g)", 201.8)));
+        Assert.That((result.Serving?.Label, result.Serving?.Amount), Is.EqualTo(("0.5 pizza (201.8 g)", 201.8)));
     }
 
     [Test]
@@ -145,7 +144,7 @@ public class OpenFoodFactsLookupTests
         var result = await lookup.LookupAsync("5449000000996");
 
         Assert.That(result.Food!.Unit, Is.EqualTo(FoodUnit.Millilitre));
-        Assert.That((result.Food.ServingLabel, result.Food.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+        Assert.That((result.Serving?.Label, result.Serving?.Amount), Is.EqualTo(((string?)null, (double?)null)));
     }
 
     [Test]
@@ -675,7 +674,8 @@ public class OpenFoodFactsLookupTests
     {
         handler.Respond(Fixture("details-nutella-3017620422003.json"));
 
-        var food = (await lookup.LookupAsync(Barcode)).Food!;
+        var result = await lookup.LookupAsync(Barcode);
+        var food = result.Food!;
 
         Assert.Multiple(() =>
         {
@@ -685,7 +685,7 @@ public class OpenFoodFactsLookupTests
             Assert.That((food.Category, food.Popularity, food.Completeness), Is.EqualTo(("Sweets", (int?)804, (double?)0.9)));
             Assert.That(food.SourceUpdated, Is.EqualTo(DateTimeOffset.FromUnixTimeSeconds(1794233882)));
             Assert.That(food.FetchedAt, Is.EqualTo(clock.GetUtcNow()));
-            Assert.That((food.ServingLabel, food.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+            Assert.That((result.Serving?.Label, result.Serving?.Amount), Is.EqualTo(((string?)null, (double?)null)));
             Assert.That(food.SearchText, Is.EqualTo("nutella ferrero nutella hazelnut and cocoa spread sweets"));
         });
     }
@@ -716,9 +716,10 @@ public class OpenFoodFactsLookupTests
     {
         handler.Respond(Fixture("details-mars-5000159407236.json"));
 
-        var food = (await lookup.LookupAsync("5000159407236")).Food!;
+        var result = await lookup.LookupAsync("5000159407236");
+        var food = result.Food!;
 
-        Assert.That((food.ServingLabel, food.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+        Assert.That((result.Serving?.Label, result.Serving?.Amount), Is.EqualTo(((string?)null, (double?)null)));
         Assert.That((food.PackageAmount, food.Brands, food.GenericName), Is.EqualTo(((double?)51, "Mars, Mars Wrigley", (string?)null)));
     }
 
@@ -727,9 +728,10 @@ public class OpenFoodFactsLookupTests
     {
         handler.Respond(Fixture("details-weetabix-5010029000023.json"));
 
-        var food = (await lookup.LookupAsync("5010029000023")).Food!;
+        var result = await lookup.LookupAsync("5010029000023");
+        var food = result.Food!;
 
-        Assert.That((food.ServingLabel, food.ServingAmount, food.Category), Is.EqualTo(("37.5 gram", (double?)37.5, "Breakfast cereals")));
+        Assert.That((result.Serving?.Label, result.Serving?.Amount, food.Category), Is.EqualTo(("37.5 gram", (double?)37.5, "Breakfast cereals")));
     }
 
     [Test]
@@ -871,9 +873,10 @@ public class OpenFoodFactsLookupTests
         var body = Fixture("details-mars-5000159407236.json");
         handler.Respond(body.Replace("en:serving-quantity-over-product-quantity", "en:something-else"));
 
-        var food = (await lookup.LookupAsync("5000159407236")).Food!;
+        var result = await lookup.LookupAsync("5000159407236");
+        var food = result.Food!;
 
-        Assert.That((food.ServingLabel, food.ServingAmount, food.ServingChecked), Is.EqualTo(("100 g", (double?)100, (bool?)null)));
+        Assert.That((result.Serving?.Label, result.Serving?.Amount, food.ServingChecked), Is.EqualTo(("100 g", (double?)100, (bool?)null)));
     }
 
     [Test]

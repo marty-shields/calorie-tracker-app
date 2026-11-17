@@ -50,7 +50,7 @@ public class ScanPageTests : ComponentTestBase
     [Test]
     public async Task ScanAgain_AfterAFoundProduct_ShowsOpeningCameraAgain()
     {
-        lookup.Result = BarcodeLookupResult.Found(Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8));
+        lookup.Result = LookupServing.Found(Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8));
         var cut = Context.Render<ScanPage>();
         scanner.Complete(ScanResult.Scanned(Barcode));
         await WaitForRendererAsync();
@@ -136,7 +136,7 @@ public class ScanPageTests : ComponentTestBase
     [Test]
     public async Task Found_ShowsTheProductPer100g()
     {
-        lookup.Result = BarcodeLookupResult.Found(Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8));
+        lookup.Result = LookupServing.Found(Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8));
         var cut = await ScannedAsync();
 
         cut.WaitForAssertion(() =>
@@ -157,7 +157,7 @@ public class ScanPageTests : ComponentTestBase
     {
         var food = Product("Nutella", null, FoodUnit.Gram, 539, 6.3, 57.5, 30.9);
         (food.Brands, food.PackageLabel, food.GenericName) = ("Ferrero, Nutella", "400 g", "Hazelnut spread");
-        lookup.Result = BarcodeLookupResult.Found(food);
+        lookup.Result = LookupServing.Found(food);
         var cut = await ScannedAsync();
 
         cut.WaitForAssertion(() =>
@@ -172,7 +172,7 @@ public class ScanPageTests : ComponentTestBase
     [Test]
     public async Task Found_Liquid_ShowsPer100mlAndNoBrandWhenThereIsNone()
     {
-        lookup.Result = BarcodeLookupResult.Found(Product("Semi-skimmed milk", null, FoodUnit.Millilitre, 47, 3.5, 4.8, 1.7));
+        lookup.Result = LookupServing.Found(Product("Semi-skimmed milk", null, FoodUnit.Millilitre, 47, 3.5, 4.8, 1.7));
         var cut = await ScannedAsync();
 
         cut.WaitForAssertion(() =>
@@ -185,7 +185,7 @@ public class ScanPageTests : ComponentTestBase
     [Test]
     public async Task Found_WithValuesThatDoNotAddUp_ShowsTheWarning()
     {
-        lookup.Result = BarcodeLookupResult.Found(Product("Chocolate spread", "Nutty Co", FoodUnit.Gram, 250, 6, 55, 31));
+        lookup.Result = LookupServing.Found(Product("Chocolate spread", "Nutty Co", FoodUnit.Gram, 250, 6, 55, 31));
         var cut = await ScannedAsync();
 
         cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-warning]"), Has.Count.EqualTo(1)));
@@ -251,7 +251,7 @@ public class ScanPageTests : ComponentTestBase
     [TestCase(double.NaN)]
     public async Task Found_WithAValueThatCannotBeShown_ShowsNotFound(double kcal)
     {
-        lookup.Result = BarcodeLookupResult.Found(Product("Odd", null, FoodUnit.Gram, kcal, 1, 1, 1));
+        lookup.Result = LookupServing.Found(Product("Odd", null, FoodUnit.Gram, kcal, 1, 1, 1));
         var cut = await ScannedAsync();
 
         cut.WaitForAssertion(() =>
@@ -347,7 +347,7 @@ public class ScanPageTests : ComponentTestBase
         _ = cut.InvokeAsync(() => (Task)runScan.Invoke(cut.Instance, null)!);
         cut.WaitForAssertion(() => Assert.That(scanner.Scans, Has.Count.EqualTo(2)));
 
-        late.SetResult(BarcodeLookupResult.Found(Product("Porridge oats", null, FoodUnit.Gram, 372, 11, 60, 8)));
+        late.SetResult(LookupServing.Found(Product("Porridge oats", null, FoodUnit.Gram, 372, 11, 60, 8)));
         await WaitForRendererAsync();
 
         Assert.Multiple(() =>
@@ -382,7 +382,7 @@ public class ScanPageTests : ComponentTestBase
     {
         var food = Product("Porridge oats", null, FoodUnit.Gram, 372, 11, 60, 8);
         (food.FibreG, food.SugarsG, food.SaturatesG, food.SaltG) = (9, 1.1, 1.4, 0.3);
-        lookup.Result = BarcodeLookupResult.Found(food);
+        lookup.Result = LookupServing.Found(food);
         var cut = await ScannedAsync();
 
         cut.WaitForAssertion(() =>
@@ -399,7 +399,7 @@ public class ScanPageTests : ComponentTestBase
     {
         var food = Product("Porridge oats", null, FoodUnit.Gram, 372, 11, 60, 8);
         (food.FibreG, food.SugarsG) = (double.MaxValue, 2);
-        lookup.Result = BarcodeLookupResult.Found(food);
+        lookup.Result = LookupServing.Found(food);
         var cut = await ScannedAsync();
 
         cut.WaitForAssertion(() =>
@@ -415,7 +415,7 @@ public class ScanPageTests : ComponentTestBase
     {
         var food = Product("Digestive biscuits", "Morning Mill", FoodUnit.Gram, 480, 7, 62, 22);
         (food.Id, food.ServingLabel, food.ServingAmount) = (42, "1 biscuit", 15);
-        lookup.Result = BarcodeLookupResult.Found(food);
+        lookup.Result = LookupServing.Found(food);
         var added = new List<ScanAddRequest>();
         var cut = await ScannedAsync(p => p.Add(x => x.OnAddToDiary, added.Add));
 
@@ -430,7 +430,7 @@ public class ScanPageTests : ComponentTestBase
     {
         var food = Product("Cola", "Fizz", FoodUnit.Millilitre, 42, 0, 10.6, 0);
         food.Id = 7;
-        lookup.Result = BarcodeLookupResult.Found(food, 1000);
+        lookup.Result = LookupServing.Found(food, 1000);
         var added = new List<ScanAddRequest>();
         var cut = await ScannedAsync(p => p.Add(x => x.OnAddToDiary, added.Add));
 
@@ -443,7 +443,7 @@ public class ScanPageTests : ComponentTestBase
     [Test]
     public async Task Found_WithAFoodThatWasNotSaved_OffersNoAddToDiary()
     {
-        lookup.Result = BarcodeLookupResult.Found(Product("Porridge oats", null, FoodUnit.Gram, 372, 11, 60, 8));
+        lookup.Result = LookupServing.Found(Product("Porridge oats", null, FoodUnit.Gram, 372, 11, 60, 8));
         var cut = await ScannedAsync();
 
         cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-product]"), Has.Count.EqualTo(1)));
@@ -475,7 +475,7 @@ public class ScanPageTests : ComponentTestBase
         var food = Product("Biscuits", null, FoodUnit.Gram, 480, 7, 62, 22);
         (food.ServingLabel, food.ServingAmount) = (label, amount);
 
-        var product = ScanPage.ToProduct(food)!;
+        var product = ScanPage.ToProduct(food, serving: food.Product)!;
 
         Assert.That((product.ServingLabel, product.ServingAmount), Is.EqualTo(((string?)null, (decimal?)null)));
     }
@@ -486,7 +486,7 @@ public class ScanPageTests : ComponentTestBase
         var food = Product("Biscuits", null, FoodUnit.Gram, 480, 7, 62, 22);
         (food.ServingLabel, food.ServingAmount) = ($" {new string('a', FoodService.MaxServingLabelLength)} ", FoodService.MaxServingAmount);
 
-        var product = ScanPage.ToProduct(food)!;
+        var product = ScanPage.ToProduct(food, serving: food.Product)!;
 
         Assert.That((product.ServingLabel, product.ServingAmount), Is.EqualTo((new string('a', FoodService.MaxServingLabelLength), (decimal?)10_000)));
     }
@@ -497,7 +497,7 @@ public class ScanPageTests : ComponentTestBase
         var food = Product("Biscuits", null, FoodUnit.Gram, 480, 7, 62, 22);
         (food.FibreG, food.SugarsG, food.SaturatesG, food.SaltG) = (FoodService.MaxNutrientPer100 + 1, -1, FoodService.MaxNutrientPer100, 0);
 
-        var product = ScanPage.ToProduct(food)!;
+        var product = ScanPage.ToProduct(food, serving: food.Product)!;
 
         Assert.That((product.Fibre, product.Sugars, product.Saturates, product.Salt), Is.EqualTo(((decimal?)null, (decimal?)null, (decimal?)100, (decimal?)0)));
     }
@@ -567,7 +567,7 @@ public class ScanPageTests : ComponentTestBase
     {
         var food = Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8);
         (food.Id, food.ServingLabel, food.ServingAmount) = (42, "1 bowl", 40);
-        lookup.Result = BarcodeLookupResult.Found(food);
+        lookup.Result = LookupServing.Found(food);
         var cut = await ScannedAsync();
         cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-add]"), Has.Count.EqualTo(1)));
         cut.Find("[data-testid=scan-add]").Click();

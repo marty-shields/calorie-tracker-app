@@ -67,17 +67,6 @@ public class Food
     [NotNull]
     public FoodType Type { get; set; }
 
-    /// <summary>
-    /// How Open Food Facts words one serving, such as "0.5 pizza (201.8 g)". Null when the source gives none (CoFID never does); set together with <see cref="ServingAmount"/>.
-    /// Not a column (schema step 16 dropped it): a lookup carries its serving here for the store to write as the Product row of <c>Serving</c>, and a food read by barcode or id gets it from that row.
-    /// </summary>
-    [Ignore]
-    public string? ServingLabel { get; set; }
-
-    /// <summary>The serving's weight in grams, or volume in millilitres to match <see cref="Unit"/>. Above zero when set.</summary>
-    [Ignore]
-    public double? ServingAmount { get; set; }
-
     /// <summary>True once the source was asked for this food's serving and had no usable one (not found, or found without a serving), so it is not asked again. Null while unasked; an offline or rate-limited answer leaves it null.</summary>
     public bool? ServingChecked { get; set; }
 
