@@ -1,6 +1,7 @@
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Foods;
+using CalorieTracker.Core.History;
 using CalorieTracker.Core.Seed;
 using CalorieTracker.Core.Summary;
 using CalorieTracker.Core.Targets;
@@ -33,7 +34,10 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<TargetStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<DiaryStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<DaySummaryStore>(provider, connection))
+            .AddSingleton(provider => ActivatorUtilities.CreateInstance<FoodHistoryStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<FoodStore>(provider, connection))
+            .AddSingleton(provider => ActivatorUtilities.CreateInstance<ServingStore>(provider, connection))
+            .AddSingleton(provider => ActivatorUtilities.CreateInstance<NoticeStore>(provider, connection))
             .AddDecoratedSingleton<IDatabaseInitializer, GatedDatabaseInitializer>(provider =>
                 ActivatorUtilities.CreateInstance<DatabaseInitializer>(provider, connection))
             .AddDecoratedSingleton<IBarcodeLookup, StoredBarcodeLookup>(provider => provider.GetRequiredService<OpenFoodFactsLookup>());
@@ -48,7 +52,16 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<ISchemaUpgrade, FoodServingUpgrade>()
             .AddSingleton<ISchemaUpgrade, SettingsTableUpgrade>()
             .AddSingleton<ISchemaUpgrade, DiaryTableUpgrade>()
-            .AddSingleton<ISchemaUpgrade, FoodServingCheckedUpgrade>();
+            .AddSingleton<ISchemaUpgrade, FoodServingCheckedUpgrade>()
+            .AddSingleton<ISchemaUpgrade, FoodOriginalNameUpgrade>()
+            .AddSingleton<ISchemaUpgrade, FoodSourceDetailsUpgrade>()
+            .AddSingleton<ISchemaUpgrade, FoodUnitUpgrade>()
+            .AddSingleton<ISchemaUpgrade, FoodCordialUnitUpgrade>()
+            .AddSingleton<ISchemaUpgrade, ServingTableUpgrade>()
+            .AddSingleton<ISchemaUpgrade, BarcodeTableUpgrade>()
+            .AddSingleton<ISchemaUpgrade, PackServingUpgrade>()
+            .AddSingleton<ISchemaUpgrade, StorageCleanupUpgrade>()
+            .AddSingleton<ISchemaUpgrade, OnlineSearchNoticeUpgrade>();
 
     private static IServiceCollection AddServices(this IServiceCollection services)
     {
@@ -56,8 +69,13 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton(TimeProvider.System)
             .AddSingleton<IFoodSearch, FoodSearch>()
             .AddSingleton(provider => new FoodService(provider.GetRequiredService<FoodStore>(), provider.GetRequiredService<ILogger<FoodService>>()))
+            .AddSingleton(provider => new FoodImportService(provider.GetRequiredService<FoodStore>(), provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<FoodImportService>>()))
+            .AddSingleton<IOnlineFoodImport>(provider => new OnlineFoodImport(provider.GetRequiredService<IBarcodeLookup>(), provider.GetRequiredService<FoodImportService>(), provider.GetRequiredService<ILogger<OnlineFoodImport>>()))
+            .AddSingleton<IOnlineSearchNotice>(provider => new OnlineSearchNotice(provider.GetRequiredService<NoticeStore>(), provider.GetRequiredService<ILogger<OnlineSearchNotice>>()))
+            .AddSingleton(provider => new ServingService(provider.GetRequiredService<ServingStore>(), provider.GetRequiredService<ILogger<ServingService>>()))
             .AddSingleton(provider => new TargetService(provider.GetRequiredService<TargetStore>(), provider.GetRequiredService<ILogger<TargetService>>()))
             .AddSingleton(provider => new DiaryService(provider.GetRequiredService<DiaryStore>(), provider.GetRequiredService<ILogger<DiaryService>>()))
+            .AddSingleton(provider => new FoodHistoryService(provider.GetRequiredService<FoodHistoryStore>(), provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<FoodHistoryService>>()))
             .AddSingleton(provider => new DaySummaryService(provider.GetRequiredService<DaySummaryStore>(), provider.GetRequiredService<ILogger<DaySummaryService>>()))
             .AddSingleton<ISeedLoader>(provider =>
                 ActivatorUtilities.CreateInstance<SeedLoader>(provider, (Func<Stream>)SeedLoader.OpenBundledSeed))
@@ -70,6 +88,15 @@ public static class CoreServiceCollectionExtensions
             })
             // The singleton lookup keeps this client for the app's life, so connections must still be recycled to follow DNS changes.
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) });
+        services
+            .AddHttpClient<OnlineFoodSearch>(client =>
+            {
+                client.BaseAddress = new Uri("https://search.openfoodfacts.org/");
+                client.Timeout = TimeSpan.FromSeconds(10);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd(OnlineFoodSearch.UserAgent);
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) });
+        services.AddSingleton<IOnlineFoodSearch>(provider => provider.GetRequiredService<OnlineFoodSearch>());
         return services;
     }
 }

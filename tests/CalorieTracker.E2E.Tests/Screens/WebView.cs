@@ -89,6 +89,12 @@ public sealed class WebView
     public void NavigateTo(string route) =>
         App.ExecuteScript("Blazor.navigateTo(arguments[0], { forceLoad: false, replaceHistoryEntry: true });", route);
 
+    /// <summary>Picks the option of a <c>select</c> by its text and raises the change the page listens to, as choosing in the phone's list does.</summary>
+    public void Choose(string testId, string optionText) =>
+        App.ExecuteScript(
+            "const s = arguments[0]; const i = [...s.options].findIndex(o => o.textContent.trim() === arguments[1]); if (i < 0) throw new Error('no option ' + arguments[1]); s.selectedIndex = i; s.dispatchEvent(new Event('change', { bubbles: true }));",
+            Find(testId), optionText);
+
     /// <summary>Whether the element with this <c>data-testid</c> is enabled.</summary>
     public bool IsEnabled(string testId) => Find(testId).Enabled;
 

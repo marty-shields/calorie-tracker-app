@@ -1,5 +1,5 @@
 Feature: Diary journeys
-  The three routes that add a food to the diary, each tapped through once from where a person starts to where they land: a meal's +, the Foods tab and the Scan tab. All end at the Serving screen. The scan journey has no camera on an emulator, so a Debug-build seam hands the scanner a barcode and finds the first "oat" Ingredient for it (src/CalorieTracker.App/Scanning/E2EScanSeam.cs).
+  The three routes that add a food to the diary, each tapped through once from where a person starts to where they land: a meal's +, the Foods tab and the Scan tab. All end at the Serving screen. The scan journey has no camera on an emulator, so a Debug-build seam hands the scanner a barcode and finds the top search result for "oat" for it (src/CalorieTracker.App/Scanning/E2EScanSeam.cs).
 
   @smoke
   Scenario: Journey 1 Add from a meal plus and land on the day with Undo

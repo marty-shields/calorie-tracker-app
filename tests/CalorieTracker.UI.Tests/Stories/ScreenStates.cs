@@ -1,8 +1,10 @@
 using AngleSharp.Dom;
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Summary;
 using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Models.Scan;
+using CalorieTracker.UI.Models.Search;
 using CalorieTracker.UI.Models.Serving;
 using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Navigation;
@@ -26,9 +28,9 @@ public static class ScreenStates
 {
     private static readonly IReadOnlyList<Food> SampleFoods =
     [
-        new() { Id = 1, Name = "Oats, rolled", Type = FoodType.Ingredient, Unit = FoodUnit.Gram, Kcal = 375, ProteinG = 11, CarbsG = 60, FatG = 9, FibreG = 8.5, SugarsG = 1, SaturatesG = 1.6, SaltG = 0 },
-        new() { Id = 2, Name = "Porridge oats", Brand = "Quaker", Type = FoodType.Food, Unit = FoodUnit.Gram, Kcal = 372, ProteinG = 11, CarbsG = 60, FatG = 8.5 },
-        new() { Id = 3, Name = "Oat drink", Brand = "Oatly", Type = FoodType.Drink, Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 1, CarbsG = 6.7, FatG = 1.5 },
+        new() { Id = 1, Name = "Oats, rolled", Unit = FoodUnit.Gram, Kcal = 375, ProteinG = 11, CarbsG = 60, FatG = 9, FibreG = 8.5, SugarsG = 1, SaturatesG = 1.6, SaltG = 0 },
+        new() { Id = 2, Name = "Porridge oats", Brand = "Quaker", Unit = FoodUnit.Gram, Kcal = 372, ProteinG = 11, CarbsG = 60, FatG = 8.5 },
+        new() { Id = 3, Name = "Oat drink", Brand = "Oatly", Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 1, CarbsG = 6.7, FatG = 1.5 },
     ];
 
     internal static readonly Food Pizza = new()
@@ -36,22 +38,20 @@ public static class ScreenStates
         Id = 11,
         Name = "Margherita pizza",
         Brand = "Casa Roma",
-        Type = FoodType.Food,
         Unit = FoodUnit.Gram,
         Kcal = 258,
         ProteinG = 11.2,
         CarbsG = 31.5,
         FatG = 9.9,
-        ServingLabel = "½ pizza (201.8 g)",
-        ServingAmount = 201.8,
     };
+
+    internal static readonly Food Mars = ServingSamples.Mars;
 
     internal static readonly Food Biscuits = new()
     {
         Id = 12,
         Name = "Digestive biscuits",
         Brand = "Morning Mill",
-        Type = FoodType.Food,
         Unit = FoodUnit.Gram,
         Kcal = 487,
         ProteinG = 7,
@@ -63,7 +63,6 @@ public static class ScreenStates
     {
         Id = 13,
         Name = "Cheddar cheese",
-        Type = FoodType.Ingredient,
         Unit = FoodUnit.Gram,
         Kcal = 416,
         ProteinG = 25.4,
@@ -75,15 +74,12 @@ public static class ScreenStates
     {
         Id = 14,
         Name = "Semi-skimmed milk",
-        Type = FoodType.Drink,
         Unit = FoodUnit.Millilitre,
         Kcal = 47,
         ProteinG = 3.5,
         CarbsG = 4.8,
         FatG = 1.7,
     };
-
-    private static readonly IReadOnlyList<Food> Ingredients = SampleFoods.Where(f => f.Type == FoodType.Ingredient).ToList();
 
     public static IReadOnlyList<ScreenState> All { get; } =
     [
@@ -97,6 +93,7 @@ public static class ScreenStates
         new("Screens/Dashboard", "Loading", c => Dashboard(c, null, loading: true)),
         new("Screens/Dashboard", "Load failed", c => Dashboard(c, null, loadFailed: true)),
         new("Screens/Dashboard", "Future day", c => Dashboard(c, DashboardSamples.Loaded, DashboardSamples.Today.AddDays(1))),
+        new("Screens/Dashboard", "Branded foods", c => Dashboard(c, DashboardSamples.Branded)),
         new("Screens/Dashboard", "Entry removed", c => Dashboard(c, DashboardSamples.Loaded, snackbar: "Cheddar cheese removed")),
 
         new("Screens/Settings", "Default", c => Settings(c, version: "1.0.0", target: 2100)),
@@ -106,19 +103,36 @@ public static class ScreenStates
         new("Screens/Settings", "Target not set", c => Settings(c, version: "1.0.0")),
         new("Screens/Settings", "Invalid target", c => Settings(c, version: "1.0.0", target: 0, targetInvalidMessage: "Enter a whole number above 0, or clear the field.")),
 
-        new("Screens/FoodSearch", "Loading", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, loading: true)),
-        new("Screens/FoodSearch", "Nothing typed", c => FoodSearch(c, filter: FoodType.Ingredient)),
-        new("Screens/FoodSearch", "Results", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, results: Ingredients)),
-        new("Screens/FoodSearch", "Foods filter", c => FoodSearch(c, query: "oat", filter: FoodType.Food, results: SampleFoods.Where(f => f.Type == FoodType.Food).ToList())),
-        new("Screens/FoodSearch", "Drinks filter", c => FoodSearch(c, query: "oat", filter: FoodType.Drink, results: SampleFoods.Where(f => f.Type == FoodType.Drink).ToList())),
-        new("Screens/FoodSearch", "All filter", c => FoodSearch(c, query: "oat", results: SampleFoods)),
-        new("Screens/FoodSearch", "No results", c => FoodSearch(c, query: "zzz", filter: FoodType.Ingredient)),
-        new("Screens/FoodSearch", "No match on a filter", c => FoodSearch(c, query: "oat", filter: FoodType.Drink)),
-        new("Screens/FoodSearch", "Food selected", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, results: Ingredients, selected: Ingredients[0])),
-        new("Screens/FoodSearch", "Add to a meal", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, results: Ingredients, meal: Meal.Lunch)),
-        new("Screens/FoodSearch", "Add to a meal with nothing typed", c => FoodSearch(c, filter: FoodType.Ingredient, meal: Meal.Snacks)),
-        new("Screens/FoodSearch", "Add to a meal with no results", c => FoodSearch(c, query: "xyzzy", filter: FoodType.Ingredient, meal: Meal.Lunch)),
-        new("Screens/FoodSearch", "Search failed", c => FoodSearch(c, query: "oat", filter: FoodType.Ingredient, failed: true)),
+        new("Screens/FoodSearch", "Loading", c => FoodSearch(c, query: "oat", loading: true)),
+        new("Screens/FoodSearch", "Nothing typed", c => FoodSearch(c)),
+        new("Screens/FoodSearch", "Nothing typed with history", c => FoodSearch(c, groups: FoodSearchSamples.IdleRecent)),
+        new("Screens/FoodSearch", "Results", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups)),
+        new("Screens/FoodSearch", "Results with branded foods", c => FoodSearch(c, query: "mars", groups: FoodSearchSamples.BrandedGroup)),
+        new("Screens/FoodSearch", "Results in one group", c => FoodSearch(c, query: "rolled", groups: FoodSearchSamples.OneGroup)),
+        new("Screens/FoodSearch", "Results with more to show", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.LongGroup)),
+        new("Screens/FoodSearch", "Results with an expanded group", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.LongGroup, expanded: [FoodGroupKind.Common])),
+        new("Screens/FoodSearch", "No results", c => FoodSearch(c, query: "zzz")),
+        new("Screens/FoodSearch", "Food selected", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups, selected: SampleFoods[0])),
+        new("Screens/FoodSearch", "Branded food selected", c => FoodSearch(c, query: "nutella", groups: FoodSearchSamples.BrandedGroup, selected: FoodSearchSamples.BrandedFoods[1])),
+        new("Screens/FoodSearch", "Add to a meal", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups, meal: Meal.Lunch)),
+        new("Screens/FoodSearch", "Add to a meal with nothing typed", c => FoodSearch(c, meal: Meal.Snacks)),
+        new("Screens/FoodSearch", "Add to a meal with history", c => FoodSearch(c, groups: FoodSearchSamples.Idle, meal: Meal.Breakfast)),
+        new("Screens/FoodSearch", "Add to a meal with no results", c => FoodSearch(c, query: "xyzzy", meal: Meal.Lunch)),
+        new("Screens/FoodSearch", "Online search button", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored, noticeVisible: true)),
+        new("Screens/FoodSearch", "Online search button after the notice", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored)),
+        new("Screens/FoodSearch", "No results with online search", c => FoodSearch(c, query: "zzz", noticeVisible: true)),
+        new("Screens/FoodSearch", "Online searching", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Searching)),
+        new("Screens/FoodSearch", "Online results", c => FoodSearch(c, query: "coca-cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Results, products: FoodSearchSamples.OnlineColas, country: "United Kingdom")),
+        new("Screens/FoodSearch", "Online results expanded", c => FoodSearch(c, query: "coca-cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Results, products: FoodSearchSamples.OnlineColas, country: "United Kingdom", onlineExpanded: true)),
+        new("Screens/FoodSearch", "Online results worldwide", c => FoodSearch(c, query: "coca-cola", online: OnlineSearchState.Results, products: FoodSearchSamples.OnlineFew)),
+        new("Screens/FoodSearch", "Online fetching a product", c => FoodSearch(c, query: "coca-cola", online: OnlineSearchState.Importing, products: FoodSearchSamples.OnlineFew, country: "United Kingdom")),
+        new("Screens/FoodSearch", "Online nothing found", c => FoodSearch(c, query: "zzz", online: OnlineSearchState.None)),
+        new("Screens/FoodSearch", "Online busy", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Busy)),
+        new("Screens/FoodSearch", "Online offline", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Offline)),
+        new("Screens/FoodSearch", "Online failed", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Failed)),
+        new("Screens/FoodSearch", "Online product unavailable", c => FoodSearch(c, query: "coca-cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Unavailable, products: FoodSearchSamples.OnlineFew, country: "United Kingdom")),
+        new("Screens/FoodSearch", "Online results in add mode", c => FoodSearch(c, query: "coca-cola", meal: Meal.Lunch, online: OnlineSearchState.Results, products: FoodSearchSamples.OnlineFew, country: "United Kingdom")),
+        new("Screens/FoodSearch", "Search failed", c => FoodSearch(c, query: "oat", failed: true)),
         new("Screens/Scan", "Opening camera", c => Scan(c, ScanState.OpeningCamera)),
         new("Screens/Scan", "Closing camera", c => Scan(c, ScanState.Closing)),
         new("Screens/Scan", "Looking up", c => Scan(c, ScanState.LookingUp)),
@@ -126,12 +140,19 @@ public static class ScreenStates
         new("Screens/Scan", "Found liquid", c => Scan(c, ScanState.Found, new("Semi-skimmed milk", null, 47, 3.5m, 4.8m, 1.7m, IsLiquid: true, FoodId: 2))),
         new("Screens/Scan", "Found with extra nutrients", c => Scan(c, ScanState.Found, new("Porridge oats", "Morning Mill", 372, 11, 60, 8, Fibre: 9, Sugars: 1.1m, Saturates: 1.4m, Salt: 0.01m, FoodId: 1))),
         new("Screens/Scan", "Found with a serving", c => Scan(c, ScanState.Found, new("Digestive biscuits", "Morning Mill", 480, 7, 62, 22, FoodId: 3, ServingLabel: "1 biscuit", ServingAmount: 15))),
+        new("Screens/Scan", "Found with brand and pack", c => Scan(c, ScanState.Found, new("Nutella", "Ferrero", 539, 6.3m, 57.5m, 30.9m, FoodId: 5, Brands: "Ferrero, Nutella", GenericName: "Hazelnut spread with cocoa", PackageLabel: "400 g e"))),
         new("Screens/Scan", "Found with warning", c => Scan(c, ScanState.Found, new("Chocolate spread", "Nutty Co", 250, 6, 55, 31, FoodId: 4))),
         new("Screens/Scan", "Not found", c => Scan(c, ScanState.NotFound)),
         new("Screens/Scan", "Camera unavailable", c => Scan(c, ScanState.CameraUnavailable)),
 
-        new("Screens/Serving", "Servings", c => Serving(c, Pizza, EntryMode.Servings, 1, 201.8, Meal.Lunch)),
-        new("Screens/Serving", "Grams with a serving", c => Serving(c, Pizza, EntryMode.Grams, 150, 150, Meal.Lunch)),
+        new("Screens/Serving", "Servings", c => Serving(c, Pizza, EntryMode.Servings, 1, 201.8, Meal.Lunch, servings: ServingSamples.PizzaServings)),
+        new("Screens/Serving", "Grams with a serving", c => Serving(c, Pizza, EntryMode.Grams, 150, 150, Meal.Lunch, servings: ServingSamples.PizzaServings)),
+        new("Screens/Serving", "Pack as one serving", c => Serving(c, Mars, EntryMode.Servings, 1, 51, Meal.Snacks, servings: ServingSamples.MarsServings)),
+        new("Screens/Serving", "Choose between two servings", c => Serving(c, ServingSamples.Cola, EntryMode.Servings, 1, 330, Meal.Snacks, servings: ServingSamples.ColaServings, servingId: 162)),
+        new("Screens/Serving", "Own serving chosen", c => Serving(c, ServingSamples.Cola, EntryMode.Servings, 2, 400, Meal.Snacks, servings: ServingSamples.ColaServingsWithOwn, servingId: 163)),
+        new("Screens/Serving", "Add your own serving", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, addingOwn: true, ownLabel: "1 slice", ownAmount: 28)),
+        new("Screens/Serving", "Own serving invalid", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, addingOwn: true, ownLabel: "1 slice", ownAmount: 0)),
+        new("Screens/Serving", "Own serving repeats a size", c => Serving(c, ServingSamples.Cola, EntryMode.Servings, 1, 250, Meal.Snacks, servings: ServingSamples.ColaServingsWithOwn, servingId: 161, addingOwn: true, ownLabel: "Big mug", ownAmount: 200, ownError: "You already have a serving of that size.")),
         new("Screens/Serving", "Scanned product with no serving", c => Serving(c, Biscuits, EntryMode.Grams, 30, 30, Meal.Lunch)),
         new("Screens/Serving", "CoFID ingredient", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch)),
         new("Screens/Serving", "Liquid", c => Serving(c, Milk, EntryMode.Grams, 250, 250, Meal.Breakfast)),
@@ -142,7 +163,7 @@ public static class ScreenStates
         new("Screens/Serving", "Saving", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, saving: true)),
         new("Screens/Serving", "Save failed", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, saveFailed: true)),
         new("Screens/Serving", "Edit entry", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, editing: true)),
-        new("Screens/Serving", "Edit entry in servings", c => Serving(c, Pizza, EntryMode.Servings, 1, 201.8, Meal.Lunch, editing: true)),
+        new("Screens/Serving", "Edit entry in servings", c => Serving(c, Pizza, EntryMode.Servings, 1, 201.8, Meal.Lunch, editing: true, servings: ServingSamples.PizzaServings)),
         new("Screens/Serving", "Saving entry", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, saving: true, editing: true)),
         new("Screens/Serving", "Entry save failed", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, saveFailed: true, editing: true)),
         new("Screens/Serving", "Entry remove failed", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, removeFailed: true, editing: true)),
@@ -154,15 +175,16 @@ public static class ScreenStates
         new("Screens/Error", "Error", c => c.Render<ErrorView>(p => p.Add(x => x.OnRestart, () => { })).FindAll("*")),
     ];
 
-    private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", FoodType? filter = null, IReadOnlyList<Food>? results = null, Food? selected = null, bool loading = false, bool failed = false, Meal? meal = null) =>
+    private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", IReadOnlyList<FoodGroup>? groups = null, Food? selected = null, bool loading = false, bool failed = false, Meal? meal = null, FoodGroupKind[]? expanded = null,
+        OnlineSearchState online = OnlineSearchState.Idle, IReadOnlyList<OnlineProduct>? products = null, string? country = null, bool onlineExpanded = false, bool noticeVisible = false) =>
         context.Render<FoodSearchView>(p => p
             .Add(x => x.Meal, meal)
             .Add(x => x.OnAdd, (Food _) => { })
             .Add(x => x.OnBack, () => { })
             .Add(x => x.Query, query)
-            .Add(x => x.Filter, filter)
-            .Add(x => x.OnFilterChanged, (FoodType? _) => { })
-            .Add(x => x.Results, results ?? [])
+            .Add(x => x.Groups, groups ?? [])
+            .Add(x => x.Expanded, (expanded ?? []).ToHashSet())
+            .Add(x => x.OnExpand, (FoodGroupKind _) => { })
             .Add(x => x.Selected, selected)
             .Add(x => x.Loading, loading)
             .Add(x => x.Failed, failed)
@@ -170,13 +192,36 @@ public static class ScreenStates
             .Add(x => x.OnSelect, (Food _) => { })
             .Add(x => x.OnClearSelection, () => { })
             .Add(x => x.OnRetry, () => { })
+            .Add(x => x.OnlineState, online)
+            .Add(x => x.OnlineProducts, products ?? [])
+            .Add(x => x.OnlineCountry, country)
+            .Add(x => x.OnlineExpanded, onlineExpanded)
+            .Add(x => x.OnlineNoticeVisible, noticeVisible)
+            .Add(x => x.OnSearchOnline, () => { })
+            .Add(x => x.OnSelectOnline, (OnlineProduct _) => { })
+            .Add(x => x.OnExpandOnline, () => { })
+            .Add(x => x.OnRetryOnline, () => { })
             .Add(x => x.OnNavigate, (NavDestination _) => { }))
             .FindAll("*");
 
     internal static IReadOnlyList<IElement> Serving(BunitContext context, Food? food, EntryMode mode = EntryMode.Servings, decimal? amount = null, double? grams = null, Meal meal = Meal.Breakfast,
-        TimeOnly? suggestedAt = null, bool saving = false, bool saveFailed = false, bool loading = false, bool loadFailed = false, bool editing = false, bool removeFailed = false, bool entryGone = false) =>
+        TimeOnly? suggestedAt = null, bool saving = false, bool saveFailed = false, bool loading = false, bool loadFailed = false, bool editing = false, bool removeFailed = false, bool entryGone = false,
+        IReadOnlyList<CalorieTracker.Core.Data.Serving>? servings = null, int? servingId = null, bool addingOwn = false, string? ownLabel = null, decimal? ownAmount = null, string? ownError = null) =>
         context.Render<ServingView>(p => p
             .Add(x => x.Food, food)
+            .Add(x => x.Servings, servings ?? [])
+            .Add(x => x.ServingId, servingId)
+            .Add(x => x.AddingOwn, addingOwn)
+            .Add(x => x.OwnLabel, ownLabel)
+            .Add(x => x.OwnAmount, ownAmount)
+            .Add(x => x.OwnError, ownError)
+            .Add(x => x.OnServingChanged, (int _) => { })
+            .Add(x => x.OnOwnOpen, () => { })
+            .Add(x => x.OnOwnLabelChanged, (string _) => { })
+            .Add(x => x.OnOwnAmountChanged, (decimal? _) => { })
+            .Add(x => x.OnOwnSave, () => { })
+            .Add(x => x.OnOwnCancel, () => { })
+            .Add(x => x.OnDeleteOwn, () => { })
             .Add(x => x.Mode, mode)
             .Add(x => x.Amount, amount)
             .Add(x => x.Grams, grams)

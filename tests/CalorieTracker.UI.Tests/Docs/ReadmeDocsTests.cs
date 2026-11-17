@@ -20,6 +20,17 @@ public partial class ReadmeDocsTests
     }
 
     [Test]
+    public void Screenshots_ShowTheFoodSearchAndServingScreens()
+    {
+        var shown = ReadmeScreenshot().Matches(Readme).Select(m => m.Groups[1].Value).ToList();
+        var table = RepoFiles.Read("docs", "dev-setup-build.md");
+
+        Assert.That(shown, Does.Contain("food-search").And.Contain("serving"));
+        Assert.That(table, Does.Contain("| `food-search` | `screens-foodsearch--results` |").And.Contain("| `serving` | `screens-serving--servings` |"));
+        Assert.That(Readme, Does.Contain("docs/images/readme/food-search-dark.png").And.Contain("docs/images/readme/serving-dark.png"));
+    }
+
+    [Test]
     public void YourData_SaysABarcodeLeavesThePhone()
     {
         var section = YourData();
@@ -34,7 +45,7 @@ public partial class ReadmeDocsTests
         var section = YourData();
 
         Assert.That(section, Does.Contain("Your diary, daily target and foods are stored on the phone and in its Android backup")
-            .And.Contain("A diary entry holds the food id, the amount (g or ml, and the servings if you entered them), the meal, the day and whether it was removed.")
+            .And.Contain("A diary entry holds the food id, the amount (g or ml, and the servings and which serving if you entered them), the meal, the day and whether it was removed.")
             .And.Contain("The daily target is one number of calories.")
             .And.Contain("The theme is kept in the app's web storage, not the database.")
             .And.Contain("The app sends none of your diary, daily target or settings anywhere."));

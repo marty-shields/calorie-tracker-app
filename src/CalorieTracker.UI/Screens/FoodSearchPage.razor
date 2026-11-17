@@ -2,23 +2,42 @@
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Foods
 @using CalorieTracker.Core.Seed
+@using CalorieTracker.UI.Models.Search
 @using Microsoft.Extensions.Logging
 @inject IFoodSearch Search
+@inject IOnlineFoodSearch OnlineSearch
+@inject IOnlineFoodImport OnlineImport
+@inject IOnlineSearchNotice OnlineNotice
 @inject SeedProgress Seed
 @inject ILogger<FoodSearchPage> Logger
 
-<FoodSearchView Meal="Meal" Query="@query" Filter="filter" OnFilterChanged="ChangeFilter" Results="results" Selected="selected" Loading="loading" Failed="failed"
-                OnQueryChanged="SearchAsync" OnSelect="SelectAsync" OnAdd="AddAsync" OnBack="OnBack" OnClearSelection="ClearSelection" OnRetry="Retry" OnNavigate="OnNavigate" />
+<FoodSearchView Meal="Meal" Query="@query" Groups="groups" Expanded="expanded" OnExpand="Expand" Selected="selected" Loading="loading" Failed="failed"
+                OnQueryChanged="SearchAsync" OnSelect="SelectAsync" OnAdd="AddAsync" OnBack="OnBack" OnClearSelection="ClearSelection" OnRetry="Retry" OnNavigate="OnNavigate"
+                OnlineState="onlineState" OnlineProducts="onlineProducts" OnlineCountry="@onlineCountry" OnlineExpanded="onlineExpanded" OnlineNoticeVisible="noticeVisible"
+                OnSearchOnline="SearchOnlineAsync" OnSelectOnline="SelectOnlineAsync" OnExpandOnline="ExpandOnline" OnRetryOnline="RetryOnlineAsync" />
 
 @code {
     private string query = "";
-    private FoodType? filter = FoodType.Ingredient;
-    private IReadOnlyList<Food> results = [];
+    private IReadOnlyList<FoodGroup> groups = [];
+    private readonly HashSet<FoodGroupKind> expanded = [];
     private Food? selected;
     private bool loading;
     private bool failed;
     private bool seedFailed;
     private bool disposed;
+
+    private OnlineSearchState onlineState;
+    private IReadOnlyList<OnlineProduct> onlineProducts = [];
+    private string? onlineCountry;
+    private bool onlineExpanded;
+    private bool noticeVisible;
+    private CancellationTokenSource? onlineRunning;
+
+    /// <summary>The product tapped last, so Try again fetches it again; null when the last tap was the search.</summary>
+    private OnlineProduct? lastTapped;
+
+    /// <summary>The pack, in g or ml, of the barcode of the product imported from the results, so Add to diary on its values opens Serving on that pack. Null for any other food.</summary>
+    private double? selectedPack;
 
     /// <summary>Set by the first result tapped in add mode, so a double tap adds once. The page is left on the way out, so it is never cleared.</summary>
     private bool added;
@@ -31,10 +50,6 @@
     /// <summary>The text the search opens with, such as when coming back from adding a food. Read once, when the page starts.</summary>
     [Parameter]
     public string? InitialQuery { get; set; }
-
-    /// <summary>The type the search opens on; null is All. Read once, when the page starts.</summary>
-    [Parameter]
-    public FoodType? InitialFilter { get; set; } = FoodType.Ingredient;
 
     /// <summary>Raised to add a food: from a result in add mode, or Add to diary on a food's values. Carries the search so it can be restored on the way back.</summary>
     [Parameter]
@@ -51,16 +66,20 @@
     protected override async Task OnInitializedAsync()
     {
         query = InitialQuery ?? "";
-        filter = InitialFilter;
+        var notice = ReadNoticeAsync();
         if (Seed.Current is { } load)
         {
             await WaitForSeedAsync(load);
         }
-        else if (query.Length > 0)
+        else
         {
             await SearchAsync(query);
         }
+
+        await notice;
     }
+
+    private async Task ReadNoticeAsync() => noticeVisible = !await OnlineNotice.WasShownAsync();
 
     /// <summary>Shows the loading state until the food seed finishes, then repeats what was typed meanwhile.</summary>
     private async Task WaitForSeedAsync(Task<SeedLoadResult> load)
@@ -90,6 +109,11 @@
     /// <summary>Searches as the user types; a newer keystroke cancels the search still running. While the seed loads, the text is kept and searched once it finishes.</summary>
     private async Task SearchAsync(string text)
     {
+        if (text != query)
+        {
+            ResetOnline();
+        }
+
         query = text;
         CancelRunning();
         if (loading)
@@ -101,24 +125,21 @@
         var token = source.Token;
         try
         {
-            var result = await Search.SearchAsync(text, filter, ct: token);
+            var typed = !string.IsNullOrWhiteSpace(text);
+            var result = typed ? await Search.SearchGroupedAsync(text, Meal, token) : await Search.SuggestAsync(Meal, token);
             if (token.IsCancellationRequested)
             {
                 return;
             }
 
-            failed = seedFailed || result.Status == FoodSearchStatus.Failed;
-            results = result.Foods;
+            // A failed read of the foods to start from is not an error: the screen shows its empty prompt and typing still works.
+            failed = seedFailed || (typed && result.Status == FoodSearchStatus.Failed);
+            groups = result.Groups;
+            expanded.Clear();
         }
         catch (OperationCanceledException)
         {
         }
-    }
-
-    private Task ChangeFilter(FoodType? type)
-    {
-        filter = type;
-        return SearchAsync(query);
     }
 
     private void CancelRunning()
@@ -135,6 +156,12 @@
 
     private Task SelectAsync(Food food)
     {
+        if (onlineState == OnlineSearchState.Importing)
+        {
+            return Task.CompletedTask;
+        }
+
+        selectedPack = null;
         if (Meal is null)
         {
             selected = food;
@@ -150,9 +177,146 @@
         return AddAsync(food);
     }
 
-    private Task AddAsync(Food food) => OnAdd.InvokeAsync(new FoodAddRequest(food, query, filter));
+    private void Expand(FoodGroupKind kind) => expanded.Add(kind);
 
-    private void ClearSelection() => selected = null;
+    private void ExpandOnline() => onlineExpanded = true;
+
+    /// <summary>The typed text changed: what the online search answered belongs to the old text, so it goes (the session cache brings it back for the same text), and a search or fetch still running is let go.</summary>
+    private void ResetOnline()
+    {
+        CancelOnline();
+        onlineState = OnlineSearchState.Idle;
+        onlineProducts = [];
+        onlineCountry = null;
+        onlineExpanded = false;
+        lastTapped = null;
+    }
+
+    private void CancelOnline()
+    {
+        onlineRunning?.Cancel();
+        onlineRunning?.Dispose();
+        onlineRunning = null;
+    }
+
+    /// <summary>The tap that sends the typed text to the online search. Nothing else does; the first tap also counts as the person having seen the notice.</summary>
+    private async Task SearchOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(query) || onlineState is OnlineSearchState.Searching or OnlineSearchState.Importing)
+        {
+            return;
+        }
+
+        lastTapped = null;
+        var text = query;
+        CancelOnline();
+        var source = onlineRunning = new CancellationTokenSource();
+        var token = source.Token;
+        onlineState = OnlineSearchState.Searching;
+        onlineProducts = [];
+        onlineExpanded = false;
+        if (noticeVisible)
+        {
+            noticeVisible = false;
+            await OnlineNotice.MarkShownAsync();
+        }
+
+        OnlineSearchResult result;
+        try
+        {
+            result = await OnlineSearch.SearchAsync(text, token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        // The text changed (or the page went) while the search ran: its answer is for something else.
+        if (disposed || token.IsCancellationRequested)
+        {
+            return;
+        }
+
+        onlineCountry = result.Country;
+        onlineProducts = result.Products;
+        onlineState = result.Status switch
+        {
+            OnlineSearchStatus.Found => OnlineSearchState.Results,
+            OnlineSearchStatus.None => OnlineSearchState.None,
+            OnlineSearchStatus.Limited => OnlineSearchState.Busy,
+            OnlineSearchStatus.Offline => OnlineSearchState.Offline,
+            _ => OnlineSearchState.Failed,
+        };
+    }
+
+    /// <summary>Stores the tapped product as a scan would and goes on with the food: Serving on the pack in add mode, the food's values on the Foods tab.</summary>
+    private async Task SelectOnlineAsync(OnlineProduct product)
+    {
+        if (onlineState == OnlineSearchState.Importing || added)
+        {
+            return;
+        }
+
+        lastTapped = product;
+        CancelOnline();
+        var source = onlineRunning = new CancellationTokenSource();
+        onlineState = OnlineSearchState.Importing;
+        OnlineImportResult result;
+        try
+        {
+            result = await OnlineImport.ImportAsync(product.Barcode, source.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        if (disposed || source.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (result is not { Status: OnlineImportStatus.Imported, Food: { } food })
+        {
+            onlineState = result.Status switch
+            {
+                OnlineImportStatus.Limited => OnlineSearchState.Busy,
+                OnlineImportStatus.Offline => OnlineSearchState.Offline,
+                OnlineImportStatus.NotFound => OnlineSearchState.Unavailable,
+                _ => OnlineSearchState.Failed,
+            };
+            return;
+        }
+
+        // The product is stored now; its row is no longer new when the list is shown again.
+        onlineProducts = onlineProducts.Select(p => p.Barcode == product.Barcode ? p with { IsNew = false } : p).ToList();
+        onlineState = OnlineSearchState.Results;
+        lastTapped = null;
+        if (Meal is null)
+        {
+            selectedPack = result.PackAmount;
+            selected = food;
+            return;
+        }
+
+        added = true;
+        await OnAdd.InvokeAsync(new FoodAddRequest(food, query, PackAmount: result.PackAmount));
+    }
+
+    private Task RetryOnlineAsync() => lastTapped is { } product ? SelectOnlineAsync(product) : SearchOnlineAsync();
+
+    /// <summary>Carries the amount last logged, when the food was logged before, so Serving opens with it filled in.</summary>
+    private Task AddAsync(Food food)
+    {
+        var last = groups.SelectMany(g => g.Foods).FirstOrDefault(l => l.Food.Id == food.Id)?.History;
+        return OnAdd.InvokeAsync(new FoodAddRequest(food, query, last?.LastAmount, last?.LastServings, last?.LastServingId, selectedPack));
+    }
+
+    private void ClearSelection()
+    {
+        selected = null;
+        selectedPack = null;
+    }
 
     private Task Retry()
     {
@@ -170,5 +334,6 @@
     {
         disposed = true;
         CancelRunning();
+        CancelOnline();
     }
 }

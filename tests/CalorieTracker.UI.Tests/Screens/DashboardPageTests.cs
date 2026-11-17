@@ -21,6 +21,7 @@ public class DashboardPageTests : ComponentTestBase
     private SQLiteAsyncConnection connection = null!;
     private ServiceProvider core = null!;
     private int cheddarId;
+    private int sliceId;
 
     [SetUp]
     public async Task SetUp()
@@ -43,12 +44,13 @@ public class DashboardPageTests : ComponentTestBase
             ProteinG = 25.4,
             CarbsG = 0.1,
             FatG = 34.9,
-            ServingLabel = "1 slice (20 g)",
-            ServingAmount = 20,
             SearchText = "cheddar cheese",
         };
         await connection.InsertAsync(cheddar);
         cheddarId = cheddar.Id;
+        var slice = new Serving { FoodId = cheddarId, Label = "1 slice (20 g)", Amount = 20, Source = ServingSource.Product, SortOrder = 0 };
+        await connection.InsertAsync(slice);
+        sliceId = slice.Id;
         Context.Services.AddSingleton(core.GetRequiredService<DaySummaryService>());
         Context.Services.AddSingleton(core.GetRequiredService<DiaryService>());
         Context.Services.AddSingleton<TimeProvider>(new FakeTimeProvider(new DateTimeOffset(2031, 7, 19, 12, 40, 0, TimeSpan.Zero)));
@@ -62,8 +64,8 @@ public class DashboardPageTests : ComponentTestBase
         File.Delete(databasePath);
     }
 
-    private Task Log(DateOnly day, Meal meal, double grams, double? servings = null) =>
-        core.GetRequiredService<DiaryService>().AddAsync(day, meal, cheddarId, grams, servings);
+    private Task Log(DateOnly day, Meal meal, double grams, double? servings = null, int? servingId = null) =>
+        core.GetRequiredService<DiaryService>().AddAsync(day, meal, cheddarId, grams, servings, servingId);
 
     private IRenderedComponent<DashboardPage> Render(DateOnly? date = null, Action<ComponentParameterCollectionBuilder<DashboardPage>>? more = null)
     {
@@ -116,13 +118,23 @@ public class DashboardPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task AnEntryAddedByServings_ShowsTheFoodsServingLabel()
+    public async Task AnEntryAddedByServings_NamesTheServingItWasAddedBy()
+    {
+        await Log(Today, Meal.Snacks, 40, 2, sliceId);
+
+        var cut = Render();
+
+        Assert.That(cut.Find("[data-testid^=entry-]").TextContent, Does.Contain("2 servings · 1 slice (20 g)"));
+    }
+
+    [Test]
+    public async Task AnEntryAddedByServingsBeforeServingsHadATable_ShowsTheAmountInstead()
     {
         await Log(Today, Meal.Snacks, 40, 2);
 
         var cut = Render();
 
-        Assert.That(cut.Find("[data-testid^=entry-]").TextContent, Does.Contain("2 servings · 1 slice (20 g)"));
+        Assert.That(cut.Find("[data-testid^=entry-]").TextContent, Does.Contain("2 servings · 40 g").And.Not.Contain("slice"));
     }
 
     [Test]

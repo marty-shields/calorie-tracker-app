@@ -1,20 +1,31 @@
 using CalorieTracker.Core.Data;
 using CalorieTracker.UI.Models.Serving;
 using CalorieTracker.UI.Screens;
+using CalorieTracker.UI.Stories.Stories.Screens;
 using CalorieTracker.UI.Tests.Stories;
+using StoredServing = CalorieTracker.Core.Data.Serving;
 
 namespace CalorieTracker.UI.Tests.Screens;
 
 public class ServingViewTests : ComponentTestBase
 {
     private IRenderedComponent<ServingView> Render(Food? food, EntryMode mode = EntryMode.Servings, decimal? amount = 1, double? grams = 201.8, Meal meal = Meal.Lunch,
-        TimeOnly? suggestedAt = null, bool saving = false, bool saveFailed = false, Action<ComponentParameterCollectionBuilder<ServingView>>? more = null) =>
+        TimeOnly? suggestedAt = null, bool saving = false, bool saveFailed = false, Action<ComponentParameterCollectionBuilder<ServingView>>? more = null, IReadOnlyList<StoredServing>? servings = null) =>
         Context.Render<ServingView>(p =>
         {
-            p.Add(x => x.Food, food).Add(x => x.Mode, mode).Add(x => x.Amount, amount).Add(x => x.Grams, grams).Add(x => x.Meal, meal)
+            p.Add(x => x.Food, food).Add(x => x.Servings, servings ?? DefaultServings(food)).Add(x => x.Mode, mode).Add(x => x.Amount, amount).Add(x => x.Grams, grams).Add(x => x.Meal, meal)
                 .Add(x => x.SuggestedAt, suggestedAt).Add(x => x.Saving, saving).Add(x => x.SaveFailed, saveFailed);
             more?.Invoke(p);
         });
+
+    /// <summary>The servings the page would pass for the sample foods; for any other food, none.</summary>
+    private static IReadOnlyList<StoredServing> DefaultServings(Food? food) => food switch
+    {
+        null => [],
+        { Id: 11 } => ServingSamples.PizzaServings,
+        { Id: 15 } => ServingSamples.MarsServings,
+        _ => [],
+    };
 
     private static string Text(IRenderedComponent<ServingView> cut, string testId) => cut.Find($"[data-testid={testId}]").TextContent.Trim();
 
@@ -53,6 +64,27 @@ public class ServingViewTests : ComponentTestBase
     }
 
     [Test]
+    public void MillilitreFood_WithAServing_ShowsMlOnTheAmountTheServingAndThePer100Labels()
+    {
+        var drink = new Food { Id = 15, Name = "Oat drink", Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 1, CarbsG = 6.7, FatG = 1.5, ServingChecked = true };
+        IReadOnlyList<StoredServing> glass = [new StoredServing { Id = 1, FoodId = drink.Id, Label = "1 glass", Amount = 200, Source = ServingSource.Product }];
+        var inMl = Render(drink, EntryMode.Grams, 250, 250, servings: glass);
+        var inServings = Render(drink, EntryMode.Servings, 2, 400, servings: glass);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(inMl, "serving-per"), Does.StartWith("Per 100 ml"));
+            Assert.That(Text(inMl, "serving-amount-unit"), Is.EqualTo("ml"));
+            Assert.That(Text(inMl, "serving-adds-detail"), Does.StartWith("250 ml of"));
+            Assert.That(Text(inServings, "serving-per"), Does.StartWith("Per 100 ml"));
+            Assert.That(Text(inServings, "serving-weight"), Is.EqualTo("= 400 ml"));
+            Assert.That(Text(inServings, "serving-adds-detail"), Does.StartWith("400 ml of"));
+            Assert.That(inMl.Markup, Does.Not.Contain("100 g").And.Not.Contain("= 250 g"));
+            Assert.That(inServings.Markup, Does.Not.Contain("100 g").And.Not.Contain("= 400 g"));
+        });
+    }
+
+    [Test]
     public void Switch_FoodWithALabelAndAWeight_Shows_Grams_And_Servings_WithServingsChosen()
     {
         var cut = Render(ScreenStates.Pizza);
@@ -80,36 +112,17 @@ public class ServingViewTests : ComponentTestBase
         });
     }
 
-    private static Food WithServing(string? label, double? weight) => new()
+    [Test]
+    public void Switch_FoodWithNoServings_IsHidden()
     {
-        Id = 20,
-        Name = "Pot",
-        Unit = FoodUnit.Gram,
-        Kcal = 100,
-        ProteinG = 1,
-        CarbsG = 1,
-        FatG = 1,
-        ServingLabel = label,
-        ServingAmount = weight,
-    };
-
-    [TestCase(null, 100.0)]
-    [TestCase("", 100.0)]
-    [TestCase("   ", 100.0)]
-    [TestCase("1 pot", null)]
-    [TestCase("1 pot", 0.0)]
-    [TestCase("1 pot", -5.0)]
-    [TestCase("1 pot", 10_001.0)]
-    public void Switch_WithoutBothALabelAndAWeightAboveZero_IsHidden(string? label, double? weight)
-    {
-        var cut = Render(WithServing(label, weight), EntryMode.Grams, 50, 50);
+        var cut = Render(ScreenStates.Cheddar, EntryMode.Grams, 50, 50);
 
         Assert.That(Exists(cut, "serving-mode"), Is.False);
     }
 
     [Test]
-    public void Switch_WithALabelAndAWeightAboveZero_Shows() =>
-        Assert.That(Exists(Render(WithServing("1 pot", 0.5)), "serving-mode"), Is.True);
+    public void Switch_FoodWithOneServing_Shows() =>
+        Assert.That(Exists(Render(ScreenStates.Pizza), "serving-mode"), Is.True);
 
     [Test]
     public void ServingsMode_ShowsTheLabelCard_HowMany_ServingUnit_AndTheWeight()
@@ -118,12 +131,12 @@ public class ServingViewTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(cut.FindAll("h2").Select(h => h.TextContent.Trim()), Is.EqualTo(new[] { "Enter as", "How many", "Meal", "This adds" }));
+            Assert.That(cut.FindAll("h2").Select(h => h.TextContent.Trim()), Is.EqualTo(new[] { "Enter as", "How many", "Your servings", "Meal", "This adds" }));
             Assert.That(Text(cut, "serving-label"), Is.EqualTo("½ pizza (201.8 g)"));
             Assert.That(Text(cut, "serving-amount-unit"), Is.EqualTo("serving"));
             Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 202 g"));
             Assert.That(Text(cut, "serving-adds-kcal"), Is.EqualTo("521 kcal"));
-            Assert.That(Text(cut, "serving-adds-detail"), Is.EqualTo("202 g of Margherita pizza"));
+            Assert.That(Text(cut, "serving-adds-detail"), Is.EqualTo("202 g of Casa Roma Margherita pizza"));
             Assert.That(Exists(cut, "serving-use-serving"), Is.False);
         });
     }
@@ -135,13 +148,13 @@ public class ServingViewTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(cut.FindAll("h2").Select(h => h.TextContent.Trim()), Is.EqualTo(new[] { "Enter as", "Amount", "Meal", "This adds" }));
+            Assert.That(cut.FindAll("h2").Select(h => h.TextContent.Trim()), Is.EqualTo(new[] { "Enter as", "Amount", "Your servings", "Meal", "This adds" }));
             Assert.That(Text(cut, "serving-use-serving"), Is.EqualTo("Use serving: ½ pizza (201.8 g)"));
             Assert.That(Exists(cut, "serving-label"), Is.False);
             Assert.That(Exists(cut, "serving-weight"), Is.False);
             Assert.That(Text(cut, "serving-amount-unit"), Is.EqualTo("g"));
             Assert.That(Text(cut, "serving-adds-kcal"), Is.EqualTo("387 kcal"));
-            Assert.That(Text(cut, "serving-adds-detail"), Is.EqualTo("150 g of Margherita pizza"));
+            Assert.That(Text(cut, "serving-adds-detail"), Is.EqualTo("150 g of Casa Roma Margherita pizza"));
         });
     }
 
@@ -154,7 +167,7 @@ public class ServingViewTests : ComponentTestBase
         {
             Assert.That(Text(cut, "serving-adds-kcal"), Is.EqualTo("125 kcal"));
             Assert.That(Text(cut, "serving-adds-detail"), Is.EqualTo("Protein 7.6 g · Carbs 0 g · Fat 10.5 g"));
-            Assert.That(cut.FindAll("h2").Select(h => h.TextContent.Trim()), Is.EqualTo(new[] { "Amount", "Meal", "This adds" }));
+            Assert.That(cut.FindAll("h2").Select(h => h.TextContent.Trim()), Is.EqualTo(new[] { "Amount", "Your servings", "Meal", "This adds" }));
         });
     }
 
@@ -387,6 +400,213 @@ public class ServingViewTests : ComponentTestBase
         {
             Assert.That(Text(cut, "serving-save"), Is.EqualTo("Saving…"));
             Assert.That(cut.Find("[data-testid=serving-save]").HasAttribute("aria-busy"), Is.True);
+        });
+    }
+
+    private IRenderedComponent<ServingView> RenderCola(IReadOnlyList<StoredServing> servings, int? chosen, EntryMode mode = EntryMode.Servings, decimal? amount = 1, double? grams = 330, Action<ComponentParameterCollectionBuilder<ServingView>>? more = null) =>
+        Render(ServingSamples.Cola, mode, amount, grams, servings: servings, more: p =>
+        {
+            p.Add(x => x.ServingId, chosen);
+            more?.Invoke(p);
+        });
+
+    [Test]
+    public void TwoServings_ShowTheListInOrder_WithTheChosenOneSelected_AndNoLabelCard()
+    {
+        var cut = RenderCola(ServingSamples.ColaServings, 162);
+
+        var options = cut.FindAll("[data-testid=serving-select] option");
+        Assert.Multiple(() =>
+        {
+            Assert.That(options.Select(o => o.TextContent.Trim()), Is.EqualTo(new[] { "1 glass (250 ml)", "Whole pack (330 ml)" }));
+            Assert.That(options.Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { false, true }));
+            Assert.That(Exists(cut, "serving-label"), Is.False);
+            Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 330 ml"));
+            Assert.That(Text(cut, "serving-amount-unit"), Is.EqualTo("serving"));
+        });
+    }
+
+    [Test]
+    public void TwoServings_WithNoChosenId_SelectTheFirst()
+    {
+        var cut = RenderCola(ServingSamples.ColaServings, null, grams: 250);
+
+        Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { true, false }));
+    }
+
+    [Test]
+    public void OneServing_KeepsTodaysLookWithTheLabelCardAndNoList()
+    {
+        var cut = Render(ScreenStates.Pizza);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Exists(cut, "serving-select"), Is.False);
+            Assert.That(Text(cut, "serving-label"), Is.EqualTo("½ pizza (201.8 g)"));
+        });
+    }
+
+    [Test]
+    public void PickingAServing_RaisesItsId()
+    {
+        var picked = new List<int>();
+        var cut = RenderCola(ServingSamples.ColaServings, 161, grams: 250, more: p => p.Add(x => x.OnServingChanged, picked.Add));
+
+        cut.Find("[data-testid=serving-select]").Change("1");
+
+        Assert.That(picked, Is.EqualTo(new[] { 162 }));
+    }
+
+    [Test]
+    public void GramsMode_UseServingNamesTheChosenServing()
+    {
+        var cut = RenderCola(ServingSamples.ColaServings, 162, EntryMode.Grams, 100, 100);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "serving-use-serving"), Is.EqualTo("Use serving: Whole pack (330 ml)"));
+            Assert.That(Exists(cut, "serving-select"), Is.False);
+        });
+    }
+
+    [Test]
+    public void YourServings_ShowsAddOwnWhenNotAdding_AndTheFormWhenAdding()
+    {
+        var idle = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30);
+        var adding = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, more: p => p.Add(x => x.AddingOwn, true).Add(x => x.OwnLabel, "1 slice").Add(x => x.OwnAmount, 28));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(idle, "serving-own-add"), Is.EqualTo("Add your own serving"));
+            Assert.That(Exists(idle, "serving-own-label"), Is.False);
+            Assert.That(Exists(adding, "serving-own-add"), Is.False);
+            Assert.That(adding.Find("[data-testid=serving-own-label]").GetAttribute("value"), Is.EqualTo("1 slice"));
+            Assert.That(adding.Find("[data-testid=serving-own-amount]").GetAttribute("value"), Is.EqualTo("28"));
+            Assert.That(Text(adding, "serving-own-amount-unit"), Is.EqualTo("g"));
+            Assert.That(adding.Find("[data-testid=serving-own-save]").HasAttribute("disabled"), Is.False);
+        });
+    }
+
+    [Test]
+    public void OwnForm_OfAMillilitreFood_ShowsMl()
+    {
+        var cut = RenderCola(ServingSamples.ColaServings, 161, more: p => p.Add(x => x.AddingOwn, true));
+
+        Assert.That(Text(cut, "serving-own-amount-unit"), Is.EqualTo("ml"));
+    }
+
+    [TestCase(null, 28.0)]
+    [TestCase("", 28.0)]
+    [TestCase("   ", 28.0)]
+    [TestCase("1 slice", null)]
+    [TestCase("1 slice", 0.0)]
+    [TestCase("1 slice", -2.0)]
+    [TestCase("1 slice", 10_000.5)]
+    public void OwnForm_SaveIsOffUntilTheNameAndSizeAreValid(string? label, double? amount)
+    {
+        var cut = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, more: p => p.Add(x => x.AddingOwn, true).Add(x => x.OwnLabel, label).Add(x => x.OwnAmount, (decimal?)amount));
+
+        Assert.That(cut.Find("[data-testid=serving-own-save]").HasAttribute("disabled"), Is.True);
+    }
+
+    [Test]
+    public void OwnForm_SaveIsOnForTheLimits()
+    {
+        var cut = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, more: p => p.Add(x => x.AddingOwn, true).Add(x => x.OwnLabel, new string('x', 60)).Add(x => x.OwnAmount, 10_000));
+
+        Assert.That(cut.Find("[data-testid=serving-own-save]").HasAttribute("disabled"), Is.False);
+    }
+
+    [TestCase(0.0, "Enter an amount above 0.")]
+    [TestCase(-1.0, "Enter an amount above 0.")]
+    [TestCase(10_001.0, "Enter an amount of 10,000 g or less.")]
+    public void OwnForm_AnInvalidSize_SaysSoUnderTheField(double amount, string message)
+    {
+        var cut = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, more: p => p.Add(x => x.AddingOwn, true).Add(x => x.OwnLabel, "1 slice").Add(x => x.OwnAmount, (decimal)amount));
+
+        Assert.That(Text(cut, "serving-own-amount-error"), Is.EqualTo(message));
+    }
+
+    [Test]
+    public void OwnForm_ANameOverTheLimit_SaysSo_AndAnEmptyFormShowsNoError()
+    {
+        var long_ = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, more: p => p.Add(x => x.AddingOwn, true).Add(x => x.OwnLabel, new string('x', 61)).Add(x => x.OwnAmount, 5));
+        var empty = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, more: p => p.Add(x => x.AddingOwn, true).Add(x => x.OwnLabel, "").Add(x => x.OwnAmount, (decimal?)null));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(long_, "serving-own-label-error"), Is.EqualTo("Use 60 characters or fewer."));
+            Assert.That(Exists(empty, "serving-own-label-error"), Is.False);
+            Assert.That(Exists(empty, "serving-own-amount-error"), Is.False);
+        });
+    }
+
+    [Test]
+    public void OwnForm_ShowsTheSaveError_AndSavingShowsBusy()
+    {
+        var failed = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, more: p => p.Add(x => x.AddingOwn, true).Add(x => x.OwnLabel, "1 slice").Add(x => x.OwnAmount, 28).Add(x => x.OwnError, "You already have a serving of that size."));
+        var saving = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, more: p => p.Add(x => x.AddingOwn, true).Add(x => x.OwnLabel, "1 slice").Add(x => x.OwnAmount, 28).Add(x => x.SavingOwn, true));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(failed, "serving-own-error"), Is.EqualTo("You already have a serving of that size."));
+            Assert.That(Text(saving, "serving-own-save"), Is.EqualTo("Saving…"));
+            Assert.That(saving.Find("[data-testid=serving-own-cancel]").HasAttribute("disabled"), Is.True);
+        });
+    }
+
+    [Test]
+    public void OwnForm_RaisesItsCallbacks()
+    {
+        var log = new List<string>();
+        var cut = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, more: p => p
+            .Add(x => x.OnOwnOpen, () => log.Add("open"))
+            .Add(x => x.OnOwnLabelChanged, t => log.Add($"label {t}"))
+            .Add(x => x.OnOwnAmountChanged, a => log.Add($"amount {a}"))
+            .Add(x => x.OnOwnSave, () => log.Add("save"))
+            .Add(x => x.OnOwnCancel, () => log.Add("cancel")));
+        cut.Find("[data-testid=serving-own-add]").Click();
+        var adding = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, more: p => p
+            .Add(x => x.AddingOwn, true).Add(x => x.OwnLabel, "1 slice").Add(x => x.OwnAmount, 28)
+            .Add(x => x.OnOwnLabelChanged, t => log.Add($"label {t}"))
+            .Add(x => x.OnOwnAmountChanged, a => log.Add($"amount {a}"))
+            .Add(x => x.OnOwnSave, () => log.Add("save"))
+            .Add(x => x.OnOwnCancel, () => log.Add("cancel")));
+
+        adding.Find("[data-testid=serving-own-label]").Input("A slice");
+        adding.Find("[data-testid=serving-own-amount]").Input("30");
+        adding.Find("[data-testid=serving-own-save]").Click();
+        adding.Find("[data-testid=serving-own-cancel]").Click();
+
+        Assert.That(log, Is.EqualTo(new[] { "open", "label A slice", "amount 30", "save", "cancel" }));
+    }
+
+    [Test]
+    public void DeleteServing_ShowsOnlyWhileAServingThePersonMadeIsChosen_AndRaisesItsCallback()
+    {
+        var deleted = 0;
+        var own = RenderCola(ServingSamples.ColaServingsWithOwn, 163, grams: 200, more: p => p.Add(x => x.OnDeleteOwn, () => deleted++));
+        var pack = RenderCola(ServingSamples.ColaServingsWithOwn, 162);
+
+        own.Find("[data-testid=serving-own-delete]").Click();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(own, "serving-own-delete"), Is.EqualTo("Delete serving: My mug"));
+            Assert.That(Exists(pack, "serving-own-delete"), Is.False);
+            Assert.That(deleted, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public void OwnServings_AreAlsoOfferedInEditMode()
+    {
+        var cut = RenderCola(ServingSamples.ColaServingsWithOwn, 163, grams: 200, more: p => p.Add(x => x.Editing, true));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Exists(cut, "serving-select"), Is.True);
+            Assert.That(Exists(cut, "serving-own-add"), Is.True);
         });
     }
 }

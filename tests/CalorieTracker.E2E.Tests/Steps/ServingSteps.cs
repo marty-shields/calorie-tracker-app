@@ -45,6 +45,29 @@ public sealed class ServingSteps(ServingScreen serving, FoodSearchScreen foods, 
     [When(@"^I enter an amount of ""(.*)""$")]
     public void WhenIEnterAnAmountOf(string text) => serving.EnterAmount(text);
 
+    [Given(@"^I have added my own serving ""(.*)"" of ""(.*)""$")]
+    [When(@"^I add my own serving ""(.*)"" of ""(.*)""$")]
+    public void WhenIAddMyOwnServing(string label, string amount) => serving.AddOwnServing(label, amount);
+
+    [When(@"^I choose the serving ""(.*)""$")]
+    public void WhenIChooseTheServing(string label) => serving.ChooseServing(label);
+
+    [Then(@"^Serving shows the serving ""(.*)""$")]
+    public void ThenServingShowsTheServing(string label) => web.Eventually(serving.ServingLabel, Is.EqualTo(label));
+
+    [Then(@"^Serving has the Grams and Servings switch$")]
+    public void ThenServingHasTheSwitch() => web.Eventually(serving.HasModeSwitch, Is.True);
+
+    [Then(@"^the servings list reads ""(.*)""$")]
+    public void ThenTheServingsListReads(string labels) => web.Eventually(serving.ServingOptions, Is.EqualTo(labels.Split(", ")));
+
+    [Then(@"^the weight reads ""(.*)""$")]
+    public void ThenTheWeightReads(string text) => web.Eventually(serving.Weight, Is.EqualTo(text));
+
+    [Then(@"^the " + Meals + @" entry reads ""(.*)""$")]
+    public void ThenTheEntryReads(string meal, string text) =>
+        web.Eventually(() => dashboard.Entries(meal).FirstOrDefault() ?? "", Does.Contain(text));
+
     [When(@"^I tap Add$")]
     public void WhenITapAdd() => serving.Add();
 

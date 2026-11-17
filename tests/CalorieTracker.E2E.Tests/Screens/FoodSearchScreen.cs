@@ -1,5 +1,3 @@
-using OpenQA.Selenium;
-
 namespace CalorieTracker.E2E.Tests.Screens;
 
 /// <summary>Food search: the search box, the results, and one food's values.</summary>
@@ -31,24 +29,8 @@ public sealed class FoodSearchScreen(WebView web)
         web.Type("food-search-input", text);
     }
 
-    /// <summary>Taps a type chip (ingredients, foods, dishes, drinks or all) and waits until it is chosen.</summary>
-    public void ChooseType(string chip)
-    {
-        var radio = $"food-filter-{chip}";
-        web.WaitUntil(() => web.Exists(radio), $"the {chip} chip didn't show");
-        web.Find(radio).FindElement(By.XPath("..")).Click();
-        web.Eventually(() => web.Find(radio).Selected, Is.True, $"{chip} chip chosen");
-    }
-
-    /// <summary>Whether a type chip (ingredients, foods, dishes, drinks or all) is the chosen one.</summary>
-    public bool IsTypeChosen(string chip) => web.Find($"food-filter-{chip}").Selected;
-
-    /// <summary>The labels of the type chips, in the order they show.</summary>
-    public IReadOnlyList<string> TypeChipLabels()
-    {
-        web.WaitUntil(() => web.Exists("food-filter"), "the type chips didn't show");
-        return web.FindAll("[data-testid=\"food-filter\"] .chip").Select(chip => chip.Text.Trim()).ToList();
-    }
+    /// <summary>Whether any type chip shows. Search has none; this stays to prove it.</summary>
+    public bool HasTypeChips() => web.Exists("food-filter");
 
     public string PromptText() => web.Text("food-search-idle-message");
 
@@ -65,12 +47,9 @@ public sealed class FoodSearchScreen(WebView web)
         return web.FindAll("[data-testid^=\"food-result-\"]").Select(row => row.Text.Trim()).ToList();
     }
 
-    /// <summary>The type at the start of each result row's detail line, in order, once at least one shows.</summary>
-    public IReadOnlyList<string> ResultTypes()
-    {
-        web.WaitUntil(() => web.Exists("food-results"), "no results showed");
-        return web.FindAll("[data-testid^=\"food-result-\"]").Select(row => row.FindElement(By.CssSelector(".detail")).Text.Split('·')[0].Trim()).ToList();
-    }
+    /// <summary>The title heading the first result row, or empty while there is none.</summary>
+    public string FirstResultTitle() =>
+        web.FindAll("[data-testid^=\"food-result-\"] .text").FirstOrDefault()?.Text.Trim() ?? "";
 
     /// <summary>Clicks the first row once the box holds what was typed; a row replaced by a newer search is found and clicked again.</summary>
     public void OpenFirstResult() =>
@@ -85,6 +64,88 @@ public sealed class FoodSearchScreen(WebView web)
             first?.Click();
             return first is not null;
         }, "no result to open");
+
+    /// <summary>The group headings on the screen, in order, as the testid keys (usual, recent, diary, common, branded). Only headings count: a group's "Show N more" row has a testid of its own.</summary>
+    public IReadOnlyList<string> Groups() =>
+        web.FindAll("h2[data-testid^=\"food-group-\"]").Select(h => h.GetDomAttribute("data-testid")!["food-group-".Length..]).ToList();
+
+    /// <summary>Waits for the screen to settle on exactly these groups, in order.</summary>
+    public void WaitForGroups(params string[] keys) =>
+        web.Eventually(Groups, Is.EqualTo(keys), "the groups shown");
+
+    /// <summary>The testids of the food rows of one group, in order.</summary>
+    public IReadOnlyList<string> RowIds(string group) =>
+        web.FindAll($"[data-testid=\"food-group-{group}\"] ~ ul [data-testid^=\"food-result-\"]").Select(row => row.GetDomAttribute("data-testid")!).ToList();
+
+    public string FirstRowText(string group)
+    {
+        web.WaitUntil(() => RowIds(group).Count > 0, $"the {group} group has no rows");
+        return web.FindAll($"[data-testid=\"food-group-{group}\"] ~ ul [data-testid^=\"food-result-\"]").First().Text.Trim();
+    }
+
+    public void OpenFirstIn(string group)
+    {
+        web.WaitUntil(() => RowIds(group).Count > 0, $"the {group} group has no rows");
+        web.FindAll($"[data-testid=\"food-group-{group}\"] ~ ul [data-testid^=\"food-result-\"]").First().Click();
+    }
+
+    /// <summary>The testid of every food row on the screen, in order.</summary>
+    public IReadOnlyList<string> AllRowIds() =>
+        web.FindAll("[data-testid^=\"food-result-\"]").Select(row => row.GetDomAttribute("data-testid")!).ToList();
+
+    /// <summary>The N of the group's "Show N more" row, once it shows.</summary>
+    public int MoreCount(string group)
+    {
+        web.WaitUntil(() => web.Exists($"food-group-{group}-more"), $"the {group} group has no Show more row");
+        return int.Parse(System.Text.RegularExpressions.Regex.Match(web.Text($"food-group-{group}-more"), @"Show (\d+) more").Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    public void ShowMore(string group) => web.Tap($"food-group-{group}-more");
+
+    /// <summary>How the "Search online" button shows: "primary" when no stored food matches, "secondary" under the results, or null when it is not offered.</summary>
+    public string? OnlineEntry()
+    {
+        var entry = web.FindAll("[data-testid=\"food-search-online\"]").FirstOrDefault();
+        return entry is null ? null : entry.TagName != "button" ? "not a button" : entry.GetDomAttribute("class")!.Contains("primary", StringComparison.Ordinal) ? "primary" : "secondary";
+    }
+
+    /// <summary>The first-use notice, or null when it is not shown.</summary>
+    public string? OnlineNotice() => web.Exists("food-search-online-notice") ? web.Text("food-search-online-notice") : null;
+
+    public void SearchOnline() => web.Tap("food-search-online");
+
+    public string OnlineHeading()
+    {
+        web.WaitUntil(() => web.Exists("food-group-online"), "no online group showed");
+        return web.Text("food-group-online");
+    }
+
+    /// <summary>The text of each online product row, in order, with its NEW marker last when it has one.</summary>
+    public IReadOnlyList<string> OnlineRows() =>
+        web.FindAll("[data-testid^=\"food-online-\"]").Select(row => row.Text.Replace("\n", " ").Trim()).ToList();
+
+    /// <summary>Taps the online product with this title and pack size, showing "Show N more" first when it hides the row.</summary>
+    public void OpenOnlineProduct(string title, string pack) =>
+        web.WaitUntil(() =>
+        {
+            var row = web.FindAll("[data-testid^=\"food-online-\"]").FirstOrDefault(r => r.FindElement(OpenQA.Selenium.By.CssSelector(".text")).Text.Trim() == title && r.Text.Contains(pack, StringComparison.Ordinal));
+            row?.Click();
+            return row is not null;
+        }, $"no online product '{title}' of '{pack}' to open");
+
+    public string OnlineMessage()
+    {
+        web.WaitUntil(() => web.Exists("food-search-online-error"), "no online message showed");
+        return web.Text("food-search-online-error");
+    }
+
+    public bool OnlineHasTryAgain() => web.Exists("food-search-online-retry");
+
+    public string OnlineNothingFound()
+    {
+        web.WaitUntil(() => web.Exists("food-search-online-none"), "no 'Nothing found' message showed");
+        return web.Text("food-search-online-none");
+    }
 
     public bool ShowsDetail() => web.Exists("food-detail");
 

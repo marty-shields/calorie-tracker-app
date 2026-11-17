@@ -22,13 +22,20 @@
 
 ## What's here
 
-This is the architecture, design system, tests and CI of the app, with a day diary on top. It starts on the Dashboard, and these screens are the main ones:
+A day diary for Android with a food search, a barcode scanner, a design system, tests and CI. It starts on the Dashboard, and these screens are the main ones:
 
 - **Dashboard**: the day diary, with a date strip, calories and macros, and four meals to add food to.
-- **Foods** and **Scan**: find a food by name or barcode and add it to a meal.
+- **Foods**: type a name to search the bundled food data and the products you scanned. Results come in groups (the foods you logged, then Common, then Branded), best match first; before you type it lists the foods you usually have at the meal and the ones you had lately. A food reads as its brand and name, with its pack size and brand line under it. There is no filter by type. Under the results, **Search online** looks the typed words up on Open Food Facts too, for your phone's country (worldwide when it has none there); tapping a product stores it the way a scan does.
+- **Scan**: read a barcode and add the product to a meal. A scanned product keeps its name, brands, generic name, pack size, serving and extra nutrients. Another size of a product you already have (a 1 L bottle of a drink you scanned as a can) is added to that food, not stored again, when its brand, name (size words ignored), unit and every nutrient agree closely (see [Scan](src/CalorieTracker.UI.Stories/Stories/Screens/Scan.md)); the food then offers each size as a serving.
+- **Serving**: set the amount in grams or ml, or a number of servings, and the meal. A food can have several servings (its own, its whole pack, and ones you add yourself, such as a mug); a dropdown picks which one the servings count, and you can add or delete your own.
 - **Settings**: the theme (System, Light or Dark), the daily calorie target and the app version.
 
-More diary features are still to come. [AGENTS.md](AGENTS.md) lists the rules the code follows, and the [design system](https://marty-shields.github.io/calorie-tracker-app/) shows the tokens, components and screens.
+<p>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/readme/food-search-dark.png"><img src="docs/images/readme/food-search-light.png" alt="Foods: search results in groups" width="260" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/readme/serving-dark.png"><img src="docs/images/readme/serving-light.png" alt="Serving: amount, serving dropdown and meal" width="260" /></picture>
+</p>
+
+[AGENTS.md](AGENTS.md) lists the rules the code follows, and the [design system](https://marty-shields.github.io/calorie-tracker-app/) shows the tokens, components and screens.
 
 ## Install
 
@@ -42,10 +49,10 @@ Cutting the first release needs the keystore and the `CERT_SHA256` pin: see [Rel
 
 ## Your data
 
-- Data lives in a SQLite database on the phone. Scanning a barcode the app hasn't stored sends that barcode to an external product database (Open Food Facts), and the app itself sends none of your food log or other data anywhere. The camera scanner is Google ML Kit, which may send usage metrics to Google as set by Google's terms.
-- Your diary, daily target and foods are stored on the phone and in its Android backup (next bullet). A diary entry holds the food id, the amount (g or ml, and the servings if you entered them), the meal, the day and whether it was removed. The daily target is one number of calories. Foods are the bundled food data plus the products you scanned. The theme is kept in the app's web storage, not the database. The app sends none of your diary, daily target or settings anywhere.
+- Data lives in a SQLite database on the phone. Nothing you type (search words, food names, amounts) leaves the phone, except when you tap **Search online** (or press the keyboard's search key) under the search results: that sends the words you typed and your phone's country to Open Food Facts (search.openfoodfacts.org), once for each tap (sent again without your country when it has no match) and at most one tap every 2 seconds, and the app says so the first time. Nothing is sent as you type. Scanning a barcode the app hasn't stored sends that barcode to an external product database (Open Food Facts), which returns the product's name, brands, pack size, serving and nutrients; the app asks for a few more fields of the same product than before and loads no images. A later scan of a stored product may send the barcode again to refresh that food's values, and past diary days follow the refreshed values. The app itself sends none of your food log or other data anywhere. The camera scanner is Google ML Kit, which may send usage metrics to Google as set by Google's terms.
+- Your diary, daily target and foods are stored on the phone and in its Android backup (next bullet). A diary entry holds the food id, the amount (g or ml, and the servings and which serving if you entered them), the meal, the day and whether it was removed. The names and sizes of servings you add are stored on the phone too, in the Android backup like the rest. The daily target is one number of calories. Foods are the bundled food data plus the products you scanned and the servings you added; a scanned food keeps each of its barcodes with its pack size and when it was first stored. The theme is kept in the app's web storage, not the database. The app sends none of your diary, daily target or settings anywhere.
 - Android Auto Backup copies that database, and only that, to your Google account, and a phone-to-phone transfer carries it too. The Dev build is never backed up.
-- Logs are in `Android/data/<package id>/files/logs`, readable over USB or `adb pull`. They hold events, ids, counts and non-personal data such as a scanned barcode, never personal information ([`Logging.feature`](tests/CalorieTracker.E2E.Tests/Features/Logging.feature) checks the start-up lines).
+- Logs are in `Android/data/<package id>/files/logs`, readable over USB or `adb pull`. They hold events, ids, counts and non-personal data such as a scanned barcode, never personal information (no food names, amounts, diary content or search words; [`Logging.feature`](tests/CalorieTracker.E2E.Tests/Features/Logging.feature) checks the start-up lines).
 
 ## Built with
 

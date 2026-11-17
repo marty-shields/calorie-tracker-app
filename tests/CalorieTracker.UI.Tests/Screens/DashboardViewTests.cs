@@ -69,7 +69,7 @@ public class DashboardViewTests : ComponentTestBase
             Assert.That(Text(cut, "meal-dinner-none"), Is.EqualTo("Nothing logged"));
             Assert.That(cut.FindAll("[data-testid=meal-breakfast] ~ ul .row"), Has.Count.EqualTo(1));
             Assert.That(Text(cut, "entry-4"), Does.Contain("200 ml"));
-            Assert.That(Text(cut, "entry-1"), Does.StartWith("Porridge oats").And.Contain("40 g").And.EndWith("149"));
+            Assert.That(Text(cut, "entry-1"), Does.StartWith("Quaker Porridge oats").And.Contain("40 g").And.EndWith("149"));
         });
     }
 
@@ -92,6 +92,24 @@ public class DashboardViewTests : ComponentTestBase
         var cut = Render(day);
 
         Assert.That(Text(cut, "entry-9"), Does.Contain(expected));
+    }
+
+    [TestCase(null, "Weetabix", "Weetabix Original", "40 g")]
+    [TestCase(null, "Ferrero, Nutella", "Nutella", "Ferrero · 40 g")]
+    [TestCase(1.0, "Ferrero, Nutella", "Nutella", "Ferrero · 1 serving · 40 g")]
+    public void ABrandedEntry_ShowsTheTitleAndTheBrandLineBeforeTheAmount(double? servings, string brands, string title, string detail)
+    {
+        var name = title == "Nutella" ? "Nutella" : "Original";
+        var entry = new Core.Summary.SummaryEntry(9, 9, name, brands.Split(',')[0], FoodUnit.Gram, 40, servings, new(149, 4.4, 24, 3.4), Brands: brands);
+        var meals = Enum.GetValues<Meal>().Select(m => new Core.Summary.MealSummary(m, m == Meal.Breakfast ? entry.Nutrition : Core.Summary.Nutrition.Zero, m == Meal.Breakfast ? [entry] : [])).ToList();
+
+        var cut = Render(DashboardSamples.Loaded with { Meals = meals });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=entry-9] .text").TextContent, Is.EqualTo(title));
+            Assert.That(cut.Find("[data-testid=entry-9] .detail").TextContent, Is.EqualTo(detail));
+        });
     }
 
     [Test]

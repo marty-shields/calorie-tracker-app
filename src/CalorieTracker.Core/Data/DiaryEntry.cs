@@ -23,6 +23,9 @@ public class DiaryEntry
     /// <summary>The <see cref="Date"/> text of a day, so every writer and reader of the column agrees.</summary>
     internal static string FormatDate(DateOnly date) => date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 
+    /// <summary>The day a <see cref="Date"/> text names; the reverse of <see cref="FormatDate"/>.</summary>
+    internal static DateOnly ParseDate(string text) => DateOnly.ParseExact(text, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+
     /// <summary>The local calendar day as <c>yyyy-MM-dd</c>, with no time zone.</summary>
     [NotNull, Indexed]
     public string Date { get; set; } = "";
@@ -43,4 +46,7 @@ public class DiaryEntry
     /// <summary>True once removed. The row stays so the entry can be restored to its place.</summary>
     [NotNull]
     public bool IsRemoved { get; set; }
+
+    /// <summary>The <see cref="Serving"/> the entry was added by, with <see cref="Servings"/>; null when it was added by weight, and for an entry saved before servings had their own table. When that serving is deleted the link is set to null and the entry keeps its amount, count and calories. Declared last so a new database and one upgraded by step 13 list their columns in the same order.</summary>
+    public int? ServingId { get; set; }
 }

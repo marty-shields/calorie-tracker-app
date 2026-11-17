@@ -5,7 +5,7 @@ namespace CalorieTracker.Core.Data;
 /// <summary>Reads and writes <see cref="DiaryEntry"/> rows, each call through the <see cref="DatabaseGate"/>. Removing only marks a row, so it can be restored.</summary>
 internal sealed class DiaryStore(SQLiteAsyncConnection connection, DatabaseGate gate)
 {
-    /// <summary>Adds the entry, ignoring its id and removed flag, and returns it with its id. Null, adding nothing, when no food has the entry's food id.</summary>
+    /// <summary>Adds the entry, ignoring its id and removed flag, and returns it with its id. Null, adding nothing, when no food has the entry's food id. A <see cref="DiaryEntry.ServingId"/> that is not a serving of that food is saved as null.</summary>
     public Task<DiaryEntry?> AddAsync(DiaryEntry entry) =>
         gate.RunAsync<DiaryEntry?>(async () =>
         {
@@ -24,6 +24,7 @@ internal sealed class DiaryStore(SQLiteAsyncConnection connection, DatabaseGate 
                     FoodId = entry.FoodId,
                     Amount = entry.Amount,
                     Servings = entry.Servings,
+                    ServingId = entry.ServingId is { } serving && db.ExecuteScalar<int>("SELECT COUNT(*) FROM Serving WHERE Id = ? AND FoodId = ?", serving, entry.FoodId) > 0 ? serving : null,
                 };
                 db.Insert(added);
             });
@@ -31,12 +32,15 @@ internal sealed class DiaryStore(SQLiteAsyncConnection connection, DatabaseGate 
             return added;
         });
 
-    /// <summary>Sets the day, meal, amount and servings of a kept entry, leaving its food. A moved entry keeps its original position in the order added (the list orders by id). False when no kept entry has that id.</summary>
-    public Task<bool> UpdateAsync(int id, string date, Meal meal, double amount, double? servings) =>
+    /// <summary>
+    /// Sets the day, meal, amount, servings and serving of a kept entry, leaving its food. A moved entry keeps its original position in the order added (the list orders by id). False when no kept entry has that id.
+    /// A <paramref name="servingId"/> that is not a serving of the entry's food is saved as null.
+    /// </summary>
+    public Task<bool> UpdateAsync(int id, string date, Meal meal, double amount, double? servings, int? servingId = null) =>
         gate.RunAsync(async () =>
             await connection.ExecuteAsync(
-                "UPDATE DiaryEntry SET Date = ?, Meal = ?, Amount = ?, Servings = ? WHERE Id = ? AND IsRemoved = 0",
-                date, (int)meal, amount, servings, id) > 0);
+                "UPDATE DiaryEntry SET Date = ?, Meal = ?, Amount = ?, Servings = ?, ServingId = (SELECT Id FROM Serving WHERE Id = ? AND FoodId = DiaryEntry.FoodId) WHERE Id = ? AND IsRemoved = 0",
+                date, (int)meal, amount, servings, servingId, id) > 0);
 
     /// <summary>Marks the entry removed, or kept again with false. False when no entry with that id is in the other state.</summary>
     public Task<bool> SetRemovedAsync(int id, bool removed) =>

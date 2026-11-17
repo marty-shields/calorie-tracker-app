@@ -5,10 +5,10 @@
 @inject NavigationManager Navigation
 
 @* Back goes to the Dashboard (or from a food's values, to the list); AppScreen does both.
-   Query: meal and date (yyyy-MM-dd, default today) open search to add to that meal, q and type restore a search.
+   Query: meal and date (yyyy-MM-dd, default today) open search to add to that meal, q restores a search (an old type value is ignored).
    A meal's + sends a person here with a meal: a result opens Serving with that meal, and Add goes on to the Dashboard (on that day when a date is given).
    From the Foods tab a food's Add to diary opens Serving with a suggested meal, and Add comes back to this search. *@
-<FoodSearchPage Meal="meal" InitialQuery="@Query" InitialFilter="FoodSearchRoute.ParseFilter(TypeText)"
+<FoodSearchPage Meal="meal" InitialQuery="@Query"
                 OnAdd="Add" OnBack="@(() => Navigation.GoTo(date is { } day ? DashboardRoute.Url(day) : "/"))" OnNavigate="@(destination => Navigation.GoTo(destination))" />
 
 @code {
@@ -21,15 +21,12 @@
     [SupplyParameterFromQuery(Name = "q")]
     public string? Query { get; set; }
 
-    [SupplyParameterFromQuery(Name = "type")]
-    public string? TypeText { get; set; }
-
     private Meal? meal => ServingRoute.ParseMeal(MealText);
 
     private DateOnly? date => RouteDate.Parse(DateText);
 
     private void Add(FoodAddRequest request) =>
         Navigation.GoTo(meal is { } preset
-            ? ServingRoute.Url(request.Food.Id, preset, date, backTo: FoodSearchRoute.AddUrl(preset, date, request.Query, request.Filter))
-            : ServingRoute.Url(request.Food.Id, returnTo: FoodSearchRoute.Url(request.Query, request.Filter)));
+            ? ServingRoute.Url(request.Food.Id, preset, date, backTo: FoodSearchRoute.AddUrl(preset, date, request.Query), amount: request.LastAmount, servings: request.LastServings, servingId: request.LastServingId, pack: request.PackAmount)
+            : ServingRoute.Url(request.Food.Id, returnTo: FoodSearchRoute.Url(request.Query), amount: request.LastAmount, servings: request.LastServings, servingId: request.LastServingId, pack: request.PackAmount));
 }

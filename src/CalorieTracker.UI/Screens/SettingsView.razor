@@ -11,7 +11,7 @@
             <NumberField Label="Calories per day" Unit="kcal" Value="Target" ValueChanged="OnTargetChanged" TextChanged="OnTargetTextChanged" InvalidMessage="@TargetInvalidMessage" TestId="settings-target" />
             @if (string.IsNullOrEmpty(TargetInvalidMessage))
             {
-                <p class="hint" data-testid="settings-target-hint">Shown on the dashboard. Leave it empty for no target.</p>
+                <p class="hint" data-testid="settings-target-hint" data-wrap-ok>Shown on the dashboard. Leave it empty for no target.</p>
             }
         </section>
         @if (Version is not null)

@@ -1,6 +1,7 @@
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.UI.Logging;
+using CalorieTracker.UI.Models.Scan;
 using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Scanning;
@@ -140,14 +141,31 @@ public class ScanPageTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
         {
-            Assert.That(cut.Find("[data-testid=scan-name]").TextContent, Is.EqualTo("Porridge oats"));
-            Assert.That(cut.Find("[data-testid=scan-brand]").TextContent, Is.EqualTo("Morning Mill"));
+            Assert.That(cut.Find("[data-testid=scan-name]").TextContent, Is.EqualTo("Morning Mill Porridge oats"));
+            Assert.That(cut.FindAll("[data-testid=scan-brand]"), Is.Empty);
             Assert.That(cut.Find("[data-testid=scan-per]").TextContent, Is.EqualTo("Per 100 g"));
             Assert.That(cut.Find("[data-testid=scan-kcal]").TextContent, Is.EqualTo("372 kcal"));
             Assert.That(cut.Find("[data-testid=scan-protein]").TextContent, Is.EqualTo("11 g"));
             Assert.That(cut.Find("[data-testid=scan-carbs]").TextContent, Is.EqualTo("60 g"));
             Assert.That(cut.Find("[data-testid=scan-fat]").TextContent, Is.EqualTo("8 g"));
             Assert.That(cut.FindAll("[data-testid=scan-warning]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task Found_WithBrandsPackAndGenericName_ShowsThemAll()
+    {
+        var food = Product("Nutella", null, FoodUnit.Gram, 539, 6.3, 57.5, 30.9);
+        (food.Brands, food.PackageLabel, food.GenericName) = ("Ferrero, Nutella", "400 g", "Hazelnut spread");
+        lookup.Result = BarcodeLookupResult.Found(food);
+        var cut = await ScannedAsync();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.That(cut.Find("[data-testid=scan-name]").TextContent, Is.EqualTo("Nutella"));
+            Assert.That(cut.Find("[data-testid=scan-brand]").TextContent, Is.EqualTo("Ferrero"));
+            Assert.That(cut.Find("[data-testid=scan-pack]").TextContent, Is.EqualTo("400 g"));
+            Assert.That(cut.Find("[data-testid=scan-generic]").TextContent, Is.EqualTo("Hazelnut spread"));
         });
     }
 
@@ -396,15 +414,30 @@ public class ScanPageTests : ComponentTestBase
     public async Task Found_WithAStoredFood_AddToDiaryRaisesOnAddToDiaryWithItsId()
     {
         var food = Product("Digestive biscuits", "Morning Mill", FoodUnit.Gram, 480, 7, 62, 22);
-        (food.Id, food.ServingLabel, food.ServingAmount) = (42, "1 biscuit", 15);
-        lookup.Result = BarcodeLookupResult.Found(food);
-        var added = new List<int>();
+        food.Id = 42;
+        lookup.Result = BarcodeLookupResult.Found(food, null, new ProductServing("1 biscuit", 15));
+        var added = new List<ScanAddRequest>();
         var cut = await ScannedAsync(p => p.Add(x => x.OnAddToDiary, added.Add));
 
         cut.WaitForAssertion(() => Assert.That(cut.Find("[data-testid=scan-serving]").TextContent, Is.EqualTo("Serving: 1 biscuit (15 g)")));
         cut.Find("[data-testid=scan-add]").Click();
 
-        Assert.That(added, Is.EqualTo(new[] { 42 }));
+        Assert.That(added, Is.EqualTo(new[] { new ScanAddRequest(42, null) }));
+    }
+
+    [Test]
+    public async Task Found_WithAScannedBarcodeOfAnotherSize_AddToDiaryCarriesThatPack()
+    {
+        var food = Product("Cola", "Fizz", FoodUnit.Millilitre, 42, 0, 10.6, 0);
+        food.Id = 7;
+        lookup.Result = BarcodeLookupResult.Found(food, 1000);
+        var added = new List<ScanAddRequest>();
+        var cut = await ScannedAsync(p => p.Add(x => x.OnAddToDiary, added.Add));
+
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-product]"), Has.Count.EqualTo(1)));
+        cut.Find("[data-testid=scan-add]").Click();
+
+        Assert.That(added, Is.EqualTo(new[] { new ScanAddRequest(7, 1000) }));
     }
 
     [Test]
@@ -440,9 +473,8 @@ public class ScanPageTests : ComponentTestBase
     public void ToProduct_ServingOutOfRange_IsLeftOut(string label, double amount)
     {
         var food = Product("Biscuits", null, FoodUnit.Gram, 480, 7, 62, 22);
-        (food.ServingLabel, food.ServingAmount) = (label, amount);
 
-        var product = ScanPage.ToProduct(food)!;
+        var product = ScanPage.ToProduct(food, serving: new ProductServing(label, amount))!;
 
         Assert.That((product.ServingLabel, product.ServingAmount), Is.EqualTo(((string?)null, (decimal?)null)));
     }
@@ -451,9 +483,8 @@ public class ScanPageTests : ComponentTestBase
     public void ToProduct_ServingAtTheLimits_IsKeptTrimmed()
     {
         var food = Product("Biscuits", null, FoodUnit.Gram, 480, 7, 62, 22);
-        (food.ServingLabel, food.ServingAmount) = ($" {new string('a', FoodService.MaxServingLabelLength)} ", FoodService.MaxServingAmount);
 
-        var product = ScanPage.ToProduct(food)!;
+        var product = ScanPage.ToProduct(food, serving: new ProductServing($" {new string('a', FoodService.MaxServingLabelLength)} ", FoodService.MaxServingAmount))!;
 
         Assert.That((product.ServingLabel, product.ServingAmount), Is.EqualTo((new string('a', FoodService.MaxServingLabelLength), (decimal?)10_000)));
     }
@@ -464,7 +495,7 @@ public class ScanPageTests : ComponentTestBase
         var food = Product("Biscuits", null, FoodUnit.Gram, 480, 7, 62, 22);
         (food.FibreG, food.SugarsG, food.SaturatesG, food.SaltG) = (FoodService.MaxNutrientPer100 + 1, -1, FoodService.MaxNutrientPer100, 0);
 
-        var product = ScanPage.ToProduct(food)!;
+        var product = ScanPage.ToProduct(food, serving: null)!;
 
         Assert.That((product.Fibre, product.Sugars, product.Saturates, product.Salt), Is.EqualTo(((decimal?)null, (decimal?)null, (decimal?)100, (decimal?)0)));
     }
@@ -533,8 +564,8 @@ public class ScanPageTests : ComponentTestBase
     public async Task Logs_TheBarcodeAndStatus_ButNeverTheProductNameOrBrand()
     {
         var food = Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8);
-        (food.Id, food.ServingLabel, food.ServingAmount) = (42, "1 bowl", 40);
-        lookup.Result = BarcodeLookupResult.Found(food);
+        food.Id = 42;
+        lookup.Result = BarcodeLookupResult.Found(food, null, new ProductServing("1 bowl", 40));
         var cut = await ScannedAsync();
         cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-add]"), Has.Count.EqualTo(1)));
         cut.Find("[data-testid=scan-add]").Click();

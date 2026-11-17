@@ -40,6 +40,6 @@ public sealed class ScanSteps(ScanScreen scan, Journeys journeys, Native native,
     /// <summary>The file <c>E2EScanSeam</c> reads; <c>ScanSeamValuesTests</c> checks both constants match it.</summary>
     private const string ScanSeamFileName = "e2e-barcode.txt";
 
-    /// <summary>The barcode <c>E2EScanSeam</c> in the Debug app finds the first "oat" Ingredient for.</summary>
+    /// <summary>The barcode <c>E2EScanSeam</c> in the Debug app finds the top search result for "oat" for.</summary>
     private const string ScanSeamBarcode = "5012345678900";
 }

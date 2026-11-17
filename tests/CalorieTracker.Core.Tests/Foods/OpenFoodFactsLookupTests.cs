@@ -66,7 +66,8 @@ public class OpenFoodFactsLookupTests
             Assert.That(food.SugarsG, Is.EqualTo(56.3));
             Assert.That(food.SaturatesG, Is.EqualTo(10.6));
             Assert.That(food.SaltG, Is.EqualTo(0.107));
-            Assert.That(food.SearchText, Is.EqualTo("nutella ferrero"));
+            Assert.That(food.SearchText, Is.EqualTo("nutella ferrero nutella"));
+            Assert.That((food.OriginalName, food.FoodGroup), Is.EqualTo(((string?)null, (string?)null)));
         });
     }
 
@@ -77,8 +78,7 @@ public class OpenFoodFactsLookupTests
 
         var result = await lookup.LookupAsync("5060198643156");
 
-        Assert.That(result.Food!.ServingLabel, Is.EqualTo("0.5 pizza (201.8 g)"));
-        Assert.That(result.Food.ServingAmount, Is.EqualTo(201.8));
+        Assert.That(result.Serving, Is.EqualTo(new ProductServing("0.5 pizza (201.8 g)", 201.8)));
     }
 
     [Test]
@@ -88,7 +88,7 @@ public class OpenFoodFactsLookupTests
 
         var result = await lookup.LookupAsync("5449000000996");
 
-        Assert.That((result.Food!.ServingLabel, result.Food.ServingAmount), Is.EqualTo(("1 portion (330 ml)", 330.0)));
+        Assert.That((result.Serving?.Label, result.Serving?.Amount), Is.EqualTo(("1 portion (330 ml)", 330.0)));
     }
 
     [Test]
@@ -98,7 +98,7 @@ public class OpenFoodFactsLookupTests
 
         var result = await lookup.LookupAsync(Barcode);
 
-        Assert.That((result.Food!.ServingLabel, result.Food.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+        Assert.That((result.Serving?.Label, result.Serving?.Amount), Is.EqualTo(((string?)null, (double?)null)));
     }
 
     [TestCase("\"serving_quantity\":330", "\"serving_quantity\":0", TestName = "Serving_WithZeroWeight_IsIgnored")]
@@ -106,6 +106,8 @@ public class OpenFoodFactsLookupTests
     [TestCase("\"serving_quantity\":330", "\"serving_quantity\":null", TestName = "Serving_WithNoWeight_IsIgnored")]
     [TestCase("\"serving_size\":\"1 portion (330 ml)\"", "\"serving_size\":\" \"", TestName = "Serving_WithBlankLabel_IsIgnored")]
     [TestCase("\"serving_quantity_unit\":\"ml\"", "\"serving_quantity_unit\":\"g\",\"product_quantity_unit\":\"ml\"", TestName = "Serving_InGramsForAMillilitreFood_IsIgnored")]
+    [TestCase("\"serving_quantity\":330", "\"serving_quantity\":10001", TestName = "Serving_OverTheMaximumWeight_IsIgnored")]
+    [TestCase("\"serving_size\":\"1 portion (330 ml)\"", "\"serving_size\":\"123456789012345678901234567890123456789012345678901234567890x\"", TestName = "Serving_WithATooLongLabel_IsIgnored")]
     public async Task Serving_ThatDoesNotCount_GivesNulls(string find, string replace)
     {
         var body = Fixture("drink-5449000000996.json");
@@ -116,7 +118,20 @@ public class OpenFoodFactsLookupTests
 
         Assert.That(result.Status, Is.EqualTo(BarcodeLookupStatus.Found));
         Assert.That(result.Food!.Unit, Is.EqualTo(FoodUnit.Millilitre));
-        Assert.That((result.Food.ServingLabel, result.Food.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+        Assert.That((result.Serving?.Label, result.Serving?.Amount), Is.EqualTo(((string?)null, (double?)null)));
+    }
+
+    [Test]
+    public async Task Serving_LabelIsTrimmed()
+    {
+        var body = Fixture("drink-5449000000996.json");
+        const string label = "\"serving_size\":\"1 portion (330 ml)\"";
+        Assert.That(body, Does.Contain(label));
+        handler.Respond(body.Replace(label, "\"serving_size\":\"  1 portion (330 ml) \""));
+
+        var result = await lookup.LookupAsync("5449000000996");
+
+        Assert.That(result.Serving, Is.EqualTo(new ProductServing("1 portion (330 ml)", 330)));
     }
 
     [Test]
@@ -130,7 +145,7 @@ public class OpenFoodFactsLookupTests
         var result = await lookup.LookupAsync("5060198643156");
 
         Assert.That(result.Food!.Unit, Is.EqualTo(FoodUnit.Gram));
-        Assert.That((result.Food.ServingLabel, result.Food.ServingAmount), Is.EqualTo(("0.5 pizza (201.8 g)", 201.8)));
+        Assert.That((result.Serving?.Label, result.Serving?.Amount), Is.EqualTo(("0.5 pizza (201.8 g)", 201.8)));
     }
 
     [Test]
@@ -144,7 +159,7 @@ public class OpenFoodFactsLookupTests
         var result = await lookup.LookupAsync("5449000000996");
 
         Assert.That(result.Food!.Unit, Is.EqualTo(FoodUnit.Millilitre));
-        Assert.That((result.Food.ServingLabel, result.Food.ServingAmount), Is.EqualTo(((string?)null, (double?)null)));
+        Assert.That((result.Serving?.Label, result.Serving?.Amount), Is.EqualTo(((string?)null, (double?)null)));
     }
 
     [Test]
@@ -329,7 +344,7 @@ public class OpenFoodFactsLookupTests
     }
 
     [Test]
-    public async Task OnlyFirstBrand_IsKept_AndEmptyBrandIsNull()
+    public async Task BrandIsTheFirstPart_AndEmptyFirstPartGivesNullBrand()
     {
         handler.Respond(Body("Oats", " Quaker , Other", AllRequired()));
         var first = (await lookup.LookupAsync(Barcode)).Food!;
@@ -339,9 +354,9 @@ public class OpenFoodFactsLookupTests
         Assert.Multiple(() =>
         {
             Assert.That(first.Brand, Is.EqualTo("Quaker"));
-            Assert.That(first.SearchText, Is.EqualTo("oats quaker"));
+            Assert.That(first.SearchText, Is.EqualTo("oats quaker other"));
             Assert.That(empty.Brand, Is.Null);
-            Assert.That(empty.SearchText, Is.EqualTo("oats"));
+            Assert.That(empty.SearchText, Is.EqualTo("oats other"));
         });
     }
 
@@ -465,7 +480,7 @@ public class OpenFoodFactsLookupTests
         {
             Assert.That(request.Method, Is.EqualTo(HttpMethod.Get));
             Assert.That(request.Uri.GetLeftPart(UriPartial.Path), Is.EqualTo("https://world.openfoodfacts.org/api/v2/product/" + Barcode));
-            Assert.That(request.Uri.Query, Is.EqualTo("?fields=product_name,brands,nutriments,product_quantity_unit,serving_quantity_unit,categories_tags,serving_size,serving_quantity"));
+            Assert.That(request.Uri.Query, Is.EqualTo("?fields=product_name,brands,nutriments,product_quantity_unit,serving_quantity_unit,categories_tags,serving_size,serving_quantity,generic_name,quantity,product_quantity,pnns_groups_2,unique_scans_n,completeness,last_modified_t,data_quality_warnings_tags"));
         });
     }
 
@@ -667,6 +682,241 @@ public class OpenFoodFactsLookupTests
             var text = record.Message + string.Join(" ", record.StructuredState!.Select(p => $"{p.Key}={p.Value}")) + record.Exception;
             Assert.That(text, Does.Not.Contain("Distinctive").And.Not.Contain(secretBarcode));
         }
+    }
+
+    [Test]
+    public async Task Nutella_StoresTheIdentifyingFields()
+    {
+        handler.Respond(Fixture("details-nutella-3017620422003.json"));
+
+        var result = await lookup.LookupAsync(Barcode);
+        var food = result.Food!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That((food.Brand, food.Brands), Is.EqualTo(("Ferrero", "Ferrero, Nutella")));
+            Assert.That(food.GenericName, Is.EqualTo("Hazelnut And Cocoa Spread"));
+            Assert.That((food.PackageLabel, food.PackageAmount), Is.EqualTo(("400 g e", (double?)400)));
+            Assert.That((food.Category, food.Popularity, food.Completeness), Is.EqualTo(("Sweets", (int?)804, (double?)0.9)));
+            Assert.That(food.SourceUpdated, Is.EqualTo(DateTimeOffset.FromUnixTimeSeconds(1794233882)));
+            Assert.That(food.FetchedAt, Is.EqualTo(clock.GetUtcNow()));
+            Assert.That((result.Serving?.Label, result.Serving?.Amount), Is.EqualTo(((string?)null, (double?)null)));
+            Assert.That(food.SearchText, Is.EqualTo("nutella ferrero nutella hazelnut and cocoa spread sweets"));
+        });
+    }
+
+    [Test]
+    public async Task ColaCan_HasAPackageAmountInMillilitres()
+    {
+        handler.Respond(Fixture("details-cola-can-5000112637922.json"));
+
+        var food = (await lookup.LookupAsync("5000112637922")).Food!;
+
+        Assert.That((food.Unit, food.PackageAmount, food.PackageLabel), Is.EqualTo((FoodUnit.Millilitre, (double?)330, "330 ml")));
+        Assert.That(food.GenericName, Is.EqualTo("Kolsyrad läskedryck"));
+    }
+
+    [Test]
+    public async Task ColaCan_ReportedInMillilitres_IsAMillilitreDrink()
+    {
+        handler.Respond(Fixture("details-cola-can-5000112637922.json"));
+
+        var food = (await lookup.LookupAsync("5000112637922")).Food!;
+
+        Assert.That((food.Unit, food.Type), Is.EqualTo((FoodUnit.Millilitre, FoodType.Drink)));
+    }
+
+    [Test]
+    public async Task MarsBar_HasNoServingTheSourceFlaggedAsWrong_AndItsPackageAmount()
+    {
+        handler.Respond(Fixture("details-mars-5000159407236.json"));
+
+        var result = await lookup.LookupAsync("5000159407236");
+        var food = result.Food!;
+
+        Assert.That((result.Serving?.Label, result.Serving?.Amount), Is.EqualTo(((string?)null, (double?)null)));
+        Assert.That((food.PackageAmount, food.Brands, food.GenericName), Is.EqualTo(((double?)51, "Mars, Mars Wrigley", (string?)null)));
+    }
+
+    [Test]
+    public async Task Weetabix_KeepsItsServing()
+    {
+        handler.Respond(Fixture("details-weetabix-5010029000023.json"));
+
+        var result = await lookup.LookupAsync("5010029000023");
+        var food = result.Food!;
+
+        Assert.That((result.Serving?.Label, result.Serving?.Amount, food.Category), Is.EqualTo(("37.5 gram", (double?)37.5, "Breakfast cereals")));
+    }
+
+    [Test]
+    public async Task ProductWithNoDetailFields_StoresNullsAndIsFound()
+    {
+        handler.Respond(Body("Oats", null, AllRequired()));
+
+        var result = await lookup.LookupAsync(Barcode);
+
+        Assert.That(result.Status, Is.EqualTo(BarcodeLookupStatus.Found));
+        var food = result.Food!;
+        Assert.That((food.Brands, food.GenericName, food.PackageLabel, food.PackageAmount, food.Category, food.Popularity, food.Completeness, food.SourceUpdated),
+            Is.EqualTo(((string?)null, (string?)null, (string?)null, (double?)null, (string?)null, (int?)null, (double?)null, (DateTimeOffset?)null)));
+        Assert.That(food.FetchedAt, Is.EqualTo(clock.GetUtcNow()));
+    }
+
+    [Test]
+    public async Task Brands_AreTrimmedDeduplicatedIgnoringCase_AndBlanksDropped()
+    {
+        handler.Respond(Body("Oats", " Quaker ,, quaker , Other ,  ", AllRequired()));
+
+        var food = (await lookup.LookupAsync(Barcode)).Food!;
+
+        Assert.That((food.Brand, food.Brands), Is.EqualTo(("Quaker", "Quaker, Other")));
+    }
+
+    [TestCase("\"quantity\":\"51 g\"", "\"quantity\":\" \"", null, 51.0)]
+    [TestCase("\"product_quantity\":51", "\"product_quantity\":0", "51 g", null)]
+    [TestCase("\"product_quantity\":51", "\"product_quantity\":\"abc\"", "51 g", null)]
+    public async Task Package_PartThatDoesNotCount_IsNull(string find, string replace, string? label, double? amount)
+    {
+        var body = Fixture("details-mars-5000159407236.json");
+        Assert.That(body, Does.Contain(find));
+        handler.Respond(body.Replace(find, replace));
+
+        var food = (await lookup.LookupAsync("5000159407236")).Food!;
+
+        Assert.That((food.PackageLabel, food.PackageAmount), Is.EqualTo((label, amount)));
+    }
+
+    [Test]
+    public async Task PackageAmount_InAnotherUnitThanTheFood_IsNull()
+    {
+        var body = Fixture("details-cola-can-5000112637922.json");
+        const string unit = "\"product_quantity_unit\":\"ml\"";
+        Assert.That(body, Does.Contain(unit));
+        handler.Respond(body.Replace(unit, "\"product_quantity_unit\":\"g\"").Replace("\"serving_quantity_unit\":\"g\"", "\"serving_quantity_unit\":\"ml\""));
+
+        var food = (await lookup.LookupAsync("5000112637922")).Food!;
+
+        Assert.That((food.Unit, food.PackageAmount), Is.EqualTo((FoodUnit.Millilitre, (double?)null)));
+    }
+
+    [TestCase("unknown")]
+    [TestCase("Unknown")]
+    [TestCase(" ")]
+    public async Task Category_UnknownOrBlank_IsNull(string category)
+    {
+        var body = Fixture("details-nutella-3017620422003.json");
+        handler.Respond(body.Replace("\"pnns_groups_2\":\"Sweets\"", $"\"pnns_groups_2\":\"{category}\""));
+
+        var food = (await lookup.LookupAsync(Barcode)).Food!;
+
+        Assert.That(food.Category, Is.Null);
+    }
+
+    [TestCase("\"completeness\":0.9", "\"completeness\":1.5")]
+    [TestCase("\"completeness\":0.9", "\"completeness\":-1")]
+    public async Task Completeness_OutOfRange_IsNull(string find, string replace)
+    {
+        handler.Respond(Fixture("details-nutella-3017620422003.json").Replace(find, replace));
+
+        Assert.That((await lookup.LookupAsync(Barcode)).Food!.Completeness, Is.Null);
+    }
+
+    [Test]
+    public async Task Completeness_AtTheEnds_IsKept()
+    {
+        handler.Respond(Fixture("details-nutella-3017620422003.json").Replace("\"completeness\":0.9", "\"completeness\":1"));
+        var one = (await lookup.LookupAsync(Barcode)).Food!;
+        handler.Respond(Fixture("details-nutella-3017620422003.json").Replace("\"completeness\":0.9", "\"completeness\":0"));
+        var zero = (await lookup.LookupAsync(Barcode)).Food!;
+
+        Assert.That((one.Completeness, zero.Completeness), Is.EqualTo(((double?)1, (double?)0)));
+    }
+
+    [Test]
+    public async Task Popularity_AndUpdateTime_AsStringsOrAbsurd_AreHandled()
+    {
+        var body = Fixture("details-nutella-3017620422003.json");
+        handler.Respond(body.Replace("\"unique_scans_n\":804", "\"unique_scans_n\":\"12\"").Replace("1794233882", "\"1794233882\""));
+        var strings = (await lookup.LookupAsync(Barcode)).Food!;
+        handler.Respond(body.Replace("\"unique_scans_n\":804", "\"unique_scans_n\":99999999999").Replace("1794233882", "99999999999999"));
+        var absurd = (await lookup.LookupAsync(Barcode)).Food!;
+
+        Assert.That((strings.Popularity, strings.SourceUpdated), Is.EqualTo(((int?)12, (DateTimeOffset?)DateTimeOffset.FromUnixTimeSeconds(1794233882))));
+        Assert.That((absurd.Popularity, absurd.SourceUpdated), Is.EqualTo(((int?)null, (DateTimeOffset?)null)));
+    }
+
+    [Test]
+    public async Task Popularity_AndUpdateTime_Negative_AreNull()
+    {
+        var body = Fixture("details-nutella-3017620422003.json");
+        handler.Respond(body.Replace("\"unique_scans_n\":804", "\"unique_scans_n\":-5").Replace("1794233882", "-99999999999999"));
+
+        var food = (await lookup.LookupAsync(Barcode)).Food!;
+
+        Assert.That((food.Popularity, food.SourceUpdated), Is.EqualTo(((int?)null, (DateTimeOffset?)null)));
+    }
+
+    [Test]
+    public async Task GenericName_EmojiStraddlingTheLimit_IsCutBeforeTheSurrogatePair()
+    {
+        var body = Fixture("details-nutella-3017620422003.json");
+        var text = new string('a', 99) + "\ud83d\ude00" + "bbb";
+        handler.Respond(body.Replace("Hazelnut And Cocoa Spread", text));
+
+        var generic = (await lookup.LookupAsync(Barcode)).Food!.GenericName!;
+
+        Assert.That(generic, Is.EqualTo(new string('a', 99)));
+        Assert.That(generic.Any(char.IsSurrogate), Is.False);
+    }
+
+    [Test]
+    public async Task LongTexts_AreBounded()
+    {
+        var body = Fixture("details-nutella-3017620422003.json");
+        var longText = new string('a', 500);
+        handler.Respond(body.Replace("Hazelnut And Cocoa Spread", longText).Replace("400 g e", longText).Replace("\"brands\":\"Ferrero, Nutella\"", $"\"brands\":\"{longText}, b\""));
+
+        var food = (await lookup.LookupAsync(Barcode)).Food!;
+
+        Assert.That((food.GenericName!.Length, food.PackageLabel!.Length, food.Brands!.Length), Is.EqualTo((100, 100, 200)));
+    }
+
+    [Test]
+    public async Task ServingWarning_OnlyWhenTheTagIsPresent()
+    {
+        var body = Fixture("details-mars-5000159407236.json");
+        handler.Respond(body.Replace("en:serving-quantity-over-product-quantity", "en:something-else"));
+
+        var result = await lookup.LookupAsync("5000159407236");
+        var food = result.Food!;
+
+        Assert.That((result.Serving?.Label, result.Serving?.Amount, food.ServingChecked), Is.EqualTo(("100 g", (double?)100, (bool?)null)));
+    }
+
+    [Test]
+    public async Task Logging_FoundProductWithDetails_LogsNoBrandNameOrText()
+    {
+        handler.Respond(Fixture("details-nutella-3017620422003.json"));
+
+        await lookup.LookupAsync(Barcode);
+
+        Assert.That(logger.Collector.GetSnapshot(), Is.Not.Empty);
+        foreach (var record in logger.Collector.GetSnapshot())
+        {
+            var text = record.Message + string.Join(" ", record.StructuredState!.Select(p => $"{p.Key}={p.Value}"));
+            Assert.That(text, Does.Not.Contain("Ferrero").And.Not.Contain("Hazelnut").And.Not.Contain("Sweets").And.Not.Contain("400").And.Not.Contain(Barcode));
+        }
+    }
+
+    [Test]
+    public async Task Request_AsksForNoImageField()
+    {
+        handler.Respond(Fixture("details-nutella-3017620422003.json"));
+
+        await lookup.LookupAsync(Barcode);
+
+        Assert.That(handler.Requests.Single().Uri.Query, Does.Not.Contain("image").And.Not.Contain("photo"));
     }
 
     private static Dictionary<string, string> AllRequired() => new()

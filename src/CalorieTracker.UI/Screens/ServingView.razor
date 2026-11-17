@@ -6,7 +6,7 @@
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Components.Inputs
 @using CalorieTracker.UI.Models.Serving
-<AppScreen Title="@(Food?.Name ?? (Editing ? "Edit entry" : "Add food"))" OnBack="OnBack">
+<AppScreen Title="@(Display is { } titled ? titled.Title : Editing ? "Edit entry" : "Add food")" OnBack="OnBack">
     <Actions>
         @if (Editing && Food is not null && !Loading && !LoadFailed)
         {
@@ -35,6 +35,10 @@
             var mode = HasServing ? Mode : EntryMode.Grams;
             var servings = mode == EntryMode.Servings;
             <div class="body">
+                @if (Display?.Detail is { } detail)
+                {
+                    <p class="brand" data-testid="serving-brand" data-wrap-ok>@detail</p>
+                }
                 @if (Editing)
                 {
                     <p class="when" data-testid="serving-when">@Meal · @Date.ToString("d MMM", CultureInfo.InvariantCulture)</p>
@@ -48,9 +52,13 @@
                     <section class="section">
                         <h2 class="heading">Enter as</h2>
                         <SegmentedControl TValue="EntryMode" Label="Enter as" Options="Modes" Value="mode" ValueChanged="OnModeChanged" TestId="serving-mode" />
-                        @if (servings)
+                        @if (servings && Servings.Count > 1)
                         {
-                            <SummaryCard TestId="serving-label"><span class="serving-label" data-wrap-ok>@food.ServingLabel</span></SummaryCard>
+                            <SelectField TValue="int" Label="Serving" Options="ServingOptions" Value="Chosen!.Id" ValueChanged="OnServingChanged" TestId="serving-select" />
+                        }
+                        else if (servings)
+                        {
+                            <SummaryCard TestId="serving-label"><span class="serving-label" data-wrap-ok>@Chosen!.Label</span></SummaryCard>
                         }
                     </section>
                 }
@@ -64,7 +72,32 @@
                     }
                     @if (HasServing && !servings)
                     {
-                        <AppButton Variant="ButtonVariant.Secondary" FullWidth TestId="serving-use-serving" OnClick="OnUseServing">Use serving: @food.ServingLabel</AppButton>
+                        <AppButton Variant="ButtonVariant.Secondary" FullWidth TestId="serving-use-serving" OnClick="OnUseServing"><span data-wrap-ok>Use serving: @Chosen!.Label</span></AppButton>
+                    }
+                </section>
+                <section class="section">
+                    <h2 class="heading">Your servings</h2>
+                    @if (AddingOwn)
+                    {
+                        <TextField Label="Serving name" Value="@OwnLabel" ValueChanged="OnOwnLabelChanged" MaxLength="FoodService.MaxServingLabelLength" Placeholder="Serving name, such as 1 slice"
+                                   InvalidMessage="@OwnLabelMessage" TestId="serving-own-label" />
+                        <NumberField Label="Serving size" Value="OwnAmount" ValueChanged="OnOwnAmountChanged" Unit="@UnitText(food)" InvalidMessage="@OwnAmountMessage(food)" TestId="serving-own-amount" />
+                        @if (OwnError is not null)
+                        {
+                            <p class="error" role="alert" data-testid="serving-own-error" data-wrap-ok>@OwnError</p>
+                        }
+                        <div class="own-actions">
+                            <AppButton Variant="ButtonVariant.Secondary" FullWidth Disabled="SavingOwn" TestId="serving-own-cancel" OnClick="OnOwnCancel">Cancel</AppButton>
+                            <AppButton FullWidth Busy="SavingOwn" Disabled="!OwnValid" TestId="serving-own-save" OnClick="OnOwnSave">@(SavingOwn ? "Saving…" : "Save serving")</AppButton>
+                        </div>
+                    }
+                    else
+                    {
+                        <AppButton Variant="ButtonVariant.Secondary" FullWidth TestId="serving-own-add" OnClick="OnOwnOpen">Add your own serving</AppButton>
+                        @if (HasServing && Chosen!.Source == ServingSource.User)
+                        {
+                            <AppButton Variant="ButtonVariant.Secondary" FullWidth TestId="serving-own-delete" OnClick="OnDeleteOwn"><span data-wrap-ok>Delete serving: @Chosen.Label</span></AppButton>
+                        }
                     }
                 </section>
                 <section class="section">
@@ -116,6 +149,10 @@
 </AppScreen>
 
 @code {
+    private FoodDisplay? Display { get; set; }
+
+    protected override void OnParametersSet() => Display = Food is null ? null : FoodDisplay.Of(Food);
+
     /// <summary>The food to add, with its values per 100 g or ml. Null shows "Food not found" unless <see cref="Loading"/> or <see cref="LoadFailed"/> is set.</summary>
     [Parameter]
     public Food? Food { get; set; }
@@ -127,6 +164,62 @@
     /// <summary>Shows a load error with Try again instead of the food.</summary>
     [Parameter]
     public bool LoadFailed { get; set; }
+
+    /// <summary>The food's servings in listing order (product, packs, the person's own). Empty shows no Enter as switch. Two or more show a list to choose which one Servings counts.</summary>
+    [Parameter]
+    public IReadOnlyList<Serving> Servings { get; set; } = [];
+
+    /// <summary>Id of the serving Servings counts and "= N g" and Add use. Null, or an id not in <see cref="Servings"/>, means the first.</summary>
+    [Parameter]
+    public int? ServingId { get; set; }
+
+    /// <summary>Raised with the id of the serving picked in the list.</summary>
+    [Parameter]
+    public EventCallback<int> OnServingChanged { get; set; }
+
+    /// <summary>Shows the form for the person's own serving instead of the Add your own serving button.</summary>
+    [Parameter]
+    public bool AddingOwn { get; set; }
+
+    /// <summary>The name typed in the own-serving form.</summary>
+    [Parameter]
+    public string? OwnLabel { get; set; }
+
+    /// <summary>The size typed in the own-serving form, in g or ml. Null when empty or not a number.</summary>
+    [Parameter]
+    public decimal? OwnAmount { get; set; }
+
+    /// <summary>An error from saving the own serving (a repeat size, or a failed save), shown in the form.</summary>
+    [Parameter]
+    public string? OwnError { get; set; }
+
+    /// <summary>Shows Save serving as busy while the serving is saved.</summary>
+    [Parameter]
+    public bool SavingOwn { get; set; }
+
+    /// <summary>Raised by Add your own serving.</summary>
+    [Parameter]
+    public EventCallback OnOwnOpen { get; set; }
+
+    /// <summary>Raised on every keystroke in the name field.</summary>
+    [Parameter]
+    public EventCallback<string> OnOwnLabelChanged { get; set; }
+
+    /// <summary>Raised on every change of the size field with the number (null when it isn't one).</summary>
+    [Parameter]
+    public EventCallback<decimal?> OnOwnAmountChanged { get; set; }
+
+    /// <summary>Raised by Save serving while the name and size are valid.</summary>
+    [Parameter]
+    public EventCallback OnOwnSave { get; set; }
+
+    /// <summary>Raised by Cancel in the own-serving form.</summary>
+    [Parameter]
+    public EventCallback OnOwnCancel { get; set; }
+
+    /// <summary>Raised by Delete serving, shown while a serving the person made is the chosen one.</summary>
+    [Parameter]
+    public EventCallback OnDeleteOwn { get; set; }
 
     /// <summary>Grams (or ml) or servings. Ignored, and Grams used, when the food has no serving.</summary>
     [Parameter]
@@ -226,8 +319,18 @@
         new(Meal.Snacks, "Snacks", "serving-meal-snacks"),
     ];
 
-    /// <summary>The serving switch shows only with a label and a weight above zero.</summary>
-    private bool HasServing => ServingRules.HasServing(Food);
+    /// <summary>The serving switch shows only when the food has a serving.</summary>
+    private bool HasServing => ServingRules.HasServing(Servings);
+
+    private Serving? Chosen => ServingRules.Pick(Servings, ServingId);
+
+    private IReadOnlyList<RadioOption<int>> ServingOptions => Servings.Select(x => new RadioOption<int>(x.Id, x.Label, $"serving-option-{x.Id}")).ToList();
+
+    private bool OwnValid => FoodService.TryBoundServing(OwnLabel, (double?)OwnAmount, out _, out _);
+
+    private string? OwnLabelMessage => ServingRules.OwnLabelMessage(OwnLabel);
+
+    private string? OwnAmountMessage(Food food) => ServingRules.OwnAmountMessage(OwnAmount, UnitText(food));
 
     private bool Valid => ServingRules.IsValidGrams(Grams);
 
@@ -254,7 +357,7 @@
 
     private string AddsDetail(Food food) =>
         HasServing
-            ? $"{Weight(Grams!.Value)} {UnitText(food)} of {food.Name}"
+            ? $"{Weight(Grams!.Value)} {UnitText(food)} of {Display?.Title}"
             : $"Protein {Number(Share(food.ProteinG))} g · Carbs {Number(Share(food.CarbsG))} g · Fat {Number(Share(food.FatG))} g";
 
     private double Share(double per100) => per100 * Grams!.Value / 100;

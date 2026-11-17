@@ -1,0 +1,78 @@
+@typeparam TValue
+<div class="field">
+    <label class="box">
+        <span class="visually-hidden">@Label</span>
+        <select class="select"
+                disabled="@Disabled"
+                data-testid="@TestId"
+                @key="generation"
+                @onchange="Pick">
+            @for (var i = 0; i < Options.Count; i++)
+            {
+                var option = Options[i];
+                <option value="@i" selected="@IsChosen(option.Value)">@option.Label</option>
+            }
+        </select>
+    </label>
+</div>
+
+@code {
+    private int generation;
+    private bool picked;
+
+    private bool IsChosen(TValue optionValue) => EqualityComparer<TValue>.Default.Equals(optionValue, Value);
+
+    private TValue? pickedValue;
+
+    private async Task Pick(ChangeEventArgs e)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out var index) || index < 0 || index >= Options.Count)
+        {
+            return;
+        }
+
+        pickedValue = Options[index].Value;
+        picked = true;
+        await ValueChanged.InvokeAsync(pickedValue);
+    }
+
+    /// <summary>Redraws the list when the parent didn't take the picked value, so the browser shows the chosen one.</summary>
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!picked)
+        {
+            return;
+        }
+
+        picked = false;
+        if (!EqualityComparer<TValue>.Default.Equals(pickedValue, Value))
+        {
+            generation++;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>What the list picks, e.g. Serving. Read by screen readers only.</summary>
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    /// <summary>Choices, in order. Only <see cref="RadioOption{TValue}.Value"/> and <see cref="RadioOption{TValue}.Label"/> are used.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<RadioOption<TValue>> Options { get; set; } = [];
+
+    /// <summary>Chosen value. When it matches no option, the browser shows the first.</summary>
+    [Parameter]
+    public TValue? Value { get; set; }
+
+    /// <summary>Raised with the value of the option picked.</summary>
+    [Parameter]
+    public EventCallback<TValue> ValueChanged { get; set; }
+
+    /// <summary>Greys out the list.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>Value of the select's data-testid attribute.</summary>
+    [Parameter]
+    public string? TestId { get; set; }
+}

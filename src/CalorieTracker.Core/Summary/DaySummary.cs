@@ -1,5 +1,6 @@
 using System.Globalization;
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Foods;
 
 namespace CalorieTracker.Core.Summary;
 
@@ -30,8 +31,13 @@ public sealed record Nutrition(int Kcal, double ProteinG, double CarbsG, double 
 /// <summary>Each macro's share of the day's calories as a whole percent (protein and carbs 4 kcal a gram, fat 9). They are zero on an empty day and may add up to 99 or 101.</summary>
 public sealed record MacroShares(int ProteinPercent, int CarbsPercent, int FatPercent);
 
-/// <summary>A kept entry with its food looked up. <see cref="Nutrition"/> is for the entry's amount. <see cref="ServingLabel"/> is the food's own label for one serving, as stored (such as "1 slice (28 g)"); null when the food has none.</summary>
-public sealed record SummaryEntry(int EntryId, int FoodId, string Name, string? Brand, FoodUnit Unit, double Amount, double? Servings, Nutrition Nutrition, string? ServingLabel = null);
+/// <summary>A kept entry with its food looked up. <see cref="Nutrition"/> is for the entry's amount. <see cref="ServingLabel"/> is the label of the serving the entry was added by (such as "1 slice (28 g)"), null when the entry was added by weight, was saved before servings had their own table, or its serving was deleted.</summary>
+/// <param name="ServingId">The serving the entry was added by; null when it has none (see <see cref="DiaryEntry.ServingId"/>).</param>
+public sealed record SummaryEntry(int EntryId, int FoodId, string Name, string? Brand, FoodUnit Unit, double Amount, double? Servings, Nutrition Nutrition, string? ServingLabel = null, string? Brands = null, int? ServingId = null)
+{
+    /// <summary>The title and brand line the diary row shows. The pack is not read for a diary row, so <see cref="FoodDisplay.Pack"/> is null.</summary>
+    public FoodDisplay Display { get; } = FoodDisplay.Of(Name, Brand, Brands, null);
+}
 
 /// <summary>One meal's entries in the order added, and their total. Empty meals are still listed.</summary>
 public sealed record MealSummary(Meal Meal, Nutrition Totals, IReadOnlyList<SummaryEntry> Entries);

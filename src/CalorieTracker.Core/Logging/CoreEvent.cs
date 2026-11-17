@@ -2,7 +2,7 @@ namespace CalorieTracker.Core.Logging;
 
 /// <summary>
 /// Event ids of Core's log messages: 1000–1999, a block of 100 per type.
-/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch, 1600 TargetService, 1700 DiaryService, 1800 DaySummaryService, 1900 FoodService; the <c>*Block</c> members hold them.
+/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch (the online ones sit inside it: 1520 OnlineSearch, 1540 OnlineImport, 1550 OnlineNotice), 1600 TargetService, 1700 DiaryService, 1800 DaySummaryService, 1900 FoodService; the <c>*Block</c> members hold them. FoodHistoryService has ten ids from 1050, FoodImportService ten from 1060 and ServingService ten from 1010 because every block of 100 is taken.
 /// Ids never change and are never reused; list a retired id here and in <c>CoreEventTests</c>.
 /// </summary>
 internal enum CoreEvent
@@ -15,6 +15,30 @@ internal enum CoreEvent
 
     /// <summary><see cref="Data.DatabaseInitializer"/>: a schema upgrade step ran.</summary>
     SchemaStepApplied = 1003,
+
+    /// <summary>Start of the ten ids reserved for <see cref="Foods.ServingService"/>.</summary>
+    ServingServiceBlock = 1010,
+
+    /// <summary><see cref="Foods.ServingService"/>: a serving was added; carries the serving and food ids.</summary>
+    ServingAdded = 1011,
+
+    /// <summary><see cref="Foods.ServingService"/>: a serving was deleted; carries its id.</summary>
+    ServingRemoved = 1012,
+
+    /// <summary><see cref="Foods.ServingService"/>: a label or amount was rejected; none is logged.</summary>
+    ServingRejected = 1013,
+
+    /// <summary><see cref="Foods.ServingService"/>: a serving was not added because its food does not exist; carries the food id.</summary>
+    ServingFoodNotFound = 1014,
+
+    /// <summary><see cref="Foods.ServingService"/>: a serving was not added because the food has one of the person's own with that amount; carries the food id.</summary>
+    ServingDuplicate = 1015,
+
+    /// <summary><see cref="Foods.ServingService"/>: no serving of the person's own has the id; carries the id.</summary>
+    ServingNotFound = 1016,
+
+    /// <summary><see cref="Foods.ServingService"/>: the database failed, so the call returned <see cref="Foods.ServingStatus.Failed"/>.</summary>
+    ServingFailed = 1017,
 
     /// <summary>Start of the block reserved for <see cref="Data.FoodStore"/>.</summary>
     FoodStoreBlock = 1100,
@@ -73,10 +97,10 @@ internal enum CoreEvent
     /// <summary><see cref="Foods.StoredBarcodeLookup"/>: saving the inner lookup's food failed; the unsaved food was returned.</summary>
     StoredLookupSaveFailed = 1306,
 
-    /// <summary><see cref="Foods.StoredBarcodeLookup"/>: a stored food with no serving got one from a fresh lookup; carries the food id.</summary>
-    StoredLookupServingFilled = 1307,
+    /// <summary><see cref="Foods.StoredBarcodeLookup"/>: a stored food was refreshed from a fresh lookup (it had no serving, or no fetch time); carries the food id and whether the lookup had a serving.</summary>
+    StoredLookupRefreshed = 1307,
 
-    /// <summary><see cref="Foods.StoredBarcodeLookup"/>: the lookup for a stored food's serving gave none; carries the food id and the lookup's status.</summary>
+    /// <summary><see cref="Foods.StoredBarcodeLookup"/>: the lookup for a stored food gave nothing to refresh it with; carries the food id and the lookup's status.</summary>
     StoredLookupServingMissing = 1308,
 
     /// <summary><see cref="Foods.StoredBarcodeLookup"/>: saving a stored food's new serving failed, or the refresh threw; the stored food was returned as it was.</summary>
@@ -102,6 +126,66 @@ internal enum CoreEvent
 
     /// <summary><see cref="Foods.FoodSearch"/>: the store failed, so the search returned <see cref="Foods.FoodSearchStatus.Failed"/>.</summary>
     FoodSearchFailed = 1502,
+
+    /// <summary><see cref="Foods.FoodSearch"/>: a grouped search ran; term count and the number of foods in each group, never the text.</summary>
+    FoodSearchGrouped = 1503,
+
+    /// <summary><see cref="Foods.FoodSearch"/>: the foods shown before typing were read; the number of foods in each group.</summary>
+    FoodSuggested = 1504,
+
+    /// <summary>Start of the block reserved for <see cref="Foods.OnlineFoodSearch"/>.</summary>
+    OnlineSearchBlock = 1520,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: a request was sent; carries whether it was worldwide, never the text.</summary>
+    OnlineSearchSent = 1521,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: the same search was answered from the session cache; carries the product count.</summary>
+    OnlineSearchCached = 1522,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: a response was read; carries the hits, the products kept and the hits skipped or collapsed.</summary>
+    OnlineSearchAnswered = 1523,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: a request waited for the minimum gap after the last one; carries the wait in milliseconds.</summary>
+    OnlineSearchWaiting = 1524,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: the country search gave nothing to show, so it was repeated worldwide.</summary>
+    OnlineSearchWorldwideRepeat = 1525,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: the service answered HTTP 429.</summary>
+    OnlineSearchLimited = 1526,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: no response (network error or timeout).</summary>
+    OnlineSearchNoResponse = 1527,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: the body was not the expected JSON.</summary>
+    OnlineSearchMalformed = 1528,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: an HTTP status other than success and 429; carries it.</summary>
+    OnlineSearchUnexpectedStatus = 1529,
+
+    /// <summary><see cref="Foods.OnlineFoodSearch"/>: reading which products are stored failed, so none is marked new.</summary>
+    OnlineSearchStoredCheckFailed = 1530,
+
+    /// <summary>Start of the block reserved for <see cref="Foods.OnlineFoodImport"/>.</summary>
+    OnlineImportBlock = 1540,
+
+    /// <summary><see cref="Foods.OnlineFoodImport"/>: a tapped product is stored; carries the food id and how it was stored.</summary>
+    OnlineImported = 1541,
+
+    /// <summary><see cref="Foods.OnlineFoodImport"/>: the barcode lookup gave no product; carries its status.</summary>
+    OnlineImportLookupFailed = 1542,
+
+    /// <summary><see cref="Foods.OnlineFoodImport"/>: the product could not be stored; carries the import status.</summary>
+    OnlineImportStoreFailed = 1543,
+
+    /// <summary>Start of the block reserved for <see cref="Foods.OnlineSearchNotice"/>.</summary>
+    OnlineNoticeBlock = 1550,
+
+    /// <summary><see cref="Foods.OnlineSearchNotice"/>: reading whether the notice was shown failed.</summary>
+    OnlineNoticeReadFailed = 1551,
+
+    /// <summary><see cref="Foods.OnlineSearchNotice"/>: saving that the notice was shown failed.</summary>
+    OnlineNoticeSaveFailed = 1552,
 
     /// <summary>Start of the block reserved for <see cref="Targets.TargetService"/>.</summary>
     TargetServiceBlock = 1600,
@@ -165,6 +249,39 @@ internal enum CoreEvent
 
     /// <summary><see cref="Summary.DaySummaryService"/>: an entry holds a meal that is not one of the four, so the call returned <see cref="Summary.DaySummaryStatus.Failed"/>; carries the entry id.</summary>
     DaySummaryMealUnknown = 1805,
+
+    /// <summary>Start of the block reserved for <see cref="History.FoodHistoryService"/>.</summary>
+    FoodHistoryServiceBlock = 1050,
+
+    /// <summary><see cref="History.FoodHistoryService"/>: recent foods were read; carries the food count.</summary>
+    FoodHistoryRecent = 1051,
+
+    /// <summary><see cref="History.FoodHistoryService"/>: usual foods were read; carries the food count, never the meal.</summary>
+    FoodHistoryUsual = 1052,
+
+    /// <summary><see cref="History.FoodHistoryService"/>: the history of every logged food was read in one call, for search; carries the food count.</summary>
+    FoodHistoryForFoods = 1053,
+
+    /// <summary><see cref="History.FoodHistoryService"/>: the database failed, so the call returned <see cref="History.FoodHistoryStatus.Failed"/>.</summary>
+    FoodHistoryFailed = 1054,
+
+    /// <summary>Start of the ten ids reserved for <see cref="Foods.FoodImportService"/>.</summary>
+    FoodImportServiceBlock = 1060,
+
+    /// <summary><see cref="Foods.FoodImportService"/>: a new food was stored; carries the food id.</summary>
+    FoodImportCreated = 1061,
+
+    /// <summary><see cref="Foods.FoodImportService"/>: a barcode was added to a stored food that is the same product; carries the food id.</summary>
+    FoodImportAttached = 1062,
+
+    /// <summary><see cref="Foods.FoodImportService"/>: the barcode or product was stored already; carries the food id.</summary>
+    FoodImportKnown = 1063,
+
+    /// <summary><see cref="Foods.FoodImportService"/>: the product lacked a required value, so nothing was stored; carries the reason, never the product.</summary>
+    FoodImportNotImportable = 1064,
+
+    /// <summary><see cref="Foods.FoodImportService"/>: the database failed, so the call returned <see cref="Foods.FoodImportStatus.Failed"/>.</summary>
+    FoodImportFailed = 1065,
 
     /// <summary>Start of the block reserved for <see cref="Foods.FoodService"/>.</summary>
     FoodServiceBlock = 1900,

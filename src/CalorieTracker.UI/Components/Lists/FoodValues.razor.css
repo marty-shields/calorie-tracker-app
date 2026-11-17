@@ -9,7 +9,9 @@
     font-size: var(--font-size-xl);
 }
 
-.brand {
+.generic,
+.brand,
+.pack {
     margin: 0;
     color: var(--color-text-muted);
     font-size: var(--font-size-sm);

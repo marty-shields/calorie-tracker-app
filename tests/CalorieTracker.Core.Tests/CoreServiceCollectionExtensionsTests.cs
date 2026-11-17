@@ -1,6 +1,7 @@
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Foods;
+using CalorieTracker.Core.History;
 using CalorieTracker.Core.Seed;
 using CalorieTracker.Core.Summary;
 using CalorieTracker.Core.Targets;
@@ -39,6 +40,8 @@ public class CoreServiceCollectionExtensionsTests
                 (typeof(TargetStore), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(DiaryService), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(DiaryStore), (Type?)null, ServiceLifetime.Singleton),
+                (typeof(FoodHistoryService), (Type?)null, ServiceLifetime.Singleton),
+                (typeof(FoodHistoryStore), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(DaySummaryService), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(SeedProgress), typeof(SeedProgress), ServiceLifetime.Singleton),
             }));
@@ -120,6 +123,50 @@ public class CoreServiceCollectionExtensionsTests
     }
 
     [Test]
+    public async Task AddCore_OnlineSearch_IsOneSingleton_SendsNothingUntilCalled_AndUsesTheSearchHostWithTheGenericUserAgent()
+    {
+        var handler = new CapturingHandler(System.Net.HttpStatusCode.OK, "{\"hits\":[]}");
+        var services = new ServiceCollection()
+            .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
+            .AddCore(TempDatabase.NewPath());
+        services.AddHttpClient(nameof(OnlineFoodSearch)).ConfigurePrimaryHttpMessageHandler(() => handler);
+        using var provider = services.BuildServiceProvider();
+
+        var search = provider.GetRequiredService<IOnlineFoodSearch>();
+        var callsBefore = handler.Calls;
+        await search.SearchAsync("oats");
+
+        var assembly = typeof(OnlineFoodSearch).Assembly.GetName();
+        using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(OnlineFoodSearch));
+        Assert.Multiple(() =>
+        {
+            Assert.That(search, Is.InstanceOf<OnlineFoodSearch>().And.SameAs(provider.GetRequiredService<IOnlineFoodSearch>()));
+            Assert.That(callsBefore, Is.Zero);
+            Assert.That(handler.Calls, Is.GreaterThanOrEqualTo(1));
+            Assert.That(handler.Uri!.Host, Is.EqualTo("search.openfoodfacts.org"));
+            Assert.That(handler.UserAgent, Is.EqualTo(assembly.Name + "/" + assembly.Version!.Major + "." + assembly.Version.Minor + "." + Math.Max(assembly.Version.Build, 0)));
+            Assert.That(client.Timeout, Is.EqualTo(TimeSpan.FromSeconds(10)));
+        });
+    }
+
+    [Test]
+    public void AddCore_WithLogging_ResolvesTheTapImportAndTheNotice()
+    {
+        using var provider = new ServiceCollection()
+            .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
+            .AddCore(TempDatabase.NewPath())
+            .BuildServiceProvider();
+
+        var first = provider.GetRequiredService<IOnlineFoodImport>();
+        var notice = provider.GetRequiredService<IOnlineSearchNotice>();
+        Assert.Multiple(() =>
+        {
+            Assert.That(first, Is.SameAs(provider.GetRequiredService<IOnlineFoodImport>()));
+            Assert.That(notice, Is.SameAs(provider.GetRequiredService<IOnlineSearchNotice>()));
+        });
+    }
+
+    [Test]
     public void AddCore_WithLogging_ResolvesTheGatedInitializer()
     {
         using var provider = new ServiceCollection()
@@ -161,6 +208,10 @@ public class CoreServiceCollectionExtensionsTests
             Assert.That(result.Status, Is.EqualTo(SeedLoadStatus.Loaded));
             Assert.That(result.Inserted, Is.EqualTo(2174));
         });
+        var connection = new SQLiteAsyncConnection(path);
+        var barley = await connection.QueryAsync<Food>("SELECT * FROM Food WHERE Source = 0 AND SourceId = '11-002'");
+        await connection.CloseAsync();
+        Assert.That(barley.Select(f => (f.OriginalName, f.FoodGroup)), Is.EqualTo(new[] { ("Barley, pearl, raw", "AA") }));
         File.Delete(path);
     }
 

@@ -24,5 +24,8 @@ public sealed class ScanScreen(WebView web)
     /// <summary>Whether Add to diary shows under a found product.</summary>
     public bool HasAddToDiary() => web.Exists("scan-add");
 
+    /// <summary>The found product's heading.</summary>
+    public string ProductTitle() => web.Text("scan-name");
+
     public void AddToDiary() => web.Tap("scan-add");
 }
