@@ -39,8 +39,7 @@ public class ServingPageTests : ComponentTestBase
         await core.GetRequiredService<IDatabaseInitializer>().InitializeAsync();
         connection = new SQLiteAsyncConnection(databasePath);
         var pizza = Stored(ScreenStates.Pizza, "pizza");
-        (pizza.ServingLabel, pizza.ServingAmount) = ("½ pizza (201.8 g)", 201.8);
-        pizzaId = await Insert(pizza);
+        pizzaId = await Insert(pizza, new ProductServing("½ pizza (201.8 g)", 201.8));
         cheddarId = await Insert(Stored(ScreenStates.Cheddar, "cheddar"));
         Context.Services.AddSingleton(core.GetRequiredService<FoodService>());
         Context.Services.AddSingleton(core.GetRequiredService<ServingService>());
@@ -73,15 +72,15 @@ public class ServingPageTests : ComponentTestBase
     };
 
     /// <summary>Stores the food and, as the lookup's write path does, its serving rows: a Product row for the serving set on it (as it is, unbounded) and a Pack row for a pack of 1000 g or ml at most.</summary>
-    private async Task<int> Insert(Food food)
+    private async Task<int> Insert(Food food, ProductServing? serving = null)
     {
         await connection.InsertAsync(food);
-        if (food.ServingAmount is { } amount)
+        if (serving is not null)
         {
-            await connection.InsertAsync(new StoredServing { FoodId = food.Id, Label = food.ServingLabel ?? "", Amount = amount, Source = ServingSource.Product, SortOrder = 0 });
+            await connection.InsertAsync(new StoredServing { FoodId = food.Id, Label = serving.Label, Amount = serving.Amount, Source = ServingSource.Product, SortOrder = 0 });
         }
 
-        if (food.PackageAmount is > 0 and <= 1000 && food.PackageAmount != food.ServingAmount)
+        if (food.PackageAmount is > 0 and <= 1000 && food.PackageAmount != serving?.Amount)
         {
             var unit = food.Unit == FoodUnit.Millilitre ? "ml" : "g";
             await connection.InsertAsync(new StoredServing { FoodId = food.Id, Label = $"Whole pack ({food.PackageAmount:0.##} {unit})", Amount = food.PackageAmount.Value, Source = ServingSource.Pack, SortOrder = 1 });
@@ -140,9 +139,7 @@ public class ServingPageTests : ComponentTestBase
         mars.Brands = "Mars, Mars Wrigley";
         mars.PackageLabel = "51 g";
         mars.PackageAmount = packAmount;
-        mars.ServingLabel = servingLabel;
-        mars.ServingAmount = servingAmount;
-        return await Insert(mars);
+        return await Insert(mars, servingAmount is { } weight ? new ProductServing(servingLabel ?? "", weight) : null);
     }
 
     [Test]
@@ -282,8 +279,7 @@ public class ServingPageTests : ComponentTestBase
             Kcal = 100,
             SearchText = "long label",
         };
-        (long_.ServingLabel, long_.ServingAmount) = (new string('x', FoodService.MaxServingLabelLength + 1), 50);
-        var id = await Insert(long_);
+        var id = await Insert(long_, new ProductServing(new string('x', FoodService.MaxServingLabelLength + 1), 50));
 
         var cut = Render(id, Meal.Lunch);
 
@@ -1182,8 +1178,7 @@ public class ServingPageTests : ComponentTestBase
     private async Task SeedCola()
     {
         var cola = Stored(ServingSamples.Cola, "cola");
-        (cola.ServingLabel, cola.ServingAmount) = ("1 glass (250 ml)", 250);
-        colaId = await Insert(cola);
+        colaId = await Insert(cola, new ProductServing("1 glass (250 ml)", 250));
         var rows = await connection.QueryAsync<StoredServing>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY SortOrder", colaId);
         (glassId, canId) = (rows[0].Id, rows[1].Id);
     }

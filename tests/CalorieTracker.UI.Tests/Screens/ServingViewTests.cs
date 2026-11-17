@@ -18,13 +18,12 @@ public class ServingViewTests : ComponentTestBase
             more?.Invoke(p);
         });
 
-    /// <summary>The servings the page would pass for the sample foods; for any other food, the serving set on it (as a lookup carries it).</summary>
+    /// <summary>The servings the page would pass for the sample foods; for any other food, none.</summary>
     private static IReadOnlyList<StoredServing> DefaultServings(Food? food) => food switch
     {
         null => [],
         { Id: 11 } => ServingSamples.PizzaServings,
         { Id: 15 } => ServingSamples.MarsServings,
-        { ServingLabel: { } label, ServingAmount: { } amount } => [new StoredServing { Id = 1, FoodId = food.Id, Label = label, Amount = amount, Source = ServingSource.Product }],
         _ => [],
     };
 
@@ -68,9 +67,9 @@ public class ServingViewTests : ComponentTestBase
     public void MillilitreFood_WithAServing_ShowsMlOnTheAmountTheServingAndThePer100Labels()
     {
         var drink = new Food { Id = 15, Name = "Oat drink", Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 1, CarbsG = 6.7, FatG = 1.5, ServingChecked = true };
-        (drink.ServingLabel, drink.ServingAmount) = ("1 glass", 200);
-        var inMl = Render(drink, EntryMode.Grams, 250, 250);
-        var inServings = Render(drink, EntryMode.Servings, 2, 400);
+        IReadOnlyList<StoredServing> glass = [new StoredServing { Id = 1, FoodId = drink.Id, Label = "1 glass", Amount = 200, Source = ServingSource.Product }];
+        var inMl = Render(drink, EntryMode.Grams, 250, 250, servings: glass);
+        var inServings = Render(drink, EntryMode.Servings, 2, 400, servings: glass);
 
         Assert.Multiple(() =>
         {

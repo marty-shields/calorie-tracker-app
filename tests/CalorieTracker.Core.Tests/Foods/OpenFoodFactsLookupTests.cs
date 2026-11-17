@@ -106,6 +106,8 @@ public class OpenFoodFactsLookupTests
     [TestCase("\"serving_quantity\":330", "\"serving_quantity\":null", TestName = "Serving_WithNoWeight_IsIgnored")]
     [TestCase("\"serving_size\":\"1 portion (330 ml)\"", "\"serving_size\":\" \"", TestName = "Serving_WithBlankLabel_IsIgnored")]
     [TestCase("\"serving_quantity_unit\":\"ml\"", "\"serving_quantity_unit\":\"g\",\"product_quantity_unit\":\"ml\"", TestName = "Serving_InGramsForAMillilitreFood_IsIgnored")]
+    [TestCase("\"serving_quantity\":330", "\"serving_quantity\":10001", TestName = "Serving_OverTheMaximumWeight_IsIgnored")]
+    [TestCase("\"serving_size\":\"1 portion (330 ml)\"", "\"serving_size\":\"123456789012345678901234567890123456789012345678901234567890x\"", TestName = "Serving_WithATooLongLabel_IsIgnored")]
     public async Task Serving_ThatDoesNotCount_GivesNulls(string find, string replace)
     {
         var body = Fixture("drink-5449000000996.json");
@@ -117,6 +119,19 @@ public class OpenFoodFactsLookupTests
         Assert.That(result.Status, Is.EqualTo(BarcodeLookupStatus.Found));
         Assert.That(result.Food!.Unit, Is.EqualTo(FoodUnit.Millilitre));
         Assert.That((result.Serving?.Label, result.Serving?.Amount), Is.EqualTo(((string?)null, (double?)null)));
+    }
+
+    [Test]
+    public async Task Serving_LabelIsTrimmed()
+    {
+        var body = Fixture("drink-5449000000996.json");
+        const string label = "\"serving_size\":\"1 portion (330 ml)\"";
+        Assert.That(body, Does.Contain(label));
+        handler.Respond(body.Replace(label, "\"serving_size\":\"  1 portion (330 ml) \""));
+
+        var result = await lookup.LookupAsync("5449000000996");
+
+        Assert.That(result.Serving, Is.EqualTo(new ProductServing("1 portion (330 ml)", 330)));
     }
 
     [Test]

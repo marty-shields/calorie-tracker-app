@@ -198,7 +198,7 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
         var brands = brandList.Count == 0 ? null : Truncate(string.Join(", ", brandList), MaxBrandsLength);
         var millilitre = IsMillilitre(product, "product_quantity_unit") || IsMillilitre(product, "serving_quantity_unit");
         var servingFlagged = HasWarning(product, ServingOverPackageWarning);
-        var (servingLabel, servingAmount) = servingFlagged ? (null, null) : ReadServing(product, millilitre);
+        var serving = servingFlagged ? null : ReadServing(product, millilitre);
         var genericName = Truncate(ReadString(product, "generic_name"), MaxLabelLength);
         var category = ReadString(product, "pnns_groups_2");
         category = string.Equals(category, "unknown", StringComparison.OrdinalIgnoreCase) ? null : Truncate(category, MaxLabelLength);
@@ -236,7 +236,7 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
             FetchedAt = fetchedAt,
             SearchText = SearchFolding.Fold(string.Join(' ', new[] { name, string.Join(' ', brandList), genericName, category }.Where(t => !string.IsNullOrEmpty(t)))),
         };
-        return (food, servingLabel is not null && servingAmount is { } weight ? new ProductServing(servingLabel, weight) : null);
+        return (food, serving);
     }
 
     /// <summary>Every brand in <c>brands</c>: trimmed, blanks and repeats (ignoring case) dropped, in the source's order.</summary>
@@ -266,15 +266,15 @@ internal sealed partial class OpenFoodFactsLookup : IBarcodeLookup
     }
 
     /// <summary>
-    /// Both parts or neither: a label, a weight above zero, and a <c>serving_quantity_unit</c> that is the food's unit (absent counts as grams, as OFF defaults to).
+    /// A serving that <see cref="FoodService.TryBoundServing"/> accepts, with its trimmed label, and a <c>serving_quantity_unit</c> that is the food's unit (absent counts as grams, as OFF defaults to); otherwise null.
     /// </summary>
-    private static (string? Label, double? Amount) ReadServing(JsonElement product, bool millilitre)
+    private static ProductServing? ReadServing(JsonElement product, bool millilitre)
     {
         var label = ReadString(product, "serving_size");
         var amount = ReadNumber(product, "serving_quantity");
         var unit = ReadString(product, "serving_quantity_unit");
         var matches = string.Equals(unit ?? "g", millilitre ? "ml" : "g", StringComparison.OrdinalIgnoreCase);
-        return label is not null && amount is > 0 && matches ? (label, amount) : (null, null);
+        return matches && FoodService.TryBoundServing(label, amount, out var trimmed, out var weight) ? new ProductServing(trimmed, weight) : null;
     }
 
     private static bool IsAsciiDigits(string text, int minLength, int maxLength) =>

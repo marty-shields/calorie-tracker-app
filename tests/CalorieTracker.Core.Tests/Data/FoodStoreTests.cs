@@ -325,6 +325,20 @@ public class FoodStoreTests
         Assert.That((await store.FindByBarcodeAsync("5000000000017"))!.Id, Is.EqualTo(target.Id));
     }
 
+    [TestCase("", 50.0)]
+    [TestCase("1 slice", 0.0)]
+    public async Task RefreshAsync_HalfAServing_CountsAsNone_KeepsTheStoredServingAndWritesNone(string label, double amount)
+    {
+        var withServing = await store.UpsertAsync(NewFood("1"), serving: new ProductServing("100 g", 100));
+        var without = await store.UpsertAsync(NewFood("2"));
+
+        await store.RefreshAsync(withServing.Id, Fresh(), serving: new ProductServing(label, amount));
+        await store.RefreshAsync(without.Id, Fresh(), serving: new ProductServing(label, amount));
+
+        Assert.That((await Servings(withServing.Id)).Select(x => (x.Label, x.Amount)), Is.EqualTo(new[] { ("100 g", 100.0) }));
+        Assert.That(await Servings(without.Id), Is.Empty);
+    }
+
     [Test]
     public async Task RefreshAsync_FreshWithNoServing_KeepsTheStoredServing()
     {
@@ -510,6 +524,7 @@ public class FoodStoreTests
         var row = rows.Single(r => r.Id == target.Id);
         Assert.That((row.ServingChecked, row.Kcal, row.Name), Is.EqualTo(((bool?)true, 100.0, "Oats")));
         Assert.That(rows.Single(r => r.Id == other.Id).ServingChecked, Is.Null);
+        Assert.That(await Servings(target.Id), Is.Empty, "marking it checked adds no serving");
     }
 
     [Test]

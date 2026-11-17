@@ -1,8 +1,6 @@
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
 
-using CalorieTracker.Core.Tests.Foods;
-
 namespace CalorieTracker.Core.Tests;
 
 /// <summary>Seeds and reads foods through the store's production methods, so no test needs a store method of its own.</summary>
@@ -14,7 +12,6 @@ internal static class FoodStoreSeeding
     /// </summary>
     public static async Task<Food> UpsertAsync(this FoodStore store, Food food, string? barcode = null, ProductServing? serving = null)
     {
-        serving ??= food.Product;
         if (barcode is not null)
         {
             return (await store.ImportAsync(barcode, food, food.FetchedAt ?? DateTimeOffset.UnixEpoch, serving)).Food;
