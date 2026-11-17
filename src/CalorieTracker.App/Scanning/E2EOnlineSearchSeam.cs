@@ -25,9 +25,9 @@ internal static class E2EOnlineSearchSeam
     public static BarcodeLookupResult? Lookup(string barcode) =>
         barcode switch
         {
-            CanBarcode => BarcodeLookupResult.Found(Product(CanBarcode, "Fizzy Cola", "330 ml", 330, 42, 10.6), 330),
-            BottleBarcode => BarcodeLookupResult.Found(Product(BottleBarcode, "Fizzy Cola", "1 L", 1000, 42, 10.6), 1000),
-            ZeroBarcode => BarcodeLookupResult.Found(Product(ZeroBarcode, "Fizzy Cola Zero", "330 ml", 330, 0.3, 0), 330),
+            CanBarcode => BarcodeLookupResult.Found(Product(CanBarcode, "Fizzy Cola", "330 ml", 330, 42, 10.6)),
+            BottleBarcode => BarcodeLookupResult.Found(Product(BottleBarcode, "Fizzy Cola", "1 L", 1000, 42, 10.6)),
+            ZeroBarcode => BarcodeLookupResult.Found(Product(ZeroBarcode, "Fizzy Cola Zero", "330 ml", 330, 0.3, 0)),
             _ => null,
         };
 

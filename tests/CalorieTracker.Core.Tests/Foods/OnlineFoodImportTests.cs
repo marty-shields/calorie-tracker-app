@@ -124,7 +124,6 @@ public class OnlineFoodImportTests
             Assert.That(found.Products.Single(p => p.Barcode == CanCode).Food.PackageLabel, Is.EqualTo("330 ml"));
             Assert.That((can.Status, bottle.Status), Is.EqualTo((OnlineImportStatus.Imported, OnlineImportStatus.Imported)));
             Assert.That(bottle.Food!.Id, Is.EqualTo(can.Food!.Id), "one food");
-            Assert.That((can.PackAmount, bottle.PackAmount), Is.EqualTo((330.0, 1000.0)), "each tap knows its own pack");
             Assert.That((await Servings(food.Id)).Where(s => s.Source == ServingSource.Pack).Select(s => (s.Label, s.Amount)), Is.EqualTo(new[] { ("Can 330 ml", 330.0), ("Bottle 1 L", 1000.0) }));
             Assert.That(await connection.Table<Barcode>().CountAsync(), Is.EqualTo(2));
             Assert.That((await search.SearchAsync("coca-cola")).Products.Where(p => p.Barcode is CanCode).Select(p => p.IsNew), Is.EqualTo(new[] { false }), "a stored product is no longer new");
@@ -178,7 +177,7 @@ public class OnlineFoodImportTests
     {
         var looked = await realLookup.LookupAsync(CanCode);
         var stored = (await importer.ImportAsync(CanCode, looked.Food!, looked.Serving)).Food!;
-        var lookup = new FakeLookup(BarcodeLookupResult.Found(stored, 330));
+        var lookup = new FakeLookup(BarcodeLookupResult.Found(stored));
         var tap = new OnlineFoodImport(lookup, importer, logger);
         var servings = await connection.Table<Serving>().CountAsync();
         var importerLines = importLogger.Collector.Count;
@@ -187,7 +186,7 @@ public class OnlineFoodImportTests
 
         Assert.Multiple(async () =>
         {
-            Assert.That((result.Status, result.Food!.Id, result.PackAmount), Is.EqualTo((OnlineImportStatus.Imported, stored.Id, (double?)330)));
+            Assert.That((result.Status, result.Food!.Id), Is.EqualTo((OnlineImportStatus.Imported, stored.Id)));
             Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(1));
             Assert.That(await connection.Table<Serving>().CountAsync(), Is.EqualTo(servings), "not imported a second time");
             Assert.That(importLogger.Collector.Count, Is.EqualTo(importerLines), "the import service was not called");

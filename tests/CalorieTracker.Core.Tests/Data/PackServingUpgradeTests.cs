@@ -72,8 +72,12 @@ public class PackServingUpgradeTests
         await new DatabaseInitializer(connection, SchemaSteps.Through(15), new FakeLogger<DatabaseInitializer>(), 15).InitializeAsync();
     }
 
-    private async Task<List<(string Label, double Amount, ServingSource Source)>> ServingsOf(int foodId) =>
-        [.. (await connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY SortOrder, Amount", foodId)).Select(s => (s.Label, s.Amount, s.Source))];
+    private async Task<List<(string Label, double Amount, ServingSource Source)>> ServingsOf(int foodId)
+    {
+        List<Serving> servings = [];
+        await connection.RunInTransactionAsync(db => servings = FoodStore.ServingsOf(db, foodId));
+        return [.. servings.Select(s => (s.Label, s.Amount, s.Source))];
+    }
 
     [Test]
     public async Task Upgrade_AddsPackServingsNextToTheProductServing_ForEachPackUpToAThousand()

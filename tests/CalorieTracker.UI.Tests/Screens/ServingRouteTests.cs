@@ -32,15 +32,8 @@ public class ServingRouteTests
     }
 
     [Test]
-    public void Url_WithAPack_AddsItAlone_AndWithTheOtherQueryValues()
-    {
-        Assert.Multiple(() =>
-        {
-            Assert.That(ServingRoute.Url(5, pack: 1000), Is.EqualTo("/serving/5?pack=1000"));
-            Assert.That(ServingRoute.Url(5, backTo: "/", pack: 330.5), Is.EqualTo("/serving/5?back=%2F&pack=330.5"));
-            Assert.That(ServingRoute.ParseNumber("1000"), Is.EqualTo(1000));
-        });
-    }
+    public void ParseNumber_ReadsAPositiveNumber() =>
+        Assert.That(ServingRoute.ParseNumber("1000"), Is.EqualTo(1000));
 
     [Test]
     public void Url_WithBackTo_AddsBackAlone() =>

@@ -38,7 +38,7 @@ public class Serving
     [NotNull, Indexed("UX_Serving_Food_Source_Amount", 2, Unique = true)]
     public ServingSource Source { get; set; }
 
-    /// <summary>Servings of a food are listed by this, then smallest amount first. Written as the number of <see cref="Source"/>, so product, then pack, then the person's own.</summary>
+    /// <summary>Breaks a tie when servings of a food have the same amount: they are listed smallest amount first, then by this. Written as the number of <see cref="Source"/>, so product, then pack, then the person's own.</summary>
     [NotNull]
     public int SortOrder { get; set; }
 }

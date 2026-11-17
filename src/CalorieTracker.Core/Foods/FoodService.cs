@@ -37,7 +37,7 @@ public sealed partial class FoodService
 
     /// <summary>
     /// The food with this id and its servings. A serving needs both a label (not blank, at most <see cref="MaxServingLabelLength"/> characters) and a weight that is finite, above zero and at most <see cref="MaxServingAmount"/>; one that does not is left out.
-    /// Servings come in listing order (product, packs, then the person's own). A pack of the same amount as the product serving, or as another pack, is left out as a repeat, and a pack that is the food's only serving is labelled <see cref="PackServingLabel"/>.
+    /// Servings come smallest amount first; servings of one amount go product, pack, then the person's own. A pack of the same amount as the product serving, or as another pack, is left out as a repeat, and a pack that is the food's only serving is labelled <see cref="PackServingLabel"/>.
     /// Each optional nutrient that is not finite or outside 0 to <see cref="MaxNutrientPer100"/> comes back null.
     /// </summary>
     public async Task<FoodResult> GetAsync(int id)

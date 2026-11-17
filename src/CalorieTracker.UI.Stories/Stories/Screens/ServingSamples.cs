@@ -105,10 +105,10 @@ public static class ServingSamples
         new() { Id = 162, FoodId = 16, Label = "Whole pack (330 ml)", Amount = 330, Source = ServingSource.Pack },
     ];
 
-    /// <summary>The cola's servings with one the person added.</summary>
+    /// <summary>The cola's servings with one the person added, smallest first as the app lists them.</summary>
     public static IReadOnlyList<StoredServing> ColaServingsWithOwn { get; } =
     [
-        .. ColaServings,
         new() { Id = 163, FoodId = 16, Label = "My mug", Amount = 200, Source = ServingSource.User },
+        .. ColaServings,
     ];
 }

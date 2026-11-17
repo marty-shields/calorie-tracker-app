@@ -36,9 +36,6 @@
     /// <summary>The product tapped last, so Try again fetches it again; null when the last tap was the search.</summary>
     private OnlineProduct? lastTapped;
 
-    /// <summary>The pack, in g or ml, of the barcode of the product imported from the results, so Add to diary on its values opens Serving on that pack. Null for any other food.</summary>
-    private double? selectedPack;
-
     /// <summary>Set by the first result tapped in add mode, so a double tap adds once. The page is left on the way out, so it is never cleared.</summary>
     private bool added;
     private CancellationTokenSource? running;
@@ -161,7 +158,6 @@
             return Task.CompletedTask;
         }
 
-        selectedPack = null;
         if (Meal is null)
         {
             selected = food;
@@ -294,28 +290,27 @@
         lastTapped = null;
         if (Meal is null)
         {
-            selectedPack = result.PackAmount;
             selected = food;
             return;
         }
 
         added = true;
-        await OnAdd.InvokeAsync(new FoodAddRequest(food, query, PackAmount: result.PackAmount));
+        await AddAsync(food);
     }
 
     private Task RetryOnlineAsync() => lastTapped is { } product ? SelectOnlineAsync(product) : SearchOnlineAsync();
 
-    /// <summary>Carries the amount last logged, when the food was logged before, so Serving opens with it filled in.</summary>
-    private Task AddAsync(Food food)
+    /// <summary>Carries the amount last logged, when the food was logged before, so Serving opens with it filled in. A food not in the list (an online result) is looked up.</summary>
+    private async Task AddAsync(Food food)
     {
-        var last = groups.SelectMany(g => g.Foods).FirstOrDefault(l => l.Food.Id == food.Id)?.History;
-        return OnAdd.InvokeAsync(new FoodAddRequest(food, query, last?.LastAmount, last?.LastServings, last?.LastServingId, selectedPack));
+        var listed = groups.SelectMany(g => g.Foods).FirstOrDefault(l => l.Food.Id == food.Id);
+        var last = listed is not null ? listed.History : await Search.LastLoggedAsync(food.Id, Meal);
+        await OnAdd.InvokeAsync(new FoodAddRequest(food, query, last?.LastAmount, last?.LastServings, last?.LastServingId));
     }
 
     private void ClearSelection()
     {
         selected = null;
-        selectedPack = null;
     }
 
     private Task Retry()

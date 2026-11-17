@@ -187,7 +187,7 @@ public class BarcodeTableUpgradeTests
         await Assert.MultipleAsync(async () =>
         {
             Assert.That(await connection.ExecuteScalarAsync<int>("PRAGMA user_version"), Is.EqualTo(15));
-            Assert.That((result.Status, result.Food!.Id, result.PackAmount), Is.EqualTo((FoodImportStatus.Known, colaId, (double?)330)));
+            Assert.That((result.Status, result.Food!.Id), Is.EqualTo((FoodImportStatus.Known, colaId)));
             Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(4));
         });
     }

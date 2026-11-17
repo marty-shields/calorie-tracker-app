@@ -11,28 +11,18 @@ public class ServingRulesTests
     private static readonly Serving Mug = new() { Id = 4, Label = "My mug", Amount = 200, Source = ServingSource.User };
 
     [Test]
-    public void Pick_TheLastLoggedServing_WinsOverThePackAndTheSmallest()
+    public void Pick_TheLastLoggedServing_WinsOverTheSmallest()
     {
-        Assert.That(ServingRules.Pick([Glass, Can, Bottle], 3, 330)!.Id, Is.EqualTo(3));
+        Assert.That(ServingRules.Pick([Mug, Glass, Can, Bottle], 3)!.Id, Is.EqualTo(3));
     }
 
     [Test]
-    public void Pick_NoLoggedServing_TakesTheServingOfTheScannedPack()
+    public void Pick_NoLoggedServingOrOneTheFoodDoesNotHave_TakesTheSmallest()
     {
         Assert.Multiple(() =>
         {
-            Assert.That(ServingRules.Pick([Glass, Can, Bottle], null, 1000)!.Id, Is.EqualTo(3));
-            Assert.That(ServingRules.Pick([Glass, Can, Bottle], 99, 330)!.Id, Is.EqualTo(2), "an id the food does not have counts as none");
-        });
-    }
-
-    [Test]
-    public void Pick_NoLoggedServingAndNoServingOfThePack_TakesTheSmallest()
-    {
-        Assert.Multiple(() =>
-        {
-            Assert.That(ServingRules.Pick([Glass, Can, Mug], null, 2000)!.Id, Is.EqualTo(4));
-            Assert.That(ServingRules.Pick([Bottle, Can, Glass], null)!.Id, Is.EqualTo(1));
+            Assert.That(ServingRules.Pick([Glass, Can, Mug], null)!.Id, Is.EqualTo(4));
+            Assert.That(ServingRules.Pick([Bottle, Can, Glass], 99)!.Id, Is.EqualTo(1));
             Assert.That(ServingRules.Pick([Can], null)!.Id, Is.EqualTo(2));
         });
     }
@@ -46,5 +36,5 @@ public class ServingRulesTests
     }
 
     [Test]
-    public void Pick_NoServings_IsNull() => Assert.That(ServingRules.Pick([], 1, 330), Is.Null);
+    public void Pick_NoServings_IsNull() => Assert.That(ServingRules.Pick([], 1), Is.Null);
 }

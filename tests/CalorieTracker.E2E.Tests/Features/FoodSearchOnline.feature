@@ -51,7 +51,7 @@ Feature: Search online
     Then Serving shows the serving "1 serving"
     And This adds names "330 ml of Testco Fizzy Cola Zero"
 
-  Scenario: A product found from a meal's plus opens Serving on its pack
+  Scenario: A product found from a meal's plus opens Serving on its only serving
     Given I am on the Dashboard
     When I tap + on Dinner
     And I search for "fizzy cola"

@@ -987,7 +987,7 @@ public class StoredBarcodeLookupTests
     private static readonly ProductServing Portion = new("1 portion (50 g)", 50);
     private static readonly ProductServing Glass = new("1 glass (250 ml)", 250);
 
-    private static BarcodeLookupResult Found(Food food, ProductServing? serving = null) => BarcodeLookupResult.Found(food, null, serving);
+    private static BarcodeLookupResult Found(Food food, ProductServing? serving = null) => BarcodeLookupResult.Found(food, serving);
 
     private static Food NewFood(string sourceId)
     {
@@ -1043,7 +1043,6 @@ public class StoredBarcodeLookupTests
         Assert.Multiple(async () =>
         {
             Assert.That(bottle.Food!.Id, Is.EqualTo(can.Food!.Id));
-            Assert.That((can.PackAmount, bottle.PackAmount), Is.EqualTo(((double?)330, (double?)1000)));
             Assert.That(bottle.Food.Name, Is.EqualTo("Coca-Cola Original"));
             Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(1));
             Assert.That((await connection.Table<Barcode>().ToListAsync()).Select(b => b.Code), Is.EquivalentTo(new[] { Barcode, litre }));
@@ -1066,7 +1065,7 @@ public class StoredBarcodeLookupTests
         var bottle = await restarted.LookupAsync(litre);
 
         Assert.That(inner.Calls, Is.EqualTo(calls));
-        Assert.That((can.PackAmount, bottle.PackAmount, bottle.Food!.Id), Is.EqualTo(((double?)330, (double?)1000, can.Food!.Id)));
+        Assert.That(bottle.Food!.Id, Is.EqualTo(can.Food!.Id));
     }
 
     [Test]

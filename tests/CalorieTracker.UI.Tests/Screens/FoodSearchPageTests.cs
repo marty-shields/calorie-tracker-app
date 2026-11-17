@@ -846,6 +846,10 @@ public class FoodSearchPageTests : ComponentTestBase
 
         public int Suggested { get; private set; }
 
+        public Dictionary<int, CalorieTracker.Core.History.FoodHistory> Last { get; } = [];
+
+        public Task<CalorieTracker.Core.History.FoodHistory?> LastLoggedAsync(int foodId, Meal? meal = null) => Task.FromResult(Last.GetValueOrDefault(foodId));
+
         public Task<FoodSearchResult> SearchAsync(string query, int limit = IFoodSearch.DefaultLimit, CancellationToken ct = default) => throw new NotSupportedException();
 
         public async Task<FoodGroupsResult> SearchGroupedAsync(string query, Meal? meal = null, CancellationToken ct = default)
