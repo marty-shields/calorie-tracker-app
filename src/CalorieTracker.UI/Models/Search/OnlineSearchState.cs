@@ -3,7 +3,7 @@ namespace CalorieTracker.UI.Models.Search;
 /// <summary>Where the online part of the search screen is. Nothing is sent until the person taps, so a search starts at <see cref="Idle"/>.</summary>
 public enum OnlineSearchState
 {
-    /// <summary>Nothing sent: the "Search online" row, or the button when no stored food matches.</summary>
+    /// <summary>Nothing sent: the "Search online" button.</summary>
     Idle,
 
     /// <summary>A search is running: a spinner.</summary>

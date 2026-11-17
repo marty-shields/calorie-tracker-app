@@ -80,6 +80,26 @@ public class OnlineSearchNoticeUpgradeTests
     }
 
     [Test]
+    public async Task Apply_OnATableWithoutTheColumn_AddsItAndKeepsTheTarget()
+    {
+        await BuildVersion16(withColumn: false);
+        await connection.CloseAsync();
+        var db = new SQLiteConnection(databasePath);
+        try
+        {
+            new OnlineSearchNoticeUpgrade().Apply(db);
+
+            Assert.That(db.ExecuteScalar<int>("SELECT COUNT(*) FROM pragma_table_info('AppSettings') WHERE name = 'OnlineSearchNoticeSeen'"), Is.EqualTo(1));
+            Assert.That(db.ExecuteScalar<int>("SELECT DailyTargetKcal FROM AppSettings WHERE Id = 1"), Is.EqualTo(2100));
+            Assert.That(db.ExecuteScalar<int>("SELECT COUNT(*) FROM AppSettings WHERE OnlineSearchNoticeSeen IS NOT NULL"), Is.Zero);
+        }
+        finally
+        {
+            db.Close();
+        }
+    }
+
+    [Test]
     public void Apply_WithNoAppSettingsTable_ChangesNothing()
     {
         var db = new SQLiteConnection(databasePath);
