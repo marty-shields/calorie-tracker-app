@@ -6,7 +6,7 @@ namespace CalorieTracker.Core.Tests;
 internal static class SchemaSteps
 {
     public static ISchemaUpgrade[] All() =>
-        [new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade(), new DiaryTableUpgrade(), new FoodServingCheckedUpgrade(), new FoodOriginalNameUpgrade(), new FoodSourceDetailsUpgrade(), new FoodUnitUpgrade(), new FoodCordialUnitUpgrade(), new ServingTableUpgrade(), new BarcodeTableUpgrade(TimeProvider.System), new PackServingUpgrade(), new StorageCleanupUpgrade(), new OnlineSearchNoticeUpgrade()];
+        [new FoodBarcodeUpgrade(), new FoodTypeUpgrade(), new DropDishesUpgrade(), new FoodServingUpgrade(), new SettingsTableUpgrade(), new DiaryTableUpgrade(), new FoodServingCheckedUpgrade(), new FoodOriginalNameUpgrade(), new FoodSourceDetailsUpgrade(), new FoodUnitUpgrade(), new FoodCordialUnitUpgrade(), new ServingTableUpgrade(), new BarcodeTableUpgrade(TimeProvider.System), new PackServingUpgrade(), new StorageCleanupUpgrade(), new OnlineSearchNoticeUpgrade(), new FavouriteTableUpgrade()];
 
     /// <summary>The steps up to and including <paramref name="version"/>, for a test of what an older step leaves behind (pair it with an initializer at that version).</summary>
     public static ISchemaUpgrade[] Through(int version) => [.. All().Where(s => s.Version <= version)];

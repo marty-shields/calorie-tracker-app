@@ -29,6 +29,7 @@ public class FoodSearchTests
         await connection.CreateTableAsync<Food>();
         await connection.CreateTableAsync<Serving>();
         await connection.CreateTableAsync<DiaryEntry>();
+        await connection.CreateTableAsync<Favourite>();
         gate = new DatabaseGate();
         logger = new FakeLogger<FoodSearch>();
         time = new FakeTimeProvider(new DateTimeOffset(2031, 7, 19, 12, 0, 0, TimeSpan.Zero));

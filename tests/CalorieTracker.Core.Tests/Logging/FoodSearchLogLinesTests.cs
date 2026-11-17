@@ -39,6 +39,13 @@ public class FoodSearchLogLinesTests
         CoreEvent.OnlineImportStoreFailed,
         CoreEvent.OnlineNoticeReadFailed,
         CoreEvent.OnlineNoticeSaveFailed,
+        CoreEvent.FavouriteAdded,
+        CoreEvent.FavouriteAlreadyFavourite,
+        CoreEvent.FavouriteFoodNotFound,
+        CoreEvent.FavouriteRemoved,
+        CoreEvent.FavouriteNotFavourite,
+        CoreEvent.FavouriteListed,
+        CoreEvent.FavouriteFailed,
     ];
 
     [Test]

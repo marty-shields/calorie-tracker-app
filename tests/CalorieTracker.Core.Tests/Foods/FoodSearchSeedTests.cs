@@ -25,6 +25,7 @@ public class FoodSearchSeedTests
         await connection.CreateTableAsync<Serving>();
         await connection.CreateTableAsync<Barcode>();
         await connection.CreateTableAsync<DiaryEntry>();
+        await connection.CreateTableAsync<Favourite>();
         await connection.CreateTableAsync<SeedVersion>();
         var gate = new DatabaseGate();
         var store = new FoodStore(connection, gate, new FakeLogger<FoodStore>());
