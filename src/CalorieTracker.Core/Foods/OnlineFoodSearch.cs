@@ -280,7 +280,7 @@ internal sealed partial class OnlineFoodSearch : IOnlineFoodSearch, IDisposable
             Source = FoodSource.OpenFoodFacts,
             SourceId = barcode,
             Name = name,
-            Brand = brands.FirstOrDefault(),
+            Brand = brands.Count == 0 ? null : Truncate(brands[0], MaxLabelLength),
             Brands = brands.Count == 0 ? null : Truncate(string.Join(", ", brands), MaxBrandsLength),
             Unit = unit.Value,
             Kcal = kcal.Value,
@@ -351,10 +351,15 @@ internal sealed partial class OnlineFoodSearch : IOnlineFoodSearch, IDisposable
         return raw.Select(b => b?.Trim() ?? "").Where(b => b.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
 
-    /// <summary>The typed text with quotes and backslashes removed (they would break the country filter), spaces collapsed and cut to <see cref="MaxQueryLength"/>.</summary>
+    private static readonly char[] QuerySyntax = ['"', '\\', '(', ')', '[', ']', '{', '}', ':', '/', '^', '~', '*', '?', '!', '&', '|'];
+
+    /// <summary>The typed text with the characters of the search's query syntax removed (quotes, backslashes, brackets, colons, slashes, wildcards, operators, a leading + or - on a word, and the words AND, OR and NOT), so it is only words: otherwise it could break the country filter or change how the filter combines. Spaces collapsed, cut to <see cref="MaxQueryLength"/>.</summary>
     internal static string CleanQuery(string? query)
     {
-        var words = (query ?? "").Replace("\"", " ").Replace("\\", " ").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        var plain = string.Concat((query ?? "").Select(c => Array.IndexOf(QuerySyntax, c) >= 0 ? ' ' : c));
+        var words = plain.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Select(w => w.TrimStart('+', '-'))
+            .Where(w => w.Length > 0 && w is not ("AND" or "OR" or "NOT"));
         return Truncate(string.Join(' ', words), MaxQueryLength);
     }
 

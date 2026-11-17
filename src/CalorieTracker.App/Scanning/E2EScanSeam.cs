@@ -8,7 +8,7 @@ namespace CalorieTracker.App.Scanning;
 /// <summary>
 /// Debug builds only, for the E2E journeys: an emulator has no barcode to point a camera at.
 /// When <see cref="FileName"/> exists in the app's external files folder, the scanner returns its digits and deletes it instead of opening the camera.
-/// <see cref="Barcode"/> then finds the top search result for "oat" in the seeded foods, without the network. Every other scan and lookup is untouched, except the barcodes of <see cref="E2EOnlineSearchSeam"/>, which answer for Open Food Facts search, whose search call is also replaced.
+/// <see cref="Barcode"/> then finds the top search result for "oat" in the seeded foods, without the network. Every other scan and lookup is untouched, except the barcodes of <see cref="E2EOnlineSearchSeam"/>, which answer for Open Food Facts search, whose search call is replaced only while <see cref="E2EOnlineSearchSeam.FileName"/> exists.
 /// </summary>
 internal static class E2EScanSeam
 {
@@ -20,7 +20,7 @@ internal static class E2EScanSeam
     {
         Wrap<IBarcodeLookup>(services, (inner, provider) => new SeededLookup(inner, provider.GetRequiredService<IFoodSearch>()));
         Wrap<IBarcodeScanner>(services, (inner, _) => new FileScanner(inner));
-        Wrap<IOnlineFoodSearch>(services, (_, _) => new E2EOnlineSearchSeam.Search());
+        Wrap<IOnlineFoodSearch>(services, (inner, _) => new E2EOnlineSearchSeam.Search(inner));
         return services;
     }
 

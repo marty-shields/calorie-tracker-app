@@ -169,6 +169,13 @@
         </Template>
     </Story>
 
+    <Story Name="Online product unavailable">
+        <Template>
+            <FoodSearchView Query="coca-cola" Groups="FoodSearchSamples.ColaStored" OnlineState="OnlineSearchState.Unavailable" OnlineProducts="FoodSearchSamples.OnlineFew" OnlineCountry="United Kingdom" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }"
+                            OnSelectOnline="(OnlineProduct _) => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
     <Story Name="Online results in add mode">
         <Template>
             <FoodSearchView Meal="Meal.Lunch" Query="coca-cola" OnlineState="OnlineSearchState.Results" OnlineProducts="FoodSearchSamples.OnlineFew" OnlineCountry="United Kingdom" OnQueryChanged="(string _) => { }" OnSelectOnline="(OnlineProduct _) => { }"

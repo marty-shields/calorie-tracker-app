@@ -5,12 +5,14 @@ using CalorieTracker.Core.Foods;
 namespace CalorieTracker.App.Scanning;
 
 /// <summary>
-/// Debug builds only, for the E2E scenarios of Open Food Facts search: no scenario may reach the network, so the search call answers from here by what was typed (the whole text, any case):
+/// Debug builds only, for the E2E scenarios of Open Food Facts search: no scenario may reach the network, so while <see cref="FileName"/> exists in the app's external files folder the search call answers from here by what was typed (the whole text, any case); without the file the real search runs:
 /// "fizzy cola" finds three products of the United Kingdom, "oat" is offline, "milk" is busy (HTTP 429) and anything else finds nothing.
 /// A tap on a product finds it again through the barcode lookup (<see cref="E2EScanSeam"/> gives <see cref="Lookup"/> its barcodes), which stores it as a scan would.
 /// </summary>
 internal static class E2EOnlineSearchSeam
 {
+    public const string FileName = "e2e-online-search.txt";
+
     public const string Brand = "Testco";
 
     public const string CanBarcode = "5000000000017";
@@ -47,10 +49,16 @@ internal static class E2EOnlineSearchSeam
             FetchedAt = new DateTimeOffset(2026, 11, 17, 0, 0, 0, TimeSpan.Zero),
         };
 
-    internal sealed class Search : IOnlineFoodSearch
+    internal sealed class Search(IOnlineFoodSearch real) : IOnlineFoodSearch
     {
-        public Task<OnlineSearchResult> SearchAsync(string query, CancellationToken ct = default) =>
-            Task.FromResult(query.Trim().ToLowerInvariant() switch
+        public Task<OnlineSearchResult> SearchAsync(string query, CancellationToken ct = default)
+        {
+            var path = Path.Combine(Android.App.Application.Context.GetExternalFilesDir(null)?.AbsolutePath ?? FileSystem.AppDataDirectory, FileName);
+            return File.Exists(path) ? Task.FromResult(Answer(query)) : real.SearchAsync(query, ct);
+        }
+
+        private static OnlineSearchResult Answer(string query) =>
+            query.Trim().ToLowerInvariant() switch
             {
                 "fizzy cola" => OnlineSearchResult.Found(
                     new[] { CanBarcode, BottleBarcode, ZeroBarcode }.Select(code => new OnlineProduct(code, Lookup(code)!.Food!, true)).ToList(),
@@ -58,7 +66,7 @@ internal static class E2EOnlineSearchSeam
                 "oat" => OnlineSearchResult.Offline(),
                 "milk" => OnlineSearchResult.Limited(),
                 _ => OnlineSearchResult.None(),
-            });
+            };
     }
 }
 #endif

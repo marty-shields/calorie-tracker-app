@@ -27,6 +27,7 @@ public class OnlineFoodImportTests
     private SQLiteAsyncConnection connection = null!;
     private FoodStore store = null!;
     private FakeLogger<OnlineFoodImport> logger = null!;
+    private FakeLogger<FoodImportService> importLogger = null!;
     private FoodImportService importer = null!;
     private Dictionary<string, string> responses = null!;
     private HttpClient http = null!;
@@ -43,7 +44,8 @@ public class OnlineFoodImportTests
         await connection.CreateTableAsync<DiaryEntry>();
         await connection.CreateTableAsync<Barcode>();
         store = new FoodStore(connection, new DatabaseGate(), new FakeLogger<FoodStore>());
-        importer = new FoodImportService(store, new FakeTimeProvider(new DateTimeOffset(2026, 11, 17, 10, 0, 0, TimeSpan.Zero)), new FakeLogger<FoodImportService>());
+        importLogger = new FakeLogger<FoodImportService>();
+        importer = new FoodImportService(store, new FakeTimeProvider(new DateTimeOffset(2026, 11, 17, 10, 0, 0, TimeSpan.Zero)), importLogger);
         logger = new FakeLogger<OnlineFoodImport>();
         responses = new()
         {
@@ -177,6 +179,8 @@ public class OnlineFoodImportTests
         var stored = (await importer.ImportAsync(CanCode, (await realLookup.LookupAsync(CanCode)).Food!)).Food!;
         var lookup = new FakeLookup(BarcodeLookupResult.Found(stored, 330));
         var tap = new OnlineFoodImport(lookup, importer, logger);
+        var servings = await connection.Table<Serving>().CountAsync();
+        var importerLines = importLogger.Collector.Count;
 
         var result = await tap.ImportAsync(CanCode);
 
@@ -184,6 +188,34 @@ public class OnlineFoodImportTests
         {
             Assert.That((result.Status, result.Food!.Id, result.PackAmount), Is.EqualTo((OnlineImportStatus.Imported, stored.Id, (double?)330)));
             Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(1));
+            Assert.That(await connection.Table<Serving>().CountAsync(), Is.EqualTo(servings), "not imported a second time");
+            Assert.That(importLogger.Collector.Count, Is.EqualTo(importerLines), "the import service was not called");
+        });
+    }
+
+    [Test]
+    public async Task Import_A12DigitUpc_IsLookedUpAndImportedAsItsThirteenDigitCode()
+    {
+        var lookup = new FakeLookup(BarcodeLookupResult.Found(new Food
+        {
+            Source = FoodSource.OpenFoodFacts,
+            SourceId = "0123456789012",
+            Name = "Upc food",
+            Unit = FoodUnit.Gram,
+            Kcal = 100,
+            ProteinG = 1,
+            CarbsG = 2,
+            FatG = 3,
+        }));
+        var tap = new OnlineFoodImport(lookup, importer, logger);
+
+        var result = await tap.ImportAsync("123456789012");
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That(result.Status, Is.EqualTo(OnlineImportStatus.Imported));
+            Assert.That(lookup.Asked, Is.EqualTo(new[] { "0123456789012" }));
+            Assert.That((await connection.Table<Barcode>().ToListAsync()).Select(b => b.Code), Is.EqualTo(new[] { "0123456789012" }));
         });
     }
 

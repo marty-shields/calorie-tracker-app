@@ -133,6 +133,91 @@ public class PackServingUpgradeTests
     }
 
     [Test]
+    public async Task Upgrade_WithNoBarcodeTable_UsesThePacksOnTheFoodRows()
+    {
+        await connection.ExecuteAsync("DROP TABLE Barcode");
+
+        await Upgrade();
+
+        await Assert.MultipleAsync(async () =>
+        {
+            Assert.That((await ServingsOf(colaId)).Select(s => s.Label), Is.EqualTo(new[] { "1 glass (200 ml)", "Can 330 ml" }));
+            Assert.That(await ServingsOf(jarId), Is.EqualTo(new[] { ("Pack 400 g", 400d, ServingSource.Pack) }));
+        });
+    }
+
+    [Test]
+    public void Apply_WithNoPackColumnsOnFood_UsesTheBarcodeRowsOnly()
+    {
+        var path = TempDatabase.NewPath();
+        try
+        {
+            var db = new SQLiteConnection(path);
+            db.Execute("CREATE TABLE Food (Id INTEGER PRIMARY KEY, Unit INTEGER)");
+            db.Execute("CREATE TABLE Serving (Id INTEGER PRIMARY KEY, FoodId INTEGER, Label TEXT, Amount REAL, Source INTEGER, SortOrder INTEGER)");
+            db.Execute("CREATE TABLE Barcode (Id INTEGER PRIMARY KEY, FoodId INTEGER, PackageAmount REAL, PackageLabel TEXT)");
+            db.Execute("INSERT INTO Food (Id, Unit) VALUES (1, 1)");
+            db.Execute("INSERT INTO Barcode (FoodId, PackageAmount, PackageLabel) VALUES (1, 330, NULL)");
+
+            new PackServingUpgrade().Apply(db);
+
+            Assert.That(db.Query<Serving>("SELECT * FROM Serving").Select(x => (x.Label, x.Amount)), Is.EqualTo(new[] { ("Can 330 ml", 330d) }));
+            db.Close();
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Test]
+    public async Task Upgrade_APackOfZero_IsNotAdded()
+    {
+        var empty = await InsertFood("5000000000048", "Empty", FoodUnit.Gram, 0, null);
+        await AddBarcode(empty, "5000000000048", 0, null);
+
+        await Upgrade();
+
+        Assert.That(await ServingsOf(empty), Is.Empty);
+    }
+
+    [Test]
+    public async Task Upgrade_TheWordsOfTheLabelAndTheSizePickTheKindOfPack()
+    {
+        var can = await InsertFood("5000000000055", "Small can", FoodUnit.Millilitre, 250, "250 ml can");
+        var bottle = await InsertFood("5000000000062", "Wine", FoodUnit.Millilitre, 750, "750 ml bottle");
+        var odd = await InsertFood("5000000000079", "Odd size", FoodUnit.Millilitre, 330.5, null);
+        var litre = await InsertFood("5000000000086", "Litre", FoodUnit.Millilitre, 1000, null);
+
+        await Upgrade();
+
+        await Assert.MultipleAsync(async () =>
+        {
+            Assert.That((await ServingsOf(can)).Single().Label, Is.EqualTo("Can 250 ml"));
+            Assert.That((await ServingsOf(bottle)).Single().Label, Is.EqualTo("Bottle 750 ml"));
+            Assert.That((await ServingsOf(odd)).Single().Label, Is.EqualTo("Pack 330.5 ml"));
+            Assert.That((await ServingsOf(litre)).Single().Label, Is.EqualTo("Bottle 1 L"));
+        });
+    }
+
+    [Test]
+    public async Task Upgrade_PackRowsSortAfterTheProductServings_AndAreTheFirstBarcodesLabelWhenTwoShareAnAmount()
+    {
+        var twin = await InsertFood("5000000000093", "Twin", FoodUnit.Millilitre, 330, "330 ml bottle");
+        await AddBarcode(twin, "5000000000093", 330, "330 ml can");
+        await AddBarcode(twin, "5000000000109", 330, "330 ml bottle");
+
+        await Upgrade();
+
+        await Assert.MultipleAsync(async () =>
+        {
+            var rows = await connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ?", twin);
+            Assert.That(rows.Select(r => (r.Label, r.SortOrder)), Is.EqualTo(new[] { ("Can 330 ml", 1) }));
+            Assert.That(await connection.ExecuteScalarAsync<int>("SELECT SortOrder FROM Serving WHERE FoodId = ? AND Source = 1", cordialId), Is.EqualTo(1));
+        });
+    }
+
+    [Test]
     public async Task Upgrade_LeavesDiaryEntriesAsTheyWere_SoTheirCaloriesDoNotChange()
     {
         var before = await connection.QueryAsync<DiaryEntry>("SELECT * FROM DiaryEntry ORDER BY Id");

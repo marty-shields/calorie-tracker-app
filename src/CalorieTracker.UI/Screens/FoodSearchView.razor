@@ -111,7 +111,7 @@
     [Parameter]
     public OnlineSearchState OnlineState { get; set; }
 
-    /// <summary>The products found, shown as a group headed "Open Food Facts · country" in <see cref="OnlineSearchState.Results"/> and <see cref="OnlineSearchState.Importing"/>, and under a busy, offline or failed message after a product could not be fetched. A group shows <see cref="ShownLimit"/> products and a "Show N more" row for the rest.</summary>
+    /// <summary>The products found, shown as a group headed "Open Food Facts · country" in <see cref="OnlineSearchState.Results"/> and <see cref="OnlineSearchState.Importing"/>, and under a busy, offline, failed or "can't be added" message after a product could not be fetched. A group shows <see cref="ShownLimit"/> products and a "Show N more" row for the rest.</summary>
     [Parameter]
     public IReadOnlyList<OnlineProduct> OnlineProducts { get; set; } = [];
 
@@ -239,6 +239,10 @@
                 case OnlineSearchState.None:
                     <p class="none" data-testid="food-search-online-none">Nothing found on Open Food Facts</p>
                     break;
+                case OnlineSearchState.Unavailable:
+                    <p class="none" data-testid="food-search-online-unavailable">That product can't be added</p>
+                    @OnlineGroup
+                    break;
                 default:
                     <LoadFailed Message="@OnlineMessage" TestId="food-search-online" OnRetry="OnRetryOnline" />
                     @OnlineGroup
@@ -265,9 +269,8 @@
                         @foreach (var product in OnlineProducts.Take(shown))
                         {
                             var display = FoodDisplay.Of(product.Food);
-                            var values = $"{Number(product.Food.Kcal)} kcal / 100 {UnitText(product.Food)}";
                             <li>
-                                <ListRow Text="@display.Title" Detail="@(display.Detail is null ? values : $"{display.Detail} · {values}")" Aside="@(product.IsNew ? "NEW" : null)"
+                                <ListRow Text="@display.Title" Detail="@Subtitle(new FoodListing(product.Food, null), display)" Aside="@(product.IsNew ? "NEW" : null)"
                                          OnClick="@(() => OnSelectOnline.InvokeAsync(product))" TestId="@($"food-online-{product.Barcode}")" />
                             </li>
                         }
@@ -293,7 +296,7 @@
 
     /// <summary>The search key of the keyboard is a tap on "Search Open Food Facts" once something is typed.</summary>
     private Task OnKeyDown(KeyboardEventArgs args) =>
-        args.Key == "Enter" && !string.IsNullOrWhiteSpace(Query) ? OnSearchOnline.InvokeAsync() : Task.CompletedTask;
+        args.Key == "Enter" && !Loading && !string.IsNullOrWhiteSpace(Query) ? OnSearchOnline.InvokeAsync() : Task.CompletedTask;
 
     private Task OnInput(ChangeEventArgs args) => OnQueryChanged.InvokeAsync(args.Value?.ToString() ?? "");
 

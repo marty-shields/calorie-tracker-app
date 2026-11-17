@@ -6,6 +6,13 @@ namespace CalorieTracker.E2E.Tests.Steps;
 [Binding]
 public sealed class FoodSearchOnlineSteps(FoodSearchScreen foods, ServingScreen serving, WebView web)
 {
+    [Given(@"^Open Food Facts search is answered by the test seam$")]
+    public void GivenTheSeamAnswers() =>
+        AppiumSetup.Adb.WriteText($"{AppiumSetup.App.ExternalFilesFolder}/{SeamFileName}", "on");
+
+    /// <summary>The file <c>E2EOnlineSearchSeam</c> looks for; <c>ScanSeamValuesTests</c> checks it matches.</summary>
+    private const string SeamFileName = "e2e-online-search.txt";
+
     [Then(@"^Search Open Food Facts is offered under the results$")]
     public void ThenTheRowIsOffered() =>
         web.Eventually(foods.OnlineEntry, Is.EqualTo("row"), "Search Open Food Facts as a row");

@@ -55,13 +55,29 @@ internal sealed class FakeOnlineNotice : IOnlineSearchNotice
 
     public int Marked { get; private set; }
 
-    public Task<bool> WasShownAsync() => Task.FromResult(Shown);
+    /// <summary>When set, the read and the mark wait for these sources.</summary>
+    public TaskCompletionSource? HoldRead { get; set; }
 
-    public Task MarkShownAsync()
+    public TaskCompletionSource? HoldMark { get; set; }
+
+    public async Task<bool> WasShownAsync()
+    {
+        if (HoldRead is { } read)
+        {
+            await read.Task;
+        }
+
+        return Shown;
+    }
+
+    public async Task MarkShownAsync()
     {
         Marked++;
         Shown = true;
-        return Task.CompletedTask;
+        if (HoldMark is { } mark)
+        {
+            await mark.Task;
+        }
     }
 }
 

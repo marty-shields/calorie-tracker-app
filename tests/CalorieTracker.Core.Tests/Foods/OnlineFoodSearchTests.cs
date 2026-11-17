@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
@@ -112,7 +113,7 @@ public class OnlineFoodSearchTests
             Assert.That(request.Uri.Query, Does.Contain("page_size=50").And.Contain("fields="));
             Assert.That(request.Uri.Query, Does.Not.Contain("filters"));
             Assert.That(OnlineFoodSearch.UserAgent, Does.StartWith("CalorieTracker.Core/").And.Not.Contain("@").And.Not.Contain("http").And.Not.Contain(" "), "a generic name and version, no contact address");
-            Assert.That(barcodes, Has.Count.InRange(1, IOnlineFoodSearch.MaxProducts));
+            Assert.That(barcodes, Has.Count.InRange(1, 20));
             Assert.That(barcodes, Does.Contain("5000112630633").And.Contain("5000112641981"), "a 330 ml and a 1.5 L with nutrition");
             Assert.That(barcodes, Does.Not.Contain("5000112663914"), "no nutrition");
             Assert.That(barcodes, Does.Not.Contain("5000112604856"), "no pack size and no category, so no unit");
@@ -183,9 +184,20 @@ public class OnlineFoodSearchTests
         kilojoulesOnly["nutriments"]!["energy-kj_100g"] = 418.4;
         var withoutFat = JsonNode.Parse(Hit("5000112630725", "No fat", "330 ml"))!.AsObject();
         withoutFat["nutriments"]!.AsObject().Remove("fat_100g");
+        var withoutProtein = JsonNode.Parse(Hit("5000112630756", "No protein", "330 ml"))!.AsObject();
+        withoutProtein["nutriments"]!.AsObject().Remove("proteins_100g");
+        var withoutCarbs = JsonNode.Parse(Hit("5000112630763", "No carbs", "330 ml"))!.AsObject();
+        withoutCarbs["nutriments"]!.AsObject().Remove("carbohydrates_100g");
+        var notANumber = JsonNode.Parse(Hit("5000112630770", "Not a number", "330 ml"))!.AsObject();
+        notANumber["nutriments"]!["energy-kcal_100g"] = "NaN";
         handler.Respond(Hits(
             Hit("5000112630633", null, "330 ml"),
             Hit("5000112630640", "   ", "330 ml"),
+            Hit("5000112630787", "Negative kcal", "330 ml", kcal: -5),
+            Hit("5000112630794", "Negative fat", "330 ml", fat: -1),
+            withoutProtein.ToJsonString(),
+            withoutCarbs.ToJsonString(),
+            notANumber.ToJsonString(),
             Hit("5000112630657", "No unit", null),
             Hit("5000112630664", "No nutrition", "330 ml", kcal: null),
             Hit("123", "Short barcode", "330 ml"),
@@ -209,6 +221,68 @@ public class OnlineFoodSearchTests
             Assert.That(result.Products.Select(p => p.Barcode), Is.EqualTo(new[] { "5000112630718", "5000112630749" }));
             Assert.That(result.Products[0].Food.Kcal, Is.EqualTo(100).Within(0.001), "kilojoules become kcal");
         });
+    }
+
+    [Test]
+    public async Task Search_ALongNameBrandAndPack_AreCutAtTheirLimits_NeverInsideASurrogatePair()
+    {
+        var manyBrands = string.Join(", ", Enumerable.Range(0, 25).Select(i => $"brand{i:000}"));
+        handler.Respond(Hits(
+            Hit("5000112630633", new string('n', 150), new string('1', 150) + " ml", brands: $"[\"{new string('b', 150)}\"]"),
+            Hit("5000112630640", "Many brands", "330 ml", brands: JsonNode.Parse(JsonSerializer.Serialize(manyBrands.Split(", ")))!.ToJsonString()),
+            Hit("5000112630657", new string('a', 99) + "\U0001F600z", "330 ml")));
+
+        var foods = (await search.SearchAsync("thing")).Products.Select(p => p.Food).ToList();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(foods[0].Name, Is.EqualTo(new string('n', 100)));
+            Assert.That(foods[0].Brand, Is.EqualTo(new string('b', 100)));
+            Assert.That(foods[0].Brands, Is.EqualTo(new string('b', 150)));
+            Assert.That(foods[0].PackageLabel, Is.EqualTo(new string('1', 100)));
+            Assert.That(foods[1].Brands, Has.Length.EqualTo(199).And.StartWith("brand000, brand001").And.EndsWith("brand019,"));
+            Assert.That(foods[2].Name, Is.EqualTo(new string('a', 99)));
+        });
+    }
+
+    [Test]
+    public async Task Search_ASingleBrand_IsBothTheBrandAndTheBrands()
+    {
+        handler.Respond(Hits(Hit("5000112630633", "Cola", "330 ml", brands: "[\"Coca-Cola\"]")));
+
+        var food = (await search.SearchAsync("cola")).Products.Single().Food;
+
+        Assert.That((food.Brand, food.Brands), Is.EqualTo(("Coca-Cola", "Coca-Cola")));
+    }
+
+    [Test]
+    public async Task Search_BrandsAsOneCommaSeparatedString_AreSplit()
+    {
+        handler.Respond(Hits(Hit("5000112630633", "Cola", "330 ml", brands: "\"Coca-Cola, Pepsi ,coca-cola\"")));
+
+        var food = (await search.SearchAsync("cola")).Products.Single().Food;
+
+        Assert.That((food.Brand, food.Brands), Is.EqualTo(("Coca-Cola", "Coca-Cola, Pepsi")));
+    }
+
+    [Test]
+    public async Task Search_AHitWithNoBrands_HasNoBrand()
+    {
+        handler.Respond(Hits(Hit("5000112630633", "Cola", "330 ml", brands: "[]")));
+
+        var food = (await search.SearchAsync("cola")).Products.Single().Food;
+
+        Assert.That((food.Brand, food.Brands), Is.EqualTo(((string?)null, (string?)null)));
+    }
+
+    [Test]
+    public async Task Search_ACommaOrADotInThePackSize_CollapsesTheSame()
+    {
+        handler.Respond(Hits(Hit("5000112630633", "Cola", "1,5 l"), Hit("5000112630640", "Cola", "1.5 l")));
+
+        var result = await search.SearchAsync("cola");
+
+        Assert.That(result.Products.Select(p => p.Barcode), Is.EqualTo(new[] { "5000112630633" }));
     }
 
     [Test]
@@ -251,7 +325,7 @@ public class OnlineFoodSearchTests
 
         var result = await search.SearchAsync("cola");
 
-        Assert.That(result.Products.Select(p => p.Food.Name), Is.EqualTo(Enumerable.Range(0, IOnlineFoodSearch.MaxProducts).Select(i => $"Cola {(char)('a' + i)}")));
+        Assert.That(result.Products.Select(p => p.Food.Name), Is.EqualTo(Enumerable.Range(0, 20).Select(i => $"Cola {(char)('a' + i)}")));
     }
 
     [Test]
@@ -408,6 +482,40 @@ public class OnlineFoodSearchTests
     }
 
     [Test]
+    public async Task Search_The21stDistinctQuery_EvictsTheOldest()
+    {
+        handler.Respond(Fixture("search-cola-variants.json"));
+        for (var i = 0; i < 21; i++)
+        {
+            await search.SearchAsync($"cola {i}");
+        }
+
+        await search.SearchAsync("cola 1");
+        var afterSecond = handler.Requests.Count;
+        await search.SearchAsync("cola 0");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(afterSecond, Is.EqualTo(21), "the second is still cached");
+            Assert.That(handler.Requests, Has.Count.EqualTo(22), "the first was dropped and is sent again");
+        });
+    }
+
+    [Test]
+    public async Task Search_The20thDistinctQuery_KeepsTheFirstCached()
+    {
+        handler.Respond(Fixture("search-cola-variants.json"));
+        for (var i = 0; i < 20; i++)
+        {
+            await search.SearchAsync($"cola {i}");
+        }
+
+        await search.SearchAsync("cola 0");
+
+        Assert.That(handler.Requests, Has.Count.EqualTo(20));
+    }
+
+    [Test]
     public async Task Search_AnotherCountry_IsAnotherCacheEntry()
     {
         handler.Respond(Fixture("search-cola-variants.json"));
@@ -539,10 +647,32 @@ public class OnlineFoodSearchTests
         var sent = handler.Queries.Single();
         Assert.Multiple(() =>
         {
-            Assert.That(sent, Does.StartWith("coca -cola zero x"));
+            Assert.That(sent, Does.StartWith("coca cola zero x"));
             Assert.That(sent, Does.EndWith(" countries_tags:\"en:united-kingdom\""));
             Assert.That(sent.Count(c => c == '"'), Is.EqualTo(2), "only the filter's quotes");
             Assert.That(sent.Length, Is.EqualTo(100 + " countries_tags:\"en:united-kingdom\"".Length));
+        });
+    }
+
+    [TestCase("salt (and) vinegar", "salt and vinegar")]
+    [TestCase("a [b] {c} d:e f/g", "a b c d e f g")]
+    [TestCase("ab^2 ~x *y z? w!", "ab 2 x y z w")]
+    [TestCase("-cola +zero co-la", "cola zero co-la")]
+    [TestCase("cola AND zero OR lime NOT diet", "cola zero lime diet")]
+    [TestCase("cola && zero || lime", "cola zero lime")]
+    [TestCase("salt and vinegar", "salt and vinegar")]
+    [TestCase("- + AND", "")]
+    public async Task Search_TheQuerySyntaxOfTheSearchIsDropped_SoTheTextIsOnlyWords(string typed, string sent)
+    {
+        region = null;
+        handler.Respond(Fixture("search-cola-variants.json"));
+
+        var result = await search.SearchAsync(typed);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(handler.Queries, sent.Length == 0 ? Is.Empty : Is.EqualTo(new[] { sent }));
+            Assert.That(result.Status, Is.EqualTo(sent.Length == 0 ? OnlineSearchStatus.None : OnlineSearchStatus.Found));
         });
     }
 

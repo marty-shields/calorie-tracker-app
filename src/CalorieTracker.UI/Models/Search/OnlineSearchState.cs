@@ -26,4 +26,7 @@ public enum OnlineSearchState
 
     /// <summary>Any other failure: "Couldn't reach Open Food Facts" with Try again.</summary>
     Failed,
+
+    /// <summary>A tapped product has no usable data on Open Food Facts: "That product can't be added" without Try again, the results stay.</summary>
+    Unavailable,
 }

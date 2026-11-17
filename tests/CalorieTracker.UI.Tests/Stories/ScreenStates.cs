@@ -130,6 +130,7 @@ public static class ScreenStates
         new("Screens/FoodSearch", "Online busy", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Busy)),
         new("Screens/FoodSearch", "Online offline", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Offline)),
         new("Screens/FoodSearch", "Online failed", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Failed)),
+        new("Screens/FoodSearch", "Online product unavailable", c => FoodSearch(c, query: "coca-cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Unavailable, products: FoodSearchSamples.OnlineFew, country: "United Kingdom")),
         new("Screens/FoodSearch", "Online results in add mode", c => FoodSearch(c, query: "coca-cola", meal: Meal.Lunch, online: OnlineSearchState.Results, products: FoodSearchSamples.OnlineFew, country: "United Kingdom")),
         new("Screens/FoodSearch", "Search failed", c => FoodSearch(c, query: "oat", failed: true)),
         new("Screens/Scan", "Opening camera", c => Scan(c, ScanState.OpeningCamera)),

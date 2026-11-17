@@ -1,6 +1,9 @@
 Feature: Search Open Food Facts
   Under the search results, "Search Open Food Facts" sends what was typed to Open Food Facts, only when tapped. No scenario reaches the network: a Debug-build seam answers the search call by the text typed (src/CalorieTracker.App/Scanning/E2EOnlineSearchSeam.cs): "fizzy cola" finds three products of the United Kingdom, "oat" is offline, "milk" is busy and anything else finds nothing. App data is cleared before each scenario, so the first-use notice shows in each.
 
+  Background:
+    Given Open Food Facts search is answered by the test seam
+
   Scenario: Typing offers the Search Open Food Facts row under the local results, with the first-use notice
     Given I have opened Foods
     When I search for "oat"

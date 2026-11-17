@@ -275,7 +275,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
     [Test]
     public async Task OnTheFoodsTab_AfterBackToResults_TheProductIsNoLongerNew_AndAnotherFoodCarriesNoPack()
     {
-        online.Answer(Found(OnlineSamples.Can));
+        online.Answer(Found(OnlineSamples.Can, OnlineSamples.Bottle));
         import.Answer(new OnlineImportResult(OnlineImportStatus.Imported, Stored, 330));
         local.Groups = [new FoodGroup(FoodGroupKind.Branded, [new FoodListing(Stored, null)])];
         var requests = new List<FoodAddRequest>();
@@ -286,12 +286,15 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
 
         await cut.Find("[data-testid=bottom-bar] [data-testid=food-detail-close]").ClickAsync(new());
         var marker = cut.Find("[data-testid=food-online-5000112637922]").TextContent;
+        await cut.Find("[data-testid=food-online-5000112637939]").ClickAsync(new());
+        await cut.Find("[data-testid=bottom-bar] [data-testid=food-detail-close]").ClickAsync(new());
         await cut.Find("[data-testid=food-result-7]").ClickAsync(new());
         await cut.Find("[data-testid=food-detail-add]").ClickAsync(new());
 
         Assert.Multiple(() =>
         {
             Assert.That(marker, Does.Not.Contain("NEW"));
+            Assert.That(import.Barcodes, Is.EqualTo(new[] { "5000112637922", "5000112637939" }), "the second product is not stuck behind the first");
             Assert.That(requests.Single().PackAmount, Is.Null);
         });
     }
@@ -309,6 +312,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
         var tap = cut.Find("[data-testid=food-online-5000112637922]").ClickAsync(new());
         await WaitForRendererAsync();
         var fetching = cut.Find("[data-testid=food-search-online-importing]").TextContent;
+        var rowsDuringFetch = cut.FindAll("[data-testid=food-online-5000112637922]").Count;
         held.SetResult(new OnlineImportResult(OnlineImportStatus.Imported, Stored, 330));
         await tap;
         await cut.Find("[data-testid=food-online-5000112637922]").ClickAsync(new());
@@ -316,6 +320,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(fetching, Does.Contain("Getting the product…"));
+            Assert.That(rowsDuringFetch, Is.EqualTo(1));
             Assert.That(import.Barcodes, Has.Count.EqualTo(1));
             Assert.That(requests.Select(r => (r.Food.Id, r.Query, r.PackAmount)), Is.EqualTo(new[] { (7, "coca-cola", (double?)330) }));
         });
@@ -323,7 +328,6 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
 
     [TestCase(OnlineImportStatus.Limited, "Open Food Facts is busy. Try again in a minute.")]
     [TestCase(OnlineImportStatus.Offline, "You are offline")]
-    [TestCase(OnlineImportStatus.NotFound, "Couldn't reach Open Food Facts")]
     [TestCase(OnlineImportStatus.Failed, "Couldn't reach Open Food Facts")]
     public async Task AProductThatCannotBeFetched_ShowsTheMessageUnderTheResults_AndTryAgainFetchesItAgain(OnlineImportStatus status, string message)
     {
@@ -349,6 +353,252 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
         });
     }
 
+    [Test]
+    public async Task AProductWithNoUsableData_SaysItCannotBeAdded_WithNoTryAgain_AndTheOtherProductsStayTappable()
+    {
+        online.Answer(Found(OnlineSamples.Can, OnlineSamples.Bottle));
+        import.Answer(new OnlineImportResult(OnlineImportStatus.NotFound));
+        import.Answer(new OnlineImportResult(OnlineImportStatus.Imported, Stored, 1000));
+        var requests = new List<FoodAddRequest>();
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch).Add(x => x.OnAdd, requests.Add));
+        await cut.Find("[data-testid=food-search-input]").InputAsync("coca-cola");
+        await cut.Find("[data-testid=food-search-online]").ClickAsync(new());
+        await cut.Find("[data-testid=food-online-5000112637922]").ClickAsync(new());
+
+        var shown = cut.Find("[data-testid=food-search-online-unavailable]").TextContent;
+        var tryAgain = cut.FindAll("[data-testid=food-search-online-retry]").Count;
+        var errors = cut.FindAll("[data-testid=food-search-online-error]").Count;
+        var kept = cut.FindAll("[data-testid^=food-online-]").Count;
+        await cut.Find("[data-testid=food-online-5000112637939]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(shown, Is.EqualTo("That product can't be added"));
+            Assert.That((tryAgain, errors, kept), Is.EqualTo((0, 0, 2)));
+            Assert.That(import.Barcodes, Is.EqualTo(new[] { "5000112637922", "5000112637939" }));
+            Assert.That(requests.Select(r => r.PackAmount), Is.EqualTo(new[] { (double?)1000 }));
+        });
+    }
+
+    [Test]
+    public async Task TryAgainAfterAFailedFetch_ThenNewText_SearchesAgainInsteadOfFetching()
+    {
+        online.Answer(Found(OnlineSamples.Can));
+        online.Answer(OnlineSearchResult.Failed());
+        import.Answer(new OnlineImportResult(OnlineImportStatus.Limited));
+        var cut = await Typed("coca-cola");
+        await cut.Find("[data-testid=food-search-online]").ClickAsync(new());
+        await cut.Find("[data-testid=food-online-5000112637922]").ClickAsync(new());
+
+        await cut.Find("[data-testid=food-search-input]").InputAsync("coca-cola zero");
+        await cut.Find("[data-testid=food-search-online]").ClickAsync(new());
+        await cut.Find("[data-testid=food-search-online-retry]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(import.Barcodes, Has.Count.EqualTo(1));
+            Assert.That(online.Queries, Is.EqualTo(new[] { "coca-cola", "coca-cola zero", "coca-cola zero" }));
+        });
+    }
+
+    [Test]
+    public async Task ASecondSearch_AfterExpandingTheFirst_StartsCollapsed()
+    {
+        online.Answer(OnlineSearchResult.Found(Enumerable.Range(0, 8).Select(i => OnlineSamples.Product($"50001126379{i:00}", $"Cola {i}", "330 ml")).ToList(), null));
+        var cut = await Typed("cola");
+        await cut.Find("[data-testid=food-search-online]").ClickAsync(new());
+        await cut.Find("[data-testid=food-group-online-more]").ClickAsync(new());
+
+        await cut.Find("[data-testid=food-search-input]").InputAsync("cola zero");
+        await cut.Find("[data-testid=food-search-online]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid^=food-online-5]"), Has.Count.EqualTo(5));
+            Assert.That(cut.Find("[data-testid=food-group-online-more]").TextContent, Is.EqualTo("Show 3 more"));
+        });
+    }
+
+    [Test]
+    public async Task TypingWhileTheNoticeIsBeingMarked_DoesNotThrow_AndShowsNoNoticeAgain()
+    {
+        var held = new TaskCompletionSource();
+        notice.HoldMark = held;
+        var cut = await Typed("coca-cola");
+        var tap = cut.Find("[data-testid=food-search-online]").ClickAsync(new());
+        await WaitForRendererAsync();
+
+        await cut.Find("[data-testid=food-search-input]").InputAsync("cola");
+        held.SetResult();
+        await tap;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(online.Queries, Is.Empty.Or.EqualTo(new[] { "coca-cola" }));
+            Assert.That(cut.FindAll("[data-testid=food-group-online]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=food-search-online-notice]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task TypingNewText_AfterTheFirstTap_DoesNotBringTheNoticeBack()
+    {
+        online.Answer(Found(OnlineSamples.Can));
+        var cut = await Typed("coca-cola");
+        await cut.Find("[data-testid=food-search-online]").ClickAsync(new());
+
+        await cut.Find("[data-testid=food-search-input]").InputAsync("cola zero");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=food-search-online]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=food-search-online-notice]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task WithNothingTyped_NoRowShows_EvenWithSuggestedFoods_AndEnterSendsNothing()
+    {
+        local.Suggestions = [new FoodGroup(FoodGroupKind.Recent, [new FoodListing(Stored, null)])];
+        var cut = Context.Render<FoodSearchPage>();
+
+        await cut.Find("[data-testid=food-search-input]").KeyDownAsync(Key.Enter);
+        var blank = cut.Find("[data-testid=food-search-input]").InputAsync("   ");
+        await blank;
+        await cut.Find("[data-testid=food-search-input]").KeyDownAsync(Key.Enter);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=food-result-7]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=food-search-online]"), Is.Empty);
+            Assert.That(online.Queries, Is.Empty);
+        });
+    }
+
+    [Test]
+    public void Enter_WhileFoodsAreLoading_SendsNothing()
+    {
+        var taps = 0;
+        var cut = Context.Render<FoodSearchView>(p => p
+            .Add(x => x.Query, "oat")
+            .Add(x => x.Loading, true)
+            .Add(x => x.OnSearchOnline, () => taps++));
+
+        cut.Find("[data-testid=food-search-input]").KeyDown(Key.Enter);
+
+        Assert.That(taps, Is.Zero);
+    }
+
+    [Test]
+    public void TheSearchBox_OffersTheSearchKeyOnTheKeyboard()
+    {
+        var cut = Context.Render<FoodSearchView>();
+
+        Assert.That(cut.Find("[data-testid=food-search-input]").GetAttribute("enterkeyhint"), Is.EqualTo("search"));
+    }
+
+    [Test]
+    public async Task TheNoticeRead_DoesNotHoldBackTheFirstSearch()
+    {
+        var held = new TaskCompletionSource();
+        notice.HoldRead = held;
+
+        var cut = Context.Render<FoodSearchPage>();
+        var suggestedWhileHeld = local.Suggested;
+        held.SetResult();
+        await WaitForRendererAsync();
+        await cut.Find("[data-testid=food-search-input]").InputAsync("coca-cola");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(suggestedWhileHeld, Is.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=food-search-online-notice]"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task TypingDuringAFetch_DropsIt_NoValuesShow()
+    {
+        online.Answer(Found(OnlineSamples.Can));
+        var held = import.Hold();
+        var cut = await Typed("coca-cola");
+        await cut.Find("[data-testid=food-search-online]").ClickAsync(new());
+        var tap = cut.Find("[data-testid=food-online-5000112637922]").ClickAsync(new());
+        await WaitForRendererAsync();
+
+        await cut.Find("[data-testid=food-search-input]").InputAsync("cola");
+        held.SetResult(new OnlineImportResult(OnlineImportStatus.Imported, Stored, 330));
+        await tap;
+
+        Assert.That(cut.FindAll("[data-testid=food-detail-name]"), Is.Empty);
+    }
+
+    [Test]
+    public async Task TypingDuringAFetch_InAddMode_AddsNothing()
+    {
+        online.Answer(Found(OnlineSamples.Can));
+        var held = import.Hold();
+        var requests = new List<FoodAddRequest>();
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch).Add(x => x.OnAdd, requests.Add));
+        await cut.Find("[data-testid=food-search-input]").InputAsync("coca-cola");
+        await cut.Find("[data-testid=food-search-online]").ClickAsync(new());
+        var tap = cut.Find("[data-testid=food-online-5000112637922]").ClickAsync(new());
+        await WaitForRendererAsync();
+
+        await cut.Find("[data-testid=food-search-input]").InputAsync("cola");
+        held.SetResult(new OnlineImportResult(OnlineImportStatus.Imported, Stored, 330));
+        await tap;
+
+        Assert.That(requests, Is.Empty);
+    }
+
+    [Test]
+    public async Task AStoredFoodTappedDuringAFetch_IsIgnored()
+    {
+        online.Answer(Found(OnlineSamples.Can));
+        local.Groups = [new FoodGroup(FoodGroupKind.Branded, [new FoodListing(Stored, null)])];
+        var held = import.Hold();
+        var requests = new List<FoodAddRequest>();
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch).Add(x => x.OnAdd, requests.Add));
+        await cut.Find("[data-testid=food-search-input]").InputAsync("coca-cola");
+        await cut.Find("[data-testid=food-search-online]").ClickAsync(new());
+        var tap = cut.Find("[data-testid=food-online-5000112637922]").ClickAsync(new());
+        await WaitForRendererAsync();
+
+        await cut.Find("[data-testid=food-result-7]").ClickAsync(new());
+        var duringFetch = requests.Count;
+        held.SetResult(new OnlineImportResult(OnlineImportStatus.Imported, Stored, 330));
+        await tap;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(duringFetch, Is.Zero);
+            Assert.That(requests, Has.Count.EqualTo(1));
+        });
+    }
+
+    [TestCase(OnlineSearchStatus.Limited)]
+    [TestCase(OnlineSearchStatus.Offline)]
+    public async Task AfterABusyOrOfflineSearch_AStoredFoodCanStillBeOpenedAndAdded(OnlineSearchStatus status)
+    {
+        local.Groups = [new FoodGroup(FoodGroupKind.Branded, [new FoodListing(Stored, null)])];
+        online.Answer(status == OnlineSearchStatus.Limited ? OnlineSearchResult.Limited() : OnlineSearchResult.Offline());
+        var requests = new List<FoodAddRequest>();
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.OnAdd, requests.Add));
+        await cut.Find("[data-testid=food-search-input]").InputAsync("coca-cola");
+        await cut.Find("[data-testid=food-search-online]").ClickAsync(new());
+
+        await cut.Find("[data-testid=food-result-7]").ClickAsync(new());
+        var values = cut.Find("[data-testid=food-detail-name]").TextContent;
+        await cut.Find("[data-testid=food-detail-add]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(values, Does.Contain("Coca Cola"));
+            Assert.That(requests.Select(r => r.Food.Id), Is.EqualTo(new[] { 7 }));
+        });
+    }
+
     private sealed class NeverLoader : ISeedLoader
     {
         public Task<SeedLoadResult> LoadAsync() => new TaskCompletionSource<SeedLoadResult>().Task;
@@ -359,10 +609,18 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
     {
         public IReadOnlyList<FoodGroup> Groups { get; set; } = [];
 
+        public IReadOnlyList<FoodGroup> Suggestions { get; set; } = [];
+
+        public int Suggested { get; private set; }
+
         public Task<FoodSearchResult> SearchAsync(string query, int limit = IFoodSearch.DefaultLimit, CancellationToken ct = default) => throw new NotSupportedException();
 
         public Task<FoodGroupsResult> SearchGroupedAsync(string query, Meal? meal = null, CancellationToken ct = default) => Task.FromResult(FoodGroupsResult.Found(Groups));
 
-        public Task<FoodGroupsResult> SuggestAsync(Meal? meal = null, CancellationToken ct = default) => Task.FromResult(FoodGroupsResult.Found([]));
+        public Task<FoodGroupsResult> SuggestAsync(Meal? meal = null, CancellationToken ct = default)
+        {
+            Suggested++;
+            return Task.FromResult(FoodGroupsResult.Found(Suggestions));
+        }
     }
 }
