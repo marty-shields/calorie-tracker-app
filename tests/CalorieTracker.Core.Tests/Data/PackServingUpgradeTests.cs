@@ -69,7 +69,7 @@ public class PackServingUpgradeTests
     {
         await connection.CloseAsync();
         connection = new SQLiteAsyncConnection(databasePath);
-        await new DatabaseInitializer(connection, SchemaSteps.All(), new FakeLogger<DatabaseInitializer>()).InitializeAsync();
+        await new DatabaseInitializer(connection, SchemaSteps.Through(15), new FakeLogger<DatabaseInitializer>(), 15).InitializeAsync();
     }
 
     private async Task<List<(string Label, double Amount, ServingSource Source)>> ServingsOf(int foodId) =>

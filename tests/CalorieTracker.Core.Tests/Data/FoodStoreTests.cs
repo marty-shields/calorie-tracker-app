@@ -76,13 +76,13 @@ public class FoodStoreTests
     }
 
     [Test]
-    public async Task UpsertAsync_FreshLookupWithNoServing_KeepsAStoredServingChecked()
+    public async Task ImportAsync_SameFoodWithNoServing_KeepsAStoredServingChecked()
     {
         var first = NewFood("1");
         first.ServingChecked = true;
         await store.UpsertAsync(first);
 
-        await store.UpsertAsync(NewFood("1", kcal: 250));
+        await store.ImportAsync("12345670", NewFood("1", kcal: 250), DateTimeOffset.UnixEpoch);
 
         var row = await connection.Table<Food>().FirstAsync();
         Assert.That((row.ServingChecked, row.Kcal), Is.EqualTo(((bool?)true, 250.0)));
@@ -149,19 +149,6 @@ public class FoodStoreTests
             Assert.That(row.SaltG, Is.EqualTo(0.25));
             Assert.That(row.Unit, Is.EqualTo(FoodUnit.Millilitre));
         });
-    }
-
-    [Test]
-    public async Task UpsertAsync_BarcodeLinkedToAnotherFood_KeepsTheFirstOwner()
-    {
-        var first = await store.UpsertAsync(NewFood("1"), "12345670");
-        var second = await store.UpsertAsync(NewFood("2", FoodSource.OpenFoodFacts), "12345670");
-
-        var found = await store.FindByBarcodeAsync("12345670");
-
-        Assert.That(second.Id, Is.Not.EqualTo(first.Id));
-        Assert.That(found?.Id, Is.EqualTo(first.Id));
-        Assert.That(await connection.Table<Barcode>().CountAsync(), Is.EqualTo(1));
     }
 
     [Test]
@@ -575,15 +562,16 @@ public class FoodStoreTests
     }
 
     [Test]
-    public async Task Logging_UpsertAndFind_LogsIdsOnlyNeverNameOrBarcode()
+    public async Task Logging_ImportAndFind_LogsIdsOnlyNeverNameOrBarcode()
     {
         var food = NewFood("SRC-SECRET");
         food.Name = "Distinctive Name";
         food.Brand = "Distinctive Brand";
 
-        await store.UpsertAsync(food, "9876543210987");
-        await store.UpsertAsync(food, "9876543210987");
+        await store.ImportAsync("9876543210987", food, DateTimeOffset.UnixEpoch);
+        await store.ImportAsync("9876543210987", food, DateTimeOffset.UnixEpoch);
         await store.FindByBarcodeAsync("9876543210987");
+        await store.RefreshAsync(food.Id, food, "9876543210987");
 
         var records = logger.Collector.GetSnapshot();
         Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { CoreEvent.FoodInserted, CoreEvent.FoodUpdated }));

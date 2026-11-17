@@ -396,7 +396,7 @@ public class StoredBarcodeLookupTests
         foreach (var (id, barcode) in new[] { ("SRC-SECRET-A", filledBarcode), ("SRC-SECRET-B", missingBarcode), ("SRC-SECRET-C", failedBarcode) })
         {
             var food = NoServing(id);
-            food.Name = "Distinctive Name";
+            food.Name = $"Distinctive Name {id}";
             food.Brand = "Distinctive Brand";
             await store.UpsertAsync(food, barcode);
         }

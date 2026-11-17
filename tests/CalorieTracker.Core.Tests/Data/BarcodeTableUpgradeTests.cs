@@ -42,7 +42,7 @@ public class BarcodeTableUpgradeTests
     private async Task BuildVersion13()
     {
         await connection.CreateTableAsync<Food>();
-        await connection.CreateTableAsync<FoodBarcode>();
+        await connection.ExecuteAsync(SchemaSteps.FoodBarcodeTable);
         await connection.CreateTableAsync<Serving>();
         await connection.CreateTableAsync<SeedVersion>();
         await connection.CreateTableAsync<AppSettings>();
@@ -86,8 +86,8 @@ public class BarcodeTableUpgradeTests
     {
         await connection.CloseAsync();
         connection = new SQLiteAsyncConnection(databasePath);
-        ISchemaUpgrade[] steps = [.. SchemaSteps.All().Where(s => s.Version != 14), new BarcodeTableUpgrade(new FakeTimeProvider(StepTime))];
-        await new DatabaseInitializer(connection, steps, new FakeLogger<DatabaseInitializer>()).InitializeAsync();
+        ISchemaUpgrade[] steps = [.. SchemaSteps.Through(15).Where(s => s.Version != 14), new BarcodeTableUpgrade(new FakeTimeProvider(StepTime))];
+        await new DatabaseInitializer(connection, steps, new FakeLogger<DatabaseInitializer>(), 15).InitializeAsync();
     }
 
     private Task<List<Barcode>> Rows() => connection.QueryAsync<Barcode>("SELECT * FROM Barcode ORDER BY Id");
@@ -151,7 +151,7 @@ public class BarcodeTableUpgradeTests
             Assert.That((await store.FindByBarcodeAsync(PlainCode))?.SourceId, Is.EqualTo(PlainCode));
             Assert.That((await store.FindByBarcodeAsync(LostLinkCode))?.SourceId, Is.EqualTo(LostLinkCode));
             Assert.That(await store.FindByBarcodeAsync("5000000000048"), Is.Null);
-            Assert.That(await connection.Table<FoodBarcode>().CountAsync(), Is.EqualTo(3));
+            Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM FoodBarcode"), Is.EqualTo(3));
         });
     }
 
@@ -286,7 +286,7 @@ public class BarcodeTableUpgradeTests
 
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
-        await new DatabaseInitializer(connection, SchemaSteps.All(), new FakeLogger<DatabaseInitializer>()).InitializeAsync();
+        await new DatabaseInitializer(connection, SchemaSteps.Through(15), new FakeLogger<DatabaseInitializer>(), 15).InitializeAsync();
 
         Assert.That(await Schema(), Is.EqualTo(upgraded));
         Assert.That(upgraded, Does.Contain("UX_Barcode_Barcode:1:Barcode").And.Contain("Barcode_FoodId:0:FoodId"));

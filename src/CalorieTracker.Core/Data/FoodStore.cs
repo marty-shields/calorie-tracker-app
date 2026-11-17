@@ -7,11 +7,8 @@ namespace CalorieTracker.Core.Data;
 /// <summary>Reads and writes <see cref="Food"/> rows, each call through the <see cref="DatabaseGate"/>.</summary>
 internal sealed partial class FoodStore(SQLiteAsyncConnection connection, DatabaseGate gate, ILogger<FoodStore> logger)
 {
-    /// <summary>Finds the food a barcode is linked to (through the <see cref="Barcode"/> table), or null when it is linked to none. Its <see cref="Food.ServingLabel"/> and <see cref="Food.ServingAmount"/> are those of its Product serving row (null without one).</summary>
-    public async Task<Food?> FindByBarcodeAsync(string barcode) => (await FindWithBarcodeAsync(barcode)).Food;
-
     /// <summary>
-    /// The food a barcode is linked to, as <see cref="FindByBarcodeAsync"/> gives it, with the barcode's own row (its pack); both null when it is linked to none.
+    /// The food a barcode is linked to (through the <see cref="Barcode"/> table) with the barcode's own row (its pack); both null when it is linked to none. The food's <see cref="Food.ServingLabel"/> and <see cref="Food.ServingAmount"/> are those of its Product serving row (null without one).
     /// </summary>
     public Task<(Food? Food, Barcode? Barcode)> FindWithBarcodeAsync(string barcode) =>
         gate.RunAsync(async () =>
@@ -142,7 +139,7 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
     /// <summary>
     /// Stores a looked-up product under its barcode in one transaction, so two imports of one barcode, or of one product, never make two foods:
     /// a barcode that is stored already gives its food and changes nothing (<see cref="ImportOutcome.Known"/>);
-    /// a product with the stored food's source id is that food, refreshed and linked as <see cref="UpsertAsync"/> does (also <see cref="ImportOutcome.Known"/>);
+    /// a product with the stored food's source id is that food, refreshed, its servings written and linked to the barcode (also <see cref="ImportOutcome.Known"/>);
     /// a stored Open Food Facts food that <see cref="Foods.ProductMatch.IsSameProduct"/> accepts gets the barcode, its pack and, when it has no Product serving, the product's (<see cref="ImportOutcome.Attached"/>; the food's name, brand and nutrients are not changed);
     /// otherwise a new food is inserted with its servings and barcode (<see cref="ImportOutcome.Created"/>).
     /// </summary>
@@ -272,54 +269,6 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
         {
             ct.ThrowIfCancellationRequested();
             return await connection.Table<Food>().ToListAsync();
-        });
-
-    /// <summary>
-    /// Inserts the food, or updates the row with the same source and source id, and returns the stored food with its id.
-    /// With <paramref name="barcode"/>, links it to the food in the same transaction, with the food's pack; a barcode already linked to another food stays with that food. It does not look for another food to merge into: that is <see cref="ImportAsync"/>.
-    /// The food's serving rows are written with it (see <see cref="WriteServings"/>); a lookup with no serving leaves the stored ones as they are.
-    /// </summary>
-    public Task<Food> UpsertAsync(Food food, string? barcode = null) =>
-        gate.RunAsync(async () =>
-        {
-            var inserted = false;
-            await connection.RunInTransactionAsync(db =>
-            {
-                var existing = db.Table<Food>().FirstOrDefault(f => f.Source == food.Source && f.SourceId == food.SourceId);
-                if (existing is null)
-                {
-                    db.Insert(food);
-                    inserted = true;
-                }
-                else
-                {
-                    food.Id = existing.Id;
-                    // A lookup that knows nothing about the serving must not undo a check made earlier.
-                    if (food.ServingAmount is null)
-                    {
-                        food.ServingChecked ??= existing.ServingChecked;
-                    }
-
-                    db.Update(food);
-                }
-
-                WriteServings(db, food.Id, food);
-                if (barcode is not null)
-                {
-                    AddBarcode(db, food.Id, barcode, food, food.FetchedAt ?? DateTimeOffset.UnixEpoch);
-                }
-            });
-
-            if (inserted)
-            {
-                Log.Inserted(logger, food.Id);
-            }
-            else
-            {
-                Log.Updated(logger, food.Id);
-            }
-
-            return food;
         });
 
     /// <summary>
