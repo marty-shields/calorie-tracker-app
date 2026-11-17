@@ -38,6 +38,10 @@ public interface IFoodSearch
     /// An empty diary gives no groups. A failing history read gives <see cref="FoodSearchStatus.Failed"/>.
     /// </summary>
     Task<FoodGroupsResult> SuggestAsync(Meal? meal = null, CancellationToken ct = default);
+
+    /// <summary>The newest entry of one food, for opening Serving on what was last used (the same values a diary-group result carries). Null when the food was never logged or the history read failed.</summary>
+    /// <param name="meal">When set, the values come from that meal when the food was logged there (see <see cref="FoodHistory"/>).</param>
+    Task<FoodHistory?> LastLoggedAsync(int foodId, Meal? meal = null);
 }
 
 public enum FoodSearchStatus

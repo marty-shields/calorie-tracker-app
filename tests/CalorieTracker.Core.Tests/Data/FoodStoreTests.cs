@@ -401,8 +401,12 @@ public class FoodStoreTests
         Assert.That((await connection.Table<Food>().FirstAsync()).SearchText, Is.EqualTo(after));
     }
 
-    private Task<List<Serving>> Servings(int foodId) =>
-        connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY Amount, SortOrder, Id", foodId);
+    private async Task<List<Serving>> Servings(int foodId)
+    {
+        List<Serving> servings = [];
+        await connection.RunInTransactionAsync(db => servings = FoodStore.ServingsOf(db, foodId));
+        return servings;
+    }
 
     private static readonly ProductServing Slice = new("1 slice (30 g)", 30);
 

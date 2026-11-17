@@ -29,6 +29,9 @@ public partial class ScanPage : IDisposable
     private IBarcodeLookup Lookup { get; set; } = null!;
 
     [Inject]
+    private IFoodSearch Search { get; set; } = null!;
+
+    [Inject]
     private ThemeService Theme { get; set; } = null!;
 
     [Inject]
@@ -145,7 +148,16 @@ public partial class ScanPage : IDisposable
     private static decimal? ToNutrient(double? value) =>
         FoodService.BoundNutrient(value) is { } number ? (decimal)number : null;
 
-    private Task AddToDiaryAsync() => product?.FoodId is { } id ? OnAddToDiary.InvokeAsync(new ScanAddRequest(id)) : Task.CompletedTask;
+    private async Task AddToDiaryAsync()
+    {
+        if (product?.FoodId is not { } id)
+        {
+            return;
+        }
+
+        var last = await Search.LastLoggedAsync(id);
+        await OnAddToDiary.InvokeAsync(new ScanAddRequest(id, last?.LastAmount, last?.LastServings, last?.LastServingId));
+    }
 
     private Task SearchByNameAsync() => OnNavigate.InvokeAsync(NavDestination.Foods);
 

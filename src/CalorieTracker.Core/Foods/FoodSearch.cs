@@ -113,6 +113,12 @@ internal sealed partial class FoodSearch(FoodStore store, FoodHistoryService his
         }
     }
 
+    public async Task<FoodHistory?> LastLoggedAsync(int foodId, Meal? meal = null)
+    {
+        var logged = await history.AllAsync(meal);
+        return logged.Status == FoodHistoryStatus.Found ? logged.Foods.FirstOrDefault(h => h.FoodId == foodId) : null;
+    }
+
     private static IEnumerable<FoodListing> Listings(IEnumerable<FoodHistory> rows, Dictionary<int, Food> foods) =>
         rows.Where(h => foods.ContainsKey(h.FoodId)).Select(h => new FoodListing(foods[h.FoodId], h));
 

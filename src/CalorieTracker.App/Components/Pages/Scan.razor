@@ -3,6 +3,6 @@
 @using CalorieTracker.UI.Screens
 @inject NavigationManager Navigation
 
-<ScanPage OnAddToDiary="@(add => Navigation.GoTo(ServingRoute.Url(add.FoodId, backTo: "/")))"
+<ScanPage OnAddToDiary="@(add => Navigation.GoTo(ServingRoute.Url(add.FoodId, backTo: "/", amount: add.LastAmount, servings: add.LastServings, servingId: add.LastServingId)))"
           OnBack="@(() => Navigation.GoTo(string.Empty))"
           OnNavigate="@(destination => Navigation.GoTo(destination))" />

@@ -40,8 +40,12 @@ public class ServingStoreTests
         return foods.UpsertAsync(food, serving: serving);
     }
 
-    private Task<List<Serving>> Rows(int foodId) =>
-        connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY Amount, SortOrder, Id", foodId);
+    private async Task<List<Serving>> Rows(int foodId)
+    {
+        List<Serving> servings = [];
+        await connection.RunInTransactionAsync(db => servings = FoodStore.ServingsOf(db, foodId));
+        return servings;
+    }
 
     [Test]
     public async Task UpsertAsync_ServingAndPack_WritesAProductRowAndAPackRow()

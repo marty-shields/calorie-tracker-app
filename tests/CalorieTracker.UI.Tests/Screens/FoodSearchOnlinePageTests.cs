@@ -287,6 +287,58 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task OnTheFoodsTab_AddOfAnOnlineFoodLoggedBefore_CarriesItsLastServing()
+    {
+        online.Answer(Found(OnlineSamples.Can));
+        import.Answer(new OnlineImportResult(OnlineImportStatus.Imported, Stored));
+        local.Last[7] = new CalorieTracker.Core.History.FoodHistory(7, 2, 1, new DateOnly(2031, 7, 19), 660, 2, 31);
+        var requests = new List<FoodAddRequest>();
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.OnAdd, requests.Add));
+        await cut.Find("[data-testid=food-search-input]").InputAsync("coca-cola");
+        await cut.Find("[data-testid=food-search-online]").ClickAsync(new());
+        await cut.Find("[data-testid=food-online-5000112637922]").ClickAsync(new());
+
+        await cut.Find("[data-testid=food-detail-add]").ClickAsync(new());
+
+        Assert.That(requests.Select(r => (r.LastAmount, r.LastServings, r.LastServingId)), Is.EqualTo(new[] { ((double?)660, (double?)2, (int?)31) }));
+    }
+
+    [Test]
+    public async Task InAddMode_AnOnlineFoodLoggedBefore_RaisesOnAddWithItsLastServing_LookedUpForTheMeal()
+    {
+        online.Answer(Found(OnlineSamples.Can));
+        import.Answer(new OnlineImportResult(OnlineImportStatus.Imported, Stored));
+        local.Last[7] = new CalorieTracker.Core.History.FoodHistory(7, 2, 1, new DateOnly(2031, 7, 19), 660, 2, 31);
+        var requests = new List<FoodAddRequest>();
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch).Add(x => x.OnAdd, requests.Add));
+        await cut.Find("[data-testid=food-search-input]").InputAsync("coca-cola");
+        await cut.Find("[data-testid=food-search-online]").ClickAsync(new());
+
+        await cut.Find("[data-testid=food-online-5000112637922]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(requests.Select(r => (r.LastAmount, r.LastServings, r.LastServingId)), Is.EqualTo(new[] { ((double?)660, (double?)2, (int?)31) }));
+            Assert.That(local.LastMeals, Is.EqualTo(new Meal?[] { Meal.Lunch }));
+        });
+    }
+
+    [Test]
+    public async Task InAddMode_AnOnlineFoodNeverLogged_RaisesOnAddWithNoLastServing()
+    {
+        online.Answer(Found(OnlineSamples.Can));
+        import.Answer(new OnlineImportResult(OnlineImportStatus.Imported, Stored));
+        var requests = new List<FoodAddRequest>();
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch).Add(x => x.OnAdd, requests.Add));
+        await cut.Find("[data-testid=food-search-input]").InputAsync("coca-cola");
+        await cut.Find("[data-testid=food-search-online]").ClickAsync(new());
+
+        await cut.Find("[data-testid=food-online-5000112637922]").ClickAsync(new());
+
+        Assert.That(requests.Select(r => (r.LastAmount, r.LastServings, r.LastServingId)), Is.EqualTo(new[] { ((double?)null, (double?)null, (int?)null) }));
+    }
+
+    [Test]
     public async Task OnTheFoodsTab_AfterBackToResults_TheProductIsNoLongerNew()
     {
         online.Answer(Found(OnlineSamples.Can, OnlineSamples.Bottle));
@@ -625,6 +677,16 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
         public IReadOnlyList<FoodGroup> Suggestions { get; set; } = [];
 
         public int Suggested { get; private set; }
+
+        public Dictionary<int, CalorieTracker.Core.History.FoodHistory> Last { get; } = [];
+
+        public List<Meal?> LastMeals { get; } = [];
+
+        public Task<CalorieTracker.Core.History.FoodHistory?> LastLoggedAsync(int foodId, Meal? meal = null)
+        {
+            LastMeals.Add(meal);
+            return Task.FromResult(Last.GetValueOrDefault(foodId));
+        }
 
         public Task<FoodSearchResult> SearchAsync(string query, int limit = IFoodSearch.DefaultLimit, CancellationToken ct = default) => throw new NotSupportedException();
 
