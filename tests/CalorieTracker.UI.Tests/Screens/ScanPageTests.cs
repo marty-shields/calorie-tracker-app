@@ -185,6 +185,32 @@ public class ScanPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task SearchByName_RaisesOnSearchByName_NotOnBack_AndShowsClosingCamera()
+    {
+        var searches = 0;
+        var backs = 0;
+        var cut = Context.Render<ScanPage>(p => p.Add(x => x.OnSearchByName, () => searches++).Add(x => x.OnBack, () => backs++));
+
+        scanner.Complete(ScanResult.SearchByName);
+        await WaitForRendererAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(searches, Is.EqualTo(1));
+            Assert.That(backs, Is.Zero);
+            Assert.That(cut.FindAll("[data-testid=scan-closing-camera]"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public void TheScanner_ReceivesTheAddingToCaptionForTheMealAndDay()
+    {
+        Context.Render<ScanPage>(p => p.Add(x => x.Meal, Meal.Dinner).Add(x => x.Date, new DateOnly(2026, 11, 18)));
+
+        Assert.That(scanner.Captions, Is.EqualTo(new[] { "Adding to Dinner · 18 Nov" }));
+    }
+
+    [Test]
     public async Task Cancelled_ShowsClosingCameraNotOpeningCamera_WhenOnBackIsRaised()
     {
         string? markupAtBack = null;
@@ -509,9 +535,12 @@ public class ScanPageTests : ComponentTestBase
 
         public List<ThemePreference> Themes { get; } = [];
 
-        public Task<ScanResult> ScanAsync(Func<string, bool> accept, ThemePreference theme)
+        public List<string> Captions { get; } = [];
+
+        public Task<ScanResult> ScanAsync(Func<string, bool> accept, ThemePreference theme, string caption)
         {
             Themes.Add(theme);
+            Captions.Add(caption);
             if (Immediate is not null)
             {
                 return Task.FromResult(Immediate(accept));

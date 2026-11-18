@@ -12,7 +12,7 @@
    A result opens Serving with that meal, and Add goes on to the Dashboard (on that day when a date is given). The barcode button opens the scanner for the same meal and day, and its Back returns here. *@
 <FoodSearchPage Meal="meal" InitialQuery="@Query"
                 OnAdd="Add" OnBack="@(() => Navigation.GoTo(date is { } day ? DashboardRoute.Url(day) : "/"))"
-                OnScan="@(() => Navigation.GoTo(ScanRoute.AddUrl(meal, date, FoodSearchRoute.AddUrl(meal, date, Query))))" />
+                OnScan="@(typed => Navigation.GoTo(ScanRoute.AddUrl(meal, date, FoodSearchRoute.AddUrl(meal, date, typed))))" />
 
 @code {
     [SupplyParameterFromQuery(Name = "meal")]

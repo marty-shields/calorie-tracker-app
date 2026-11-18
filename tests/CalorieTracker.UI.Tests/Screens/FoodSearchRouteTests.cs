@@ -92,7 +92,7 @@ public class FoodSearchRouteTests
     {
         var page = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Foods.razor");
 
-        Assert.That(page, Does.Contain("OnScan=\"@(() => Navigation.GoTo(ScanRoute.AddUrl(meal, date, FoodSearchRoute.AddUrl(meal, date, Query))))\""));
+        Assert.That(page, Does.Contain("OnScan=\"@(typed => Navigation.GoTo(ScanRoute.AddUrl(meal, date, FoodSearchRoute.AddUrl(meal, date, typed))))\""));
     }
 
     [Test]

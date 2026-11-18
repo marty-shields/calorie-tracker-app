@@ -11,12 +11,14 @@ public class ScanResultTests
     [TestCase(ScanStatus.Cancelled)]
     [TestCase(ScanStatus.PermissionDenied)]
     [TestCase(ScanStatus.Unavailable)]
+    [TestCase(ScanStatus.SearchByName)]
     public void OtherStatuses_CarryNoDigits(ScanStatus status)
     {
         var result = status switch
         {
             ScanStatus.Cancelled => ScanResult.Cancelled,
             ScanStatus.PermissionDenied => ScanResult.PermissionDenied,
+            ScanStatus.SearchByName => ScanResult.SearchByName,
             _ => ScanResult.Unavailable,
         };
 

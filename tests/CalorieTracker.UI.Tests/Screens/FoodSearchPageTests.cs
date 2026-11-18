@@ -71,7 +71,7 @@ public class FoodSearchPageTests : ComponentTestBase
     public async Task TheBarcodeButton_RaisesOnScan_AndSitsAfterTheSearchFieldWithADivider()
     {
         var scans = 0;
-        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Dinner).Add(x => x.OnScan, () => scans++));
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Dinner).Add(x => x.OnScan, (string _) => scans++));
 
         var button = cut.Find("[data-testid=search-scan]");
         var order = cut.FindAll(".search > *").Select(e => e.GetAttribute("data-testid") ?? e.ClassList.First()).ToList();
@@ -84,6 +84,18 @@ public class FoodSearchPageTests : ComponentTestBase
             Assert.That(order.IndexOf("search-divider"), Is.LessThan(order.IndexOf("search-scan")));
             Assert.That(scans, Is.EqualTo(1));
         });
+    }
+
+    [Test]
+    public async Task TheBarcodeButton_RaisesOnScanWithTheTypedText_NotTheInitialQuery()
+    {
+        var scans = new List<string>();
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Dinner).Add(x => x.InitialQuery, "ch").Add(x => x.OnScan, scans.Add));
+
+        await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
+        cut.Find("[data-testid=search-scan]").Click();
+
+        Assert.That(scans, Is.EqualTo(new[] { "oat" }));
     }
 
     [Test]

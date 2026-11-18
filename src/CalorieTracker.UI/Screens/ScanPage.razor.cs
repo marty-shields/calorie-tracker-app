@@ -62,7 +62,7 @@ public partial class ScanPage : IDisposable
         StateHasChanged();
 
         var token = scan.Token;
-        var result = await Scanner.ScanAsync(Accept, await SavedThemeAsync());
+        var result = await Scanner.ScanAsync(Accept, await SavedThemeAsync(), ScanCaption.For(Meal, Date ?? DateOnly.FromDateTime(Time.GetLocalNow().DateTime)));
         if (token.IsCancellationRequested)
         {
             return;
@@ -77,6 +77,11 @@ public partial class ScanPage : IDisposable
                 state = ScanState.Closing;
                 StateHasChanged();
                 await OnBack.InvokeAsync();
+                break;
+            case ScanStatus.SearchByName:
+                state = ScanState.Closing;
+                StateHasChanged();
+                await OnSearchByName.InvokeAsync();
                 break;
             case ScanStatus.PermissionDenied or ScanStatus.Unavailable:
                 Log.CameraUnavailable(Logger, result.Status);
