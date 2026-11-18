@@ -20,6 +20,7 @@ Feature: Add sheet
     When I open the Add sheet
     And I choose Lunch on the Add sheet
     And I tap Scan barcode on the Add sheet
+    And I refuse the camera permission
     Then I am on Scan
 
   Scenario: Android back closes the sheet and focus returns to Add
