@@ -10,7 +10,7 @@ else
         {
             <li class="row" data-testid="@Id($"row-{index}")">
                 <span class="name" data-testid="@Id($"label-{index}")">@item.Label</span>
-                <span class="value" data-testid="@Id($"value-{index}")">@(item.ValueText ?? Number(item.Value))</span>
+                <span class="value" data-testid="@Id($"value-{index}")">@(item.ValueText ?? TargetStatuses.Kcal(item.Value))</span>
                 <span class="track" aria-hidden="true"><span class="fill" style="--fill: @Share(item)" data-testid="@Id($"bar-{index}")"></span></span>
             </li>
         }
@@ -46,6 +46,4 @@ else
     }
 
     private string Id(string part) => $"{TestId}-{part}";
-
-    private static string Number(double value) => Math.Round(value, MidpointRounding.AwayFromZero).ToString("N0", CultureInfo.InvariantCulture);
 }

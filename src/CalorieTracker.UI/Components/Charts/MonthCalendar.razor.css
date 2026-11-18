@@ -28,6 +28,9 @@
     border-radius: var(--radius-sm);
     background-color: transparent;
     font-size: var(--font-size-sm);
+}
+
+button.cell {
     cursor: pointer;
 }
 

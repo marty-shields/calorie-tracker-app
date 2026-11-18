@@ -15,15 +15,19 @@
         @foreach (var date in DatesOfMonth)
         {
             var cell = Cell(date);
-            <button type="button" class="cell @cell.Class" disabled="@cell.Disabled" data-testid="@Id($"day-{date:yyyy-MM-dd}")"
-                    @onclick="() => Select(date)">
-                <span class="visually-hidden">@cell.Name</span>
-                <span aria-hidden="true">@date.Day</span>
-                @if (cell.Status == TargetStatus.Over)
-                {
-                    <span class="marker" aria-hidden="true" data-testid="@Id($"marker-{date:yyyy-MM-dd}")">▲</span>
-                }
-            </button>
+            if (OnSelect.HasDelegate)
+            {
+                <button type="button" class="cell @cell.Class" disabled="@cell.Disabled" data-testid="@Id($"day-{date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}")"
+                        @onclick="() => Select(date)">
+                    @Content(date, cell)
+                </button>
+            }
+            else
+            {
+                <div class="cell @cell.Class" data-testid="@Id($"day-{date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}")">
+                    @Content(date, cell)
+                </div>
+            }
         }
     </div>
 </div>
@@ -49,7 +53,7 @@
     [Parameter]
     public DateOnly? Today { get; set; }
 
-    /// <summary>Raised with the day's date when an enabled day is clicked or gets Enter or Space.</summary>
+    /// <summary>Raised with the day's date when an enabled day is clicked or gets Enter or Space. Without a handler the days are plain text, not buttons.</summary>
     [Parameter]
     public EventCallback<DateOnly> OnSelect { get; set; }
 
@@ -67,6 +71,15 @@
     private int LeadingBlanks => ((int)First.DayOfWeek + 6) % 7;
 
     private IEnumerable<DateOnly> DatesOfMonth => Enumerable.Range(0, DateTime.DaysInMonth(Month.Year, Month.Month)).Select(i => First.AddDays(i));
+
+    private RenderFragment Content(DateOnly date, CellInfo cell) => @<text>
+        <span class="visually-hidden">@cell.Name</span>
+        <span aria-hidden="true">@date.Day</span>
+        @if (cell.Status == TargetStatus.Over)
+        {
+            <span class="marker" aria-hidden="true" data-testid="@Id($"marker-{date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}")">▲</span>
+        }
+    </text>;
 
     private CellInfo Cell(DateOnly date)
     {
@@ -86,10 +99,9 @@
 
         var status = TargetStatuses.Of(day.Value.Value, day.Target ?? Target);
         var word = TargetStatuses.Word(status);
-        var kcal = Math.Round(day.Value.Value, MidpointRounding.AwayFromZero).ToString("N0", CultureInfo.InvariantCulture);
+        var kcal = TargetStatuses.Kcal(day.Value.Value);
         var full = $"{name}{(isToday ? ", today" : "")}, {kcal} kcal{(word.Length > 0 ? ", " + word : "")}";
-        var cssClass = status switch { TargetStatus.Under => "under", TargetStatus.On => "on", TargetStatus.Over => "over", _ => "plain" };
-        return new CellInfo(cssClass + today, full, false, status);
+        return new CellInfo(TargetStatuses.Class(status) + today, full, false, status);
     }
 
     private async Task Select(DateOnly date)

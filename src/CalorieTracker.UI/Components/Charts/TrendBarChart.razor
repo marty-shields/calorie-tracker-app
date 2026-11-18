@@ -18,6 +18,7 @@
     @for (var i = 0; i < Bars.Count; i++)
     {
         var bar = Bars[i];
+        var selectable = OnSelect.HasDelegate;
         var slotX = Left + i * Slot;
         var centre = slotX + Slot / 2;
         @Text("axis-label", centre, Height - 8, "middle", Short(bar.Label), hidden: true)
@@ -29,24 +30,25 @@
             var height = Base - top;
             var width = Slot * 0.6;
             var name = Name(bar, status);
-            <g class="bar @StatusClass(status)" role="button" tabindex="0" aria-label="@name" data-testid="@Id($"bar-{bar.Date:yyyy-MM-dd}")"
+            <g class="@BarClass(status, selectable)" role="@(selectable ? "button" : "img")" tabindex="@(selectable ? "0" : null)" aria-label="@name" data-testid="@Id($"bar-{Day(bar)}")"
                @onclick="() => Select(bar)" @onkeydown="e => OnKey(e, bar)">
                 <rect class="hit" x="@N(slotX)" y="@N(Top)" width="@N(Slot)" height="@N(Base - Top)" />
-                <path class="column" d="@Column(centre - width / 2, width, top, height)" data-height="@N(height)" data-testid="@Id($"column-{bar.Date:yyyy-MM-dd}")" />
+                <path class="column" d="@Column(centre - width / 2, width, top, height)" data-height="@N(height)" data-testid="@Id($"column-{Day(bar)}")" />
                 @if (status == TargetStatus.Over)
                 {
-                    <path class="marker" d="M @N(centre - 4) @N(top - 4) L @N(centre + 4) @N(top - 4) L @N(centre) @N(top - 11) Z" data-testid="@Id($"marker-{bar.Date:yyyy-MM-dd}")" />
+                    <path class="marker" d="M @N(centre - 4) @N(top - 4) L @N(centre + 4) @N(top - 4) L @N(centre) @N(top - 11) Z" data-testid="@Id($"marker-{Day(bar)}")" />
                 }
                 @if (bar == highest)
                 {
-                    @Text("value-label", centre, top - (status == TargetStatus.Over ? 15 : 6), "middle", Number(value), Id("value-label"))
+                    @Text("value-label", centre, top - (status == TargetStatus.Over ? 15 : 6), "middle", TargetStatuses.Kcal(value), Id("value-label"))
                 }
-                @Text("tip", TipX(centre), 12, "middle", name, hidden: true)
+                @{ var tip = Tip(bar); }
+                @Text("tip", TipX(centre, tip), 12, "middle", tip, hidden: true)
             </g>
         }
         else
         {
-            <rect class="gap" x="@N(slotX)" y="@N(Top)" width="@N(Slot)" height="@N(Base - Top)" data-testid="@Id($"gap-{bar.Date:yyyy-MM-dd}")" />
+            <rect class="gap" x="@N(slotX)" y="@N(Top)" width="@N(Slot)" height="@N(Base - Top)" data-testid="@Id($"gap-{Day(bar)}")" />
         }
     }
     <line class="baseline" x1="@N(Left)" x2="@N(Right)" y1="@N(Base)" y2="@N(Base)" data-testid="@Id("baseline")" />
@@ -54,12 +56,20 @@
 
 @code {
     private const double Width = 320;
-    private const double Height = 180;
+    private const double Height = 200;
     private const double Left = 34;
     private const double Right = 312;
-    private const double Top = 24;
-    private const double Base = 156;
-    private const double TipHalfWidth = 105;
+    private const double Top = 44;
+    private const double Base = 176;
+    private const double TipMargin = 4;
+
+    /// <summary>Width of one character of the bold tooltip text in viewBox units, rounded up.</summary>
+    private const double TipCharWidth = 9;
+
+    /// <summary>The scale never has more intervals than this.</summary>
+    private const int MaxIntervals = 4;
+
+    private static readonly double[] TickSteps = [1000, 2000, 5000];
 
     /// <summary>The bars, left to right.</summary>
     [Parameter]
@@ -69,7 +79,7 @@
     [Parameter]
     public double? Target { get; set; }
 
-    /// <summary>Raised with the bar's date when a bar is clicked, or has focus and gets Enter or Space.</summary>
+    /// <summary>Raised with the bar's date when a bar is clicked, or has focus and gets Enter. Without a handler the bars are not buttons and cannot be focused.</summary>
     [Parameter]
     public EventCallback<DateOnly> OnSelect { get; set; }
 
@@ -91,9 +101,25 @@
 
     private double Slot => (Right - Left) / Math.Max(Bars.Count, 1);
 
-    private double TickStep => MaxValue > 5000 ? 2000 : 1000;
+    /// <summary>The smallest of 1k, 2k, 5k, 10k, 20k, … that puts the tallest bar and the band within four intervals of the scale.</summary>
+    private double TickStep
+    {
+        get
+        {
+            for (var magnitude = 1.0; ; magnitude *= 10)
+            {
+                foreach (var step in TickSteps)
+                {
+                    if (Math.Ceiling(MaxValue / (step * magnitude)) <= MaxIntervals)
+                    {
+                        return step * magnitude;
+                    }
+                }
+            }
+        }
+    }
 
-    /// <summary>The top of the y scale: at least 2k, a whole tick above the tallest bar and the band.</summary>
+    /// <summary>The top of the y scale: at least 2k, and the first tick at or above the tallest bar and the band. The space above it holds the tooltip, the value and the over marker.</summary>
     private double Scale => Math.Max(2 * TickStep, Math.Ceiling(MaxValue / TickStep) * TickStep);
 
     private double MaxValue => Math.Max(
@@ -111,18 +137,21 @@
     }
 
     private string Name(TrendBar bar, TargetStatus status) =>
-        $"{bar.Date.ToString(DateFormat, CultureInfo.InvariantCulture)}, {Number(bar.Value!.Value)} kcal"
-        + (status == TargetStatus.None ? "" : $", {TargetStatuses.Word(status)}");
+        $"{Tip(bar)}" + (status == TargetStatus.None ? "" : $", {TargetStatuses.Word(status)}");
 
-    private static string StatusClass(TargetStatus status) => status switch
+    /// <summary>The date and value, which is all the tooltip shows; the status is in the colour and the marker.</summary>
+    private string Tip(TrendBar bar) => $"{bar.Date.ToString(DateFormat, CultureInfo.InvariantCulture)}, {TargetStatuses.Kcal(bar.Value!.Value)} kcal";
+
+    private static string BarClass(TargetStatus status, bool selectable) => $"bar {TargetStatuses.Class(status)}" + (selectable ? " selectable" : "");
+
+    private static string Day(TrendBar bar) => bar.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    /// <summary>The tooltip's centre, kept far enough from both ends of the chart for the whole text to show.</summary>
+    private static double TipX(double centre, string tip)
     {
-        TargetStatus.Under => "under",
-        TargetStatus.On => "on",
-        TargetStatus.Over => "over",
-        _ => "plain",
-    };
-
-    private double TipX(double centre) => Math.Clamp(centre, Left + TipHalfWidth, Right - TipHalfWidth);
+        var half = tip.Length * TipCharWidth / 2 + TipMargin;
+        return Math.Clamp(centre, half, Width - half);
+    }
 
     /// <summary>The label cut to what fits under its slot: about three characters for a week of bars, one letter for a year.</summary>
     private string Short(string label)
@@ -137,7 +166,7 @@
 
     private async Task OnKey(KeyboardEventArgs e, TrendBar bar)
     {
-        if (e.Key is "Enter" or " ")
+        if (e.Key is "Enter")
         {
             await Select(bar);
         }
@@ -167,6 +196,4 @@
     private string Id(string part) => $"{TestId}-{part}";
 
     private static string N(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
-
-    private static string Number(double value) => Math.Round(value, MidpointRounding.AwayFromZero).ToString("N0", CultureInfo.InvariantCulture);
 }

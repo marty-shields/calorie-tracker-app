@@ -28,9 +28,9 @@ public class BarListTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(cut.Find("[data-testid=list-bar-0]").GetAttribute("style"), Does.Contain("--fill: 0.25"));
-            Assert.That(cut.Find("[data-testid=list-bar-1]").GetAttribute("style"), Does.Contain("--fill: 1"));
-            Assert.That(cut.Find("[data-testid=list-bar-2]").GetAttribute("style"), Does.Contain("--fill: 0"));
+            Assert.That(cut.Find("[data-testid=list-bar-0]").GetAttribute("style"), Is.EqualTo("--fill: 0.25"));
+            Assert.That(cut.Find("[data-testid=list-bar-1]").GetAttribute("style"), Is.EqualTo("--fill: 1"));
+            Assert.That(cut.Find("[data-testid=list-bar-2]").GetAttribute("style"), Is.EqualTo("--fill: 0"));
         });
     }
 
@@ -39,7 +39,7 @@ public class BarListTests : ComponentTestBase
     {
         var cut = Render([new("Nov", 15)], max: 30);
 
-        Assert.That(cut.Find("[data-testid=list-bar-0]").GetAttribute("style"), Does.Contain("--fill: 0.5"));
+        Assert.That(cut.Find("[data-testid=list-bar-0]").GetAttribute("style"), Is.EqualTo("--fill: 0.5"));
     }
 
     [Test]
@@ -47,7 +47,7 @@ public class BarListTests : ComponentTestBase
     {
         var cut = Render([new("A", 0), new("B", 0)]);
 
-        Assert.That(cut.FindAll(".fill").Select(f => f.GetAttribute("style")), Has.All.Contain("--fill: 0"));
+        Assert.That(cut.FindAll(".fill").Select(f => f.GetAttribute("style")), Has.All.EqualTo("--fill: 0"));
     }
 
     [Test]

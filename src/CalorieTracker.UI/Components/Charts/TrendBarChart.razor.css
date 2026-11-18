@@ -30,14 +30,14 @@
 .target {
     stroke: var(--color-text-muted);
     stroke-width: var(--border-width-error);
-    stroke-dasharray: 6 4;
+    stroke-dasharray: var(--chart-dash);
 }
 
 .gap {
     fill: transparent;
 }
 
-.bar {
+.bar.selectable {
     cursor: pointer;
 }
 
@@ -58,11 +58,6 @@
     fill: var(--color-error);
 }
 
-.bar.under .column,
-.bar.plain .column {
-    fill: var(--color-chip);
-}
-
 .chart ::deep .value-label,
 .chart ::deep .tip {
     fill: var(--color-text);
@@ -73,7 +68,7 @@
     display: none;
     paint-order: stroke;
     stroke: var(--color-surface);
-    stroke-width: var(--focus-offset);
+    stroke-width: var(--focus-width);
     stroke-linejoin: round;
 }
 

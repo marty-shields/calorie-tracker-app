@@ -47,9 +47,9 @@ internal static class ChartSamples
 
     public static IReadOnlyList<LegendItem> FullLegend { get; } =
     [
+        new(LegendKind.Under, "Under"),
         new(LegendKind.OnTarget, "On target"),
         new(LegendKind.Over, "Over"),
-        new(LegendKind.Under, "Under"),
         new(LegendKind.NotLogged, "Not logged"),
         new(LegendKind.TargetLine, "Target"),
         new(LegendKind.TargetBand, "±10%"),

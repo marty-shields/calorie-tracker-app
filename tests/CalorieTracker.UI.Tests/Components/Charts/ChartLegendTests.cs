@@ -9,16 +9,16 @@ public class ChartLegendTests : ComponentTestBase
     {
         var cut = Context.Render<ChartLegend>(p => p.Add(x => x.TestId, "legend").Add(x => x.Items,
         [
-            new(LegendKind.OnTarget, "On target"), new(LegendKind.Over, "Over"), new(LegendKind.Under, "Under"),
+            new(LegendKind.Under, "Under"), new(LegendKind.OnTarget, "On target"), new(LegendKind.Over, "Over"),
             new(LegendKind.NotLogged, "Not logged"), new(LegendKind.TargetLine, "Target"), new(LegendKind.TargetBand, "±10%"),
         ]));
 
         Assert.Multiple(() =>
         {
             Assert.That(cut.FindAll("li").Select(li => li.QuerySelector(".text")!.TextContent),
-                Is.EqualTo(new[] { "On target", "Over", "Under", "Not logged", "Target", "±10%" }));
+                Is.EqualTo(new[] { "Under", "On target", "Over", "Not logged", "Target", "±10%" }));
             Assert.That(cut.FindAll(".swatch").Select(s => s.ClassList.Last()),
-                Is.EqualTo(new[] { "on", "over", "under", "not-logged", "line", "band" }));
+                Is.EqualTo(new[] { "under", "on", "over", "not-logged", "line", "band" }));
             Assert.That(cut.FindAll("[data-testid^=legend-]"), Has.Count.EqualTo(6));
         });
     }

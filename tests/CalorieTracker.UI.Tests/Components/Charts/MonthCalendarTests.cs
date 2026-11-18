@@ -170,11 +170,12 @@ public class MonthCalendarTests : ComponentTestBase
         Assert.That(cut.Find(Selector(3)).ClassList, Does.Contain("on"));
     }
 
-    [Test]
-    public void Render_WithoutATarget_ShowsLoggedDaysWithoutStatus()
+    [TestCase(null)]
+    [TestCase(0.0)]
+    public void Render_WithoutATarget_ShowsLoggedDaysWithoutStatus(double? target)
     {
         var cut = Context.Render<MonthCalendar>(p => p
-            .Add(x => x.Month, new DateOnly(2026, 11, 1)).Add(x => x.Days, [Day(3, 2500)]).Add(x => x.Today, Today).Add(x => x.TestId, "cal"));
+            .Add(x => x.Month, new DateOnly(2026, 11, 1)).Add(x => x.Days, [Day(3, 2500)]).Add(x => x.Target, target).Add(x => x.Today, Today).Add(x => x.TestId, "cal"));
 
         Assert.Multiple(() =>
         {
@@ -186,9 +187,27 @@ public class MonthCalendarTests : ComponentTestBase
     [Test]
     public void Render_WithoutToday_UsesTheClock()
     {
-        var cut = Context.Render<MonthCalendar>(p => p.Add(x => x.Month, new DateOnly(2026, 11, 1)).Add(x => x.TestId, "cal"));
+        var cut = Context.Render<MonthCalendar>(p => p
+            .Add(x => x.Month, new DateOnly(2026, 11, 1)).Add(x => x.TestId, "cal").Add(x => x.OnSelect, EventCallback.Factory.Create<DateOnly>(this, selected.Add)));
 
         // ComponentTestBase's FakeTimeProvider never moves off its start, 1 Jan 2000, so every day of November 2026 is in the future.
         Assert.That(cut.FindAll("button.cell:disabled"), Has.Count.EqualTo(30));
+    }
+
+    [Test]
+    public void Render_WithoutOnSelect_DaysArePlainCellsNotButtons()
+    {
+        var cut = Context.Render<MonthCalendar>(p => p
+            .Add(x => x.Month, new DateOnly(2026, 11, 1)).Add(x => x.Days, [Day(3, 2500)]).Add(x => x.Target, 2000).Add(x => x.Today, Today).Add(x => x.TestId, "cal"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("button"), Is.Empty);
+            Assert.That(cut.FindAll("div.cell"), Has.Count.EqualTo(30));
+            Assert.That(cut.Find(Selector(3)).ClassList, Does.Contain("over"));
+            Assert.That(NameOf(cut.Find(Selector(3))), Is.EqualTo("Tue 3 Nov, 2,500 kcal, over target"));
+            Assert.That(cut.FindAll("[data-testid=cal-marker-2026-11-03]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll(".cell[disabled]"), Is.Empty);
+        });
     }
 }
