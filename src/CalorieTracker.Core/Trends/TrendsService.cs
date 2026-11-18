@@ -151,7 +151,7 @@ public sealed partial class TrendsService
             new TrendsEnoughData(enough, enough, enough, judged >= MinDays, enough));
 
         var (kind, buckets) = BucketsOf(days, today, to.DayNumber - from.DayNumber + 1);
-        return new TrendsReport(days, range, kind, buckets);
+        return new TrendsReport(days, range, read.AnyBefore, kind, buckets);
     }
 
     private static DayStatus StatusOf(DayTarget day, bool logged, int kcal, DateOnly today)

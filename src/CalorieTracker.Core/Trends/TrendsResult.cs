@@ -83,8 +83,9 @@ public sealed record TrendBucket(DateOnly Start, DateOnly End, int? AverageKcal,
 
 /// <summary>Everything the Trends screen shows for a range.</summary>
 /// <param name="Days">One for each day, oldest first.</param>
+/// <param name="AnyLoggedBeforeToday">Whether any day before today was ever logged, in or out of the range; false is the "nothing logged yet" case.</param>
 /// <param name="BucketKind">Weeks for a range of up to 62 days and more than 7, months for a longer one, none for a week or less.</param>
-public sealed record TrendsReport(IReadOnlyList<TrendDay> Days, TrendsRange Range, TrendBucketKind BucketKind, IReadOnlyList<TrendBucket> Buckets);
+public sealed record TrendsReport(IReadOnlyList<TrendDay> Days, TrendsRange Range, bool AnyLoggedBeforeToday, TrendBucketKind BucketKind, IReadOnlyList<TrendBucket> Buckets);
 
 /// <summary>The outcome of a trends call. <see cref="Report"/> is set only when <see cref="Status"/> is <see cref="TrendsStatus.Ok"/>.</summary>
 public sealed record TrendsResult

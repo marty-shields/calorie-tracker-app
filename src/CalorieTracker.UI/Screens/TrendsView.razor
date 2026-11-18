@@ -27,7 +27,7 @@
                     <Spinner Label="Loading…" TestId="trends-loading" />
                 </div>
             }
-            else if (!report.Days.Any(d => d.Date < Today && d.IsLogged))
+            else if (!report.AnyLoggedBeforeToday)
             {
                 <EmptyState Message="Nothing logged yet" Hint="Your trends show here once you've logged a day" TestId="trends-empty" />
             }

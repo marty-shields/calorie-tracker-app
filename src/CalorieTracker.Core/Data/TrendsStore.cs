@@ -17,21 +17,25 @@ internal sealed class TrendsStore(SQLiteAsyncConnection connection, DatabaseGate
             {
                 var entries = DiaryStore.ListRange(db, from, to);
                 var foods = FoodStore.FindIn(db, entries.Select(e => e.FoodId).ToList()).ToDictionary(f => f.Id);
-                read = new TrendsRead(entries, foods, ReadStreak(db, today));
+                var (streak, anyBefore) = ReadStreak(db, today);
+                read = new TrendsRead(entries, foods, streak, anyBefore);
             });
 
             return read!;
         });
 
     // Reads the distinct kept days newest first and stops at the first gap, so a long streak costs one read of its own length and no more.
-    private static int ReadStreak(SQLiteConnection db, DateOnly today)
+    // A day before today is seen by then unless today is the only day, so the same read says whether any past day was ever logged.
+    private static (int Streak, bool AnyBefore) ReadStreak(SQLiteConnection db, DateOnly today)
     {
         var command = db.CreateCommand("SELECT DISTINCT Date FROM DiaryEntry WHERE IsRemoved = 0 AND Date <= ? ORDER BY Date DESC", DiaryEntry.FormatDate(today));
         var streak = 0;
+        var anyBefore = false;
         DateOnly? expected = null;
         foreach (var text in command.ExecuteQueryScalars<string>())
         {
             var day = DiaryEntry.ParseDate(text);
+            anyBefore |= day < today;
             expected ??= day == today ? today : today.AddDays(-1);
             if (day != expected)
             {
@@ -42,10 +46,11 @@ internal sealed class TrendsStore(SQLiteAsyncConnection connection, DatabaseGate
             expected = day.AddDays(-1);
         }
 
-        return streak;
+        return (streak, anyBefore);
     }
 }
 
 /// <summary>What <see cref="TrendsStore.ReadAsync"/> read.</summary>
 /// <param name="Streak">Days in a row with a kept entry, back from today, or from yesterday when today has none; a later day never counts.</param>
-internal sealed record TrendsRead(IReadOnlyList<DiaryEntry> Entries, IReadOnlyDictionary<int, Food> Foods, int Streak);
+/// <param name="AnyBefore">Whether any kept entry is on a day before today, whatever the range.</param>
+internal sealed record TrendsRead(IReadOnlyList<DiaryEntry> Entries, IReadOnlyDictionary<int, Food> Foods, int Streak, bool AnyBefore);

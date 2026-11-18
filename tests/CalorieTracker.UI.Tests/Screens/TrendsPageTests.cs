@@ -113,7 +113,8 @@ public class TrendsPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(Text(cut, "trends-label"), Is.EqualTo("7 – 13 Jul"));
-            Assert.That(Exists(cut, "trends-empty"), Is.True);
+            Assert.That(Exists(cut, "trends-empty"), Is.False);
+            Assert.That(Text(cut, "trends-average-note"), Is.EqualTo("Not enough days yet"));
         });
 
         await Tap(cut, "trends-next");

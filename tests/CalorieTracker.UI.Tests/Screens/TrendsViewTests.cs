@@ -280,13 +280,25 @@ public class TrendsViewTests : ComponentTestBase
     }
 
     [Test]
-    public void AWeekWithOnlyTodayLogged_ShowsTheEmptyState_LikeTheFiguresWhichLeaveTodayOut()
+    public void AWeekWithOnlyTodayLogged_AndNothingBefore_ShowsTheEmptyState()
     {
-        var report = TrendsSamples.LittleData with { Days = TrendsSamples.LittleData.Days.Select(d => d with { IsLogged = d.Date == Today }).ToList() };
+        var report = TrendsSamples.LittleData with { AnyLoggedBeforeToday = false, Days = TrendsSamples.LittleData.Days.Select(d => d with { IsLogged = d.Date == Today }).ToList() };
 
         var cut = Render(TrendsPeriod.Week, new(2026, 11, 16), report);
 
         Assert.That(Exists(cut, "trends-empty"), Is.True);
+    }
+
+    [Test]
+    public void AnEmptyWeek_WhenOtherDaysWereLogged_KeepsTheLayoutWithNotEnoughDaysYet()
+    {
+        var cut = Render(TrendsPeriod.Week, new(2026, 11, 2), TrendsSamples.EmptyWeekWithHistory);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Exists(cut, "trends-empty"), Is.False);
+            Assert.That(Text(cut, "trends-average-note"), Is.EqualTo("Not enough days yet"));
+        });
     }
 
     [Test]

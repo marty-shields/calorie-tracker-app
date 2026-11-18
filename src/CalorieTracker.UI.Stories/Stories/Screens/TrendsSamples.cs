@@ -55,8 +55,11 @@ public static class TrendsSamples
     public static TrendsReport LittleData { get; } = Build(
         Enumerable.Range(0, 7).Select(i => Day(new DateOnly(2026, 11, 16).AddDays(i), i switch { 0 => 2210, 1 => 1980, _ => null })).ToList(), []);
 
-    /// <summary>The week of 2 to 8 Nov with nothing logged.</summary>
-    public static TrendsReport NoData { get; } = Build(Enumerable.Range(0, 7).Select(i => Day(new DateOnly(2026, 11, 2).AddDays(i), null)).ToList(), []);
+    /// <summary>The week of 2 to 8 Nov with nothing logged, and no day logged before today either.</summary>
+    public static TrendsReport NoData { get; } = Build(Enumerable.Range(0, 7).Select(i => Day(new DateOnly(2026, 11, 2).AddDays(i), null)).ToList(), [], anyLoggedBeforeToday: false);
+
+    /// <summary>The same empty week, for a person who logged on other days.</summary>
+    public static TrendsReport EmptyWeekWithHistory { get; } = Build(Enumerable.Range(0, 7).Select(i => Day(new DateOnly(2026, 11, 2).AddDays(i), null)).ToList(), [], anyLoggedBeforeToday: true);
 
     /// <summary>November 2026: 16 of 17 past days logged (the 5th is not), 10 of them on target.</summary>
     public static TrendsReport Month { get; } = Build(NovemberDays(), TopFoods);
@@ -103,7 +106,7 @@ public static class TrendsSamples
         : 10L * value > 11L * Target ? DayStatus.Over
         : DayStatus.OnTarget;
 
-    private static TrendsReport Build(List<TrendDay> days, IReadOnlyList<TopFood> topFoods)
+    private static TrendsReport Build(List<TrendDay> days, IReadOnlyList<TopFood> topFoods, bool? anyLoggedBeforeToday = null)
     {
         var past = days.Where(d => d.Date < Today).ToList();
         var logged = past.Where(d => d.IsLogged).ToList();
@@ -140,7 +143,7 @@ public static class TrendsSamples
                         g.Count(d => d.Status == DayStatus.Over));
                 })
                 .ToList();
-        return new TrendsReport(days, range, kind, buckets);
+        return new TrendsReport(days, range, anyLoggedBeforeToday ?? logged.Count > 0, kind, buckets);
     }
 
     private static int Streak(List<TrendDay> days)

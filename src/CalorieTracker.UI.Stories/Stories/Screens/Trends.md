@@ -33,21 +33,21 @@ How a week, a month or a year went, from the bar's **Trends** item. View: `Trend
 | Part | Content |
 |---|---|
 | Tiles | The average; "N of M months averaging within 10% of target" (M is the months judged against a target; a month of fewer than 3 logged days is left out here and from the lowest month); "88%" with "283 of 321 days logged"; the lowest month ("Oct, lowest month, 1,990 kcal a day"). |
-| Average a day, by month | A `TrendBarChart` against the target band, one bar for each month with a logged day, labelled by its first letter. A bar opens that month in Month. |
+| Average a day, by month | A `TrendBarChart` against the target band, one bar for each month with a logged day, labelled by its short month name (Jan, Mar). A bar opens that month in Month. |
 | Days logged per month | `BarList` of "28 of 31" for each month, full at 31 days. |
 
 ## Thin buckets
 A week or month averages from as few as one logged day. Such a bucket (fewer than 3 logged days, `TrendsService.MinDays`) is still drawn, but faded (`--opacity-thin`), its text alternative ends "based on 2 days", and a line under the chart says "Faded bars rest on fewer than 3 logged days."
 
 ## Little data
-Fewer than 3 logged past days in the span keep the layout. A tile whose figure rests on too few days shows a dash and "Not enough days yet" under its caption; the macros, meal and top foods cards say "Not enough days yet" in place of the figure. The chart and calendar still show the days that are logged.
+Fewer than 3 logged past days in the span keep the layout, even none at all when the person logged on other days. A tile whose figure rests on too few days shows a dash and "Not enough days yet" under its caption; the macros, meal and top foods cards say "Not enough days yet" in place of the figure. The chart and calendar still show the days that are logged.
 
 ## Other states
 | State | Content |
 |---|---|
 | Loading | The control and strip stay, with a spinner "Loading…". |
 | Failed | The control and strip stay, with "Couldn't load your trends" and **Try again**. |
-| No data | The control and strip stay, with `EmptyState` "Nothing logged yet" and "Your trends show here once you've logged a day". Shown when no day of the span has an entry. |
+| No data | The control and strip stay, with `EmptyState` "Nothing logged yet" and "Your trends show here once you've logged a day". Shown only when no day before today was ever logged, in the span or out of it (`TrendsReport.AnyLoggedBeforeToday`). A span with no logged past day, for a person who logged on other days, keeps the layout with "Not enough days yet" (see Little data). |
 
 Every bar and calendar day is a button (the charts get `OnSelect`), so a keyboard reaches them with Tab and opens one with Enter. The page reads again when an entry changes, such as a usual food added from the sheet. It logs the span, the number of days and what was opened (day, week or month) only (`UiEvent` 2400 block).
 
