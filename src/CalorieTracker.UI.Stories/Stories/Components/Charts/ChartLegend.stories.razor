@@ -1,0 +1,31 @@
+@using CalorieTracker.UI.Components.Charts
+@using CalorieTracker.UI.Stories.Stories.Components.Charts
+@attribute [Stories("Components/Charts/ChartLegend")]
+
+<Stories TComponent="ChartLegend" Layout="typeof(ThemeLayout)">
+
+    <Story Name="Every entry">
+        <Template>
+            <ChartLegend Items="ChartSamples.FullLegend" TestId="legend" />
+        </Template>
+    </Story>
+
+    <Story Name="Bar chart">
+        <Template>
+            <ChartLegend Items="@([new LegendItem(LegendKind.Under, "Under"), new LegendItem(LegendKind.OnTarget, "On target"), new LegendItem(LegendKind.Over, "Over"), new LegendItem(LegendKind.TargetLine, "Target"), new LegendItem(LegendKind.TargetBand, "±10%")])" TestId="legend" />
+        </Template>
+    </Story>
+
+    <Story Name="One entry">
+        <Template>
+            <ChartLegend Items="@([new LegendItem(LegendKind.OnTarget, "On target")])" TestId="legend" />
+        </Template>
+    </Story>
+
+    <Story Name="Long labels">
+        <Template>
+            <ChartLegend Items="@([new LegendItem(LegendKind.OnTarget, "Within ten percent of that day's target"), new LegendItem(LegendKind.NotLogged, "A day with nothing logged at all")])" TestId="legend" />
+        </Template>
+    </Story>
+
+</Stories>

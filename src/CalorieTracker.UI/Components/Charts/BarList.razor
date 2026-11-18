@@ -1,0 +1,49 @@
+@using System.Globalization
+@if (Items.Count == 0)
+{
+    <p class="none" data-testid="@Id("empty")">@EmptyText</p>
+}
+else
+{
+    <ul class="list" aria-label="@Label" data-testid="@TestId">
+        @foreach (var (item, index) in Items.Select((item, index) => (item, index)))
+        {
+            <li class="row" data-testid="@Id($"row-{index}")">
+                <span class="name" data-testid="@Id($"label-{index}")">@item.Label</span>
+                <span class="value" data-testid="@Id($"value-{index}")">@(item.ValueText ?? (double.IsFinite(item.Value) ? TargetStatuses.Kcal(item.Value) : "0"))</span>
+                <span class="track" aria-hidden="true"><span class="fill" style="--fill: @Share(item)" data-testid="@Id($"bar-{index}")"></span></span>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    /// <summary>The rows, in the order shown.</summary>
+    [Parameter]
+    public IReadOnlyList<BarListItem> Items { get; set; } = [];
+
+    /// <summary>The value that fills a whole bar. Null means the largest value in the list.</summary>
+    [Parameter]
+    public double? Max { get; set; }
+
+    /// <summary>The text alternative of the list.</summary>
+    [Parameter]
+    public string? Label { get; set; }
+
+    /// <summary>Shown instead of the list when it has no rows.</summary>
+    [Parameter]
+    public string EmptyText { get; set; } = "Nothing yet";
+
+    /// <summary>Value of the data-testid attribute, and the prefix of <c>-row-{n}</c>, <c>-label-{n}</c>, <c>-value-{n}</c> and <c>-bar-{n}</c>; <c>-empty</c> when there are no rows.</summary>
+    [Parameter]
+    public string? TestId { get; set; }
+
+    /// <summary>Share of the track the bar fills, 0 to 1.</summary>
+    private string Share(BarListItem item)
+    {
+        var full = TargetStatuses.ValidTarget(Max) ?? Items.Where(i => double.IsFinite(i.Value)).Select(i => i.Value).DefaultIfEmpty(0).Max();
+        return (full > 0 && double.IsFinite(item.Value) ? Math.Clamp(item.Value / full, 0, 1) : 0).ToString("0.####", CultureInfo.InvariantCulture);
+    }
+
+    private string Id(string part) => $"{TestId}-{part}";
+}

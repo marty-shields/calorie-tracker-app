@@ -1,0 +1,42 @@
+@using CalorieTracker.UI.Components.Charts
+@attribute [Stories("Components/Charts/BarList")]
+
+<Stories TComponent="BarList" Layout="typeof(ThemeLayout)">
+
+    <Story Name="By meal">
+        <Template>
+            <BarList Label="Calories by meal" Items="@([new BarListItem("Breakfast", 420, "420 kcal"), new BarListItem("Lunch", 640, "640 kcal"), new BarListItem("Dinner", 810, "810 kcal"), new BarListItem("Snacks", 190, "190 kcal")])" TestId="list" />
+        </Template>
+    </Story>
+
+    <Story Name="Days logged">
+        <Template>
+            <BarList Label="Days logged per month" Max="30" Items="@([new BarListItem("Sep", 24, "24 days"), new BarListItem("Oct", 30, "30 days"), new BarListItem("Nov", 18, "18 days")])" TestId="list" />
+        </Template>
+    </Story>
+
+    <Story Name="Long labels">
+        <Template>
+            <BarList Label="Top foods" Items="@([new BarListItem("Wholemeal bread, toasted, with a thick spread of unsalted butter", 12, "12 times"), new BarListItem("Banana", 9, "9 times")])" TestId="list" />
+        </Template>
+    </Story>
+
+    <Story Name="Single row">
+        <Template>
+            <BarList Label="Top foods" Items="@([new BarListItem("Porridge oats", 5, "5 times")])" TestId="list" />
+        </Template>
+    </Story>
+
+    <Story Name="Empty">
+        <Template>
+            <BarList Label="Top foods" EmptyText="No foods logged yet" TestId="list" />
+        </Template>
+    </Story>
+
+    <Story Name="All zero">
+        <Template>
+            <BarList Label="Calories by meal" Items="@([new BarListItem("Breakfast", 0), new BarListItem("Lunch", 0)])" TestId="list" />
+        </Template>
+    </Story>
+
+</Stories>

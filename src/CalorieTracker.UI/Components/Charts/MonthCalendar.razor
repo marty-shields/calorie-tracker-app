@@ -1,0 +1,116 @@
+@using System.Globalization
+@inject TimeProvider Time
+<div class="calendar" role="group" aria-label="@MonthName" data-testid="@TestId">
+    <div class="weekdays" aria-hidden="true">
+        @foreach (var letter in Weekdays)
+        {
+            <span>@letter</span>
+        }
+    </div>
+    <div class="days">
+        @for (var i = 0; i < LeadingBlanks; i++)
+        {
+            <span class="blank" aria-hidden="true"></span>
+        }
+        @foreach (var date in DatesOfMonth)
+        {
+            var cell = Cell(date);
+            if (OnSelect.HasDelegate)
+            {
+                <button type="button" class="cell @cell.Class" disabled="@cell.Disabled" data-testid="@Id($"day-{date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}")"
+                        @onclick="() => Select(date)">
+                    @Content(date, cell)
+                </button>
+            }
+            else
+            {
+                <div class="cell @cell.Class" data-testid="@Id($"day-{date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}")">
+                    @Content(date, cell)
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private static readonly string[] Weekdays = ["M", "T", "W", "T", "F", "S", "S"];
+
+    private sealed record CellInfo(string Class, string Name, bool Disabled, TargetStatus Status);
+
+    /// <summary>Any day of the month to show.</summary>
+    [Parameter]
+    public DateOnly Month { get; set; }
+
+    /// <summary>The days that have data. A day missing from the list counts as not logged.</summary>
+    [Parameter]
+    public IReadOnlyList<CalendarDay> Days { get; set; } = [];
+
+    /// <summary>Daily target in kcal, for days that carry no target of their own. Null or zero leaves each logged day without a status.</summary>
+    [Parameter]
+    public double? Target { get; set; }
+
+    /// <summary>The current day, outlined; later days are future and disabled. Null means today by the clock.</summary>
+    [Parameter]
+    public DateOnly? Today { get; set; }
+
+    /// <summary>Raised with the day's date when an enabled day is clicked or gets Enter or Space. Without a handler the days are plain text, not buttons.</summary>
+    [Parameter]
+    public EventCallback<DateOnly> OnSelect { get; set; }
+
+    /// <summary>Value of the data-testid attribute, and the prefix of <c>-day-{date}</c> and <c>-marker-{date}</c>.</summary>
+    [Parameter]
+    public string? TestId { get; set; }
+
+    private DateOnly First => new(Month.Year, Month.Month, 1);
+
+    private DateOnly Now => Today ?? DateOnly.FromDateTime(Time.GetLocalNow().DateTime);
+
+    private string MonthName => First.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
+
+    /// <summary>Days of the week that fall before the 1st in its row, with Monday first.</summary>
+    private int LeadingBlanks => ((int)First.DayOfWeek + 6) % 7;
+
+    private IEnumerable<DateOnly> DatesOfMonth => Enumerable.Range(0, DateTime.DaysInMonth(Month.Year, Month.Month)).Select(i => First.AddDays(i));
+
+    private RenderFragment Content(DateOnly date, CellInfo cell) => @<text>
+        <span class="visually-hidden">@cell.Name</span>
+        <span aria-hidden="true">@date.Day</span>
+        @if (cell.Status == TargetStatus.Over)
+        {
+            <span class="marker" aria-hidden="true" data-testid="@Id($"marker-{date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}")">▲</span>
+        }
+    </text>;
+
+    private CellInfo Cell(DateOnly date)
+    {
+        var name = date.ToString("ddd d MMM", CultureInfo.InvariantCulture);
+        var isToday = date == Now;
+        var today = isToday ? " today" : "";
+        if (date > Now)
+        {
+            return new CellInfo("future", $"{name}, future", true, TargetStatus.None);
+        }
+
+        var day = Days.FirstOrDefault(d => d.Date == date);
+        if (!TargetStatuses.IsLogged(day?.Value))
+        {
+            return new CellInfo("none" + today, $"{name}{(isToday ? ", today" : "")}, not logged", false, TargetStatus.None);
+        }
+
+        var status = TargetStatuses.Of(day!.Value!.Value, TargetStatuses.ValidTarget(day.Target) ?? Target);
+        var word = TargetStatuses.Word(status);
+        var kcal = TargetStatuses.Kcal(day.Value.Value);
+        var full = $"{name}{(isToday ? ", today" : "")}, {kcal} kcal{(word.Length > 0 ? ", " + word : "")}";
+        return new CellInfo(TargetStatuses.Class(status) + today, full, false, status);
+    }
+
+    private async Task Select(DateOnly date)
+    {
+        if (date <= Now)
+        {
+            await OnSelect.InvokeAsync(date);
+        }
+    }
+
+    private string Id(string part) => $"{TestId}-{part}";
+}

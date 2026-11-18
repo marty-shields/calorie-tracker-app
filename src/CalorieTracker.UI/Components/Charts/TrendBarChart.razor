@@ -1,0 +1,209 @@
+@using System.Globalization
+<svg class="chart" viewBox="0 0 @N(Width) @N(Height)" role="group" aria-label="@Label" data-testid="@TestId">
+    @foreach (var tick in Ticks)
+    {
+        <line class="grid" x1="@N(Left)" x2="@N(Right)" y1="@N(Y(tick))" y2="@N(Y(tick))" data-testid="@Id($"grid-{tick}")" />
+        @Text("tick", Left - 6, Y(tick) + 4, "end", TickText(tick), Id($"tick-{tick}"))
+    }
+    @if (TargetStatuses.ValidTarget(Target) is { } goal)
+    {
+        <rect class="band" x="@N(Left)" width="@N(Right - Left)" y="@N(Y(goal * (1 + TargetStatuses.Tolerance)))"
+              height="@N(Y(goal * (1 - TargetStatuses.Tolerance)) - Y(goal * (1 + TargetStatuses.Tolerance)))" data-testid="@Id("band")" />
+        <line class="target" x1="@N(Left)" x2="@N(Right)" y1="@N(Y(goal))" y2="@N(Y(goal))" data-testid="@Id("target")" />
+    }
+    @if (highest is null)
+    {
+        @Text("empty", (Left + Right) / 2, (Top + Base) / 2, "middle", "No days logged yet", Id("empty"))
+    }
+    @for (var i = 0; i < Bars.Count; i++)
+    {
+        var bar = Bars[i];
+        var selectable = OnSelect.HasDelegate;
+        var slotX = Left + i * Slot;
+        var centre = slotX + Slot / 2;
+        @Text("axis-label", centre, Height - 8, "middle", Short(bar.Label), hidden: true)
+        if (TargetStatuses.IsLogged(bar.Value))
+        {
+            var value = bar.Value!.Value;
+            var status = TargetStatuses.Of(value, TargetStatuses.ValidTarget(bar.Target) ?? Target);
+            var top = Y(value);
+            var height = Base - top;
+            var width = Slot * 0.6;
+            var name = Name(bar, status);
+            <g class="@BarClass(status, selectable)" role="@(selectable ? "button" : "img")" tabindex="@(selectable ? "0" : null)" aria-label="@name" data-testid="@Id($"bar-{Day(bar)}")"
+               @onclick="() => Select(bar)" @onkeydown="e => OnKey(e, bar)">
+                <rect class="hit" x="@N(slotX)" y="@N(Top)" width="@N(Slot)" height="@N(Base - Top)" />
+                <path class="column" d="@Column(centre - width / 2, width, top, height)" data-height="@N(height)" data-testid="@Id($"column-{Day(bar)}")" />
+                @if (status == TargetStatus.Over)
+                {
+                    <path class="marker" d="M @N(centre - 4) @N(top - 4) L @N(centre + 4) @N(top - 4) L @N(centre) @N(top - 11) Z" data-testid="@Id($"marker-{Day(bar)}")" />
+                }
+                @if (bar == highest)
+                {
+                    @Text("value-label", centre, top - (status == TargetStatus.Over ? 15 : 6), "middle", TargetStatuses.Kcal(value), Id("value-label"))
+                }
+                @{ var tip = Tip(bar); }
+                @Text("tip", TipX(centre, tip), 12, "middle", tip, hidden: true)
+            </g>
+        }
+        else
+        {
+            <rect class="gap" x="@N(slotX)" y="@N(Top)" width="@N(Slot)" height="@N(Base - Top)" data-testid="@Id($"gap-{Day(bar)}")" />
+        }
+    }
+    <line class="baseline" x1="@N(Left)" x2="@N(Right)" y1="@N(Base)" y2="@N(Base)" data-testid="@Id("baseline")" />
+</svg>
+
+@code {
+    private const double Width = 320;
+    private const double Height = 200;
+    private const double Left = 34;
+    private const double Right = 312;
+    private const double Top = 44;
+    private const double Base = 176;
+    private const double TipMargin = 4;
+
+    /// <summary>Width of one character of the bold tooltip text in viewBox units, rounded up.</summary>
+    private const double TipCharWidth = 9;
+
+    /// <summary>The scale never has more intervals than this.</summary>
+    private const int MaxIntervals = 4;
+
+    /// <summary>The step search stops here, so a huge value ends it too.</summary>
+    private const double MaxMagnitude = 1e15;
+
+    /// <summary>The tallest value the scale draws; larger ones are drawn at this height.</summary>
+    private const double MaxScale = 1e18;
+
+    private static readonly double[] TickSteps = [1000, 2000, 5000];
+
+    /// <summary>The bars, left to right.</summary>
+    [Parameter]
+    public IReadOnlyList<TrendBar> Bars { get; set; } = [];
+
+    /// <summary>Daily target in kcal. Draws the target line and the band of 10% either side of it, and sets each bar's status. Null or zero draws neither.</summary>
+    [Parameter]
+    public double? Target { get; set; }
+
+    /// <summary>Raised with the bar's date when a bar is clicked, or has focus and gets Enter. Without a handler the bars are not buttons and cannot be focused.</summary>
+    [Parameter]
+    public EventCallback<DateOnly> OnSelect { get; set; }
+
+    /// <summary>Format of the bar's date in its text alternative and tooltip.</summary>
+    [Parameter]
+    public string DateFormat { get; set; } = "ddd d MMM";
+
+    /// <summary>The text alternative of the whole chart.</summary>
+    [Parameter]
+    public string Label { get; set; } = "Calories by day";
+
+    /// <summary>Value of the data-testid attribute, and the prefix of the parts: <c>-band</c>, <c>-target</c>, <c>-baseline</c>, <c>-tick-{kcal}</c>, <c>-bar-{date}</c>, <c>-column-{date}</c>, <c>-marker-{date}</c>, <c>-gap-{date}</c>, <c>-value-label</c>, <c>-empty</c>.</summary>
+    [Parameter]
+    public string? TestId { get; set; }
+
+    private TrendBar? highest;
+
+    protected override void OnParametersSet() => highest = Bars.Where(b => TargetStatuses.IsLogged(b.Value)).MaxBy(b => b.Value);
+
+    private double Slot => (Right - Left) / Math.Max(Bars.Count, 1);
+
+    /// <summary>The smallest of 1k, 2k, 5k, 10k, 20k, … that puts the tallest bar and the band within four intervals of the scale.</summary>
+    private double TickStep
+    {
+        get
+        {
+            for (var magnitude = 1.0; magnitude < MaxMagnitude; magnitude *= 10)
+            {
+                foreach (var step in TickSteps)
+                {
+                    if (Math.Ceiling(MaxValue / (step * magnitude)) <= MaxIntervals)
+                    {
+                        return step * magnitude;
+                    }
+                }
+            }
+
+            return TickSteps[^1] * MaxMagnitude;
+        }
+    }
+
+    /// <summary>The top of the y scale: at least 2k, and the first tick at or above the tallest bar and the band. The space above it holds the tooltip, the value and the over marker.</summary>
+    private double Scale => Math.Max(2 * TickStep, Math.Ceiling(MaxValue / TickStep) * TickStep);
+
+    private double MaxValue => Math.Min(
+        MaxScale,
+        Math.Max(
+            Bars.Where(b => TargetStatuses.IsLogged(b.Value)).Select(b => b.Value!.Value).DefaultIfEmpty(0).Max(),
+            TargetStatuses.ValidTarget(Target) is { } target ? target * (1 + TargetStatuses.Tolerance) : 0));
+
+    private IEnumerable<double> Ticks => Enumerable.Range(0, (int)(Scale / TickStep) + 1).Select(i => i * TickStep);
+
+    private double Y(double value) => Base - value / Scale * (Base - Top);
+
+    private string Column(double x, double width, double top, double height)
+    {
+        var r = Math.Min(4, Math.Min(width / 2, height));
+        return $"M {N(x)} {N(Base)} V {N(top + r)} A {N(r)} {N(r)} 0 0 1 {N(x + r)} {N(top)} H {N(x + width - r)} A {N(r)} {N(r)} 0 0 1 {N(x + width)} {N(top + r)} V {N(Base)} Z";
+    }
+
+    private string Name(TrendBar bar, TargetStatus status) =>
+        $"{Tip(bar)}" + (status == TargetStatus.None ? "" : $", {TargetStatuses.Word(status)}");
+
+    /// <summary>The date and value, which is all the tooltip shows; the status is in the colour and the marker.</summary>
+    private string Tip(TrendBar bar) => $"{bar.Date.ToString(DateFormat, CultureInfo.InvariantCulture)}, {TargetStatuses.Kcal(bar.Value!.Value)} kcal";
+
+    private static string BarClass(TargetStatus status, bool selectable) => $"bar {TargetStatuses.Class(status)}" + (selectable ? " selectable" : "");
+
+    private static string Day(TrendBar bar) => bar.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    /// <summary>The tooltip's centre, kept far enough from both ends of the chart for the whole text to show.</summary>
+    private static double TipX(double centre, string tip)
+    {
+        var half = tip.Length * TipCharWidth / 2 + TipMargin;
+        return Math.Clamp(centre, half, Width - half);
+    }
+
+    /// <summary>The label cut to what fits under its slot: about three characters for a week of bars, one letter for a year.</summary>
+    private string Short(string label)
+    {
+        var fit = Math.Max((int)(Slot / 12), 1);
+        return label.Length <= fit ? label : fit == 1 ? label[..1] : label[..(fit - 1)] + "…";
+    }
+
+    private static string TickText(double tick) => tick == 0 ? "0" : $"{tick / 1000:0.#}k";
+
+    private async Task Select(TrendBar bar) => await OnSelect.InvokeAsync(bar.Date);
+
+    private async Task OnKey(KeyboardEventArgs e, TrendBar bar)
+    {
+        if (e.Key is "Enter")
+        {
+            await Select(bar);
+        }
+    }
+
+    private RenderFragment Text(string cssClass, double x, double y, string anchor, string content, string? testId = null, bool hidden = false) => builder =>
+    {
+        builder.OpenElement(0, "text");
+        builder.AddAttribute(1, "class", cssClass);
+        builder.AddAttribute(2, "x", N(x));
+        builder.AddAttribute(3, "y", N(y));
+        builder.AddAttribute(4, "text-anchor", anchor);
+        if (hidden)
+        {
+            builder.AddAttribute(5, "aria-hidden", "true");
+        }
+
+        if (testId is not null)
+        {
+            builder.AddAttribute(6, "data-testid", testId);
+        }
+
+        builder.AddContent(7, content);
+        builder.CloseElement();
+    };
+
+    private string Id(string part) => $"{TestId}-{part}";
+
+    private static string N(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+}
