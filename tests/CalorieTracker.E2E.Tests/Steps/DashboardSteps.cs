@@ -140,6 +140,14 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
         Assert.That(dashboard.HasAddButton(meal), Is.True, $"{meal} keeps its +");
     }
 
+    [Then(@"^" + Meals + @" is open with (\d+) entries shown$")]
+    public void ThenMealIsOpenWithEntries(string meal, int count)
+    {
+        web.Eventually(() => dashboard.Expanded(meal), Is.EqualTo("true"), $"{meal} is open");
+        Assert.That(dashboard.FoldedLine(meal), Is.Null, $"{meal} is no longer a single line");
+        web.Eventually(() => dashboard.OpenAndCountEntries(meal), Is.EqualTo(count), $"{meal}'s entries");
+    }
+
     [Then(@"^" + Meals + " is open with its entry shown$")]
     public void ThenMealIsOpenWithItsEntry(string meal)
     {

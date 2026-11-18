@@ -59,3 +59,16 @@ Feature: Add sheet
     And Lunch lists 2 entries
     When I tap Undo
     Then Lunch lists 1 entry
+
+  @today
+  Scenario: A usual food added to a folded meal leaves that meal open
+    Given I am on the Dashboard
+    And the app clock reads 19:30
+    And I have logged 35 g of the first food found by "oat" in Lunch
+    When I leave Today and come back
+    Then Lunch is folded to one line with 1 item and its kcal
+    When I open the Add sheet
+    And I choose Lunch on the Add sheet
+    And I tap the plus of the first usual food on the Add sheet
+    Then the Add sheet is closed
+    And Lunch is open with 2 entries shown

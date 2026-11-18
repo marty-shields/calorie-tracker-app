@@ -587,6 +587,53 @@ public class DashboardViewTests : ComponentTestBase
     }
 
     [Test]
+    public void AQuickAddToAFoldedMeal_LeavesThatMealOpenWithTheNewEntry_AndOnlyThatOne()
+    {
+        UseSheetModule();
+        ((FakeTimeProvider)Context.Services.GetRequiredService<TimeProvider>()).SetUtcNow(new DateTimeOffset(2026, 11, 18, 19, 30, 0, TimeSpan.Zero));
+        var asked = new List<UsualAddRequest>();
+        var cut = RenderAt(DashboardSamples.FullDay, DashboardSamples.Evening, date: Today);
+        cut.Render(p => p
+            .Add(x => x.UsualFoods, UsualRows)
+            .Add(x => x.OnAddUsual, (request, _) =>
+            {
+                asked.Add(request);
+                return Task.FromResult(true);
+            }));
+        Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("false"));
+        cut.Find("[data-testid=add-button]").Click();
+        cut.Find("[data-testid=add-sheet-meal-lunch]").Change(true);
+
+        cut.Find("[data-testid=add-sheet-usual-7-add]").Click();
+        cut.Render(p => p.Add(x => x.Summary, DashboardSamples.OverTarget));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(asked, Is.EqualTo(new[] { new UsualAddRequest(UsualRows[0], Meal.Lunch) }));
+            Assert.That(Exists(cut, "add-sheet"), Is.False);
+            Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("true"));
+            Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul .row"), Has.Count.EqualTo(2));
+            Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("false"));
+        });
+    }
+
+    [Test]
+    public void AFailedQuickAdd_LeavesAFoldedMealFolded()
+    {
+        UseSheetModule();
+        var cut = RenderAt(DashboardSamples.FullDay, DashboardSamples.Evening, date: Today);
+        cut.Render(p => p
+            .Add(x => x.UsualFoods, UsualRows)
+            .Add(x => x.OnAddUsual, (_, _) => Task.FromResult(false)));
+        cut.Find("[data-testid=add-button]").Click();
+        cut.Find("[data-testid=add-sheet-meal-lunch]").Change(true);
+
+        cut.Find("[data-testid=add-sheet-usual-7-add]").Click();
+
+        Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("false"));
+    }
+
+    [Test]
     public void OpenMeal_ShowsThatFoldedMealOpen_AndOnlyThatOne()
     {
         var cut = RenderAt(DashboardSamples.FullDay, DashboardSamples.Evening, open: Meal.Lunch);

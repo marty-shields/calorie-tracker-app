@@ -148,12 +148,13 @@
         return callback.InvokeAsync(new MealAddRequest(meal, Date));
     }
 
-    /// <summary>Adds the usual food to the day on the date strip, then closes the sheet unless it failed.</summary>
+    /// <summary>Adds the usual food to the day on the date strip, then closes the sheet and leaves its meal open unless it failed.</summary>
     private async Task AddUsualAsync(UsualAddRequest request)
     {
         if (OnAddUsual is { } add && await add(request, Date))
         {
             sheetOpen = false;
+            opened.Add(request.Meal);
         }
     }
 

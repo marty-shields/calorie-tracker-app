@@ -75,7 +75,7 @@ public sealed class AddSheetSteps(AddSheetScreen sheet, NavigationBar navigation
     public void TapThePlusOfTheFirstUsualFood() => sheet.AddFirstUsual();
 
     [Then(@"^" + Meals + @" lists (\d+) entries$")]
-    public void ThenMealListsEntries(string meal, int count) => web.Eventually(() => dashboard.Entries(meal).Count, Is.EqualTo(count));
+    public void ThenMealListsEntries(string meal, int count) => web.Eventually(() => dashboard.OpenAndCountEntries(meal), Is.EqualTo(count));
 
     [Then(@"^the Add sheet is (open|closed)$")]
     public void ThenTheAddSheetIs(string state) =>
