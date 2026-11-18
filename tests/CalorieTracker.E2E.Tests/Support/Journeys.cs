@@ -67,6 +67,8 @@ public sealed class Journeys(WebView web, Native native, DashboardScreen dashboa
                 break;
             case Screen.Scan:
             case Screen.AddFood:
+                // A typed search leaves the keyboard up, and the first back key would only close it.
+                native.HideKeyboard();
                 native.BackKey();
                 break;
         }

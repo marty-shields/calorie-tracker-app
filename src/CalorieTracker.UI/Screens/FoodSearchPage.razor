@@ -5,6 +5,7 @@
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Models.Search
 @using Microsoft.Extensions.Logging
+@inject TimeProvider Time
 @inject IFoodSearch Search
 @inject IOnlineFoodSearch OnlineSearch
 @inject IOnlineFoodImport OnlineImport
@@ -12,7 +13,7 @@
 @inject SeedProgress Seed
 @inject ILogger<FoodSearchPage> Logger
 
-<FoodSearchView Meal="Meal" Query="@query" Groups="groups" Expanded="expanded" OnExpand="Expand" Loading="loading" Failed="failed"
+<FoodSearchView Meal="Meal" Date="Day" Today="Today" Query="@query" Groups="groups" Expanded="expanded" OnExpand="Expand" Loading="loading" Failed="failed"
                 OnQueryChanged="SearchAsync" OnSelect="SelectAsync" OnBack="OnBack" OnScan="ScanAsync" OnRetry="Retry"
                 OnlineState="onlineState" OnlineProducts="onlineProducts" OnlineCountry="@onlineCountry" OnlineExpanded="onlineExpanded" OnlineNoticeVisible="noticeVisible"
                 OnSearchOnline="SearchOnlineAsync" OnSelectOnline="SelectOnlineAsync" OnExpandOnline="ExpandOnline" OnRetryOnline="RetryOnlineAsync" />
@@ -43,6 +44,14 @@
     /// <summary>The meal being added to: tapping a result raises <see cref="OnAdd"/> straight away.</summary>
     [Parameter]
     public Meal Meal { get; set; }
+
+    /// <summary>The day being added to; null is today. Shown under the title.</summary>
+    [Parameter]
+    public DateOnly? Date { get; set; }
+
+    private DateOnly Today => DateOnly.FromDateTime(Time.GetLocalNow().DateTime);
+
+    private DateOnly Day => Date ?? Today;
 
     /// <summary>The text the search opens with, such as when coming back from adding a food. Read once, when the page starts.</summary>
     [Parameter]

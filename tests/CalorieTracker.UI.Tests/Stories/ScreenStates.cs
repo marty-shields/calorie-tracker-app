@@ -196,6 +196,8 @@ public static class ScreenStates
             .Add(x => x.Meal, meal)
             .Add(x => x.OnScan, () => { })
             .Add(x => x.OnBack, () => { })
+            .Add(x => x.Date, DashboardSamples.Today)
+            .Add(x => x.Today, DashboardSamples.Today)
             .Add(x => x.Query, query)
             .Add(x => x.Groups, groups ?? [])
             .Add(x => x.Expanded, (expanded ?? []).ToHashSet())

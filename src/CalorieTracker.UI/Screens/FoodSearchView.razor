@@ -2,11 +2,12 @@
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Foods
 @using CalorieTracker.Core.History
+@using CalorieTracker.Core.Summary
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Components.Inputs
 @using CalorieTracker.UI.Components.Lists
 @using CalorieTracker.UI.Models.Search
-<AppScreen Title="@($"Add to {Meal}")" OnBack="OnBack" Toolbar="@(!Failed ? Tools : null)">
+<AppScreen Title="@($"Add to {Meal}")" Subtitle="@(Date is { } day ? DayLabel.For(day, Today) : null)" OnBack="OnBack" Toolbar="@(!Failed ? Tools : null)">
     <ChildContent>
         @if (Loading)
         {
@@ -135,6 +136,14 @@
     /// <summary>The meal being added to: the title reads "Add to Lunch", a back arrow leaves for where search was opened and no navigation bar shows.</summary>
     [Parameter]
     public Meal Meal { get; set; }
+
+    /// <summary>The day being added to, shown under the title such as "Today, 18 Nov". Null shows no day.</summary>
+    [Parameter]
+    public DateOnly? Date { get; set; }
+
+    /// <summary>The current day, given by the caller so the view never reads the clock. Decides Today, Yesterday and Tomorrow in the day under the title.</summary>
+    [Parameter]
+    public DateOnly Today { get; set; }
 
     /// <summary>Raised with the whole text on every keystroke.</summary>
     [Parameter]
@@ -275,7 +284,7 @@
         var food = item.Food;
         var detail = display.Detail;
         var values = item.History is { } last
-            ? $"{Last(last, food)} · {Number(Math.Round(food.Kcal * last.LastAmount / 100))} kcal"
+            ? $"{Last(last, food)} · {Number(Nutrition.ForAmount(food, last.LastAmount).Kcal)} kcal"
             : $"{Number(food.Kcal)} kcal / 100 {UnitText(food)}";
         return detail is null ? values : $"{detail} · {values}";
     }

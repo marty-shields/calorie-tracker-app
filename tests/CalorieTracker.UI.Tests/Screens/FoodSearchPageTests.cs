@@ -647,6 +647,33 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
+    public void NothingTyped_UsualRowRoundsHalfAwayFromZero_LikeTheAddSheet()
+    {
+        var half = new Food { Id = 7, Name = "Half", Unit = FoodUnit.Gram, Kcal = 125 };
+        search.Idle = [new FoodGroup(FoodGroupKind.Usual, [Logged(half, 50)])];
+
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch));
+
+        Assert.That(cut.Find("[data-testid=food-result-7]").TextContent, Does.Contain("63 kcal"));
+    }
+
+    [Test]
+    public void TheDayShowsUnderTheTitle_TodayWhenNoneIsGiven()
+    {
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Dinner));
+
+        Assert.That(cut.Find("[data-testid=screen-subtitle]").TextContent, Is.EqualTo("Today, 1 Jan"));
+    }
+
+    [Test]
+    public void TheDayShowsUnderTheTitle_ForAnotherDay()
+    {
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Dinner).Add(x => x.Date, new DateOnly(1999, 12, 31)));
+
+        Assert.That(cut.Find("[data-testid=screen-subtitle]").TextContent, Is.EqualTo("Yesterday, 31 Dec 1999"));
+    }
+
+    [Test]
     public async Task Typing_GroupOfSevenShowsFiveAndShowTwoMore_TappingItShowsTheRestInOrder()
     {
         var foods = Enumerable.Range(10, 7).Select(i => new FoodListing(new Food { Id = i, Name = $"Oat {i}", Unit = FoodUnit.Gram, Kcal = 100 }, null)).ToList();
