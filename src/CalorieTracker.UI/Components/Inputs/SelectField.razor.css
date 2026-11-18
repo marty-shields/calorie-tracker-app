@@ -3,6 +3,7 @@
 }
 
 .box {
+    position: relative;
     display: flex;
     min-width: 0;
     min-height: var(--touch-target);
@@ -21,7 +22,8 @@
     width: 100%;
     min-width: 0;
     min-height: var(--touch-target);
-    padding: 0 var(--space-3);
+    padding: 0 calc(var(--space-3) * 2 + var(--font-size-xl)) 0 var(--space-3);
+    appearance: none;
     border: 0;
     outline: 0;
     background-color: transparent;
@@ -38,4 +40,13 @@
 
 .select:disabled {
     cursor: default;
+}
+
+.arrow {
+    position: absolute;
+    inset: 0 var(--space-3) 0 auto;
+    display: flex;
+    align-items: center;
+    color: var(--color-text);
+    pointer-events: none;
 }
