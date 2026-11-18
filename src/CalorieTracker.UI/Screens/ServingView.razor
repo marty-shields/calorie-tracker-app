@@ -8,6 +8,10 @@
 @using CalorieTracker.UI.Models.Serving
 <AppScreen Title="@(Display is { } titled ? titled.Title : Editing ? "Edit entry" : "Add food")" OnBack="OnBack">
     <Actions>
+        @if (Favourite is { } favourite && Food is not null && !Loading && !LoadFailed)
+        {
+            <IconButton Icon="FavouriteStar.IconFor(favourite)" AriaLabel="@FavouriteStar.LabelFor(favourite)" Pressed="favourite" TestId="serving-favourite" OnClick="OnToggleFavourite" />
+        }
         @if (Editing && Food is not null && !Loading && !LoadFailed)
         {
             <IconButton Icon="IconName.Delete" AriaLabel="Remove entry" TestId="serving-remove" OnClick="OnRemove" />
@@ -145,6 +149,7 @@
         {
             <p class="error" role="alert" data-testid="serving-error" data-wrap-ok>@(Editing ? "Couldn't save this entry. Try again." : "Couldn't add this food. Try again.")</p>
         }
+        <Snackbar />
     </Status>
 </AppScreen>
 
@@ -156,6 +161,14 @@
     /// <summary>The food to add, with its values per 100 g or ml. Null shows "Food not found" unless <see cref="Loading"/> or <see cref="LoadFailed"/> is set.</summary>
     [Parameter]
     public Food? Food { get; set; }
+
+    /// <summary>Whether the food is a favourite: the star in the top bar is filled when true, outlined when false. Null shows no star, such as when the read failed.</summary>
+    [Parameter]
+    public bool? Favourite { get; set; }
+
+    /// <summary>Raised by the star. The screen flips <see cref="Favourite"/> itself; a failed write puts it back.</summary>
+    [Parameter]
+    public EventCallback OnToggleFavourite { get; set; }
 
     /// <summary>Shows a spinner instead of the food.</summary>
     [Parameter]

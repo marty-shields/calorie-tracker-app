@@ -25,6 +25,7 @@ public class FoodSearchSeedTests
         await connection.CreateTableAsync<Serving>();
         await connection.CreateTableAsync<Barcode>();
         await connection.CreateTableAsync<DiaryEntry>();
+        await connection.CreateTableAsync<Favourite>();
         await connection.CreateTableAsync<SeedVersion>();
         var gate = new DatabaseGate();
         var store = new FoodStore(connection, gate, new FakeLogger<FoodStore>());
@@ -50,7 +51,7 @@ public class FoodSearchSeedTests
             SearchText = SearchFolding.Fold("Crème caramel"),
         });
         logger = new FakeLogger<FoodSearch>();
-        search = new FoodSearch(store, new FoodHistoryService(new FoodHistoryStore(connection, gate), TimeProvider.System, new FakeLogger<FoodHistoryService>()), logger);
+        search = new FoodSearch(store, new FoodHistoryService(new FoodHistoryStore(connection, gate), TimeProvider.System, new FakeLogger<FoodHistoryService>()), new FavouriteService(new FavouriteStore(connection, gate), TimeProvider.System, new FakeLogger<FavouriteService>()), logger);
     }
 
     [OneTimeTearDown]

@@ -42,6 +42,8 @@ public class CoreServiceCollectionExtensionsTests
                 (typeof(DiaryStore), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(FoodHistoryService), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(FoodHistoryStore), (Type?)null, ServiceLifetime.Singleton),
+                (typeof(FavouriteService), (Type?)null, ServiceLifetime.Singleton),
+                (typeof(FavouriteStore), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(DaySummaryService), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(SeedProgress), typeof(SeedProgress), ServiceLifetime.Singleton),
             }));

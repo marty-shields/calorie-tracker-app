@@ -19,14 +19,16 @@ public class FoodSearchPageTests : ComponentTestBase
     private FakeLoader loader = null!;
     private SeedProgress seed = null!;
     private FakeLogger<FoodSearchPage> logger = null!;
+    private FavouriteDatabase favourites = null!;
 
     [SetUp]
-    public void SetUp()
+    public async Task SetUp()
     {
         search = new FakeSearch();
         loader = new FakeLoader();
         seed = new SeedProgress(loader);
         logger = new FakeLogger<FoodSearchPage>();
+        favourites = await UseFavourites();
         Context.Services.AddSingleton<IFoodSearch>(search);
         Context.Services.AddSingleton<IOnlineFoodSearch>(new FakeOnlineSearch());
         Context.Services.AddSingleton<IOnlineFoodImport>(new FakeOnlineImport());
@@ -224,7 +226,7 @@ public class FoodSearchPageTests : ComponentTestBase
         var cut = Context.Render<FoodSearchPage>();
         await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
 
-        cut.Find("[data-testid=food-result-1]").Click();
+        await cut.Find("[data-testid=food-result-1]").ClickAsync(new());
         var kcal = cut.Find("[data-testid=food-detail-kcal]").TextContent;
         cut.Find("[data-testid=food-detail-close]").Click();
 
@@ -243,7 +245,7 @@ public class FoodSearchPageTests : ComponentTestBase
         search.Results = [Oats];
         var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.OnNavigate, navigated.Add));
         await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
-        cut.Find("[data-testid=food-result-1]").Click();
+        await cut.Find("[data-testid=food-result-1]").ClickAsync(new());
 
         await BackButton.HandleAsync();
 
@@ -492,6 +494,151 @@ public class FoodSearchPageTests : ComponentTestBase
             Assert.That(cut.Find("[data-testid=food-result-1]").TextContent, Does.Contain("40 g").And.Contain("150 kcal"));
             Assert.That(cut.Find("[data-testid=food-result-2]").TextContent, Does.Contain("150 ml").And.Contain("75 kcal"));
         });
+    }
+
+    private static FoodListing[] Favourites(int count) =>
+        Enumerable.Range(0, count).Select(i => new FoodListing(new Food { Id = 50 + i, Name = $"Fav {(char)('a' + i)}", Unit = i == 1 ? FoodUnit.Millilitre : FoodUnit.Gram, Kcal = 100 + i }, null)).ToArray();
+
+    [Test]
+    public async Task NothingTyped_Favourites_ShowFirstAFiveWithShowMoreThenExpandAndTypingCollapses()
+    {
+        var favourites = Favourites(9);
+        search.Idle = [new FoodGroup(FoodGroupKind.Favourites, favourites), new FoodGroup(FoodGroupKind.Usual, [Logged(Oats, 40)]), new FoodGroup(FoodGroupKind.Recent, [Logged(Milk, 150)])];
+        search.Groups = [new FoodGroup(FoodGroupKind.Favourites, favourites)];
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Breakfast));
+        await WaitForRendererAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("h2[data-testid^=food-group-]").Select(h => h.TextContent), Is.EqualTo(new[] { "Favourites", "Usual for breakfast", "Recent" }));
+            Assert.That(cut.Find("h2[data-testid=food-group-favourites]").TagName, Is.EqualTo("H2"));
+            Assert.That(cut.FindAll("[data-testid^=food-result-5]"), Has.Count.EqualTo(5));
+            Assert.That(cut.Find("[data-testid=food-group-favourites-more]").TextContent, Does.Contain("Show 4 more"));
+            Assert.That(cut.Find("[data-testid=food-result-50]").TextContent, Does.Contain("100 kcal / 100 g"));
+            Assert.That(cut.Find("[data-testid=food-result-51]").TextContent, Does.Contain("101 kcal / 100 ml"));
+        });
+
+        await cut.Find("[data-testid=food-group-favourites-more]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=food-group-favourites-more]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid^=food-result-5]"), Has.Count.EqualTo(9));
+        });
+
+        await cut.Find("[data-testid=food-search-input]").InputAsync("fav");
+
+        Assert.That(cut.Find("[data-testid=food-group-favourites-more]").TextContent, Does.Contain("Show 4 more"));
+    }
+
+    [Test]
+    public async Task NothingTyped_FoodsTabWithFavourites_ShowsFavouritesThenRecent()
+    {
+        search.Idle = [new FoodGroup(FoodGroupKind.Favourites, Favourites(2)), new FoodGroup(FoodGroupKind.Recent, [Logged(Milk, 150)])];
+
+        var cut = Context.Render<FoodSearchPage>();
+        await WaitForRendererAsync();
+
+        Assert.That(cut.FindAll("h2[data-testid^=food-group-]").Select(h => h.TextContent), Is.EqualTo(new[] { "Favourites", "Recent" }));
+        Assert.That(cut.FindAll("[data-testid=food-search-idle]"), Is.Empty);
+    }
+
+    [Test]
+    public async Task Tapping_ALoggedFavourite_RaisesOnAddWithItsLastAmount()
+    {
+        var logged = Logged(Oats, 60, servings: 2);
+        search.Idle = [new FoodGroup(FoodGroupKind.Favourites, [logged])];
+        var requests = new List<FoodAddRequest>();
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch).Add(x => x.OnAdd, requests.Add));
+        await WaitForRendererAsync();
+
+        Assert.That(cut.Find($"[data-testid=food-result-{Oats.Id}]").TextContent, Does.Contain("2 servings (60 g) · 225 kcal").And.Not.Contain("/ 100"));
+        await cut.Find($"[data-testid=food-result-{Oats.Id}]").ClickAsync(new());
+
+        Assert.That(requests, Is.EqualTo(new[] { new FoodAddRequest(Oats, "", 60, 2) }));
+    }
+
+    [Test]
+    public async Task Typing_FavouritesGroup_ComesBeforeTheOtherGroups()
+    {
+        search.Groups = [new FoodGroup(FoodGroupKind.Favourites, Favourites(2)), new FoodGroup(FoodGroupKind.Common, [new FoodListing(Oats, null)])];
+        var cut = Context.Render<FoodSearchPage>();
+
+        await cut.Find("[data-testid=food-search-input]").InputAsync("o");
+
+        Assert.That(cut.FindAll("h2[data-testid^=food-group-]").Select(h => h.TextContent), Is.EqualTo(new[] { "Favourites", "Common" }));
+    }
+
+    [Test]
+    public async Task Tapping_AFavouriteWhoseHistoryWasNotRead_LooksUpTheLastAmount()
+    {
+        search.Idle = [new FoodGroup(FoodGroupKind.Favourites, [new FoodListing(Oats, null)])];
+        search.Last[Oats.Id] = new CalorieTracker.Core.History.FoodHistory(Oats.Id, 1, 1, new DateOnly(2031, 7, 19), 45, null, null);
+        var requests = new List<FoodAddRequest>();
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch).Add(x => x.OnAdd, requests.Add));
+        await WaitForRendererAsync();
+
+        await cut.Find($"[data-testid=food-result-{Oats.Id}]").ClickAsync(new());
+
+        Assert.That(requests, Is.EqualTo(new[] { new FoodAddRequest(Oats, "", 45, null) }));
+    }
+
+    [Test]
+    public async Task FoodsTab_StarringAFoodOnItsValues_MovesItToFavouritesWhenTheyClose()
+    {
+        var food = await StoreOats();
+        search.Idle = [new FoodGroup(FoodGroupKind.Recent, [Logged(food, 40)])];
+        var cut = Context.Render<FoodSearchPage>();
+        await WaitForRendererAsync();
+        await cut.Find($"[data-testid=food-result-{food.Id}]").ClickAsync(new());
+        await cut.Find("[data-testid=food-detail-favourite]").ClickAsync(new());
+        search.Idle = [new FoodGroup(FoodGroupKind.Favourites, [Logged(food, 40)])];
+
+        await cut.Find("[data-testid=food-detail-close]").ClickAsync(new());
+
+        Assert.That(cut.FindAll("h2[data-testid^=food-group-]").Select(h => h.TextContent), Is.EqualTo(new[] { "Favourites" }));
+    }
+
+    [Test]
+    public async Task FoodsTab_UnstarringAFavouriteOnItsValues_TakesItOutOfFavouritesWhenTheyClose()
+    {
+        var food = await StoreOats();
+        await favourites.Service.AddAsync(food.Id);
+        search.Idle = [new FoodGroup(FoodGroupKind.Favourites, [Logged(food, 40)])];
+        var cut = Context.Render<FoodSearchPage>();
+        await WaitForRendererAsync();
+        await cut.Find($"[data-testid=food-result-{food.Id}]").ClickAsync(new());
+        await cut.Find("[data-testid=food-detail-favourite]").ClickAsync(new());
+        search.Idle = [new FoodGroup(FoodGroupKind.Recent, [Logged(food, 40)])];
+
+        await cut.Find("[data-testid=food-detail-close]").ClickAsync(new());
+
+        Assert.That(cut.FindAll("h2[data-testid^=food-group-]").Select(h => h.TextContent), Is.EqualTo(new[] { "Recent" }));
+    }
+
+    [Test]
+    public async Task FoodsTab_StarringWhileTyping_SearchesTheTypedTextAgainWhenTheValuesClose()
+    {
+        var food = await StoreOats();
+        var cut = await OpenValues(food);
+        await cut.Find("[data-testid=food-detail-favourite]").ClickAsync(new());
+        search.Groups = [new FoodGroup(FoodGroupKind.Favourites, [new FoodListing(food, null)])];
+
+        await cut.Find("[data-testid=food-detail-close]").ClickAsync(new());
+
+        Assert.That(search.Queries, Is.EqualTo(new[] { "oat", "oat" }));
+        Assert.That(cut.FindAll("h2[data-testid^=food-group-]").Select(h => h.TextContent), Is.EqualTo(new[] { "Favourites" }));
+    }
+
+    [Test]
+    public async Task FoodsTab_ClosingTheValuesWithTheStarUnchanged_DoesNotSearchAgain()
+    {
+        var food = await StoreOats();
+        var cut = await OpenValues(food);
+
+        await cut.Find("[data-testid=food-detail-close]").ClickAsync(new());
+
+        Assert.That(search.Queries, Is.EqualTo(new[] { "oat" }));
     }
 
     [Test]
@@ -823,6 +970,151 @@ public class FoodSearchPageTests : ComponentTestBase
 
         cut.WaitForState(() => cut.FindAll("[data-testid=snackbar]").Count == 1);
         Assert.That(cut.Find("[data-testid=snackbar-action]").TextContent.Trim(), Is.EqualTo("View day"));
+    }
+
+    private async Task<Food> StoreOats()
+    {
+        var food = new Food { Source = FoodSource.OpenFoodFacts, SourceId = "oats", Name = "Oats, rolled", Unit = FoodUnit.Gram, Kcal = 375, ProteinG = 11, CarbsG = 60, FatG = 9, SearchText = "oats, rolled" };
+        await favourites.InsertAsync(food);
+        search.Results = [food];
+        return food;
+    }
+
+    private async Task<IRenderedComponent<FoodSearchPage>> OpenValues(Food food)
+    {
+        var cut = Context.Render<FoodSearchPage>();
+        await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
+        await cut.Find($"[data-testid=food-result-{food.Id}]").ClickAsync(new());
+        return cut;
+    }
+
+    private static string Pressed(IRenderedComponent<FoodSearchPage> cut) => cut.Find("header [data-testid=food-detail-favourite]").GetAttribute("aria-pressed")!;
+
+    private static string SnackbarText(IRenderedComponent<FoodSearchPage> cut) => cut.Find("[data-testid=snackbar-message]").TextContent.Trim();
+
+    [Test]
+    public async Task FoodValues_ShowAnOutlinedStarInTheTopBar_ButTheListAndAddModeShowNone()
+    {
+        var food = await StoreOats();
+        var list = Context.Render<FoodSearchPage>();
+        await list.Find("[data-testid=food-search-input]").InputAsync("oat");
+        var onList = list.FindAll("[data-testid=food-detail-favourite]").Count;
+        var inAddMode = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch));
+        await inAddMode.Find("[data-testid=food-search-input]").InputAsync("oat");
+
+        var cut = await OpenValues(food);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(onList, Is.Zero);
+            Assert.That(inAddMode.FindAll("[data-testid=food-detail-favourite]"), Is.Empty);
+            Assert.That(Pressed(cut), Is.EqualTo("false"));
+            Assert.That(cut.Find("[data-testid=food-detail-favourite]").GetAttribute("aria-label"), Is.EqualTo("Add to favourites"));
+        });
+    }
+
+    [Test]
+    public async Task TappingTheStar_FillsIt_SaysSo_AndItIsFilledWhenTheValuesOpenAgain()
+    {
+        var food = await StoreOats();
+        var cut = await OpenValues(food);
+
+        await cut.Find("[data-testid=food-detail-favourite]").ClickAsync(new());
+        var filled = (Pressed(cut), SnackbarText(cut), cut.Find("[data-testid=food-detail-favourite]").GetAttribute("aria-label"));
+        await cut.Find("[data-testid=food-detail-close]").ClickAsync(new());
+        await cut.Find($"[data-testid=food-result-{food.Id}]").ClickAsync(new());
+
+        Assert.That(filled, Is.EqualTo(("true", "Added to favourites", "Remove from favourites")));
+        Assert.That(Pressed(cut), Is.EqualTo("true"));
+        Assert.That((await favourites.Service.IsFavouriteAsync(food.Id)).IsFavourite, Is.True);
+    }
+
+    [Test]
+    public async Task TappingAFilledStar_EmptiesIt_SaysSoWithUndo_AndUndoStarsItAgain()
+    {
+        var food = await StoreOats();
+        await favourites.Service.AddAsync(food.Id);
+        var cut = await OpenValues(food);
+
+        await cut.Find("[data-testid=food-detail-favourite]").ClickAsync(new());
+        var removed = (Pressed(cut), SnackbarText(cut), cut.Find("[data-testid=snackbar-action]").TextContent.Trim(), (await favourites.Service.IsFavouriteAsync(food.Id)).IsFavourite);
+        await cut.Find("[data-testid=snackbar-action]").ClickAsync(new());
+
+        Assert.That(removed, Is.EqualTo(("false", "Removed from favourites", "Undo", false)));
+        Assert.That(Pressed(cut), Is.EqualTo("true"));
+        Assert.That((await favourites.Service.IsFavouriteAsync(food.Id)).IsFavourite, Is.True);
+    }
+
+    [Test]
+    public async Task UndoAfterOpeningAnotherFood_StarsTheFirstFood_AndLeavesTheOthersStarAlone()
+    {
+        var oats = await StoreOats();
+        var other = new Food { Source = FoodSource.OpenFoodFacts, SourceId = "rice", Name = "Rice, boiled", Unit = FoodUnit.Gram, Kcal = 130, ProteinG = 3, CarbsG = 28, FatG = 0, SearchText = "rice, boiled" };
+        await favourites.InsertAsync(other);
+        search.Results = [oats, other];
+        await favourites.Service.AddAsync(oats.Id);
+        var cut = await OpenValues(oats);
+        await cut.Find("[data-testid=food-detail-favourite]").ClickAsync(new());
+        await cut.Find("[data-testid=food-detail-close]").ClickAsync(new());
+        await cut.Find($"[data-testid=food-result-{other.Id}]").ClickAsync(new());
+
+        await cut.Find("[data-testid=snackbar-action]").ClickAsync(new());
+
+        Assert.That(Pressed(cut), Is.EqualTo("false"));
+        Assert.That((await favourites.Service.IsFavouriteAsync(oats.Id)).IsFavourite, Is.True);
+        Assert.That((await favourites.Service.IsFavouriteAsync(other.Id)).IsFavourite, Is.False);
+    }
+
+    [Test]
+    public async Task AFailedWrite_KeepsTheOldStar_AndSaysSo()
+    {
+        var food = await StoreOats();
+        var cut = await OpenValues(food);
+        await favourites.Connection.ExecuteAsync("DROP TABLE Favourite");
+
+        await cut.Find("[data-testid=food-detail-favourite]").ClickAsync(new());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Pressed(cut), Is.EqualTo("false"));
+            Assert.That(SnackbarText(cut), Is.EqualTo("Couldn't update favourites. Try again."));
+            Assert.That(cut.FindAll("[data-testid=food-detail-add]"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task AFailedRead_ShowsNoStar_ButTheValuesAndAddToDiaryWork()
+    {
+        var food = await StoreOats();
+        await favourites.Connection.ExecuteAsync("DROP TABLE Favourite");
+        var cut = await OpenValues(food);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=food-detail-favourite]"), Is.Empty);
+            Assert.That(cut.Find("[data-testid=food-detail-kcal]").TextContent, Is.EqualTo("375 kcal"));
+            Assert.That(cut.FindAll("[data-testid=food-detail-add]"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task TheFavouriteLogLines_CarryTheFoodIdAndStatusOnly()
+    {
+        var food = await StoreOats();
+        var cut = await OpenValues(food);
+        await favourites.Connection.ExecuteAsync("DROP TABLE Favourite");
+        await cut.Find("[data-testid=food-detail-favourite]").ClickAsync(new());
+        await cut.Find("[data-testid=food-detail-close]").ClickAsync(new());
+        await cut.Find($"[data-testid=food-result-{food.Id}]").ClickAsync(new());
+
+        var records = logger.Collector.GetSnapshot();
+        Assert.Multiple(() =>
+        {
+            Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { UiEvent.FavouriteWriteFailed, UiEvent.FavouriteReadFailed }));
+            Assert.That(records[0].Message, Is.EqualTo($"Updating the favourite of food {food.Id} failed: Failed"));
+            Assert.That(records[1].Message, Is.EqualTo($"Reading whether food {food.Id} is a favourite failed"));
+            Assert.That(records.Select(r => r.Message), Has.None.Contain("Oats").And.None.Contain("oat"));
+        });
     }
 
     private sealed class FakeSearch : IFoodSearch

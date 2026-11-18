@@ -38,6 +38,7 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<FoodStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<ServingStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<NoticeStore>(provider, connection))
+            .AddSingleton(provider => ActivatorUtilities.CreateInstance<FavouriteStore>(provider, connection))
             .AddDecoratedSingleton<IDatabaseInitializer, GatedDatabaseInitializer>(provider =>
                 ActivatorUtilities.CreateInstance<DatabaseInitializer>(provider, connection))
             .AddDecoratedSingleton<IBarcodeLookup, StoredBarcodeLookup>(provider => provider.GetRequiredService<OpenFoodFactsLookup>());
@@ -62,7 +63,8 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<ISchemaUpgrade, PackServingUpgrade>()
             .AddSingleton<ISchemaUpgrade, StorageCleanupUpgrade>()
             .AddSingleton<ISchemaUpgrade, OnlineSearchNoticeUpgrade>()
-            .AddSingleton<ISchemaUpgrade, DropImportedServingsUpgrade>();
+            .AddSingleton<ISchemaUpgrade, DropImportedServingsUpgrade>()
+            .AddSingleton<ISchemaUpgrade, FavouriteTableUpgrade>();
 
     private static IServiceCollection AddServices(this IServiceCollection services)
     {
@@ -73,6 +75,7 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton(provider => new FoodImportService(provider.GetRequiredService<FoodStore>(), provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<FoodImportService>>()))
             .AddSingleton<IOnlineFoodImport>(provider => new OnlineFoodImport(provider.GetRequiredService<IBarcodeLookup>(), provider.GetRequiredService<FoodImportService>(), provider.GetRequiredService<ILogger<OnlineFoodImport>>()))
             .AddSingleton<IOnlineSearchNotice>(provider => new OnlineSearchNotice(provider.GetRequiredService<NoticeStore>(), provider.GetRequiredService<ILogger<OnlineSearchNotice>>()))
+            .AddSingleton(provider => new FavouriteService(provider.GetRequiredService<FavouriteStore>(), provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<FavouriteService>>()))
             .AddSingleton(provider => new ServingService(provider.GetRequiredService<ServingStore>(), provider.GetRequiredService<ILogger<ServingService>>()))
             .AddSingleton(provider => new TargetService(provider.GetRequiredService<TargetStore>(), provider.GetRequiredService<ILogger<TargetService>>()))
             .AddSingleton(provider => new DiaryService(provider.GetRequiredService<DiaryStore>(), provider.GetRequiredService<ILogger<DiaryService>>()))

@@ -1,6 +1,8 @@
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Foods
+@using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Models.Search
+@implements IDisposable
 @attribute [Stories("Screens/FoodSearch")]
 
 <Stories TComponent="FoodSearchView" Layout="typeof(PhoneLayout)">
@@ -20,6 +22,42 @@
     <Story Name="Nothing typed with history">
         <Template>
             <FoodSearchView Groups="FoodSearchSamples.IdleRecent" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Nothing typed with favourites">
+        <Template>
+            <FoodSearchView Groups="FoodSearchSamples.IdleWithFavourites" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnExpand="(FoodGroupKind _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Nothing typed with favourites and more to show">
+        <Template>
+            <FoodSearchView Groups="FoodSearchSamples.IdleWithManyFavourites" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnExpand="(FoodGroupKind _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Add to a meal with favourites">
+        <Template>
+            <FoodSearchView Meal="Meal.Breakfast" Groups="FoodSearchSamples.IdleWithManyFavourites" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnExpand="(FoodGroupKind _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Favourites expanded">
+        <Template>
+            <FoodSearchView Meal="Meal.Breakfast" Groups="FoodSearchSamples.IdleWithManyFavourites" Expanded="@(new HashSet<FoodGroupKind> { FoodGroupKind.Favourites })" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnExpand="(FoodGroupKind _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Results with favourites">
+        <Template>
+            <FoodSearchView Query="milk" Groups="FoodSearchSamples.MilkWithFavourites" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnExpand="(FoodGroupKind _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Favourites with an empty diary">
+        <Template>
+            <FoodSearchView Meal="Meal.Lunch" Groups="FoodSearchSamples.OnlyFavourites" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnExpand="(FoodGroupKind _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
@@ -61,7 +99,21 @@
 
     <Story Name="Food selected">
         <Template>
-            <FoodSearchView Query="oat" Groups="FoodSearchSamples.AllGroups" Selected="FoodSearchSamples.Oats[0]" OnQueryChanged="(string _) => { }" OnAdd="(Food _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <FoodSearchView Query="oat" Groups="FoodSearchSamples.AllGroups" Selected="FoodSearchSamples.Oats[0]" Favourite="false" OnToggleFavourite="() => { }" OnQueryChanged="(string _) => { }" OnAdd="(Food _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Favourite food selected">
+        <Template>
+            @{ Post("Added to favourites"); }
+            <FoodSearchView Query="oat" Groups="FoodSearchSamples.AllGroups" Selected="FoodSearchSamples.Oats[0]" Favourite="true" OnToggleFavourite="() => { }" OnQueryChanged="(string _) => { }" OnAdd="(Food _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Favourite update failed">
+        <Template>
+            @{ Post("Couldn't update favourites. Try again."); }
+            <FoodSearchView Query="oat" Groups="FoodSearchSamples.AllGroups" Selected="FoodSearchSamples.Oats[0]" Favourite="false" OnToggleFavourite="() => { }" OnQueryChanged="(string _) => { }" OnAdd="(Food _) => { }" OnClearSelection="() => { }" OnNavigate="(NavDestination _) => { }" />
         </Template>
     </Story>
 
@@ -190,3 +242,28 @@
     </Story>
 
 </Stories>
+
+@code {
+    private bool posted;
+
+    [Inject]
+    private SnackbarService Snackbar { get; set; } = null!;
+
+    /// <summary>Posts what the screen posts after a tap on the star, as the snackbar shows it; it stays until this story is left, so no other story shows it.</summary>
+    private void Post(string text, string? action = null)
+    {
+        if (!posted)
+        {
+            posted = true;
+            Snackbar.Show(text, action, action is null ? null : () => Task.CompletedTask, Timeout.InfiniteTimeSpan);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (posted)
+        {
+            Snackbar.Dismiss();
+        }
+    }
+}

@@ -9,7 +9,7 @@ namespace CalorieTracker.E2E.Tests.Steps;
 public sealed class FoodSearchGroupsSteps(FoodSearchScreen foods, ServingScreen serving, DashboardScreen dashboard, SnackbarScreen snackbar, Journeys journeys, WebView web)
 {
     private const string Meals = "(Breakfast|Lunch|Dinner|Snacks)";
-    private const string Groups = "(Usual|Recent|From your diary|Common|Branded)";
+    private const string Groups = "(Favourites|Usual|Recent|From your diary|Common|Branded)";
 
     private int rowsBefore;
     private int more;
@@ -37,6 +37,9 @@ public sealed class FoodSearchGroupsSteps(FoodSearchScreen foods, ServingScreen 
 
     [Then(@"^search lists only the " + Groups + " group$")]
     public void ThenSearchListsOnlyTheGroup(string heading) => foods.WaitForGroups(Key(heading));
+
+    [Then(@"^search lists the groups Favourites and Common, in that order$")]
+    public void ThenSearchListsTheFavouritesThenCommon() => web.Eventually(foods.Groups, Is.EqualTo(new[] { "favourites", "common" }));
 
     [Then(@"^search lists the groups From your diary and Common, in that order$")]
     public void ThenSearchListsTheDiaryThenCommon() => web.Eventually(foods.Groups, Is.EqualTo(new[] { "diary", "common" }));

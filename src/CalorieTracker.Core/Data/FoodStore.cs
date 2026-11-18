@@ -257,7 +257,7 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
 
     /// <summary>
     /// Deletes the foods of <paramref name="source"/> whose source id is not in <paramref name="keepSourceIds"/>, with their barcode links and servings, in one transaction. Rows of other sources are not touched.
-    /// A food any <see cref="DiaryEntry"/> points at, removed or not, is kept with its barcodes.
+    /// A food any <see cref="DiaryEntry"/> points at, removed or not, or that is a <see cref="Favourite"/>, is kept with its barcodes.
     /// </summary>
     /// <returns>How many foods were deleted.</returns>
     public Task<int> DeleteMissingAsync(FoodSource source, IReadOnlySet<string> keepSourceIds) =>
@@ -266,7 +266,7 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             var deleted = 0;
             await connection.RunInTransactionAsync(db =>
             {
-                var stale = db.Query<IdRow>("SELECT Id, SourceId FROM Food WHERE Source = ? AND Id NOT IN (SELECT FoodId FROM DiaryEntry)", (int)source)
+                var stale = db.Query<IdRow>("SELECT Id, SourceId FROM Food WHERE Source = ? AND Id NOT IN (SELECT FoodId FROM DiaryEntry) AND Id NOT IN (SELECT FoodId FROM Favourite)", (int)source)
                     .Where(r => !keepSourceIds.Contains(r.SourceId))
                     .Select(r => r.Id)
                     .ToList();

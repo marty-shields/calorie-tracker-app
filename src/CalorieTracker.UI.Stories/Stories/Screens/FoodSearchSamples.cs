@@ -43,6 +43,41 @@ public static class FoodSearchSamples
         new(FoodGroupKind.Branded, [new(Oats[2], null)]),
     ];
 
+    /// <summary>Nine favourites, A to Z by title: some logged before, some never.</summary>
+    public static IReadOnlyList<FoodListing> FavouriteFoods { get; } =
+    [
+        new(new Food { Id = 201, Name = "Oat Milk", Brand = "Alpro", Brands = "Alpro", Unit = FoodUnit.Millilitre, Kcal = 44, ProteinG = 0.4, CarbsG = 6.6, FatG = 1.5 }, null),
+        Logged(new Food { Id = 202, Name = "Bananas", Unit = FoodUnit.Gram, Kcal = 81, ProteinG = 1.1, CarbsG = 19, FatG = 0.3 }, 9, 120),
+        Logged(new Food { Id = 203, Name = "Cheddar cheese", Unit = FoodUnit.Gram, Kcal = 416, ProteinG = 25, CarbsG = 0.1, FatG = 34.9 }, 6, 30),
+        new(new Food { Id = 204, Name = "Greek yogurt", Unit = FoodUnit.Gram, Kcal = 115, ProteinG = 9, CarbsG = 4, FatG = 8 }, null),
+        new(new Food { Id = 205, Name = "Honey", Unit = FoodUnit.Gram, Kcal = 288, ProteinG = 0.4, CarbsG = 76, FatG = 0 }, null),
+        Logged(new Food { Id = 206, Name = "Semi-skimmed milk (pasteurised)", Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 3.4, CarbsG = 4.7, FatG = 1.7 }, 14, 200),
+        new(new Food { Id = 207, Name = "Sourdough bread", Unit = FoodUnit.Gram, Kcal = 240, ProteinG = 8, CarbsG = 47, FatG = 1.5 }, null),
+        Logged(new Food { Id = 208, Name = "Original", Brand = "Weetabix", Brands = "Weetabix", Unit = FoodUnit.Gram, Kcal = 362, ProteinG = 11.5, CarbsG = 69, FatG = 2 }, 5, 75, servings: 2),
+        new(new Food { Id = 209, Name = "Wholemeal pasta", Unit = FoodUnit.Gram, Kcal = 324, ProteinG = 13, CarbsG = 62, FatG = 2.5 }, null),
+    ];
+
+    /// <summary>Before typing on the Foods tab: three favourites, then recent foods.</summary>
+    public static IReadOnlyList<FoodGroup> IdleWithFavourites { get; } =
+    [
+        new(FoodGroupKind.Favourites, [FavouriteFoods[1], FavouriteFoods[2], FavouriteFoods[5]]),
+        Idle[1],
+    ];
+
+    /// <summary>Before typing in add mode with nine favourites: five show, then "Show 4 more", then usual and recent foods.</summary>
+    public static IReadOnlyList<FoodGroup> IdleWithManyFavourites { get; } = [new(FoodGroupKind.Favourites, FavouriteFoods), Idle[0], Idle[1]];
+
+    /// <summary>Favourites and nothing logged yet.</summary>
+    public static IReadOnlyList<FoodGroup> OnlyFavourites { get; } = [new(FoodGroupKind.Favourites, [FavouriteFoods[0], FavouriteFoods[3], FavouriteFoods[4], FavouriteFoods[8]])];
+
+    /// <summary>Typing "milk": the two matching favourites, then common foods (eight, so five show and the row says "Show 3 more"; the rows above leave it room in the phone frame).</summary>
+    public static IReadOnlyList<FoodGroup> MilkWithFavourites { get; } =
+    [
+        new(FoodGroupKind.Favourites, [FavouriteFoods[5], FavouriteFoods[0]]),
+        new(FoodGroupKind.Common, Enumerable.Range(1, 8).Select(i => new FoodListing(
+            new Food { Id = 310 + i, Name = $"Milk, type {i}", Unit = FoodUnit.Millilitre, Kcal = 40 + i, ProteinG = 3, CarbsG = 5, FatG = 2 }, null)).ToList()),
+    ];
+
     /// <summary>Branded foods whose names leave out, repeat or share the brand: Weetabix Original, Nutella, Mars and Coca Cola.</summary>
     public static IReadOnlyList<Food> BrandedFoods { get; } =
     [

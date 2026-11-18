@@ -2,7 +2,7 @@ namespace CalorieTracker.Core.Logging;
 
 /// <summary>
 /// Event ids of Core's log messages: 1000–1999, a block of 100 per type.
-/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch (the online ones sit inside it: 1520 OnlineSearch, 1540 OnlineImport, 1550 OnlineNotice), 1600 TargetService, 1700 DiaryService, 1800 DaySummaryService, 1900 FoodService; the <c>*Block</c> members hold them. FoodHistoryService has ten ids from 1050, FoodImportService ten from 1060 and ServingService ten from 1010 because every block of 100 is taken.
+/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch (the online ones sit inside it: 1520 OnlineSearch, 1540 OnlineImport, 1550 OnlineNotice), 1600 TargetService, 1700 DiaryService, 1800 DaySummaryService, 1900 FoodService; the <c>*Block</c> members hold them. FoodHistoryService has ten ids from 1050, FoodImportService ten from 1060, FavouriteService ten from 1070 and ServingService ten from 1010 because every block of 100 is taken.
 /// Ids never change and are never reused; list a retired id here and in <c>CoreEventTests</c>.
 /// </summary>
 internal enum CoreEvent
@@ -264,6 +264,9 @@ internal enum CoreEvent
     /// <summary><see cref="History.FoodHistoryService"/>: the database failed, so the call returned <see cref="History.FoodHistoryStatus.Failed"/>.</summary>
     FoodHistoryFailed = 1054,
 
+    /// <summary><see cref="History.FoodHistoryService"/>: the history of the given foods was read; carries the count of foods that had history, never the ids asked for.</summary>
+    FoodHistoryByIds = 1055,
+
     /// <summary>Start of the ten ids reserved for <see cref="Foods.FoodImportService"/>.</summary>
     FoodImportServiceBlock = 1060,
 
@@ -281,6 +284,30 @@ internal enum CoreEvent
 
     /// <summary><see cref="Foods.FoodImportService"/>: the database failed, so the call returned <see cref="Foods.FoodImportStatus.Failed"/>.</summary>
     FoodImportFailed = 1065,
+
+    /// <summary>Start of the ten ids reserved for <see cref="Foods.FavouriteService"/>.</summary>
+    FavouriteServiceBlock = 1070,
+
+    /// <summary><see cref="Foods.FavouriteService"/>: a food was marked as a favourite; carries the food id.</summary>
+    FavouriteAdded = 1071,
+
+    /// <summary><see cref="Foods.FavouriteService"/>: the food was a favourite already; carries the food id.</summary>
+    FavouriteAlreadyFavourite = 1072,
+
+    /// <summary><see cref="Foods.FavouriteService"/>: no food has the id, so nothing was written; carries the food id.</summary>
+    FavouriteFoodNotFound = 1073,
+
+    /// <summary><see cref="Foods.FavouriteService"/>: a favourite was unmarked; carries the food id.</summary>
+    FavouriteRemoved = 1074,
+
+    /// <summary><see cref="Foods.FavouriteService"/>: the food was not a favourite; carries the food id.</summary>
+    FavouriteNotFavourite = 1075,
+
+    /// <summary><see cref="Foods.FavouriteService"/>: the favourites were listed; carries the count.</summary>
+    FavouriteListed = 1076,
+
+    /// <summary><see cref="Foods.FavouriteService"/>: the database failed, so the call returned a failed status.</summary>
+    FavouriteFailed = 1077,
 
     /// <summary>Start of the block reserved for <see cref="Foods.FoodService"/>.</summary>
     FoodServiceBlock = 1900,

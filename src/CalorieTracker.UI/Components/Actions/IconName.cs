@@ -47,4 +47,10 @@ public enum IconName
 
     /// <summary>Left-pointing chevron (<c>chevron_left</c>).</summary>
     ChevronLeft,
+
+    /// <summary>Outlined star (<c>star</c>).</summary>
+    Star,
+
+    /// <summary>Solid five-point star (<c>star</c>, filled).</summary>
+    StarFilled,
 }

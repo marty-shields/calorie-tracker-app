@@ -26,16 +26,16 @@ public interface IFoodSearch
     public const int RecentLimit = 10;
 
     /// <summary>
-    /// The foods <see cref="SearchAsync"/> matches, ranked the same way, split into up to three groups in this order: <see cref="FoodGroupKind.Diary"/> (foods the person has logged, most logged first, ties in ranked order),
-    /// <see cref="FoodGroupKind.Common"/> (CoFID) and <see cref="FoodGroupKind.Branded"/> (Open Food Facts). A food is in one group only, and an empty group is left out. Each holds the best <see cref="GroupLimit"/> foods; <see cref="FoodGroup.Total"/> counts them all.
-    /// A failing history read leaves out the diary group instead of failing the search. A blank query finds nothing.
+    /// The foods <see cref="SearchAsync"/> matches, ranked the same way, split into up to four groups in this order: <see cref="FoodGroupKind.Favourites"/> (the matching favourites, in ranked order), <see cref="FoodGroupKind.Diary"/> (foods the person has logged, most logged first, ties in ranked order),
+    /// <see cref="FoodGroupKind.Common"/> (CoFID) and <see cref="FoodGroupKind.Branded"/> (Open Food Facts). A food is in one group only (a favourite is never in the others), and an empty group is left out. Each holds the best <see cref="GroupLimit"/> foods; <see cref="FoodGroup.Total"/> counts them all.
+    /// A failing history read leaves out the diary group, and a failing favourites read the favourites group, instead of failing the search. A blank query finds nothing.
     /// </summary>
     /// <param name="meal">The meal being added to: a food's last values come from that meal when it was logged there (see <see cref="FoodHistory"/>).</param>
     Task<FoodGroupsResult> SearchGroupedAsync(string query, Meal? meal = null, CancellationToken ct = default);
 
     /// <summary>
-    /// The foods to show before typing: <see cref="FoodGroupKind.Usual"/> (with a <paramref name="meal"/> only, up to <see cref="UsualLimit"/>) then <see cref="FoodGroupKind.Recent"/> (up to <see cref="RecentLimit"/>, without any food already in Usual).
-    /// An empty diary gives no groups. A failing history read gives <see cref="FoodSearchStatus.Failed"/>.
+    /// The foods to show before typing: <see cref="FoodGroupKind.Favourites"/> (every favourite, A to Z by <see cref="FoodDisplay"/> title ignoring case and accents, ties by id, each with its history when logged), then <see cref="FoodGroupKind.Usual"/> (with a <paramref name="meal"/> only, up to <see cref="UsualLimit"/>) then <see cref="FoodGroupKind.Recent"/> (up to <see cref="RecentLimit"/>, without any food already in Usual). A favourite is never in Usual or Recent; both are filled up to their limits from other foods.
+    /// With no favourites and an empty diary there are no groups. A failing history read gives <see cref="FoodSearchStatus.Failed"/>; a failing favourites read only leaves out the favourites group.
     /// </summary>
     Task<FoodGroupsResult> SuggestAsync(Meal? meal = null, CancellationToken ct = default);
 

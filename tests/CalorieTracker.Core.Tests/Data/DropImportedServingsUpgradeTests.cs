@@ -55,7 +55,7 @@ public class DropImportedServingsUpgradeTests
     {
         await connection.CloseAsync();
         connection = new SQLiteAsyncConnection(databasePath);
-        await new DatabaseInitializer(connection, SchemaSteps.All(), new FakeLogger<DatabaseInitializer>()).InitializeAsync();
+        await new DatabaseInitializer(connection, SchemaSteps.Through(18), new FakeLogger<DatabaseInitializer>(), 18).InitializeAsync();
     }
 
     private Task<List<string>> Rows(string sql) => connection.QueryScalarsAsync<string>(sql);
@@ -66,7 +66,6 @@ public class DropImportedServingsUpgradeTests
         await Upgrade();
 
         Assert.That(await connection.ExecuteScalarAsync<int>("PRAGMA user_version"), Is.EqualTo(18));
-        Assert.That(DatabaseInitializer.CurrentVersion, Is.EqualTo(18));
     }
 
     [Test]
@@ -112,7 +111,7 @@ public class DropImportedServingsUpgradeTests
 
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
-        await new DatabaseInitializer(connection, SchemaSteps.All(), new FakeLogger<DatabaseInitializer>()).InitializeAsync();
+        await new DatabaseInitializer(connection, SchemaSteps.Through(18), new FakeLogger<DatabaseInitializer>(), 18).InitializeAsync();
 
         Assert.That(upgraded, Does.Not.Contain("SortOrder:integer:1"));
         Assert.That(upgraded.Any(c => c.StartsWith("SortOrder")), Is.False);

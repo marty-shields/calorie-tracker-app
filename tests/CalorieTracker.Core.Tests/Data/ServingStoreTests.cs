@@ -20,6 +20,7 @@ public class ServingStoreTests
         await connection.CreateTableAsync<Barcode>();
         await connection.CreateTableAsync<Serving>();
         await connection.CreateTableAsync<DiaryEntry>();
+        await connection.CreateTableAsync<Favourite>();
         var gate = new DatabaseGate();
         foods = new FoodStore(connection, gate, new FakeLogger<FoodStore>());
         servings = new ServingStore(connection, gate);

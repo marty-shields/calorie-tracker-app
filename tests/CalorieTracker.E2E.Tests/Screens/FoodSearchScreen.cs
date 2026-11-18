@@ -65,7 +65,7 @@ public sealed class FoodSearchScreen(WebView web)
             return first is not null;
         }, "no result to open");
 
-    /// <summary>The group headings on the screen, in order, as the testid keys (usual, recent, diary, common, branded). Only headings count: a group's "Show N more" row has a testid of its own.</summary>
+    /// <summary>The group headings on the screen, in order, as the testid keys (favourites, usual, recent, diary, common, branded). Only headings count: a group's "Show N more" row has a testid of its own.</summary>
     public IReadOnlyList<string> Groups() =>
         web.FindAll("h2[data-testid^=\"food-group-\"]").Select(h => h.GetDomAttribute("data-testid")!["food-group-".Length..]).ToList();
 
@@ -156,6 +156,17 @@ public sealed class FoodSearchScreen(WebView web)
     public void AddToDiary() => web.Tap("food-detail-add");
 
     public void BackToResults() => web.Tap("food-detail-close");
+
+    /// <summary>The star on a food's values: its accessible name.</summary>
+    public string DetailStarLabel() => web.Attribute("food-detail-favourite", "aria-label");
+
+    /// <summary>The star on a food's values: <c>aria-pressed</c>, "true" when the food is a favourite.</summary>
+    public string DetailStarPressed() => web.Attribute("food-detail-favourite", "aria-pressed");
+
+    public void TapDetailStar() => web.Tap("food-detail-favourite");
+
+    /// <summary>Whether a result row holds a star button; none does.</summary>
+    public bool RowsShowAStar() => web.FindAll("[data-testid^=\"food-result-\"] button").Count > 0;
 
     /// <summary>What is in the search box.</summary>
     public string Typed() => web.Value("food-search-input");

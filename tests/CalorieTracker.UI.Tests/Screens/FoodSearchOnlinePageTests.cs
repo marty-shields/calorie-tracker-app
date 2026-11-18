@@ -19,12 +19,13 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
     private FakeFoodSearch local = null!;
 
     [SetUp]
-    public void SetUp()
+    public async Task SetUp()
     {
         online = new FakeOnlineSearch();
         import = new FakeOnlineImport();
         notice = new FakeOnlineNotice();
         local = new FakeFoodSearch();
+        await UseFavourites();
         Context.Services.AddSingleton<IFoodSearch>(local);
         Context.Services.AddSingleton<IOnlineFoodSearch>(online);
         Context.Services.AddSingleton<IOnlineFoodImport>(import);
@@ -276,12 +277,14 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
 
         await cut.Find("[data-testid=food-online-5000112637922]").ClickAsync(new());
         var values = cut.Find("[data-testid=food-detail-name]").TextContent;
+        var star = cut.Find("[data-testid=food-detail-favourite]").GetAttribute("aria-pressed");
         await cut.Find("[data-testid=food-detail-add]").ClickAsync(new());
 
         Assert.Multiple(() =>
         {
             Assert.That(import.Barcodes, Is.EqualTo(new[] { "5000112637922" }));
             Assert.That(values, Does.Contain("Coca Cola"));
+            Assert.That(star, Is.EqualTo("false"));
             Assert.That(requests.Select(r => (r.Food.Id, r.Query)), Is.EqualTo(new[] { (7, "coca-cola") }));
         });
     }

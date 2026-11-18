@@ -2,6 +2,7 @@
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Foods
 @using CalorieTracker.Core.Seed
+@using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Models.Search
 @using Microsoft.Extensions.Logging
 @inject IFoodSearch Search
@@ -9,14 +10,18 @@
 @inject IOnlineFoodImport OnlineImport
 @inject IOnlineSearchNotice OnlineNotice
 @inject SeedProgress Seed
+@inject FavouriteService Favourites
+@inject SnackbarService Snackbar
 @inject ILogger<FoodSearchPage> Logger
 
-<FoodSearchView Meal="Meal" Query="@query" Groups="groups" Expanded="expanded" OnExpand="Expand" Selected="selected" Loading="loading" Failed="failed"
+<FoodSearchView Meal="Meal" Query="@query" Groups="groups" Expanded="expanded" OnExpand="Expand" Selected="selected" Favourite="star.IsFavourite" OnToggleFavourite="star.ToggleAsync" Loading="loading" Failed="failed"
                 OnQueryChanged="SearchAsync" OnSelect="SelectAsync" OnAdd="AddAsync" OnBack="OnBack" OnClearSelection="ClearSelection" OnRetry="Retry" OnNavigate="OnNavigate"
                 OnlineState="onlineState" OnlineProducts="onlineProducts" OnlineCountry="@onlineCountry" OnlineExpanded="onlineExpanded" OnlineNoticeVisible="noticeVisible"
                 OnSearchOnline="SearchOnlineAsync" OnSelectOnline="SelectOnlineAsync" OnExpandOnline="ExpandOnline" OnRetryOnline="RetryOnlineAsync" />
 
 @code {
+    private FavouriteStar star = null!;
+    private bool? starAtOpen;
     private string query = "";
     private IReadOnlyList<FoodGroup> groups = [];
     private readonly HashSet<FoodGroupKind> expanded = [];
@@ -62,6 +67,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        star = new FavouriteStar(Favourites, Snackbar, Logger, () => _ = InvokeAsync(StateHasChanged));
         query = InitialQuery ?? "";
         var notice = ReadNoticeAsync();
         if (Seed.Current is { } load)
@@ -151,26 +157,26 @@
         running = null;
     }
 
-    private Task SelectAsync(Food food)
+    private async Task SelectAsync(Food food)
     {
         if (onlineState == OnlineSearchState.Importing)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         if (Meal is null)
         {
-            selected = food;
-            return Task.CompletedTask;
+            await OpenValuesAsync(food);
+            return;
         }
 
         if (added)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         added = true;
-        return AddAsync(food);
+        await AddAsync(food);
     }
 
     private void Expand(FoodGroupKind kind) => expanded.Add(kind);
@@ -290,7 +296,7 @@
         lastTapped = null;
         if (Meal is null)
         {
-            selected = food;
+            await OpenValuesAsync(food);
             return;
         }
 
@@ -304,13 +310,28 @@
     private async Task AddAsync(Food food)
     {
         var listed = groups.SelectMany(g => g.Foods).FirstOrDefault(l => l.Food.Id == food.Id);
-        var last = listed is not null ? listed.History : await Search.LastLoggedAsync(food.Id, Meal);
+        var last = listed?.History ?? await Search.LastLoggedAsync(food.Id, Meal);
         await OnAdd.InvokeAsync(new FoodAddRequest(food, query, last?.LastAmount, last?.LastServings, last?.LastServingId));
     }
 
-    private void ClearSelection()
+    private async Task OpenValuesAsync(Food food)
     {
+        selected = food;
+        await star.LoadAsync(food.Id);
+        starAtOpen = star.IsFavourite;
+    }
+
+    /// <summary>Closes the values panel. A star changed on it moves the food between groups, so the list is read again for the current text.</summary>
+    private async Task ClearSelection()
+    {
+        var changed = starAtOpen is { } before && star.IsFavourite is { } now && before != now;
         selected = null;
+        starAtOpen = null;
+        star.Clear();
+        if (changed)
+        {
+            await SearchAsync(query);
+        }
     }
 
     private Task Retry()
@@ -328,6 +349,7 @@
     public void Dispose()
     {
         disposed = true;
+        star.Dispose();
         CancelRunning();
         CancelOnline();
     }
