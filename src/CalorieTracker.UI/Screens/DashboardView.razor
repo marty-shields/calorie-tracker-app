@@ -63,7 +63,7 @@
                         <MealHeader Name="@meal.Meal.ToString()"
                                     Calories="@(count > 0 ? meal.Totals.Kcal : null)"
                                     Now="@(state == MealWindowState.During)"
-                                    Hint="@(state == MealWindowState.Before ? $"from {MealWindows.StartOf(meal.Meal):HH:mm}" : null)"
+                                    Hint="@(state == MealWindowState.Before ? $"from {MealWindows.StartOf(meal.Meal).ToString("HH:mm", CultureInfo.InvariantCulture)}" : null)"
                                     Summary="@(folded ? FoldedSummary(meal) : null)"
                                     Expanded="!folded"
                                     OnToggle="@(foldable ? EventCallback.Factory.Create(this, () => Toggle(meal.Meal)) : default)"
@@ -108,12 +108,12 @@
         {
             shownDate = Date;
             opened.Clear();
-            shownOpenMeal = null;
         }
 
         if (OpenMeal != shownOpenMeal)
         {
             shownOpenMeal = OpenMeal;
+            opened.Clear();
             if (OpenMeal is { } meal)
             {
                 opened.Add(meal);
@@ -173,7 +173,7 @@
     [Parameter]
     public TimeOnly? Now { get; set; }
 
-    /// <summary>A meal to show open even though its window has passed, such as the one a food was just added to. Applied each time it changes, and forgotten when <see cref="Date"/> changes.</summary>
+    /// <summary>A meal to show open even though its window has passed, such as the one a food was just added to. Applied when its value changes, and forgotten when <see cref="Date"/> changes.</summary>
     [Parameter]
     public Meal? OpenMeal { get; set; }
 

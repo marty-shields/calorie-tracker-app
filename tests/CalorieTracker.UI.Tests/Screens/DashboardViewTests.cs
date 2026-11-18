@@ -612,6 +612,33 @@ public class DashboardViewTests : ComponentTestBase
     }
 
     [Test]
+    public void OpenMeal_IsAppliedOnce_AFoldedMealStaysFoldedAfterAnotherDayAndBack()
+    {
+        var cut = RenderAt(DashboardSamples.FullDay, DashboardSamples.Evening, open: Meal.Lunch);
+        cut.Find("[data-testid=meal-lunch-toggle]").Click();
+        Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("false"));
+
+        cut.Render(p => p.Add(x => x.Date, Today.AddDays(-1)));
+        cut.Render(p => p.Add(x => x.Date, Today));
+
+        Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("false"));
+    }
+
+    [Test]
+    public void ANewOpenMeal_ReplacesTheOneBefore()
+    {
+        var cut = RenderAt(DashboardSamples.FullDay, DashboardSamples.Evening, open: Meal.Lunch);
+
+        cut.Render(p => p.Add(x => x.OpenMeal, Meal.Breakfast));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("true"));
+            Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("false"));
+        });
+    }
+
+    [Test]
     public void WithNoTime_EveryMealIsOpen()
     {
         var cut = Render(DashboardSamples.FullDay);

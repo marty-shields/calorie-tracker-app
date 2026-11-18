@@ -1777,9 +1777,10 @@ public class ServingPageTests : ComponentTestBase
         Meal? addedTo = null;
         var cut = Render(cheddarId, Meal.Lunch, onAdded: meal => addedTo = meal, expectStar: false);
 
+        await cut.Find("[data-testid=serving-meal-dinner]").ChangeAsync(true);
         await cut.Find("[data-testid=serving-add]").ClickAsync(new());
 
-        Assert.That(addedTo, Is.EqualTo(Meal.Lunch));
+        Assert.That(addedTo, Is.EqualTo(Meal.Dinner));
     }
 
     [Test]

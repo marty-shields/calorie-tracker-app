@@ -6,7 +6,7 @@ namespace CalorieTracker.App.Diagnostics;
 /// <summary>
 /// Debug builds only, for the E2E scenarios that depend on the time of day (which meals are open on Today): an emulator's clock is not fixed.
 /// While <see cref="FileName"/> exists in the app's external files folder and holds a time such as <c>19:30</c>, the app's <see cref="TimeProvider"/>
-/// reads that time of day on the device's current date. Without the file, or when it holds anything else, the clock is the device's.
+/// reads that time of day on the device's current date when the file is read, and then keeps moving from it. Without the file, or when it holds anything else, the clock is the device's.
 /// </summary>
 internal static class E2EClockSeam
 {
@@ -23,6 +23,11 @@ internal static class E2EClockSeam
 
     private sealed class FileClock(TimeProvider inner) : TimeProvider
     {
+        private readonly Lock gate = new();
+        private string? path;
+        private DateTime stamp = DateTime.MinValue;
+        private TimeSpan? offset;
+
         public override TimeZoneInfo LocalTimeZone => inner.LocalTimeZone;
 
         public override long GetTimestamp() => inner.GetTimestamp();
@@ -32,27 +37,43 @@ internal static class E2EClockSeam
         public override DateTimeOffset GetUtcNow()
         {
             var now = inner.GetUtcNow();
-            if (Read() is not { } time)
+            return Offset(now) is { } shift ? now + shift : now;
+        }
+
+        /// <summary>Pinned time minus real time, set when the file appears or changes, so the clock keeps moving from the pinned time. Null without the file.</summary>
+        private TimeSpan? Offset(DateTimeOffset now)
+        {
+            lock (gate)
             {
-                return now;
+                try
+                {
+                    path ??= Path.Combine(Android.App.Application.Context.GetExternalFilesDir(null)?.AbsolutePath ?? FileSystem.AppDataDirectory, FileName);
+                    var written = File.Exists(path) ? File.GetLastWriteTimeUtc(path) : DateTime.MinValue;
+                    if (written != stamp)
+                    {
+                        stamp = written;
+                        offset = written == DateTime.MinValue ? null : Pin(now, File.ReadAllText(path));
+                    }
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    offset = null;
+                }
+
+                return offset;
+            }
+        }
+
+        private TimeSpan? Pin(DateTimeOffset now, string text)
+        {
+            if (!TimeOnly.TryParseExact(text.Trim(), "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
+            {
+                return null;
             }
 
             var local = TimeZoneInfo.ConvertTime(now, LocalTimeZone);
             var pinned = local.Date + time.ToTimeSpan();
-            return new DateTimeOffset(pinned, LocalTimeZone.GetUtcOffset(pinned)).ToUniversalTime();
-        }
-
-        private static TimeOnly? Read()
-        {
-            var path = Path.Combine(Android.App.Application.Context.GetExternalFilesDir(null)?.AbsolutePath ?? FileSystem.AppDataDirectory, FileName);
-            try
-            {
-                return File.Exists(path) && TimeOnly.TryParseExact(File.ReadAllText(path).Trim(), "HH:mm", null, DateTimeStyles.None, out var time) ? time : null;
-            }
-            catch (IOException)
-            {
-                return null;
-            }
+            return new DateTimeOffset(pinned, LocalTimeZone.GetUtcOffset(pinned)) - now;
         }
     }
 }

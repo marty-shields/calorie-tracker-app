@@ -340,12 +340,57 @@ public class DashboardPageTests : ComponentTestBase
     [Test]
     public async Task APageThatIsGone_NoLongerListensForResume()
     {
+        var appStart = new CountingAppStart();
+        Context.Services.AddSingleton<IAppStart>(appStart);
         var cut = Render();
-        cut.Dispose();
+        Assert.That(appStart.Live, Is.EqualTo(1));
 
-        await Context.Services.GetRequiredService<IAppLifecycle>().NotifyStartedAsync();
+        await Context.DisposeComponentsAsync();
 
-        Assert.Pass("No handler is left to run, so resuming raises nothing.");
+        Assert.That(appStart.Live, Is.Zero);
+    }
+
+    private sealed class CountingAppStart : IAppStart
+    {
+        public int Live { get; private set; }
+
+        public IDisposable Register(Func<Task> handler)
+        {
+            Live++;
+            return new Registration(this);
+        }
+
+        private sealed class Registration(CountingAppStart owner) : IDisposable
+        {
+            private bool disposed;
+
+            public void Dispose()
+            {
+                if (!disposed)
+                {
+                    disposed = true;
+                    owner.Live--;
+                }
+            }
+        }
+    }
+
+    [Test]
+    public async Task TheClockIsReadAgainWhenADayLoads_NotOnlyWhenThePageStarts()
+    {
+        await Log(Today, Meal.Lunch, 30);
+        var cut = Render();
+        Assert.That(Text(cut, "meal-lunch-now"), Is.EqualTo("Now"));
+
+        Clock.SetUtcNow(new DateTimeOffset(2031, 7, 19, 19, 30, 0, TimeSpan.Zero));
+        await cut.Find("[data-testid=date-strip-next]").ClickAsync();
+        cut.WaitForState(() => cut.FindAll("[data-testid=dashboard-loading]").Count == 0);
+        await cut.Find("[data-testid=date-strip-label]").ClickAsync();
+        cut.WaitForAssertion(() =>
+        {
+            Assert.That(Text(cut, "meal-lunch-summary"), Is.EqualTo("1 item · 125 kcal"));
+            Assert.That(Text(cut, "meal-dinner-now"), Is.EqualTo("Now"));
+        });
     }
 
     [Test]

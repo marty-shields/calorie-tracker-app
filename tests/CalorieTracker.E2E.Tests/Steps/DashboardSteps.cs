@@ -33,13 +33,13 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
     [Then(@"^Lunch lists 1 entry with a kcal total$")]
     public void ThenLunchListsOneEntry()
     {
-        web.Eventually(() => dashboard.EntryCount("Lunch"), Is.EqualTo(1));
-        Assert.That(dashboard.MealTotal("Lunch"), Does.EndWith(" kcal"));
+        web.Eventually(() => dashboard.OpenAndCountEntries("Lunch"), Is.EqualTo(1));
+        Assert.That(dashboard.OpenAndReadMealTotal("Lunch"), Does.EndWith(" kcal"));
     }
 
     [Then(@"^the other meals list no entries$")]
     public void ThenTheOtherMealsListNoEntries() =>
-        Assert.That(new[] { "Breakfast", "Dinner", "Snacks" }.Sum(dashboard.EntryCount), Is.Zero);
+        Assert.That(new[] { "Breakfast", "Dinner", "Snacks" }.Sum(dashboard.OpenAndCountEntries), Is.Zero);
 
     [Then(@"^the calories eaten are above 0$")]
     public void ThenTheCaloriesEatenAreAbove0() =>
@@ -127,7 +127,7 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
         Assert.Multiple(() =>
         {
             Assert.That(dashboard.HasAddButton(meal), Is.True, $"{meal} has a +");
-            Assert.That(dashboard.EntryCount(meal), Is.Zero, $"{meal} lists no entries");
+            Assert.That(dashboard.OpenAndCountEntries(meal), Is.Zero, $"{meal} lists no entries");
             Assert.That(web.Exists($"meal-{meal.ToLowerInvariant()}-none"), Is.False, $"{meal} says nothing logged");
         });
     }
@@ -145,7 +145,7 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
     {
         web.Eventually(() => dashboard.Expanded(meal), Is.EqualTo("true"), $"{meal} is open");
         Assert.That(dashboard.FoldedLine(meal), Is.Null, $"{meal} is no longer a single line");
-        Assert.That(dashboard.EntryCount(meal), Is.EqualTo(1), $"{meal}'s entries");
+        Assert.That(dashboard.OpenAndCountEntries(meal), Is.EqualTo(1), $"{meal}'s entries");
     }
 
     [Then(@"^no meal is marked Now, shows a start time or is folded$")]

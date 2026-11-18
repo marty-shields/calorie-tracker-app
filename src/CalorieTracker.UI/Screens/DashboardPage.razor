@@ -68,7 +68,6 @@
 
     protected override void OnInitialized()
     {
-        now = TimeNow();
         Diary.Changed += OnDiaryChanged;
         resumed = AppStart.Register(OnResumed);
     }

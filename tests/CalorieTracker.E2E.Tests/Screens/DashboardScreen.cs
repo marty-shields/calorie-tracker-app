@@ -48,14 +48,14 @@ public sealed class DashboardScreen(WebView web)
     public void ToggleMeal(string meal) => web.Tap($"meal-{Meal(meal)}-toggle");
 
     /// <summary>The number of entries listed under a meal, opening it first when it is folded.</summary>
-    public int EntryCount(string meal)
+    public int OpenAndCountEntries(string meal)
     {
         Expand(meal);
         return web.FindAll($"[data-testid=\"meal-{Meal(meal)}\"] ~ ul > li").Count;
     }
 
     /// <summary>The meal's total, such as "125 kcal"; null while it has no entries. Opens a folded meal first.</summary>
-    public string? MealTotal(string meal)
+    public string? OpenAndReadMealTotal(string meal)
     {
         Expand(meal);
         return web.Exists($"meal-{Meal(meal)}-calories") ? web.Text($"meal-{Meal(meal)}-calories") : null;
@@ -84,7 +84,7 @@ public sealed class DashboardScreen(WebView web)
     public void OpenSettings() => web.Tap("settings");
 
     /// <summary>The entries listed under a meal, each as its row text (name, amount and calories).</summary>
-    public IReadOnlyList<string> Entries(string meal)
+    public IReadOnlyList<string> OpenAndReadEntries(string meal)
     {
         Expand(meal);
         return web.FindAll($"[data-testid=\"meal-{Meal(meal)}\"] ~ ul > li").Select(row => row.Text).ToList();
