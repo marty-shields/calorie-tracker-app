@@ -79,7 +79,7 @@ public sealed class TrendsSteps(TrendsScreen trends, NavigationBar navigation, A
     {
         journeys.WaitFor(Journeys.Screen.Dashboard);
         dashboard.PreviousDay();
-        web.Eventually(dashboard.DateLabel, Is.EqualTo(DayLabel(Yesterday)));
+        web.Eventually(dashboard.DateLabel, Is.EqualTo(YesterdayLabel));
     }
 
     [When(@"^I show the month of yesterday on Trends$")]
@@ -100,7 +100,7 @@ public sealed class TrendsSteps(TrendsScreen trends, NavigationBar navigation, A
     public void ThenIAmOnTheDashboardOnYesterday()
     {
         journeys.WaitFor(Journeys.Screen.Dashboard);
-        web.Eventually(dashboard.DateLabel, Is.EqualTo(DayLabel(Yesterday)));
+        web.Eventually(dashboard.DateLabel, Is.EqualTo(YesterdayLabel));
     }
 
     [When(@"^I open the Add sheet on Trends$")]
@@ -108,6 +108,7 @@ public sealed class TrendsSteps(TrendsScreen trends, NavigationBar navigation, A
 
     private DateOnly Yesterday => Today.AddDays(-1);
 
-    private string DayLabel(DateOnly day) =>
-        $"{day.ToString("ddd", Invariant)}, {day.ToString(day.Year == Today.Year ? "d MMM" : "d MMM yyyy", Invariant)}";
+    // Mirrors DateStrip, which labels the day before today "Yesterday, d MMM".
+    private string YesterdayLabel =>
+        $"Yesterday, {Yesterday.ToString(Yesterday.Year == Today.Year ? "d MMM" : "d MMM yyyy", Invariant)}";
 }
