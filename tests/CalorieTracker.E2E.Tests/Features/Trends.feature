@@ -34,6 +34,7 @@ Feature: Trends
     Given I am on the Dashboard
     And I go back a day on the Dashboard
     And I have added 100 g of the first food found by "oat" to Lunch
+    And the snackbar goes away
     And I have opened Trends
     When I choose Month on Trends
     And I show the month of yesterday on Trends

@@ -107,6 +107,7 @@ public sealed class DiarySteps(ServingScreen serving, FoodSearchScreen foods, Da
         Assert.That(snackbar.ActionLabel(), Is.EqualTo(action));
     }
 
+    [Given(@"^the snackbar goes away$")]
     [Then(@"^the snackbar goes away$")]
     public void ThenTheSnackbarGoesAway() =>
         web.WaitUntil(() => !snackbar.IsShowing(), "the snackbar stayed", TimeSpan.FromSeconds(15));
