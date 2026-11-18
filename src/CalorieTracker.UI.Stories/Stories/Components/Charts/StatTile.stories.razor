@@ -1,0 +1,24 @@
+@using CalorieTracker.UI.Components.Charts
+@attribute [Stories("Components/Charts/StatTile")]
+
+<Stories TComponent="StatTile" Layout="typeof(ThemeLayout)">
+
+    <Story Name="Figure and caption">
+        <Template>
+            <StatTile Figure="1,980" Caption="avg kcal a day" TestId="tile" />
+        </Template>
+    </Story>
+
+    <Story Name="Not enough days yet">
+        <Template>
+            <StatTile Caption="avg kcal a day" NotEnoughDays="true" TestId="tile" />
+        </Template>
+    </Story>
+
+    <Story Name="Long caption and figure">
+        <Template>
+            <StatTile Figure="1,234,567,890 kcal" Caption="average calories eaten on a day you logged something" TestId="tile" />
+        </Template>
+    </Story>
+
+</Stories>

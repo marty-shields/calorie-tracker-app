@@ -1,0 +1,28 @@
+<div class="tile" data-testid="@TestId">
+    <span class="figure" data-testid="@Id("figure")">@(NotEnoughDays ? "–" : Figure)</span>
+    <span class="caption" data-wrap-ok data-testid="@Id("caption")">@Caption</span>
+    @if (NotEnoughDays)
+    {
+        <span class="note" data-wrap-ok data-testid="@Id("note")">Not enough days yet</span>
+    }
+</div>
+
+@code {
+    /// <summary>The number or short text shown large, such as "1,980" or "5 / 7".</summary>
+    [Parameter]
+    public string? Figure { get; set; }
+
+    /// <summary>What the figure is, such as "avg kcal a day".</summary>
+    [Parameter]
+    public string? Caption { get; set; }
+
+    /// <summary>Replaces the figure with a dash and adds "Not enough days yet", keeping the tile's place in the layout.</summary>
+    [Parameter]
+    public bool NotEnoughDays { get; set; }
+
+    /// <summary>Value of the data-testid attribute, and the prefix of <c>-figure</c>, <c>-caption</c> and <c>-note</c>.</summary>
+    [Parameter]
+    public string? TestId { get; set; }
+
+    private string Id(string part) => $"{TestId}-{part}";
+}

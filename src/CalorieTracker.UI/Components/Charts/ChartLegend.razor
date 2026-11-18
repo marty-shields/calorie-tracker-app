@@ -1,0 +1,31 @@
+<ul class="legend" aria-label="Legend" data-testid="@TestId">
+    @foreach (var item in Items)
+    {
+        <li class="item" data-testid="@Id(Slug(item.Kind))">
+            <span class="swatch @Slug(item.Kind)" aria-hidden="true">@(item.Kind == LegendKind.Over ? "▲" : null)</span>
+            <span class="text">@item.Label</span>
+        </li>
+    }
+</ul>
+
+@code {
+    /// <summary>The entries, in the order shown.</summary>
+    [Parameter]
+    public IReadOnlyList<LegendItem> Items { get; set; } = [];
+
+    /// <summary>Value of the data-testid attribute, and the prefix of <c>-on</c>, <c>-over</c>, <c>-under</c>, <c>-not-logged</c>, <c>-line</c> and <c>-band</c>.</summary>
+    [Parameter]
+    public string? TestId { get; set; }
+
+    private static string Slug(LegendKind kind) => kind switch
+    {
+        LegendKind.OnTarget => "on",
+        LegendKind.Over => "over",
+        LegendKind.Under => "under",
+        LegendKind.NotLogged => "not-logged",
+        LegendKind.TargetLine => "line",
+        _ => "band",
+    };
+
+    private string Id(string part) => $"{TestId}-{part}";
+}
