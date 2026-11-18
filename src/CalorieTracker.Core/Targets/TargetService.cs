@@ -4,15 +4,17 @@ using Microsoft.Extensions.Logging;
 
 namespace CalorieTracker.Core.Targets;
 
-/// <summary>Stores the daily calorie target in <see cref="AppSettings"/> through <see cref="TargetStore"/>. A failing database gives <see cref="TargetStatus.Failed"/>, never an exception. Logs never carry the value.</summary>
+/// <summary>Stores the daily calorie target in <see cref="AppSettings"/> through <see cref="TargetStore"/>, and each change in the dated <see cref="TargetHistory"/>. A failing database gives <see cref="TargetStatus.Failed"/>, never an exception. Logs never carry the value.</summary>
 public sealed partial class TargetService
 {
     private readonly TargetStore store;
+    private readonly TimeProvider time;
     private readonly ILogger<TargetService> logger;
 
-    internal TargetService(TargetStore store, ILogger<TargetService> logger)
+    internal TargetService(TargetStore store, TimeProvider time, ILogger<TargetService> logger)
     {
         this.store = store;
+        this.time = time;
         this.logger = logger;
     }
 
@@ -48,7 +50,7 @@ public sealed partial class TargetService
         var whole = (int)kcal;
         try
         {
-            await store.SetAsync(whole);
+            await store.SetAsync(whole, Today());
             Log.Saved(logger);
             return TargetResult.Ok(whole);
         }
@@ -64,7 +66,7 @@ public sealed partial class TargetService
     {
         try
         {
-            await store.SetAsync(null);
+            await store.SetAsync(null, Today());
             Log.Cleared(logger);
             return TargetResult.Ok(null);
         }
@@ -75,8 +77,85 @@ public sealed partial class TargetService
         }
     }
 
+    private DateOnly Today() => DateOnly.FromDateTime(time.GetLocalNow().DateTime);
+
+    /// <summary>
+    /// The target that applied on <paramref name="date"/>: the latest change on or before it, with <see cref="TargetResult.Kcal"/> null when there was none or it had been cleared.
+    /// </summary>
+    public async Task<TargetResult> ForDateAsync(DateOnly date)
+    {
+        try
+        {
+            var kcal = TargetOn(await store.UpToAsync(date), date);
+            Log.DateRead(logger);
+            return TargetResult.Ok(kcal);
+        }
+        catch (Exception)
+        {
+            Log.Failed(logger);
+            return TargetResult.Failed();
+        }
+    }
+
+    /// <summary>
+    /// The target that applied on each day from <paramref name="from"/> to <paramref name="to"/> inclusive, oldest first, from one read.
+    /// A range that ends before it starts returns <see cref="TargetStatus.Invalid"/>.
+    /// </summary>
+    public async Task<TargetRangeResult> ForRangeAsync(DateOnly from, DateOnly to)
+    {
+        if (to < from)
+        {
+            Log.RangeRejected(logger);
+            return TargetRangeResult.Invalid();
+        }
+
+        try
+        {
+            var rows = await store.UpToAsync(to);
+            var days = new List<DayTarget>(to.DayNumber - from.DayNumber + 1);
+            for (var date = from; date <= to; date = date.AddDays(1))
+            {
+                days.Add(new DayTarget(date, TargetOn(rows, date)));
+            }
+
+            Log.RangeRead(logger, days.Count);
+            return TargetRangeResult.Ok(days);
+        }
+        catch (Exception)
+        {
+            Log.Failed(logger);
+            return TargetRangeResult.Failed();
+        }
+    }
+
+    private static int? TargetOn(List<TargetHistory> rows, DateOnly date)
+    {
+        var key = TargetStore.Key(date);
+        TargetHistory? latest = null;
+        foreach (var row in rows)
+        {
+            if (string.CompareOrdinal(row.EffectiveFrom, key) > 0)
+            {
+                break;
+            }
+
+            latest = row;
+        }
+
+        return latest?.Kcal is { } kcal ? (int)Math.Round(kcal) : null;
+    }
+
     private static partial class Log
     {
+        [LoggerMessage((int)CoreEvent.TargetDateRead, LogLevel.Debug, "Daily target read for one day")]
+        public static partial void DateRead(ILogger logger);
+
+        [LoggerMessage((int)CoreEvent.TargetRangeRead, LogLevel.Debug, "Daily targets read for {Days} days")]
+        public static partial void RangeRead(ILogger logger, int days);
+
+        [LoggerMessage((int)CoreEvent.TargetRangeRejected, LogLevel.Debug, "Daily target range rejected as ending before it starts")]
+        public static partial void RangeRejected(ILogger logger);
+
         [LoggerMessage((int)CoreEvent.TargetSaved, LogLevel.Debug, "Daily target saved")]
         public static partial void Saved(ILogger logger);
 

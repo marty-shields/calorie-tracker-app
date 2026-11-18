@@ -26,3 +26,26 @@ public sealed record TargetResult
 
     public static TargetResult Failed() => new(TargetStatus.Failed, null);
 }
+
+/// <summary>The target that applied on one day; <see cref="Kcal"/> is null when none did.</summary>
+public sealed record DayTarget(DateOnly Date, int? Kcal);
+
+/// <summary>The outcome of <see cref="TargetService.ForRangeAsync"/>. <see cref="Days"/> holds one entry for each day, oldest first; it is empty when <see cref="Status"/> is not <see cref="TargetStatus.Ok"/>.</summary>
+public sealed record TargetRangeResult
+{
+    private TargetRangeResult(TargetStatus status, IReadOnlyList<DayTarget> days)
+    {
+        Status = status;
+        Days = days;
+    }
+
+    public TargetStatus Status { get; }
+
+    public IReadOnlyList<DayTarget> Days { get; }
+
+    public static TargetRangeResult Ok(IReadOnlyList<DayTarget> days) => new(TargetStatus.Ok, days);
+
+    public static TargetRangeResult Invalid() => new(TargetStatus.Invalid, []);
+
+    public static TargetRangeResult Failed() => new(TargetStatus.Failed, []);
+}

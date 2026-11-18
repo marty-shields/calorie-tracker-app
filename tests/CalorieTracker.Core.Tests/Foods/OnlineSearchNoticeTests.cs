@@ -51,7 +51,8 @@ public class OnlineSearchNoticeTests
         await connection.InsertAsync(new AppSettings { DailyTargetKcal = 2100 });
         await notice.MarkShownAsync();
         var targets = new TargetStore(connection, new DatabaseGate());
-        await targets.SetAsync(1800);
+        await connection.CreateTableAsync<TargetHistory>();
+        await targets.SetAsync(1800, new DateOnly(2031, 7, 19));
 
         Assert.Multiple(async () =>
         {

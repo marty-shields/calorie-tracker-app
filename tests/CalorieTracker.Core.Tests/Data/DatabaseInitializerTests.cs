@@ -215,7 +215,7 @@ public class DatabaseInitializerTests
 
         Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'AppSettings'"), Is.EqualTo(1));
         Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM AppSettings"), Is.Zero);
-        var target = await new TargetService(new TargetStore(connection, new DatabaseGate()), new FakeLogger<TargetService>()).GetAsync();
+        var target = await new TargetService(new TargetStore(connection, new DatabaseGate()), TimeProvider.System, new FakeLogger<TargetService>()).GetAsync();
         Assert.That((target.Status, target.Kcal), Is.EqualTo((TargetStatus.Ok, (int?)null)));
     }
 
@@ -512,9 +512,9 @@ public class DatabaseInitializerTests
     }
 
     [Test]
-    public void CurrentVersion_IsNineteen()
+    public void CurrentVersion_IsTwenty()
     {
-        Assert.That(DatabaseInitializer.CurrentVersion, Is.EqualTo(19));
+        Assert.That(DatabaseInitializer.CurrentVersion, Is.EqualTo(20));
     }
 
     private const string ServingCheckedColumn = "SELECT name || ':' || type || ':' || \"notnull\" || ':' || pk FROM pragma_table_info('Food') WHERE name = 'ServingChecked'";

@@ -64,7 +64,8 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<ISchemaUpgrade, StorageCleanupUpgrade>()
             .AddSingleton<ISchemaUpgrade, OnlineSearchNoticeUpgrade>()
             .AddSingleton<ISchemaUpgrade, DropImportedServingsUpgrade>()
-            .AddSingleton<ISchemaUpgrade, FavouriteTableUpgrade>();
+            .AddSingleton<ISchemaUpgrade, FavouriteTableUpgrade>()
+            .AddSingleton<ISchemaUpgrade, TargetHistoryUpgrade>();
 
     private static IServiceCollection AddServices(this IServiceCollection services)
     {
@@ -77,7 +78,7 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<IOnlineSearchNotice>(provider => new OnlineSearchNotice(provider.GetRequiredService<NoticeStore>(), provider.GetRequiredService<ILogger<OnlineSearchNotice>>()))
             .AddSingleton(provider => new FavouriteService(provider.GetRequiredService<FavouriteStore>(), provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<FavouriteService>>()))
             .AddSingleton(provider => new ServingService(provider.GetRequiredService<ServingStore>(), provider.GetRequiredService<ILogger<ServingService>>()))
-            .AddSingleton(provider => new TargetService(provider.GetRequiredService<TargetStore>(), provider.GetRequiredService<ILogger<TargetService>>()))
+            .AddSingleton(provider => new TargetService(provider.GetRequiredService<TargetStore>(), provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<TargetService>>()))
             .AddSingleton(provider => new DiaryService(provider.GetRequiredService<DiaryStore>(), provider.GetRequiredService<ILogger<DiaryService>>()))
             .AddSingleton(provider => new FoodHistoryService(provider.GetRequiredService<FoodHistoryStore>(), provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<FoodHistoryService>>()))
             .AddSingleton(provider => new DaySummaryService(provider.GetRequiredService<DaySummaryStore>(), provider.GetRequiredService<ILogger<DaySummaryService>>()))

@@ -33,12 +33,13 @@ public class DaySummaryServiceTests
         await connection.CreateTableAsync<Serving>();
         await connection.CreateTableAsync<DiaryEntry>();
         await connection.CreateTableAsync<AppSettings>();
+        await connection.CreateTableAsync<TargetHistory>();
         cheddar = await AddFood("Cheddar", FoodUnit.Gram, 416, 25.4, 0.1, 34.9);
         cola = await AddFood("Cola", FoodUnit.Millilitre, 42, 0, 10.6, 0);
         gate = new DatabaseGate();
         logger = new FakeLogger<DaySummaryService>();
         diary = new DiaryService(new DiaryStore(connection, gate), NullLogger<DiaryService>.Instance);
-        targets = new TargetService(new TargetStore(connection, gate), NullLogger<TargetService>.Instance);
+        targets = new TargetService(new TargetStore(connection, gate), TimeProvider.System, NullLogger<TargetService>.Instance);
         service = new DaySummaryService(new DaySummaryStore(connection, gate), logger);
     }
 
