@@ -59,5 +59,14 @@ public sealed class AddSheetScreen(WebView web, NavigationBar navigation)
         }
     }
 
+    /// <summary>How many Tab stops the sheet has: the chosen meal, Search foods, Scan barcode and the + of each usual food.</summary>
+    public int TabStopCount() => 3 + UsualAddIds().Count;
+
+    /// <summary>The <c>data-testid</c> of the sheet's last Tab stop: the last usual food's + when any are listed, else Scan barcode.</summary>
+    public string LastControl() => UsualAddIds().LastOrDefault() ?? "add-sheet-scan";
+
+    private List<string> UsualAddIds() =>
+        web.FindAll("[data-testid^=\"add-sheet-usual-\"][data-testid$=\"-add\"]").Select(button => button.GetDomAttribute("data-testid") ?? "").ToList();
+
     private static string MealTestId(string meal) => $"add-sheet-meal-{meal.ToLowerInvariant()}";
 }

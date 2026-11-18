@@ -42,7 +42,7 @@ Feature: Add sheet
   Scenario: Tab stays inside the open sheet and wraps at both ends
     Given I am on the Dashboard
     And I have opened the Add sheet
-    When I press Tab 3 times on the Add sheet
+    When I press Tab once for each control on the Add sheet
     Then focus is in the Add sheet
     And focus is on the Add sheet's first control
     When I press Shift+Tab 1 times on the Add sheet

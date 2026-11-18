@@ -88,8 +88,8 @@ public sealed class AddSheetSteps(AddSheetScreen sheet, NavigationBar navigation
     [Then(@"^focus is in the Add sheet$")]
     public void ThenFocusIsInTheAddSheet() => web.Eventually(sheet.FocusIsInSheet, Is.True, "focus in the Add sheet");
 
-    [When(@"^I press Tab (\d+) times on the Add sheet$")]
-    public void PressTab(int times) => sheet.TabThroughSheet(times, shift: false);
+    [When(@"^I press Tab once for each control on the Add sheet$")]
+    public void PressTabForEachControl() => sheet.TabThroughSheet(sheet.TabStopCount(), shift: false);
 
     [When(@"^I press Shift\+Tab (\d+) times on the Add sheet$")]
     public void PressShiftTab(int times) => sheet.TabThroughSheet(times, shift: true);
