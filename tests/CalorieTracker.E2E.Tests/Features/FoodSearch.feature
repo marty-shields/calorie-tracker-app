@@ -33,7 +33,7 @@ Feature: Food search
     When I press Android back
     Then I am on the Dashboard
 
-  Scenario: The Dashboard item returns to the Dashboard
+  Scenario: Going back from the results returns to Today
     Given I have opened Foods
     When I go back to the Dashboard
     Then I am on the Dashboard

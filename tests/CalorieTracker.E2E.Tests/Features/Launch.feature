@@ -1,5 +1,5 @@
 Feature: Launch
-  The app opens on the Dashboard, with its content clear of the status bar and the navigation bar.
+  The app opens on Today, with its content clear of the status bar and the navigation bar.
 
   @smoke @release
   Scenario: A fresh install opens on the empty Dashboard
