@@ -1,5 +1,5 @@
 @using System.Globalization
-<div class="ring @(State == RingState.Over ? "over" : null)" role="img" aria-label="@Description" data-testid="@TestId" style="--fill: @Fill">
+<div class="ring @(State == RingState.Over ? "over" : null) @(Compact ? "compact" : null)" role="img" aria-label="@Description" data-testid="@TestId" style="--fill: @Fill">
     <span class="arc" aria-hidden="true"></span>
     <span class="centre" aria-hidden="true">
         <span class="value" data-testid="@Id("value")">@Number(Shown)</span>
@@ -17,6 +17,10 @@
     /// <summary>Daily target in kcal. Null or zero means no target: the ring shows calories eaten.</summary>
     [Parameter]
     public int? Target { get; set; }
+
+    /// <summary>The smaller ring (<c>--ring-size-compact</c>) that sits beside the figures in a summary card.</summary>
+    [Parameter]
+    public bool Compact { get; set; }
 
     /// <summary>Value of the data-testid attribute, and the prefix of <c>{TestId}-value</c> and <c>-label</c>.</summary>
     [Parameter]

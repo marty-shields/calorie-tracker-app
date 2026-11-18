@@ -415,4 +415,239 @@ public class DashboardViewTests : ComponentTestBase
             Assert.That(Text(cut, "snackbar-action"), Is.EqualTo("Undo"));
         });
     }
+
+    private IRenderedComponent<DashboardView> RenderAt(Core.Summary.DaySummary summary, TimeOnly now, DateOnly? date = null, Meal? open = null) =>
+        Render(summary, p => p.Add(x => x.Now, now).Add(x => x.OpenMeal, open), date);
+
+    private static string ExpandedOf(IRenderedComponent<DashboardView> cut, string meal) => cut.Find($"[data-testid=meal-{meal}-toggle]").GetAttribute("aria-expanded")!;
+
+    [Test]
+    public void At0900_BreakfastIsOpenWithNow_AndLaterMealsShowOnlyWhenTheyStart_AndSnacksIsOpen()
+    {
+        var cut = RenderAt(DashboardSamples.EarlyDay, DashboardSamples.Morning);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "meal-breakfast-now"), Is.EqualTo("Now"));
+            Assert.That(Exists(cut, "meal-breakfast-toggle"), Is.False, "an open meal has no fold button");
+            Assert.That(cut.FindAll("[data-testid=meal-breakfast] ~ ul .row"), Has.Count.EqualTo(1));
+            Assert.That(Text(cut, "meal-lunch-hint"), Is.EqualTo("from 11:00"));
+            Assert.That(Text(cut, "meal-dinner-hint"), Is.EqualTo("from 17:00"));
+            foreach (var meal in new[] { "lunch", "dinner" })
+            {
+                Assert.That(Exists(cut, $"meal-{meal}-add"), Is.True, meal);
+                Assert.That(cut.FindAll($"[data-testid=meal-{meal}] ~ ul"), Is.Empty, meal);
+                Assert.That(Exists(cut, $"meal-{meal}-none"), Is.False, meal);
+                Assert.That(Exists(cut, $"meal-{meal}-now"), Is.False, meal);
+            }
+
+            Assert.That(Exists(cut, "meal-snacks-now"), Is.False);
+            Assert.That(Exists(cut, "meal-snacks-hint"), Is.False);
+            Assert.That(Exists(cut, "meal-snacks-toggle"), Is.False);
+            Assert.That(Text(cut, "meal-snacks-none"), Is.EqualTo("Nothing logged"));
+        });
+    }
+
+    [Test]
+    public void At1930_EarlierMealsAreFoldedWithTheirCountAndKcal_DinnerIsOpenWithNow_AndSnacksIsOpen()
+    {
+        var cut = RenderAt(DashboardSamples.FullDay, DashboardSamples.Evening);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "meal-breakfast-summary"), Is.EqualTo("1 item · 149 kcal"));
+            Assert.That(Text(cut, "meal-lunch-summary"), Is.EqualTo("1 item · 521 kcal"));
+            Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("false"));
+            Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("false"));
+            Assert.That(cut.FindAll("[data-testid=meal-breakfast] ~ ul"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul"), Is.Empty);
+            Assert.That(Exists(cut, "meal-breakfast-add"), Is.True, "the + stays");
+            Assert.That(Text(cut, "meal-dinner-now"), Is.EqualTo("Now"));
+            Assert.That(cut.FindAll("[data-testid=meal-dinner] ~ ul .row"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=meal-snacks] ~ ul .row"), Has.Count.EqualTo(1));
+            Assert.That(Exists(cut, "meal-snacks-toggle"), Is.False);
+        });
+    }
+
+    [Test]
+    public void AFoldedMealWithSeveralEntries_SaysItems()
+    {
+        var cut = RenderAt(DashboardSamples.OverTarget, DashboardSamples.Evening);
+
+        Assert.That(Text(cut, "meal-lunch-summary"), Is.EqualTo("2 items · 646 kcal"));
+    }
+
+    [Test]
+    public void AnEmptyFoldedMeal_SaysNothingLogged_AndOpensToTheSameLine()
+    {
+        var empty = RenderAt(DashboardSamples.EarlyDay, DashboardSamples.Evening);
+
+        Assert.That(Text(empty, "meal-lunch-summary"), Is.EqualTo("Nothing logged"));
+        empty.Find("[data-testid=meal-lunch-toggle]").Click();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ExpandedOf(empty, "lunch"), Is.EqualTo("true"));
+            Assert.That(Text(empty, "meal-lunch-none"), Is.EqualTo("Nothing logged"));
+            Assert.That(Exists(empty, "meal-lunch-summary"), Is.False);
+        });
+    }
+
+    [Test]
+    public void TappingAFoldedMeal_OpensItAndShowsItsEntries_AndTappingAgainFoldsIt()
+    {
+        var cut = RenderAt(DashboardSamples.FullDay, DashboardSamples.Evening);
+
+        cut.Find("[data-testid=meal-lunch-toggle]").Click();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("true"));
+            Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul .row"), Has.Count.EqualTo(1));
+            Assert.That(Text(cut, "meal-lunch-calories"), Is.EqualTo("521 kcal"));
+            Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("false"), "only the tapped meal opens");
+        });
+
+        cut.Find("[data-testid=meal-lunch-toggle]").Click();
+
+        Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("false"));
+    }
+
+    [Test]
+    public void TheFoldedHeader_IsAButtonAndThePlusIsAnotherButton()
+    {
+        var cut = RenderAt(DashboardSamples.FullDay, DashboardSamples.Evening);
+
+        var toggle = cut.Find("[data-testid=meal-lunch-toggle]");
+        var add = cut.Find("[data-testid=meal-lunch-add]");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(toggle.TagName, Is.EqualTo("BUTTON"));
+            Assert.That(add.TagName, Is.EqualTo("BUTTON"));
+            Assert.That(toggle.Contains(add), Is.False);
+            Assert.That(toggle.ParentElement!.TagName, Is.EqualTo("H2"));
+        });
+    }
+
+    [Test]
+    public void ThePlusOnAFoldedMeal_RaisesOnAddForThatMeal_WithoutOpeningIt()
+    {
+        MealAddRequest? request = null;
+        var cut = Render(DashboardSamples.FullDay, p => p.Add(x => x.Now, DashboardSamples.Evening).Add(x => x.OnAdd, (MealAddRequest r) => request = r));
+
+        cut.Find("[data-testid=meal-lunch-add]").Click();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(request, Is.EqualTo(new MealAddRequest(Meal.Lunch, Today)));
+            Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("false"));
+        });
+    }
+
+    [Test]
+    public void OnAnotherDay_EveryMealIsOpenWithNoNowChipAndNoFrom()
+    {
+        foreach (var day in new[] { Today.AddDays(-1), Today.AddDays(1) })
+        {
+            var cut = RenderAt(DashboardSamples.FullDay, DashboardSamples.Evening, day);
+
+            Assert.Multiple(() =>
+            {
+                foreach (var meal in new[] { "breakfast", "lunch", "dinner", "snacks" })
+                {
+                    Assert.That(Exists(cut, $"meal-{meal}-now"), Is.False, $"{day} {meal}");
+                    Assert.That(Exists(cut, $"meal-{meal}-hint"), Is.False, $"{day} {meal}");
+                    Assert.That(Exists(cut, $"meal-{meal}-toggle"), Is.False, $"{day} {meal}");
+                    Assert.That(Exists(cut, $"meal-{meal}-summary"), Is.False, $"{day} {meal}");
+                    Assert.That(cut.FindAll($"[data-testid=meal-{meal}] ~ ul .row"), Has.Count.EqualTo(1), $"{day} {meal}");
+                }
+            });
+        }
+    }
+
+    [Test]
+    public void AnEmptyMealBeforeItsWindow_OnAnotherDay_StillSaysNothingLogged()
+    {
+        var cut = RenderAt(DashboardSamples.EarlyDay, DashboardSamples.Morning, Today.AddDays(-1));
+
+        Assert.That(Text(cut, "meal-lunch-none"), Is.EqualTo("Nothing logged"));
+    }
+
+    [Test]
+    public void AnEntryLoggedBeforeItsWindow_StillShows()
+    {
+        var cut = RenderAt(DashboardSamples.Loaded, DashboardSamples.Morning);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "meal-lunch-hint"), Is.EqualTo("from 11:00"));
+            Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul .row"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public void OpenMeal_ShowsThatFoldedMealOpen_AndOnlyThatOne()
+    {
+        var cut = RenderAt(DashboardSamples.FullDay, DashboardSamples.Evening, open: Meal.Lunch);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("true"));
+            Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul .row"), Has.Count.EqualTo(1));
+            Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("false"));
+        });
+    }
+
+    [Test]
+    public void AnOpenedMeal_FoldsAgainWhenTheDayChanges()
+    {
+        var cut = RenderAt(DashboardSamples.FullDay, DashboardSamples.Evening);
+        cut.Find("[data-testid=meal-lunch-toggle]").Click();
+
+        cut.Render(p => p.Add(x => x.Date, Today.AddDays(-1)));
+        cut.Render(p => p.Add(x => x.Date, Today));
+
+        Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("false"));
+    }
+
+    [Test]
+    public void WithNoTime_EveryMealIsOpen()
+    {
+        var cut = Render(DashboardSamples.FullDay);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Exists(cut, "meal-breakfast-toggle"), Is.False);
+            Assert.That(Exists(cut, "meal-dinner-hint"), Is.False);
+            Assert.That(Exists(cut, "meal-lunch-now"), Is.False);
+        });
+    }
+
+    [Test]
+    public void TheCard_HoldsTheCompactRingAndTheMacros()
+    {
+        var cut = Render(DashboardSamples.Loaded);
+
+        var card = cut.Find("[data-testid=dashboard-card]");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(card.QuerySelector("[data-testid=dashboard-ring]")!.ClassList, Does.Contain("compact"));
+            Assert.That(card.QuerySelector("[data-testid=dashboard-share]"), Is.Not.Null);
+            Assert.That(card.QuerySelector("[data-testid=dashboard-eaten]"), Is.Not.Null);
+        });
+    }
+
+    [Test]
+    public void OnAnEmptyDay_TheCardHasNoMacros_AndTheEmptyStateSitsUnderIt()
+    {
+        var cut = Render(DashboardSamples.FirstRun);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=dashboard-card]").QuerySelector("[data-testid=dashboard-share]"), Is.Null);
+            Assert.That(Exists(cut, "dashboard-empty"), Is.True);
+        });
+    }
 }

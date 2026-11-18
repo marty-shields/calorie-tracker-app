@@ -3,6 +3,7 @@ using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Summary;
 using CalorieTracker.Core.Targets;
+using CalorieTracker.UI.Lifecycle;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Screens;
 using Microsoft.Extensions.DependencyInjection;
@@ -283,5 +284,98 @@ public class DashboardPageTests : ComponentTestBase
         Render();
 
         Assert.That(BackButton.HasHandler, Is.False);
+    }
+
+    private FakeTimeProvider Clock => (FakeTimeProvider)Context.Services.GetRequiredService<TimeProvider>();
+
+    [Test]
+    public async Task OnToday_AMealPastItsWindowIsFoldedAndOpensOnTap()
+    {
+        await Log(Today, Meal.Breakfast, 30);
+
+        var cut = Render();
+
+        Assert.That(Text(cut, "meal-breakfast-summary"), Is.EqualTo("1 item · 125 kcal"));
+        Assert.That(Text(cut, "meal-lunch-now"), Is.EqualTo("Now"));
+        Assert.That(Text(cut, "meal-dinner-hint"), Is.EqualTo("from 17:00"));
+
+        cut.Find("[data-testid=meal-breakfast-toggle]").Click();
+
+        Assert.That(cut.FindAll("[data-testid=meal-breakfast] ~ ul .row"), Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public async Task TheTimeDecidesWhichMealsAreOpen_ReadWhenTheDayLoads()
+    {
+        Clock.SetUtcNow(new DateTimeOffset(2031, 7, 19, 19, 30, 0, TimeSpan.Zero));
+        await Log(Today, Meal.Lunch, 30);
+
+        var cut = Render();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "meal-lunch-summary"), Is.EqualTo("1 item · 125 kcal"));
+            Assert.That(Text(cut, "meal-dinner-now"), Is.EqualTo("Now"));
+        });
+    }
+
+    [Test]
+    public async Task WhenTheAppResumes_TheMealsReadTheClockAgain_AndTheDayStays()
+    {
+        await Log(Today, Meal.Lunch, 30);
+        var cut = Render();
+        Assert.That(Text(cut, "meal-lunch-now"), Is.EqualTo("Now"));
+
+        Clock.SetUtcNow(new DateTimeOffset(2031, 7, 19, 19, 30, 0, TimeSpan.Zero));
+        await Context.Services.GetRequiredService<IAppLifecycle>().NotifyStartedAsync();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.That(Text(cut, "meal-lunch-summary"), Is.EqualTo("1 item · 125 kcal"));
+            Assert.That(Text(cut, "meal-dinner-now"), Is.EqualTo("Now"));
+            Assert.That(Text(cut, "date-strip-label"), Does.StartWith("Today, 19 Jul"));
+        });
+    }
+
+    [Test]
+    public async Task APageThatIsGone_NoLongerListensForResume()
+    {
+        var cut = Render();
+        cut.Dispose();
+
+        await Context.Services.GetRequiredService<IAppLifecycle>().NotifyStartedAsync();
+
+        Assert.Pass("No handler is left to run, so resuming raises nothing.");
+    }
+
+    [Test]
+    public async Task TheOpenMealParameter_ShowsThatMealOpenAfterItsWindow()
+    {
+        Clock.SetUtcNow(new DateTimeOffset(2031, 7, 19, 19, 30, 0, TimeSpan.Zero));
+        await Log(Today, Meal.Lunch, 30);
+
+        var cut = Render(more: p => p.Add(x => x.OpenMeal, Meal.Lunch));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=meal-lunch-toggle]").GetAttribute("aria-expanded"), Is.EqualTo("true"));
+            Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul .row"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task AnotherDay_ShowsEveryMealOpen_WhateverTheTime()
+    {
+        Clock.SetUtcNow(new DateTimeOffset(2031, 7, 19, 19, 30, 0, TimeSpan.Zero));
+        await Log(Today.AddDays(-1), Meal.Breakfast, 30);
+
+        var cut = Render(Today.AddDays(-1));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Exists(cut, "meal-breakfast-toggle"), Is.False);
+            Assert.That(Exists(cut, "meal-dinner-now"), Is.False);
+            Assert.That(cut.FindAll("[data-testid=meal-breakfast] ~ ul .row"), Has.Count.EqualTo(1));
+        });
     }
 }

@@ -55,5 +55,14 @@ public static class MealWindows
         return time < start ? MealWindowState.Before : time < end ? MealWindowState.During : MealWindowState.After;
     }
 
+    /// <summary>When <paramref name="meal"/>'s window opens. Snacks has no window, so it is an <see cref="ArgumentOutOfRangeException"/>.</summary>
+    public static TimeOnly StartOf(Meal meal) => meal switch
+    {
+        Meal.Breakfast => BreakfastStart,
+        Meal.Lunch => LunchStart,
+        Meal.Dinner => DinnerStart,
+        _ => throw new ArgumentOutOfRangeException(nameof(meal), meal, "Snacks has no window."),
+    };
+
     private static bool InWindow(TimeOnly time, TimeOnly start, TimeOnly end) => time >= start && time < end;
 }

@@ -14,6 +14,30 @@
         </Template>
     </Story>
 
+    <Story Name="Open now">
+        <Template>
+            <MealHeader Name="Dinner" Calories="520" Now TestId="meal" />
+        </Template>
+    </Story>
+
+    <Story Name="Before its window">
+        <Template>
+            <MealHeader Name="Dinner" Hint="from 17:00" TestId="meal" />
+        </Template>
+    </Story>
+
+    <Story Name="Folded">
+        <Template>
+            <MealHeader Name="Lunch" Summary="3 items · 348 kcal" OnToggle="() => { }" TestId="meal" />
+        </Template>
+    </Story>
+
+    <Story Name="Folded and opened">
+        <Template>
+            <MealHeader Name="Lunch" Calories="348" Expanded OnToggle="() => { }" TestId="meal" />
+        </Template>
+    </Story>
+
     <Story Name="Large total">
         <Template>
             <MealHeader Name="Snacks" Calories="1234" TestId="meal" />

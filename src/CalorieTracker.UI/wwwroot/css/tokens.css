@@ -87,6 +87,8 @@
     --snackbar-enter-duration: 150ms;
     --ring-size: 8.75rem;
     --ring-width: 0.875rem;
+    --ring-size-compact: 6rem;
+    --ring-width-compact: 0.625rem;
     --share-bar-height: 0.75rem;
     --chart-dash: 6px 4px;
     --radio-size: 1.5rem;

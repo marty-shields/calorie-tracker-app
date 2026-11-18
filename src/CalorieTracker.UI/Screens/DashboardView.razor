@@ -1,5 +1,6 @@
 @using System.Globalization
 @using CalorieTracker.Core.Data
+@using CalorieTracker.Core.Diary
 @using CalorieTracker.Core.Summary
 @using CalorieTracker.UI.Components.Charts
 @using CalorieTracker.UI.Components.Feedback
@@ -25,47 +26,64 @@
             {
                 var logged = summary.Meals.Any(m => m.Entries.Count > 0);
                 <SummaryCard TestId="dashboard-card">
-                    <div class="card">
-                        <CalorieRing Eaten="summary.Totals.Kcal" Target="summary.TargetKcal" TestId="dashboard-ring" />
-                        <div class="figures">
-                            <p class="figure">Eaten <strong data-testid="dashboard-eaten">@Number(summary.Totals.Kcal)</strong></p>
-                            @if (summary.TargetKcal is { } target)
-                            {
-                                <p class="figure">Target <strong data-testid="dashboard-target">@Number(target)</strong></p>
-                            }
-                            else
-                            {
-                                <p class="figure" data-testid="dashboard-no-target" data-wrap-ok>No target set</p>
-                                <AppButton Variant="ButtonVariant.Secondary" TestId="dashboard-set-target" OnClick="OnSettings">Set a target</AppButton>
-                            }
+                    <div class="summary">
+                        <div class="card">
+                            <CalorieRing Compact Eaten="summary.Totals.Kcal" Target="summary.TargetKcal" TestId="dashboard-ring" />
+                            <div class="figures">
+                                <p class="figure">Eaten <strong data-testid="dashboard-eaten">@Number(summary.Totals.Kcal)</strong></p>
+                                @if (summary.TargetKcal is { } target)
+                                {
+                                    <p class="figure">Target <strong data-testid="dashboard-target">@Number(target)</strong></p>
+                                }
+                                else
+                                {
+                                    <p class="figure" data-testid="dashboard-no-target" data-wrap-ok>No target set</p>
+                                    <AppButton Variant="ButtonVariant.Secondary" TestId="dashboard-set-target" OnClick="OnSettings">Set a target</AppButton>
+                                }
+                            </div>
                         </div>
+                        @if (logged)
+                        {
+                            <EnergyShareBar Protein="summary.Totals.ProteinG" Carbs="summary.Totals.CarbsG" Fat="summary.Totals.FatG" TestId="dashboard-share" />
+                        }
                     </div>
                 </SummaryCard>
-                @if (logged)
-                {
-                    <EnergyShareBar Protein="summary.Totals.ProteinG" Carbs="summary.Totals.CarbsG" Fat="summary.Totals.FatG" TestId="dashboard-share" />
-                }
-                else
+                @if (!logged)
                 {
                     <EmptyState Message="@(Date == Today ? "Nothing logged today" : "Nothing logged this day")" Hint="Tap + on a meal to add your first food." TestId="dashboard-empty" />
                 }
                 @foreach (var meal in summary.Meals)
                 {
                     var id = $"meal-{meal.Meal.ToString().ToLowerInvariant()}";
+                    var state = StateOf(meal.Meal);
+                    var folded = state == MealWindowState.After && !opened.Contains(meal.Meal);
+                    var foldable = state == MealWindowState.After;
+                    var count = meal.Entries.Count;
                     <section class="meal">
-                        <MealHeader Name="@meal.Meal.ToString()" Calories="@(meal.Entries.Count > 0 ? meal.Totals.Kcal : null)" TestId="@id" OnAdd="@(() => OnAdd.InvokeAsync(new MealAddRequest(meal.Meal, Date)))" />
-                        @if (meal.Entries.Count > 0)
+                        <MealHeader Name="@meal.Meal.ToString()"
+                                    Calories="@(count > 0 ? meal.Totals.Kcal : null)"
+                                    Now="@(state == MealWindowState.During)"
+                                    Hint="@(state == MealWindowState.Before ? $"from {MealWindows.StartOf(meal.Meal):HH:mm}" : null)"
+                                    Summary="@(folded ? FoldedSummary(meal) : null)"
+                                    Expanded="!folded"
+                                    OnToggle="@(foldable ? EventCallback.Factory.Create(this, () => Toggle(meal.Meal)) : default)"
+                                    TestId="@id"
+                                    OnAdd="@(() => OnAdd.InvokeAsync(new MealAddRequest(meal.Meal, Date)))" />
+                        @if (!folded)
                         {
-                            <ul class="entries">
-                                @foreach (var entry in meal.Entries)
-                                {
-                                    <li><ListRow Text="@entry.Display.Title" Detail="@EntryDetail(entry)" Aside="@Number(entry.Nutrition.Kcal)" TestId="@($"entry-{entry.EntryId}")" OnClick="@EditTap(entry, meal.Meal)" /></li>
-                                }
-                            </ul>
-                        }
-                        else if (logged)
-                        {
-                            <p class="none" data-testid="@($"{id}-none")">Nothing logged</p>
+                            if (count > 0)
+                            {
+                                <ul class="entries">
+                                    @foreach (var entry in meal.Entries)
+                                    {
+                                        <li><ListRow Text="@entry.Display.Title" Detail="@EntryDetail(entry)" Aside="@Number(entry.Nutrition.Kcal)" TestId="@($"entry-{entry.EntryId}")" OnClick="@EditTap(entry, meal.Meal)" /></li>
+                                    }
+                                </ul>
+                            }
+                            else if (state != MealWindowState.Before && (logged || foldable))
+                            {
+                                <p class="none" data-testid="@($"{id}-none")">Nothing logged</p>
+                            }
                         }
                     </section>
                 }
@@ -79,6 +97,45 @@
     private RenderFragment Notice => @<Snackbar />;
 
     private bool sheetOpen;
+    private readonly HashSet<Meal> opened = [];
+    private DateOnly? shownDate;
+    private Meal? shownOpenMeal;
+
+    protected override void OnParametersSet()
+    {
+        // Another day, or a new route, forgets what was opened: only a folded meal on today can be, and it folds again on leaving Today.
+        if (shownDate != Date)
+        {
+            shownDate = Date;
+            opened.Clear();
+            shownOpenMeal = null;
+        }
+
+        if (OpenMeal != shownOpenMeal)
+        {
+            shownOpenMeal = OpenMeal;
+            if (OpenMeal is { } meal)
+            {
+                opened.Add(meal);
+            }
+        }
+    }
+
+    /// <summary>The meal's window against <see cref="Now"/>. Only today has windows, so any other day, and a screen with no time, reads every meal as open.</summary>
+    private MealWindowState StateOf(Meal meal) =>
+        Date == Today && Now is { } now ? MealWindows.StateFor(meal, now) : MealWindowState.AnyTime;
+
+    private void Toggle(Meal meal)
+    {
+        if (!opened.Remove(meal))
+        {
+            opened.Add(meal);
+        }
+    }
+
+    /// <summary>"3 items · 348 kcal", or "Nothing logged" for an empty meal.</summary>
+    private static string FoldedSummary(MealSummary meal) =>
+        meal.Entries.Count == 0 ? "Nothing logged" : $"{meal.Entries.Count} {(meal.Entries.Count == 1 ? "item" : "items")} · {Number(meal.Totals.Kcal)} kcal";
 
     private void OpenSheet() => sheetOpen = true;
 
@@ -111,6 +168,14 @@
     /// <summary>Today, for the date strip's labels.</summary>
     [Parameter]
     public DateOnly Today { get; set; }
+
+    /// <summary>The time of day the meal windows are read against, on <see cref="Today"/> only. Null reads every meal as open.</summary>
+    [Parameter]
+    public TimeOnly? Now { get; set; }
+
+    /// <summary>A meal to show open even though its window has passed, such as the one a food was just added to. Applied each time it changes, and forgotten when <see cref="Date"/> changes.</summary>
+    [Parameter]
+    public Meal? OpenMeal { get; set; }
 
     /// <summary>The day's summary. The day is not shown until it is set, or <see cref="LoadFailed"/> is.</summary>
     [Parameter]
