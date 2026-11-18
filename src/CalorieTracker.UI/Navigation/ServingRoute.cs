@@ -1,6 +1,5 @@
 using System.Globalization;
 using CalorieTracker.Core.Data;
-using CalorieTracker.UI.Screens;
 
 namespace CalorieTracker.UI.Navigation;
 
@@ -13,12 +12,11 @@ public static class ServingRoute
     public const string DefaultBack = "/foods";
 
     /// <summary>The route to add a food. Leave <paramref name="meal"/> null to suggest a meal from the time of day, and <paramref name="date"/> null for today.</summary>
-    /// <param name="returnTo">An in-app route such as /foods to go to after Back or a saved entry; null for the defaults. A route here also makes the screen offer "View day" after Add instead of Undo.</param>
-    /// <param name="backTo">An in-app route for Back alone, when it differs from where a saved entry goes; null uses <paramref name="returnTo"/>.</param>
+    /// <param name="backTo">An in-app route for Back; null goes to <see cref="DefaultBack"/>. A saved entry always goes to the Dashboard.</param>
     /// <param name="amount">Grams or ml to open with instead of the default, such as what was last logged of the food; null for the default.</param>
     /// <param name="servings">The count of servings to open with, with <paramref name="amount"/>; null opens by weight.</param>
     /// <param name="servingId">The serving the count is in, with <paramref name="servings"/>; null opens on the smallest.</param>
-    public static string Url(int foodId, Meal? meal = null, DateOnly? date = null, string? returnTo = null, string? backTo = null, double? amount = null, double? servings = null, int? servingId = null)
+    public static string Url(int foodId, Meal? meal = null, DateOnly? date = null, string? backTo = null, double? amount = null, double? servings = null, int? servingId = null)
     {
         var query = new List<string>();
         if (meal is { } m)
@@ -29,11 +27,6 @@ public static class ServingRoute
         if (date is { } d)
         {
             query.Add($"date={RouteDate.ToText(d)}");
-        }
-
-        if (returnTo is not null)
-        {
-            query.Add($"return={Uri.EscapeDataString(returnTo)}");
         }
 
         if (backTo is not null)
@@ -83,21 +76,14 @@ public static class ServingRoute
     /// <summary>The day named by a query value in yyyy-MM-dd form, or <paramref name="today"/> when it is missing or not a date.</summary>
     public static DateOnly ParseDate(string? text, DateOnly today) => RouteDate.Parse(text) ?? today;
 
-    /// <summary>The return route when it is an in-app path (starts with one slash, no backslash or control character), otherwise <paramref name="fallback"/>.</summary>
-    public static string ReturnOr(string? returnTo, string fallback) =>
-        returnTo is { Length: > 0 } && returnTo[0] == '/' && !returnTo.StartsWith("//", StringComparison.Ordinal) && !returnTo.Contains('\\') && !returnTo.Any(char.IsControl) ? returnTo : fallback;
+    /// <summary>The route when it is an in-app path (starts with one slash, no backslash or control character), otherwise <paramref name="fallback"/>.</summary>
+    public static string ReturnOr(string? route, string fallback) =>
+        route is { Length: > 0 } && route[0] == '/' && !route.StartsWith("//", StringComparison.Ordinal) && !route.Contains('\\') && !route.Any(char.IsControl) ? route : fallback;
 
-    /// <summary>Where Back goes: the <c>back</c> route if it is in-app, else the <c>return</c> route if it is, else <see cref="DefaultBack"/>.</summary>
-    public static string BackTarget(string? backTo, string? returnTo) => ReturnOr(backTo, ReturnOr(returnTo, DefaultBack));
+    /// <summary>Where Back goes: the <c>back</c> route if it is in-app, else <see cref="DefaultBack"/>.</summary>
+    public static string BackTarget(string? backTo) => ReturnOr(backTo, DefaultBack);
 
-    /// <summary>
-    /// Where a saved entry goes: the <c>return</c> route if it is in-app, else the Dashboard on <paramref name="date"/> (today when the route names none)
-    /// with <paramref name="meal"/> open, so the new entry shows even when the meal's window has passed.
-    /// </summary>
-    public static string AfterAddTarget(string? returnTo, DateOnly? date = null, Meal? meal = null) =>
-        ReturnOr(returnTo, DashboardRoute.Url(date, meal));
-
-    /// <summary>View day when the <c>return</c> route is accepted, since the person stays where they came from; Undo when it is missing or rejected, since a saved entry then goes to the Dashboard.</summary>
-    public static AddedFollowUp FollowUpFor(string? returnTo) =>
-        ReturnOr(returnTo, "") is { Length: > 0 } ? AddedFollowUp.ViewDay : AddedFollowUp.Undo;
+    /// <summary>Where a saved entry goes: the Dashboard on <paramref name="date"/> (today when null) with <paramref name="meal"/> open, so the new entry shows even when the meal's window has passed.</summary>
+    public static string AfterAddTarget(DateOnly? date, Meal meal) =>
+        DashboardRoute.Url(date, meal);
 }

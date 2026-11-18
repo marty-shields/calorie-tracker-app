@@ -67,14 +67,6 @@
     [Parameter]
     public DateOnly Date { get; set; }
 
-    /// <summary>What the snackbar after a saved entry offers.</summary>
-    [Parameter]
-    public AddedFollowUp AfterAdd { get; set; }
-
-    /// <summary>Opens the day an entry was added to. Runs when "View day" is tapped, possibly after this screen is gone, so it is a plain delegate rather than an <see cref="EventCallback"/> bound to a screen that no longer exists.</summary>
-    [Parameter]
-    public Func<DateOnly, Task>? ViewDay { get; set; }
-
     /// <summary>Id of the entry to change or remove. Set puts the screen in edit mode: <see cref="Date"/> and <see cref="Meal"/> are the entry's, and Save changes it instead of adding one.</summary>
     [Parameter]
     public int? EntryId { get; set; }
@@ -505,7 +497,7 @@
         saveFailed = result.Status != DiaryStatus.Ok;
         if (!saveFailed)
         {
-            Announce(FoodDisplay.Of(food).Title, meal, Date, result.Entry!);
+            Announce(FoodDisplay.Of(food).Title, meal, result.Entry!);
         }
 
         // After a save the screen is left, so stay busy: a tap between the save and the navigation must not add a second entry.
@@ -571,18 +563,11 @@
         }
     }
 
-    /// <summary>Posts "{food} added to {meal}" with Undo or View day. The actions can run after this screen is gone, so they use nothing of it.</summary>
-    private void Announce(string name, Meal addedTo, DateOnly day, DiaryEntry entry)
+    /// <summary>Posts "{food} added to {meal}" with Undo. The action can run after this screen is gone, so it uses nothing of it.</summary>
+    private void Announce(string name, Meal addedTo, DiaryEntry entry)
     {
         var text = $"{name} added to {addedTo}";
-        if (AfterAdd == AddedFollowUp.ViewDay && ViewDay is { } viewDay)
-        {
-            Snackbar.Show(text, "View day", () => viewDay(day));
-        }
-        else
-        {
-            var (diary, snackbar, logger) = (Diary, Snackbar, Logger);
-            Snackbar.Show(text, "Undo", () => AddUndo.RunAsync(diary, snackbar, status => Log.UndoFailed(logger, status), entry.Id));
-        }
+        var (diary, snackbar, logger) = (Diary, Snackbar, Logger);
+        Snackbar.Show(text, "Undo", () => AddUndo.RunAsync(diary, snackbar, status => Log.UndoFailed(logger, status), entry.Id));
     }
 }

@@ -17,7 +17,10 @@ Feature: Food titles
     Then the day has an entry headed with the noted title
 
   Scenario: A scanned product opens Serving headed with its food's title
-    Given I am on the Dashboard
+    Given I have opened Foods
+    And I have searched for "oat"
+    And I have noted the title of the first result
+    And I go back to the Dashboard
     And a barcode is held in front of the camera
     When I open Scan from the Add sheet
-    Then Serving is headed with a title containing "oat"
+    Then Serving is headed with the noted title

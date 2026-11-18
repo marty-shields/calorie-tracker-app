@@ -24,9 +24,16 @@
     [SupplyParameterFromQuery(Name = "q")]
     public string? Query { get; set; }
 
-    private Meal meal => ServingRoute.ParseMeal(MealText) ?? MealWindows.MealFor(TimeOnly.FromDateTime(Time.GetLocalNow().DateTime));
+    private Meal meal;
 
-    private DateOnly? date => RouteDate.Parse(DateText);
+    private DateOnly? date;
+
+    /// <summary>Works the meal out once per set of route values, so a clock that crosses a meal window never changes it between renders.</summary>
+    protected override void OnParametersSet()
+    {
+        meal = ServingRoute.ParseMeal(MealText) ?? MealWindows.MealFor(TimeOnly.FromDateTime(Time.GetLocalNow().DateTime));
+        date = RouteDate.Parse(DateText);
+    }
 
     private void Add(FoodAddRequest request) =>
         Navigation.GoTo(ServingRoute.Url(request.Food.Id, meal, date, backTo: FoodSearchRoute.AddUrl(meal, date, request.Query), amount: request.LastAmount, servings: request.LastServings, servingId: request.LastServingId));

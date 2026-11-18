@@ -47,14 +47,14 @@ public class FoodSearchRouteTests
     }
 
     [Test]
-    public void TheServingPage_AfterAddGoesToTheGivenDayWithoutSettingReturnTo()
+    public void TheServingPage_AfterAddGoesToTheGivenDay()
     {
         var serving = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Serving.razor");
         var foods = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Foods.razor");
 
         Assert.Multiple(() =>
         {
-            Assert.That(serving, Does.Contain("ServingRoute.AfterAddTarget(ReturnTo, RouteDate.Parse(DateText), meal)"));
+            Assert.That(serving, Does.Contain("ServingRoute.AfterAddTarget(RouteDate.Parse(DateText), meal)"));
             Assert.That(foods, Does.Contain("ServingRoute.Url(request.Food.Id, meal, date, backTo:"));
             Assert.That(foods, Does.Not.Contain("meal, date, returnTo"));
         });

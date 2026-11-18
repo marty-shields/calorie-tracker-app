@@ -1,6 +1,5 @@
 using CalorieTracker.Core.Data;
 using CalorieTracker.UI.Navigation;
-using CalorieTracker.UI.Screens;
 
 namespace CalorieTracker.UI.Tests.Screens;
 
@@ -16,7 +15,7 @@ public class ServingRouteTests
             Assert.That(ServingRoute.Url(5), Is.EqualTo("/serving/5"));
             Assert.That(ServingRoute.Url(5, Meal.Dinner), Is.EqualTo("/serving/5?meal=Dinner"));
             Assert.That(ServingRoute.Url(5, Meal.Lunch, backTo: "/foods?meal=Lunch"), Is.EqualTo("/serving/5?meal=Lunch&back=%2Ffoods%3Fmeal%3DLunch"));
-            Assert.That(ServingRoute.Url(5, Meal.Snacks, new DateOnly(2031, 7, 4), "/foods"), Is.EqualTo("/serving/5?meal=Snacks&date=2031-07-04&return=%2Ffoods"));
+            Assert.That(ServingRoute.Url(5, Meal.Snacks, new DateOnly(2031, 7, 4)), Is.EqualTo("/serving/5?meal=Snacks&date=2031-07-04"));
         });
     }
 
@@ -79,58 +78,23 @@ public class ServingRouteTests
     public void ReturnOr_OnlyAnInAppPathIsKept(string? returnTo, string expected) =>
         Assert.That(ServingRoute.ReturnOr(returnTo, "/fallback"), Is.EqualTo(expected));
 
-    [TestCase("/back", "/return", "/back")]
-    [TestCase(null, "/return", "/return")]
-    [TestCase("//evil", "/return", "/return")]
-    [TestCase("/back", null, "/back")]
-    [TestCase("/", "/foods", "/")]
-    [TestCase("//evil.example", null, "/foods")]
-    [TestCase(null, null, "/foods")]
-    [TestCase("//evil", "https://evil", "/foods")]
-    public void BackTarget_TakesBackThenReturnThenTheDefault(string? backTo, string? returnTo, string expected) =>
-        Assert.That(ServingRoute.BackTarget(backTo, returnTo), Is.EqualTo(expected));
-
-    [TestCase("/foods", "/foods")]
-    [TestCase(null, "/")]
-    [TestCase("//evil", "/")]
-    public void AfterAddTarget_IsTheReturnRouteOrTheDashboard(string? returnTo, string expected) =>
-        Assert.That(ServingRoute.AfterAddTarget(returnTo), Is.EqualTo(expected));
+    [TestCase("/back", "/back")]
+    [TestCase("/", "/")]
+    [TestCase("//evil.example", "/foods")]
+    [TestCase("https://evil.example", "/foods")]
+    [TestCase(null, "/foods")]
+    public void BackTarget_IsTheInAppBackRouteOrTheDefault(string? backTo, string expected) =>
+        Assert.That(ServingRoute.BackTarget(backTo), Is.EqualTo(expected));
 
     [Test]
-    public void AfterAddTarget_WithAMeal_OpensThatMealOnTheDashboard_UnlessTheReturnRouteIsAccepted()
+    public void AfterAddTarget_IsThatDayOnTheDashboardWithTheMealOpen()
     {
-        var day = new DateOnly(2031, 7, 4);
-
         Assert.Multiple(() =>
         {
-            Assert.That(ServingRoute.AfterAddTarget(null, day, Meal.Lunch), Is.EqualTo("/?date=2031-07-04&open=Lunch"));
-            Assert.That(ServingRoute.AfterAddTarget(null, null, Meal.Lunch), Is.EqualTo("/?open=Lunch"));
-            Assert.That(ServingRoute.AfterAddTarget("//evil", null, Meal.Dinner), Is.EqualTo("/?open=Dinner"));
-            Assert.That(ServingRoute.AfterAddTarget("/foods", day, Meal.Lunch), Is.EqualTo("/foods"));
+            Assert.That(ServingRoute.AfterAddTarget(null, Meal.Lunch), Is.EqualTo("/?open=Lunch"));
+            Assert.That(ServingRoute.AfterAddTarget(new DateOnly(2031, 7, 4), Meal.Dinner), Is.EqualTo("/?date=2031-07-04&open=Dinner"));
         });
     }
-
-    [Test]
-    public void AfterAddTarget_WithADayAndNoReturnRoute_IsThatDayOnTheDashboard()
-    {
-        var day = new DateOnly(2031, 7, 4);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(ServingRoute.AfterAddTarget(null, day), Is.EqualTo("/?date=2031-07-04"));
-            Assert.That(ServingRoute.AfterAddTarget("//evil", day), Is.EqualTo("/?date=2031-07-04"));
-            Assert.That(ServingRoute.AfterAddTarget("/foods", day), Is.EqualTo("/foods"));
-            Assert.That(ServingRoute.FollowUpFor(null), Is.EqualTo(AddedFollowUp.Undo));
-        });
-    }
-
-    [TestCase("/foods", AddedFollowUp.ViewDay)]
-    [TestCase(null, AddedFollowUp.Undo)]
-    [TestCase("", AddedFollowUp.Undo)]
-    [TestCase("//x", AddedFollowUp.Undo)]
-    [TestCase("https://evil.example", AddedFollowUp.Undo)]
-    public void FollowUpFor_OffersViewDayOnlyWhenTheReturnRouteIsAccepted(string? returnTo, AddedFollowUp expected) =>
-        Assert.That(ServingRoute.FollowUpFor(returnTo), Is.EqualTo(expected));
 
     [Test]
     public void TheAppsRoutePage_UsesTheTemplateAndReadsTheQuery()
@@ -140,8 +104,8 @@ public class ServingRouteTests
         Assert.Multiple(() =>
         {
             Assert.That(page, Does.Contain($"@page \"{ServingRoute.Template}\""));
-            Assert.That(page, Does.Contain("Name = \"meal\"").And.Contain("Name = \"date\"").And.Contain("Name = \"return\"").And.Contain("Name = \"back\""));
-            Assert.That(page, Does.Contain("ServingRoute.BackTarget(BackTo, ReturnTo)").And.Contain("ServingRoute.FollowUpFor(ReturnTo)"));
+            Assert.That(page, Does.Contain("Name = \"meal\"").And.Contain("Name = \"date\"").And.Contain("Name = \"back\""));
+            Assert.That(page, Does.Contain("ServingRoute.BackTarget(BackTo)").And.Not.Contain("ReturnTo"));
         });
     }
 

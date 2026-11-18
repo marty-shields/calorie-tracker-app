@@ -17,5 +17,9 @@ public static class ScanRoute
 
     /// <summary>Where Back goes: the <c>back</c> route if it is in-app, else the Dashboard on <paramref name="date"/> (today when null).</summary>
     public static string BackTarget(string? backTo, DateOnly? date) =>
-        ServingRoute.ReturnOr(backTo, date is { } day ? DashboardRoute.Url(day) : ServingRoute.DefaultAfterAdd);
+        ServingRoute.ReturnOr(backTo, DashboardRoute.Url(date));
+
+    /// <summary>Where Search by name instead goes: back to the <c>back</c> route when it is a search (so the typed text survives), else a new search for <paramref name="meal"/> and <paramref name="date"/>.</summary>
+    public static string SearchTarget(string? backTo, Meal meal, DateOnly? date) =>
+        ServingRoute.ReturnOr(backTo, "") is { } back && back.StartsWith(FoodSearchRoute.Template + "?", StringComparison.Ordinal) ? back : FoodSearchRoute.AddUrl(meal, date);
 }

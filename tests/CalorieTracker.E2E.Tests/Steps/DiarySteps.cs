@@ -63,9 +63,6 @@ public sealed class DiarySteps(ServingScreen serving, FoodSearchScreen foods, Da
     [When(@"^I tap the trash icon$")]
     public void WhenITapTheTrashIcon() => serving.Remove();
 
-    [When(@"^I tap View day$")]
-    public void WhenITapViewDay() => snackbar.TapAction();
-
     [When(@"^I tap Undo$")]
     public void WhenITapUndo() => snackbar.TapAction();
 

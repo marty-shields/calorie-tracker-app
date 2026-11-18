@@ -710,43 +710,6 @@ public class ServingPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task Add_WithAReturnRoute_PostsViewDay_AndItOpensTheDayAfterThePageIsGone()
-    {
-        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
-        var opened = new List<DateOnly>();
-        var cut = Render(cheddarId, Meal.Lunch, more: p => p
-            .Add(x => x.AfterAdd, AddedFollowUp.ViewDay)
-            .Add(x => x.ViewDay, day =>
-            {
-                opened.Add(day);
-                return Task.CompletedTask;
-            }));
-
-        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
-        var message = snackbar.Current!;
-        await Context.DisposeComponentsAsync();
-        await snackbar.InvokeActionAsync(message);
-
-        Assert.Multiple(async () =>
-        {
-            Assert.That((message.Text, message.ActionLabel), Is.EqualTo(("Cheddar cheese added to Lunch", "View day")));
-            Assert.That(opened, Is.EqualTo(new[] { Day }));
-            Assert.That(await Entries(), Has.Count.EqualTo(1));
-        });
-    }
-
-    [Test]
-    public async Task Add_AskingForViewDayWithNoWayToOpenIt_PostsUndoInstead()
-    {
-        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
-        var cut = Render(cheddarId, Meal.Lunch, more: p => p.Add(x => x.AfterAdd, AddedFollowUp.ViewDay));
-
-        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
-
-        Assert.That(snackbar.Current!.ActionLabel, Is.EqualTo("Undo"));
-    }
-
-    [Test]
     public async Task Undo_OfAnEntryAlreadyGone_CountsAsUndone_WithNoMessageAndNoLog()
     {
         var logger = new FakeLogger<ServingPage>();

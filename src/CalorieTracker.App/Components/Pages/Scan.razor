@@ -12,7 +12,7 @@
 <ScanPage Meal="meal" Date="date"
           OnFound="@(add => Navigation.GoTo(ServingRoute.Url(add.FoodId, meal, date, backTo: date is { } day ? DashboardRoute.Url(day) : "/", amount: add.LastAmount, servings: add.LastServings, servingId: add.LastServingId)))"
           OnBack="@(() => Navigation.GoTo(ScanRoute.BackTarget(BackTo, date)))"
-          OnSearchByName="@(() => Navigation.GoTo(FoodSearchRoute.AddUrl(meal, date)))" />
+          OnSearchByName="@(() => Navigation.GoTo(ScanRoute.SearchTarget(BackTo, meal, date)))" />
 
 @code {
     [SupplyParameterFromQuery(Name = "meal")]
@@ -24,7 +24,14 @@
     [SupplyParameterFromQuery(Name = "back")]
     public string? BackTo { get; set; }
 
-    private Meal meal => ServingRoute.ParseMeal(MealText) ?? MealWindows.MealFor(TimeOnly.FromDateTime(Time.GetLocalNow().DateTime));
+    private Meal meal;
 
-    private DateOnly? date => RouteDate.Parse(DateText);
+    private DateOnly? date;
+
+    /// <summary>Works the meal out once per set of route values, so a clock that crosses a meal window never changes it between renders.</summary>
+    protected override void OnParametersSet()
+    {
+        meal = ServingRoute.ParseMeal(MealText) ?? MealWindows.MealFor(TimeOnly.FromDateTime(Time.GetLocalNow().DateTime));
+        date = RouteDate.Parse(DateText);
+    }
 }

@@ -24,4 +24,11 @@ public class ScanRouteTests
     [TestCase("https://evil.example", "2026-11-12", "/?date=2026-11-12")]
     public void BackTarget_IsTheInAppBackRouteOrTheDay(string? back, string? day, string expected) =>
         Assert.That(ScanRoute.BackTarget(back, day is null ? null : DateOnly.Parse(day, System.Globalization.CultureInfo.InvariantCulture)), Is.EqualTo(expected));
+
+    [TestCase("/foods?meal=Dinner&q=oat", "/foods?meal=Dinner&q=oat")]
+    [TestCase(null, "/foods?meal=Lunch&date=2026-11-12")]
+    [TestCase("/?date=2026-11-12", "/foods?meal=Lunch&date=2026-11-12")]
+    [TestCase("//evil.example", "/foods?meal=Lunch&date=2026-11-12")]
+    public void SearchTarget_IsTheSearchThatOpenedTheScanOrANewSearch(string? back, string expected) =>
+        Assert.That(ScanRoute.SearchTarget(back, Meal.Lunch, new DateOnly(2026, 11, 12)), Is.EqualTo(expected));
 }

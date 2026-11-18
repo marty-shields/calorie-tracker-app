@@ -13,7 +13,7 @@
 @inject ILogger<FoodSearchPage> Logger
 
 <FoodSearchView Meal="Meal" Query="@query" Groups="groups" Expanded="expanded" OnExpand="Expand" Loading="loading" Failed="failed"
-                OnQueryChanged="SearchAsync" OnSelect="SelectAsync" OnBack="OnBack" OnScan="() => OnScan.InvokeAsync(query)" OnRetry="Retry"
+                OnQueryChanged="SearchAsync" OnSelect="SelectAsync" OnBack="OnBack" OnScan="ScanAsync" OnRetry="Retry"
                 OnlineState="onlineState" OnlineProducts="onlineProducts" OnlineCountry="@onlineCountry" OnlineExpanded="onlineExpanded" OnlineNoticeVisible="noticeVisible"
                 OnSearchOnline="SearchOnlineAsync" OnSelectOnline="SelectOnlineAsync" OnExpandOnline="ExpandOnline" OnRetryOnline="RetryOnlineAsync" />
 
@@ -59,6 +59,12 @@
     /// <summary>Raised by the barcode button after the search field, with the text typed so far so Back from the scanner can restore it.</summary>
     [Parameter]
     public EventCallback<string> OnScan { get; set; }
+
+    private Task ScanAsync()
+    {
+        // Like a tap on a result: nothing leaves the page while an add or an import is under way.
+        return added || onlineState == OnlineSearchState.Importing ? Task.CompletedTask : OnScan.InvokeAsync(query);
+    }
 
     protected override async Task OnInitializedAsync()
     {

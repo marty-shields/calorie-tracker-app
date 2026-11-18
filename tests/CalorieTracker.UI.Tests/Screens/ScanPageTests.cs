@@ -211,6 +211,40 @@ public class ScanPageTests : ComponentTestBase
     }
 
     [Test]
+    public void TheScanner_WithAMealAndNoDay_ReceivesTodayInTheCaption()
+    {
+        var clock = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(new DateTimeOffset(2026, 11, 18, 12, 0, 0, TimeSpan.Zero));
+        clock.SetLocalTimeZone(TimeZoneInfo.Utc);
+        Context.Services.AddSingleton<TimeProvider>(clock);
+
+        Context.Render<ScanPage>(p => p.Add(x => x.Meal, Meal.Lunch));
+
+        Assert.That(scanner.Captions, Is.EqualTo(new[] { "Adding to Lunch · 18 Nov" }));
+    }
+
+    [Test]
+    public async Task TheDay_WithNoDateGiven_StaysTheOneItOpenedOnWhenTheClockPassesMidnight()
+    {
+        var clock = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(new DateTimeOffset(2026, 11, 18, 23, 59, 0, TimeSpan.Zero));
+        clock.SetLocalTimeZone(TimeZoneInfo.Utc);
+        Context.Services.AddSingleton<TimeProvider>(clock);
+        var cut = Context.Render<ScanPage>(p => p.Add(x => x.Meal, Meal.Lunch));
+
+        clock.Advance(TimeSpan.FromMinutes(5));
+        scanner.Complete(ScanResult.Unavailable);
+        await WaitForRendererAsync();
+        cut.Render();
+        cut.Find("[data-testid=scan-camera-unavailable-retry]").Click();
+        await WaitForRendererAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=scan-adding]").TextContent, Is.EqualTo("Adding to Lunch · 18 Nov"));
+            Assert.That(scanner.Captions, Is.EqualTo(new[] { "Adding to Lunch · 18 Nov", "Adding to Lunch · 18 Nov" }));
+        });
+    }
+
+    [Test]
     public async Task Cancelled_ShowsClosingCameraNotOpeningCamera_WhenOnBackIsRaised()
     {
         string? markupAtBack = null;
@@ -293,6 +327,46 @@ public class ScanPageTests : ComponentTestBase
             Assert.That(cut.FindAll("[data-testid=scan-opening-camera]"), Has.Count.EqualTo(1));
             Assert.That(cut.FindAll("[data-testid=scan-not-found]"), Is.Empty);
             Assert.That(found, Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task LastAmountRead_FinishingAfterDispose_RaisesNothing()
+    {
+        var held = new TaskCompletionSource<CalorieTracker.Core.History.FoodHistory?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        search.Held = held;
+        lookup.Result = BarcodeLookupResult.Found(Stored(42));
+        var found = new List<ScanAddRequest>();
+        var cut = await ScannedAsync(p => p.Add(x => x.OnFound, found.Add));
+        cut.WaitForAssertion(() => Assert.That(search.MealsAsked, Has.Count.EqualTo(1)));
+
+        await Context.DisposeComponentsAsync();
+        held.SetResult(null);
+        await WaitForRendererAsync();
+
+        Assert.That(found, Is.Empty);
+    }
+
+    [Test]
+    public async Task LastAmountRead_FinishingAfterScanAgain_RaisesNothing()
+    {
+        var held = new TaskCompletionSource<CalorieTracker.Core.History.FoodHistory?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        search.Held = held;
+        lookup.Result = BarcodeLookupResult.Found(Stored(42));
+        var found = new List<ScanAddRequest>();
+        var cut = await ScannedAsync(p => p.Add(x => x.OnFound, found.Add));
+        cut.WaitForAssertion(() => Assert.That(search.MealsAsked, Has.Count.EqualTo(1)));
+
+        var runScan = typeof(ScanPage).GetMethod("RunScanAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        _ = cut.InvokeAsync(() => (Task)runScan.Invoke(cut.Instance, null)!);
+        cut.WaitForAssertion(() => Assert.That(scanner.Scans, Has.Count.EqualTo(2)));
+        held.SetResult(null);
+        await WaitForRendererAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(found, Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=scan-opening-camera]"), Has.Count.EqualTo(1));
         });
     }
 
@@ -480,7 +554,7 @@ public class ScanPageTests : ComponentTestBase
         food.Id = 42;
         lookup.Result = BarcodeLookupResult.Found(food);
         var found = new List<ScanAddRequest>();
-        var cut = await ScannedAsync(p => p.Add(x => x.OnFound, found.Add));
+        var cut = await ScannedAsync(p => p.Add(x => x.Meal, Meal.Dinner).Add(x => x.OnFound, found.Add));
         cut.WaitForAssertion(() => Assert.That(found, Has.Count.EqualTo(1)));
 
         var lines = logger.Collector.GetSnapshot().Select(r => r.Message).ToList();
@@ -488,7 +562,7 @@ public class ScanPageTests : ComponentTestBase
         {
             Assert.That(LoggedEvents.Of(logger).Select(e => e.Item1), Is.EqualTo(new[] { UiEvent.ScanLookupStarted, UiEvent.ScanLookupFinished }));
             Assert.That(lines, Has.Some.Contain(Barcode));
-            Assert.That(lines, Has.None.Contain("Porridge").And.None.Contain("Morning Mill"));
+            Assert.That(lines, Has.None.Contain("Porridge").And.None.Contain("Morning Mill").And.None.Contain("Dinner"));
         });
     }
 
@@ -513,10 +587,13 @@ public class ScanPageTests : ComponentTestBase
 
         public List<Meal?> MealsAsked { get; } = [];
 
-        public Task<CalorieTracker.Core.History.FoodHistory?> LastLoggedAsync(int foodId, Meal? meal = null)
+        /// <summary>When set, a read of the last amount waits for this before it answers.</summary>
+        public TaskCompletionSource<CalorieTracker.Core.History.FoodHistory?>? Held { get; set; }
+
+        public async Task<CalorieTracker.Core.History.FoodHistory?> LastLoggedAsync(int foodId, Meal? meal = null)
         {
             MealsAsked.Add(meal);
-            return Task.FromResult(Last.GetValueOrDefault(foodId));
+            return Held is not null ? await Held.Task : Last.GetValueOrDefault(foodId);
         }
 
         public Task<FoodSearchResult> SearchAsync(string query, int limit = IFoodSearch.DefaultLimit, CancellationToken ct = default) => throw new NotSupportedException();

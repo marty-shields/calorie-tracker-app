@@ -71,6 +71,7 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
     public void ThenTheDateStripSays(string text) => web.Eventually(dashboard.DateLabel, Does.StartWith(text));
 
     [When(@"^I go back to the Dashboard$")]
+    [Given(@"^I go back to the Dashboard$")]
     public void WhenIGoBackToTheDashboard() => journeys.GoToDashboard();
 
     private const string Meals = "(Breakfast|Lunch|Dinner|Snacks)";

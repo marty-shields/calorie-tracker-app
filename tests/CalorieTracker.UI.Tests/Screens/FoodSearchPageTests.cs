@@ -99,6 +99,20 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task TheBarcodeButton_AfterAResultWasTapped_RaisesNothing()
+    {
+        search.Results = [Oats];
+        var scans = new List<string>();
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch).Add(x => x.OnAdd, (FoodAddRequest _) => { }).Add(x => x.OnScan, scans.Add));
+        await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
+        await cut.Find("[data-testid=food-result-1]").ClickAsync(new());
+
+        await cut.Find("[data-testid=search-scan]").ClickAsync(new());
+
+        Assert.That(scans, Is.Empty);
+    }
+
+    [Test]
     public async Task TheBarcodeButton_StaysWhileTyping()
     {
         var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch));

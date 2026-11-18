@@ -15,6 +15,7 @@ public partial class ScanPage : IDisposable
 {
     private ScanState state = ScanState.OpeningCamera;
     private CancellationTokenSource? cancellation;
+    private DateOnly today;
 
     [Inject]
     private IBarcodeScanner Scanner { get; set; } = null!;
@@ -42,6 +43,11 @@ public partial class ScanPage : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>The day the chip and the scanner caption both show: read the clock once, so they agree.</summary>
+    private DateOnly day => Date ?? today;
+
+    protected override void OnInitialized() => today = DateOnly.FromDateTime(Time.GetLocalNow().DateTime);
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -62,7 +68,7 @@ public partial class ScanPage : IDisposable
         StateHasChanged();
 
         var token = scan.Token;
-        var result = await Scanner.ScanAsync(Accept, await SavedThemeAsync(), ScanCaption.For(Meal, Date ?? DateOnly.FromDateTime(Time.GetLocalNow().DateTime)));
+        var result = await Scanner.ScanAsync(Accept, await SavedThemeAsync(), ScanCaption.For(Meal, day));
         if (token.IsCancellationRequested)
         {
             return;

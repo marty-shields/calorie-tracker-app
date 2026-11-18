@@ -31,6 +31,20 @@ public partial class ScanServingRouteTests
         });
     }
 
+    [TestCase("Scan.razor")]
+    [TestCase("Foods.razor")]
+    public void TheMeal_IsWorkedOutOnceWhenTheRouteIsSet_NotOnEveryRender(string page)
+    {
+        var markup = AppPage(page);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(markup, Does.Contain("protected override void OnParametersSet()"));
+            Assert.That(markup, Does.Contain("private Meal meal;"));
+            Assert.That(markup, Does.Not.Contain("Meal meal =>"));
+        });
+    }
+
     [Test]
     public void Home_RoutesTheAddSheetToSearchAndScanWithTheMealAndDay()
     {
@@ -65,7 +79,7 @@ public partial class ScanServingRouteTests
         Assert.Multiple(() =>
         {
             Assert.That(scanPage, Does.Not.Contain("OnNavigate"));
-            Assert.That(scan, Does.Contain("OnSearchByName=\"@(() => Navigation.GoTo(FoodSearchRoute.AddUrl(meal, date)))\""));
+            Assert.That(scan, Does.Contain("OnSearchByName=\"@(() => Navigation.GoTo(ScanRoute.SearchTarget(BackTo, meal, date)))\""));
         });
     }
 
@@ -77,7 +91,7 @@ public partial class ScanServingRouteTests
         Assert.Multiple(() =>
         {
             Assert.That(serving, Does.Match(BackQueryParameter()));
-            Assert.That(serving, Does.Contain("ServingRoute.BackTarget(BackTo, ReturnTo)"));
+            Assert.That(serving, Does.Contain("ServingRoute.BackTarget(BackTo)"));
         });
     }
 

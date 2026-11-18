@@ -1,6 +1,6 @@
 @using CalorieTracker.Core.Data
 @using CalorieTracker.UI.Models.Scan
-<ScanView State="state" Meal="Meal" Date="Date ?? DateOnly.FromDateTime(Time.GetLocalNow().DateTime)" OnScanAgain="RunScanAsync" OnSearchByName="OnSearchByName" OnBack="OnBack" />
+<ScanView State="state" Meal="Meal" Date="day" OnScanAgain="RunScanAsync" OnSearchByName="OnSearchByName" OnBack="OnBack" />
 
 @code {
     /// <summary>Raised by the back arrow, Android back, and when the camera is closed without a barcode.</summary>
