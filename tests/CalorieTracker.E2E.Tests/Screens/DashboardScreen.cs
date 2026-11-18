@@ -77,8 +77,6 @@ public sealed class DashboardScreen(WebView web)
 
     public void NextDay() => web.Tap("date-strip-next");
 
-    public void PreviousDay() => web.Tap("date-strip-previous");
-
     public void ToToday() => web.Tap("date-strip-label");
 
     public bool HasStartupError() => web.Exists("startup-error");
