@@ -42,12 +42,12 @@ internal static class E2EScanSeam
 
     private sealed class FileScanner(IBarcodeScanner camera) : IBarcodeScanner
     {
-        public Task<ScanResult> ScanAsync(Func<string, bool> accept, ThemePreference theme)
+        public Task<ScanResult> ScanAsync(Func<string, bool> accept, ThemePreference theme, string caption)
         {
             var path = Path.Combine(Android.App.Application.Context.GetExternalFilesDir(null)?.AbsolutePath ?? FileSystem.AppDataDirectory, FileName);
             if (!File.Exists(path))
             {
-                return camera.ScanAsync(accept, theme);
+                return camera.ScanAsync(accept, theme, caption);
             }
 
             var digits = File.ReadAllText(path).Trim();

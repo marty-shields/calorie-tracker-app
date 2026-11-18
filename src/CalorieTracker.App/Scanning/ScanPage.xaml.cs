@@ -10,10 +10,11 @@ public partial class ScanPage : ContentPage
 
     private readonly Func<string, bool> accept;
 
-    public ScanPage(Func<string, bool> accept)
+    public ScanPage(Func<string, bool> accept, string caption)
     {
         this.accept = accept;
         InitializeComponent();
+        Caption.Text = caption;
     }
 
     /// <summary>Completes with the first accepted detection, or Cancelled if the page closes without one.</summary>
@@ -27,6 +28,8 @@ public partial class ScanPage : ContentPage
             await CloseAsync(result);
         }
     }
+
+    private async void OnSearchByNameClicked(object? sender, EventArgs e) => await CloseAsync(ScanResult.SearchByName);
 
     private async void OnCancelClicked(object? sender, EventArgs e) => await CloseAsync(ScanResult.Cancelled);
 

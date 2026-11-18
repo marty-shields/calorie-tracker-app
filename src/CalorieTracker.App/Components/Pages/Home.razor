@@ -4,7 +4,7 @@
 @using CalorieTracker.UI.Screens
 @inject NavigationManager Navigation
 
-@* Back has no handler here, so it leaves the app. Query: date (yyyy-MM-dd) opens that day, as the View day link does; without it the Dashboard opens on today. Query: open (a meal name) shows that meal open on Today whatever its window, which Serving sends after an add (and a later quick add can too).
+@* Back has no handler here, so it leaves the app. Query: date (yyyy-MM-dd) opens that day; without it the Dashboard opens on today. Query: open (a meal name) shows that meal open on Today whatever its window, which Serving sends after an add (and a later quick add can too).
    A meal's + and the bar's Add sheet (Search foods) open search to add to that meal and day, the sheet's Scan barcode opens the scanner the same way; an entry opens Serving in edit mode. *@
 <DashboardPage Date="date" OpenMeal="openMeal"
                OnAdd="@(request => Navigation.GoTo(FoodSearchRoute.AddUrl(request.Meal, request.Date)))"

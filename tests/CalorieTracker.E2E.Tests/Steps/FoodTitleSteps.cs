@@ -3,9 +3,9 @@ using Reqnroll;
 
 namespace CalorieTracker.E2E.Tests.Steps;
 
-/// <summary>Checks that a food's title is the same on search, its values, Serving, Scan and the diary row.</summary>
+/// <summary>Checks that a food's title is the same on search, Serving and the diary row.</summary>
 [Binding]
-public sealed class FoodTitleSteps(FoodSearchScreen foods, ServingScreen serving, ScanScreen scan, DashboardScreen dashboard, WebView web)
+public sealed class FoodTitleSteps(FoodSearchScreen foods, ServingScreen serving, DashboardScreen dashboard, WebView web)
 {
     private const string Meals = "(Breakfast|Lunch|Dinner|Snacks)";
 
@@ -19,10 +19,6 @@ public sealed class FoodTitleSteps(FoodSearchScreen foods, ServingScreen serving
         web.WaitUntil(() => foods.FirstResultTitle() is { Length: > 0 }, "no result to note");
         noted = foods.FirstResultTitle();
     }
-
-    [Given(@"^I have noted the product's title on Scan$")]
-    [Then(@"^I have noted the product's title on Scan$")]
-    public void GivenIHaveNotedTheProductsTitleOnScan() => noted = scan.ProductTitle();
 
     [Given(@"^I have noted the title of the " + Meals + " entry$")]
     [Then(@"^I have noted the title of the " + Meals + " entry$")]
@@ -40,8 +36,12 @@ public sealed class FoodTitleSteps(FoodSearchScreen foods, ServingScreen serving
     public void ThenTheResultsIncludeAFoodTitledWithTheNotedTitle() =>
         web.Eventually(() => foods.ResultRows().Select(FirstLine).ToList(), Does.Contain(noted), "a result row headed with the noted title");
 
-    [Then(@"^the food's values are headed with the noted title$")]
-    public void ThenTheFoodsValuesAreHeadedWithTheNotedTitle() => web.Eventually(foods.DetailName, Is.EqualTo(noted));
+    [Then(@"^Serving is headed with a title containing ""(.*)""$")]
+    public void ThenServingIsHeadedWithATitleContaining(string word)
+    {
+        web.WaitUntil(() => web.Exists("serving-add"), "the Serving screen didn't show");
+        web.Eventually(serving.Title, Does.Contain(word).IgnoreCase);
+    }
 
     [Then(@"^Serving is headed with the noted title$")]
     public void ThenServingIsHeadedWithTheNotedTitle() => web.Eventually(serving.Title, Is.EqualTo(noted));

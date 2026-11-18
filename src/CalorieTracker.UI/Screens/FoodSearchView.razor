@@ -2,30 +2,14 @@
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Foods
 @using CalorieTracker.Core.History
+@using CalorieTracker.Core.Summary
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Components.Inputs
 @using CalorieTracker.UI.Components.Lists
 @using CalorieTracker.UI.Models.Search
-@* Add mode leaves the snackbar to the Dashboard; search without a meal (an old link) shows it itself, as the return to /foods?q= posts "<food> added to <meal>" with View day. *@
-<AppScreen Title="@(Meal is { } meal ? $"Add to {meal}" : "Search foods")" OnBack="@(Meal is null && Selected is not null ? OnClearSelection : OnBack)" Toolbar="@(Selected is null && !Failed ? Tools : null)"
-           Status="@(Meal is null ? Notice : null)" BottomBar="@(Selected is { } chosen ? Actions(chosen) : null)">
-    <Actions>
-        @if (Selected is not null && Favourite is { } favourite)
-        {
-            <IconButton Icon="FavouriteStar.IconFor(favourite)" AriaLabel="@FavouriteStar.LabelFor(favourite)" Pressed="favourite" TestId="food-detail-favourite" OnClick="OnToggleFavourite" />
-        }
-    </Actions>
+<AppScreen Title="@($"Add to {Meal}")" Subtitle="@(Date is { } day ? DayLabel.For(day, Today) : null)" OnBack="OnBack" Toolbar="@(!Failed ? Tools : null)">
     <ChildContent>
-        @if (Selected is { } food)
-        {
-            var display = FoodDisplay.Of(food);
-            <section class="detail" data-testid="food-detail">
-                <FoodValues Name="@display.Title" Brand="@display.BrandLine" Pack="@display.Pack" GenericName="@display.GenericName" IsLiquid="@(food.Unit == FoodUnit.Millilitre)" Kcal="food.Kcal" Protein="food.ProteinG"
-                            Carbs="food.CarbsG" Fat="food.FatG" Fibre="food.FibreG" Sugars="food.SugarsG" Saturates="food.SaturatesG" Salt="food.SaltG"
-                            TestId="food-detail" />
-            </section>
-        }
-        else if (Loading)
+        @if (Loading)
         {
             <div class="loading">
                 <Spinner Label="Loading foods…" TestId="food-search-loading" />
@@ -41,16 +25,9 @@
         }
         else if (Groups.Count == 0)
         {
-            @if (Meal is null)
-            {
-                <p class="none" data-testid="food-search-none">No foods match</p>
-            }
-            else
-            {
-                <div class="add-none">
-                    <EmptyState Message="No foods match" Hint="Try another word." TestId="food-search-none" />
-                </div>
-            }
+            <div class="add-none">
+                <EmptyState Message="No foods match" Hint="Try another word." TestId="food-search-none" />
+            </div>
 
             @Online(true)
         }
@@ -112,7 +89,7 @@
     [Parameter]
     public EventCallback<FoodGroupKind> OnExpand { get; set; }
 
-    /// <summary>Where the online search is. Shown under the local groups once something is typed, never with the food's values, the loading state or a load error.</summary>
+    /// <summary>Where the online search is. Shown under the local groups once something is typed, never with the loading state or a load error.</summary>
     [Parameter]
     public OnlineSearchState OnlineState { get; set; }
 
@@ -148,18 +125,6 @@
     [Parameter]
     public EventCallback OnRetryOnline { get; set; }
 
-    /// <summary>The food whose values show in place of the list. Null shows the list.</summary>
-    [Parameter]
-    public Food? Selected { get; set; }
-
-    /// <summary>Whether <see cref="Selected"/> is a favourite: the star in the top bar of its values is filled when true, outlined when false. Null shows no star, such as when the read failed.</summary>
-    [Parameter]
-    public bool? Favourite { get; set; }
-
-    /// <summary>Raised by the star on a food's values. The screen flips <see cref="Favourite"/> itself; a failed write puts it back.</summary>
-    [Parameter]
-    public EventCallback OnToggleFavourite { get; set; }
-
     /// <summary>Shows a spinner while the food list is loaded for the first time, instead of the results.</summary>
     [Parameter]
     public bool Loading { get; set; }
@@ -168,9 +133,17 @@
     [Parameter]
     public bool Failed { get; set; }
 
-    /// <summary>The meal being added to, which turns search into add mode: the title reads "Add to Lunch", a back arrow leaves for the Dashboard and no navigation bar shows. Null is search without a meal (an old link).</summary>
+    /// <summary>The meal being added to: the title reads "Add to Lunch", a back arrow leaves for where search was opened and no navigation bar shows.</summary>
     [Parameter]
-    public Meal? Meal { get; set; }
+    public Meal Meal { get; set; }
+
+    /// <summary>The day being added to, shown under the title such as "Today, 18 Nov". Null shows no day.</summary>
+    [Parameter]
+    public DateOnly? Date { get; set; }
+
+    /// <summary>The current day, given by the caller so the view never reads the clock. Decides Today, Yesterday and Tomorrow in the day under the title.</summary>
+    [Parameter]
+    public DateOnly Today { get; set; }
 
     /// <summary>Raised with the whole text on every keystroke.</summary>
     [Parameter]
@@ -180,29 +153,17 @@
     [Parameter]
     public EventCallback<Food> OnSelect { get; set; }
 
-    /// <summary>Raised with the food on a food's values by Add to diary.</summary>
-    [Parameter]
-    public EventCallback<Food> OnAdd { get; set; }
-
-    /// <summary>Raised by the back arrow and Android back, except while a food's values show without a meal, where they return to the list.</summary>
+    /// <summary>Raised by the back arrow and Android back.</summary>
     [Parameter]
     public EventCallback OnBack { get; set; }
 
-    /// <summary>Raised by Back to results on a food's values, the back arrow and Android back.</summary>
+    /// <summary>Raised by the barcode button after the search field, which opens the scanner for the same meal and day.</summary>
     [Parameter]
-    public EventCallback OnClearSelection { get; set; }
+    public EventCallback OnScan { get; set; }
 
     /// <summary>Raised by Try again.</summary>
     [Parameter]
     public EventCallback OnRetry { get; set; }
-
-    private RenderFragment Actions(Food chosen) =>
-        @<div class="actions">
-            <AppButton Variant="ButtonVariant.Primary" FullWidth TestId="food-detail-add" OnClick="@(() => OnAdd.InvokeAsync(chosen))">Add to diary</AppButton>
-            <AppButton Variant="ButtonVariant.Secondary" FullWidth TestId="food-detail-close" OnClick="OnClearSelection">Back to results</AppButton>
-        </div>;
-
-    private RenderFragment Notice => @<Snackbar />;
 
     /// <summary>The online part under the local results. <paramref name="noMatches"/>: no stored food matched, so the button is primary instead of secondary.</summary>
     private RenderFragment Online(bool noMatches) =>
@@ -289,6 +250,10 @@
                 <span class="search-icon"><Icon Name="IconName.Search" Tone="IconTone.Muted" /></span>
                 <input type="search" class="search-input" placeholder="Search foods" aria-label="Search foods" autocomplete="off" enterkeyhint="search"
                        value="@Query" data-testid="food-search-input" @oninput="OnInput" @onkeydown="OnKeyDown" />
+                <span class="search-divider" aria-hidden="true"></span>
+                <span class="search-scan">
+                    <IconButton Icon="IconName.Scan" AriaLabel="Scan a barcode" Compact TestId="search-scan" OnClick="OnScan" />
+                </span>
             </div>
         </div>;
 
@@ -306,7 +271,7 @@
     private string Heading(FoodGroupKind kind) => kind switch
     {
         FoodGroupKind.Favourites => "Favourites",
-        FoodGroupKind.Usual => $"Usual for {(Meal?.ToString() ?? "meal").ToLowerInvariant()}",
+        FoodGroupKind.Usual => $"Usual for {Meal.ToString().ToLowerInvariant()}",
         FoodGroupKind.Recent => "Recent",
         FoodGroupKind.Diary => "From your diary",
         FoodGroupKind.Common => "Common",
@@ -319,7 +284,7 @@
         var food = item.Food;
         var detail = display.Detail;
         var values = item.History is { } last
-            ? $"{Last(last, food)} · {Number(Math.Round(food.Kcal * last.LastAmount / 100))} kcal"
+            ? $"{Last(last, food)} · {Number(Nutrition.ForAmount(food, last.LastAmount).Kcal)} kcal"
             : $"{Number(food.Kcal)} kcal / 100 {UnitText(food)}";
         return detail is null ? values : $"{detail} · {values}";
     }

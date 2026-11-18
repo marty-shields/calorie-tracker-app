@@ -1,17 +1,32 @@
+.scan {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    height: 100%;
+}
+
+.adding {
+    align-self: center;
+    margin: 0;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-selected);
+    font-weight: var(--font-weight-bold);
+}
+
+.actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    align-self: stretch;
+}
+
 .centre {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: var(--space-4);
-    height: 100%;
+    flex: 1;
     text-align: center;
-}
-
-.warning {
-    margin: 0;
-    padding: var(--space-3) var(--space-4);
-    border: var(--border-width-error) solid var(--color-error);
-    border-radius: var(--radius-md);
-    color: var(--color-error);
 }

@@ -9,7 +9,7 @@ Home screen, called **Today** in the app's design: the day diary. A date strip, 
 | Part | Content |
 |---|---|
 | Top bar | Title "Calorie Tracker"; Settings gear (`IconButton`) on the right, opens Settings. No back arrow; back leaves the app. |
-| Date strip | `DateStrip` under the bar: "Today, 19 Jul", the arrows move a day either way with no limit (future days too), and tapping the label returns to today. A future day looks like any other. The page opens on today, or on the day in the route's `date` (`/?date=yyyy-MM-dd`, which the Foods snackbar's **View day** uses). |
+| Date strip | `DateStrip` under the bar: "Today, 19 Jul", the arrows move a day either way with no limit (future days too), and tapping the label returns to today. A future day looks like any other. The page opens on today, or on the day in the route's `date` (`/?date=yyyy-MM-dd`). |
 | Calories | A compact `SummaryCard`: the `CalorieRing` at its `Compact` size (`--ring-size-compact` 6rem, `--ring-width-compact` stroke) with "Eaten" and "Target" beside it, and the macros under them. Calories left; over the target the ring shows how many over, in the error tone. With no target set the ring shows calories eaten, the card says "No target set" and **Set a target** opens Settings. Whole kcal as the day summary rounds them. |
 | Macros | The `EnergyShareBar` with protein, carbs and fat in grams, inside the card under the ring. Hidden while nothing is logged. |
 | Empty day | `EmptyState` "Nothing logged today" ("Nothing logged this day" on any other day) with "Tap + on a meal to add your first food." shows under the card when no meal has an entry (the card has no macros then). |

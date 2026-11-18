@@ -1,13 +1,11 @@
 namespace CalorieTracker.E2E.Tests.Screens;
 
-/// <summary>Food search: the search box, the results, and one food's values.</summary>
+/// <summary>Food search: the search box, the barcode button and the results.</summary>
 public sealed class FoodSearchScreen(WebView web)
 {
     private string? lastSearch;
 
-    public const string Title = "Search foods";
-
-    /// <summary>Whether a screen title is food search in add mode ("Add to Lunch").</summary>
+    /// <summary>Whether a screen title is food search ("Add to Lunch").</summary>
     public static bool IsAddTitle(string title) => title.StartsWith("Add to ", StringComparison.Ordinal);
 
     public string ScreenTitle() => web.Text("screen-title");
@@ -147,26 +145,13 @@ public sealed class FoodSearchScreen(WebView web)
         return web.Text("food-search-online-none");
     }
 
+    /// <summary>Whether a food's values screen shows. None does: a result opens Serving.</summary>
     public bool ShowsDetail() => web.Exists("food-detail");
 
-    public string DetailName() => web.Text("food-detail-name");
+    /// <summary>Whether the barcode button shows after the search field.</summary>
+    public bool HasScanButton() => web.Exists("search-scan");
 
-    public string DetailEnergy() => web.Text("food-detail-kcal");
-
-    public void AddToDiary() => web.Tap("food-detail-add");
-
-    public void BackToResults() => web.Tap("food-detail-close");
-
-    /// <summary>The star on a food's values: its accessible name.</summary>
-    public string DetailStarLabel() => web.Attribute("food-detail-favourite", "aria-label");
-
-    /// <summary>The star on a food's values: <c>aria-pressed</c>, "true" when the food is a favourite.</summary>
-    public string DetailStarPressed() => web.Attribute("food-detail-favourite", "aria-pressed");
-
-    public void TapDetailStar() => web.Tap("food-detail-favourite");
-
-    /// <summary>Whether a result row holds a star button; none does.</summary>
-    public bool RowsShowAStar() => web.FindAll("[data-testid^=\"food-result-\"] button").Count > 0;
+    public void TapScan() => web.Tap("search-scan");
 
     /// <summary>What is in the search box.</summary>
     public string Typed() => web.Value("food-search-input");

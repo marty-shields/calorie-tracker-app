@@ -10,6 +10,7 @@ public class MealWindowsTests
     [TestCase(5, 0, Meal.Breakfast)]
     [TestCase(10, 59, Meal.Breakfast)]
     [TestCase(11, 0, Meal.Lunch)]
+    [TestCase(12, 0, Meal.Lunch)]
     [TestCase(14, 59, Meal.Lunch)]
     [TestCase(15, 0, Meal.Snacks)]
     [TestCase(16, 59, Meal.Snacks)]

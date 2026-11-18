@@ -8,7 +8,7 @@ public partial class ScanServingRouteTests
     private static string AppPage(string name) => RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", name);
 
     [Test]
-    public void Scan_RoutesAddToDiaryToTheServingScreenWithBackToTheStartScreen()
+    public void Scan_RoutesAFoundProductToTheServingScreenWithBackToTheStartScreen()
     {
         var scan = AppPage("Scan.razor");
 
@@ -23,9 +23,25 @@ public partial class ScanServingRouteTests
         Assert.Multiple(() =>
         {
             Assert.That(scan, Does.Contain("<ScanPage Meal=\"meal\""));
-            Assert.That(scan, Does.Contain("OnBack=\"@(() => Navigation.GoTo(date is { } day ? DashboardRoute.Url(day) : string.Empty))\""));
+            Assert.That(scan, Does.Contain("OnBack=\"@(() => Navigation.GoTo(ScanRoute.BackTarget(BackTo, date)))\""));
+            Assert.That(scan, Does.Contain("SupplyParameterFromQuery(Name = \"back\")"));
+            Assert.That(scan, Does.Contain("ServingRoute.ParseMeal(MealText) ?? MealWindows.MealFor(TimeOnly.FromDateTime(Time.GetLocalNow().DateTime))"));
             Assert.That(scan, Does.Contain("SupplyParameterFromQuery(Name = \"meal\")"));
             Assert.That(scan, Does.Contain("SupplyParameterFromQuery(Name = \"date\")"));
+        });
+    }
+
+    [TestCase("Scan.razor")]
+    [TestCase("Foods.razor")]
+    public void TheMeal_IsWorkedOutOnceWhenTheRouteIsSet_NotOnEveryRender(string page)
+    {
+        var markup = AppPage(page);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(markup, Does.Contain("protected override void OnParametersSet()"));
+            Assert.That(markup, Does.Contain("private Meal meal;"));
+            Assert.That(markup, Does.Not.Contain("Meal meal =>"));
         });
     }
 
@@ -43,13 +59,13 @@ public partial class ScanServingRouteTests
     }
 
     [Test]
-    public void Foods_CarriesNoPackToTheServingScreen_InEitherMode()
+    public void Foods_CarriesNoPackToTheServingScreen()
     {
         var foods = AppPage("Foods.razor");
 
         Assert.Multiple(() =>
         {
-            Assert.That(Regex.Matches(foods, @"servingId: request\.LastServingId\)"), Has.Count.EqualTo(2));
+            Assert.That(Regex.Matches(foods, @"servingId: request\.LastServingId\)"), Has.Count.EqualTo(1));
             Assert.That(foods, Does.Not.Contain("pack:"));
         });
     }
@@ -63,7 +79,7 @@ public partial class ScanServingRouteTests
         Assert.Multiple(() =>
         {
             Assert.That(scanPage, Does.Not.Contain("OnNavigate"));
-            Assert.That(scan, Does.Contain("OnSearchByName=\"@(() => Navigation.GoTo(meal is { } preset ? FoodSearchRoute.AddUrl(preset, date) : FoodSearchRoute.Template))\""));
+            Assert.That(scan, Does.Contain("OnSearchByName=\"@(() => Navigation.GoTo(ScanRoute.SearchTarget(BackTo, meal, date)))\""));
         });
     }
 
@@ -75,7 +91,7 @@ public partial class ScanServingRouteTests
         Assert.Multiple(() =>
         {
             Assert.That(serving, Does.Match(BackQueryParameter()));
-            Assert.That(serving, Does.Contain("ServingRoute.BackTarget(BackTo, ReturnTo)"));
+            Assert.That(serving, Does.Contain("ServingRoute.BackTarget(BackTo)"));
         });
     }
 

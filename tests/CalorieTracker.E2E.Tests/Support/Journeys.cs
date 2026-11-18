@@ -3,14 +3,13 @@ using CalorieTracker.E2E.Tests.Screens;
 
 namespace CalorieTracker.E2E.Tests.Support;
 
-/// <summary>What a user does across screens: open Settings, Foods or Scan (the last two through the Add sheet), go back to the Dashboard.</summary>
+/// <summary>What a user does across screens: open Settings, search or Scan (the last two through the Add sheet), go back to the Dashboard.</summary>
 public sealed class Journeys(WebView web, Native native, DashboardScreen dashboard, SettingsScreen settings, AddSheetScreen addSheet)
 {
     public enum Screen
     {
         Dashboard,
         Settings,
-        Foods,
         Scan,
         AddFood,
         Other,
@@ -21,7 +20,6 @@ public sealed class Journeys(WebView web, Native native, DashboardScreen dashboa
     {
         DashboardScreen.Title => Screen.Dashboard,
         SettingsScreen.Title => Screen.Settings,
-        FoodSearchScreen.Title => Screen.Foods,
         ScanScreen.Title => Screen.Scan,
         var title when FoodSearchScreen.IsAddTitle(title) => Screen.AddFood,
         _ => Screen.Other,
@@ -38,16 +36,8 @@ public sealed class Journeys(WebView web, Native native, DashboardScreen dashboa
         WaitFor(Screen.Settings);
     }
 
-    /// <summary>
-    /// Opens food search with no meal, by the old <c>/foods</c> link, and waits for it. Nothing in the app leads there now:
-    /// the Add sheet always opens search for a meal (<see cref="OpenFoodsFromTheAddSheet"/>). Scenarios that need the meal-less values step use this until it is removed.
-    /// </summary>
-    public void OpenFoods()
-    {
-        WaitFor(Screen.Dashboard);
-        web.NavigateTo("/foods");
-        WaitFor(Screen.Foods);
-    }
+    /// <summary>Opens search from the Dashboard through the Add sheet (the meal it guessed) and waits for it. Search always adds to a meal, so this is the only way in.</summary>
+    public void OpenFoods() => OpenFoodsFromTheAddSheet();
 
     /// <summary>Opens search from the Dashboard through the Add sheet's Search foods, which adds to the meal the sheet guessed, and waits for it.</summary>
     public void OpenFoodsFromTheAddSheet()
@@ -67,7 +57,7 @@ public sealed class Journeys(WebView web, Native native, DashboardScreen dashboa
         WaitFor(Screen.Scan);
     }
 
-    /// <summary>Goes to the Dashboard from Settings, Foods, Scan or search for a meal (Android back, which the bar no longer replaces), or stays on it.</summary>
+    /// <summary>Goes to the Dashboard from Settings, Scan or search for a meal (Android back, which the bar no longer replaces), or stays on it.</summary>
     public void GoToDashboard()
     {
         switch (Current())
@@ -75,9 +65,10 @@ public sealed class Journeys(WebView web, Native native, DashboardScreen dashboa
             case Screen.Settings:
                 settings.Back();
                 break;
-            case Screen.Foods:
             case Screen.Scan:
             case Screen.AddFood:
+                // A typed search leaves the keyboard up, and the first back key would only close it.
+                native.HideKeyboard();
                 native.BackKey();
                 break;
         }

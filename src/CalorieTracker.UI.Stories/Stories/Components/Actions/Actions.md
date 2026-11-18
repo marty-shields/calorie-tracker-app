@@ -32,7 +32,7 @@ A Material Symbols Outlined icon (weight 400), drawn as an SVG and hidden from s
 - Scan: the Scan barcode tile of the `AddSheet`, and Search: its Search foods tile.
 - Plus and Minus: add or remove, e.g. a stepper, a meal's add button or the raised Add button of `BottomNav`.
 - ChevronLeft: the previous item in a sequence, such as the previous day; Chevron points right. Back is for leaving a screen.
-- Star and StarFilled: not a favourite and a favourite. The star button in the top bar of Serving and of a food's values in search without a meal (old link); the icon takes the top bar's text colour.
+- Star and StarFilled: not a favourite and a favourite. The star button in the top bar of Serving; the icon takes the top bar's text colour.
 
 ## `IconButton`
 A button that shows an `Icon`, with a 48px touch target.

@@ -5,27 +5,23 @@
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Models.Search
 @using Microsoft.Extensions.Logging
+@inject TimeProvider Time
 @inject IFoodSearch Search
 @inject IOnlineFoodSearch OnlineSearch
 @inject IOnlineFoodImport OnlineImport
 @inject IOnlineSearchNotice OnlineNotice
 @inject SeedProgress Seed
-@inject FavouriteService Favourites
-@inject SnackbarService Snackbar
 @inject ILogger<FoodSearchPage> Logger
 
-<FoodSearchView Meal="Meal" Query="@query" Groups="groups" Expanded="expanded" OnExpand="Expand" Selected="selected" Favourite="star.IsFavourite" OnToggleFavourite="star.ToggleAsync" Loading="loading" Failed="failed"
-                OnQueryChanged="SearchAsync" OnSelect="SelectAsync" OnAdd="AddAsync" OnBack="OnBack" OnClearSelection="ClearSelection" OnRetry="Retry"
+<FoodSearchView Meal="Meal" Date="Day" Today="Today" Query="@query" Groups="groups" Expanded="expanded" OnExpand="Expand" Loading="loading" Failed="failed"
+                OnQueryChanged="SearchAsync" OnSelect="SelectAsync" OnBack="OnBack" OnScan="ScanAsync" OnRetry="Retry"
                 OnlineState="onlineState" OnlineProducts="onlineProducts" OnlineCountry="@onlineCountry" OnlineExpanded="onlineExpanded" OnlineNoticeVisible="noticeVisible"
                 OnSearchOnline="SearchOnlineAsync" OnSelectOnline="SelectOnlineAsync" OnExpandOnline="ExpandOnline" OnRetryOnline="RetryOnlineAsync" />
 
 @code {
-    private FavouriteStar star = null!;
-    private bool? starAtOpen;
     private string query = "";
     private IReadOnlyList<FoodGroup> groups = [];
     private readonly HashSet<FoodGroupKind> expanded = [];
-    private Food? selected;
     private bool loading;
     private bool failed;
     private bool seedFailed;
@@ -41,29 +37,46 @@
     /// <summary>The product tapped last, so Try again fetches it again; null when the last tap was the search.</summary>
     private OnlineProduct? lastTapped;
 
-    /// <summary>Set by the first result tapped in add mode, so a double tap adds once. The page is left on the way out, so it is never cleared.</summary>
+    /// <summary>Set by the first result tapped, so a double tap adds once. The page is left on the way out, so it is never cleared.</summary>
     private bool added;
     private CancellationTokenSource? running;
 
-    /// <summary>The meal being added to. Set, the page is in add mode: tapping a result raises <see cref="OnAdd"/> straight away instead of showing the food's values.</summary>
+    /// <summary>The meal being added to: tapping a result raises <see cref="OnAdd"/> straight away.</summary>
     [Parameter]
-    public Meal? Meal { get; set; }
+    public Meal Meal { get; set; }
+
+    /// <summary>The day being added to; null is today. Shown under the title.</summary>
+    [Parameter]
+    public DateOnly? Date { get; set; }
+
+    private DateOnly Today => DateOnly.FromDateTime(Time.GetLocalNow().DateTime);
+
+    private DateOnly Day => Date ?? Today;
 
     /// <summary>The text the search opens with, such as when coming back from adding a food. Read once, when the page starts.</summary>
     [Parameter]
     public string? InitialQuery { get; set; }
 
-    /// <summary>Raised to add a food: from a result in add mode, or Add to diary on a food's values. Carries the search so it can be restored on the way back.</summary>
+    /// <summary>Raised to add a food, from a result. Carries the search so it can be restored on the way back.</summary>
     [Parameter]
     public EventCallback<FoodAddRequest> OnAdd { get; set; }
 
-    /// <summary>Raised by the back arrow and Android back, except while a food's values show without a meal, where they return to the list.</summary>
+    /// <summary>Raised by the back arrow and Android back.</summary>
     [Parameter]
     public EventCallback OnBack { get; set; }
 
+    /// <summary>Raised by the barcode button after the search field, with the text typed so far so Back from the scanner can restore it.</summary>
+    [Parameter]
+    public EventCallback<string> OnScan { get; set; }
+
+    private Task ScanAsync()
+    {
+        // Like a tap on a result: nothing leaves the page while an add or an import is under way.
+        return added || onlineState == OnlineSearchState.Importing ? Task.CompletedTask : OnScan.InvokeAsync(query);
+    }
+
     protected override async Task OnInitializedAsync()
     {
-        star = new FavouriteStar(Favourites, Snackbar, Logger, () => _ = InvokeAsync(StateHasChanged));
         query = InitialQuery ?? "";
         var notice = ReadNoticeAsync();
         if (Seed.Current is { } load)
@@ -160,12 +173,6 @@
             return;
         }
 
-        if (Meal is null)
-        {
-            await OpenValuesAsync(food);
-            return;
-        }
-
         if (added)
         {
             return;
@@ -247,7 +254,7 @@
         };
     }
 
-    /// <summary>Stores the tapped product as a scan would and goes on with the food: Serving on the pack in add mode, the food's values without a meal (old link).</summary>
+    /// <summary>Stores the tapped product as a scan would and goes on with the food: Serving.</summary>
     private async Task SelectOnlineAsync(OnlineProduct product)
     {
         if (onlineState == OnlineSearchState.Importing || added)
@@ -290,12 +297,6 @@
         onlineProducts = onlineProducts.Select(p => p.Barcode == product.Barcode ? p with { IsNew = false } : p).ToList();
         onlineState = OnlineSearchState.Results;
         lastTapped = null;
-        if (Meal is null)
-        {
-            await OpenValuesAsync(food);
-            return;
-        }
-
         added = true;
         await AddAsync(food);
     }
@@ -308,26 +309,6 @@
         var listed = groups.SelectMany(g => g.Foods).FirstOrDefault(l => l.Food.Id == food.Id);
         var last = listed?.History ?? await Search.LastLoggedAsync(food.Id, Meal);
         await OnAdd.InvokeAsync(new FoodAddRequest(food, query, last?.LastAmount, last?.LastServings, last?.LastServingId));
-    }
-
-    private async Task OpenValuesAsync(Food food)
-    {
-        selected = food;
-        await star.LoadAsync(food.Id);
-        starAtOpen = star.IsFavourite;
-    }
-
-    /// <summary>Closes the values panel. A star changed on it moves the food between groups, so the list is read again for the current text.</summary>
-    private async Task ClearSelection()
-    {
-        var changed = starAtOpen is { } before && star.IsFavourite is { } now && before != now;
-        selected = null;
-        starAtOpen = null;
-        star.Clear();
-        if (changed)
-        {
-            await SearchAsync(query);
-        }
     }
 
     private Task Retry()
@@ -345,7 +326,6 @@
     public void Dispose()
     {
         disposed = true;
-        star.Dispose();
         CancelRunning();
         CancelOnline();
     }

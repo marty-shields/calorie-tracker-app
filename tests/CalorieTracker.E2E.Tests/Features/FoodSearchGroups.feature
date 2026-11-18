@@ -1,13 +1,5 @@
 Feature: Food search groups
-  Search shows the person's own foods before they type and ranks them above the database while they type. App data is cleared before each scenario, so each one starts with an empty diary and logs what it needs.
-
-  Scenario: Foods logged before show under Recent in search without a meal with their last amount
-    Given I have logged 35 g of the first food found by "oat" in Lunch
-    And I have opened Foods
-    Then search lists only the Recent group
-    When I open the first food in the Recent group
-    And I tap Add to diary
-    Then Serving shows an amount of "35" g
+  Search shows the person's own foods before they type and ranks them above the database while they type. The scenarios that look at a meal's lists open search from that meal's +. App data is cleared before each scenario, so each one starts with an empty diary and logs what it needs.
 
   Scenario: Another meal's search shows the food under Recent and opens with the last amount
     Given I have logged 35 g of the first food found by "oat" in Lunch

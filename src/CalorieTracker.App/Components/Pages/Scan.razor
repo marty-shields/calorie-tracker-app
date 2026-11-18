@@ -1,13 +1,18 @@
 @page "/scan"
 @using CalorieTracker.Core.Data
+@using CalorieTracker.Core.Diary
 @using CalorieTracker.UI.Navigation
 @using CalorieTracker.UI.Screens
 @inject NavigationManager Navigation
+@inject TimeProvider Time
 
-@* Query: meal and date (yyyy-MM-dd, default today) come from the Add sheet. With a meal, a scanned food opens Serving with that meal and day, Search by name opens search to add to it, and Back goes to the Dashboard on that day. *@
-<ScanPage Meal="meal" OnAddToDiary="@(add => Navigation.GoTo(ServingRoute.Url(add.FoodId, meal, date, backTo: date is { } day ? DashboardRoute.Url(day) : "/", amount: add.LastAmount, servings: add.LastServings, servingId: add.LastServingId)))"
-          OnBack="@(() => Navigation.GoTo(date is { } day ? DashboardRoute.Url(day) : string.Empty))"
-          OnSearchByName="@(() => Navigation.GoTo(meal is { } preset ? FoodSearchRoute.AddUrl(preset, date) : FoodSearchRoute.Template))" />
+@* Query: meal and date (yyyy-MM-dd, default today) come from the Add sheet or the search field's barcode button. A scanned food opens Serving with that meal and day,
+   Search by name instead opens search to add to it, and Back (an in-app route in back, such as the search that opened the scanner) returns to where the scan was opened from, else the Dashboard on that day.
+   Without a meal (an old link) the meal is the one the time of day suggests (MealWindows). *@
+<ScanPage Meal="meal" Date="date"
+          OnFound="@(add => Navigation.GoTo(ServingRoute.Url(add.FoodId, meal, date, backTo: date is { } day ? DashboardRoute.Url(day) : "/", amount: add.LastAmount, servings: add.LastServings, servingId: add.LastServingId)))"
+          OnBack="@(() => Navigation.GoTo(ScanRoute.BackTarget(BackTo, date)))"
+          OnSearchByName="@(() => Navigation.GoTo(ScanRoute.SearchTarget(BackTo, meal, date)))" />
 
 @code {
     [SupplyParameterFromQuery(Name = "meal")]
@@ -16,7 +21,17 @@
     [SupplyParameterFromQuery(Name = "date")]
     public string? DateText { get; set; }
 
-    private Meal? meal => ServingRoute.ParseMeal(MealText);
+    [SupplyParameterFromQuery(Name = "back")]
+    public string? BackTo { get; set; }
 
-    private DateOnly? date => RouteDate.Parse(DateText);
+    private Meal meal;
+
+    private DateOnly? date;
+
+    /// <summary>Works the meal out once per set of route values, so a clock that crosses a meal window never changes it between renders.</summary>
+    protected override void OnParametersSet()
+    {
+        meal = ServingRoute.ParseMeal(MealText) ?? MealWindows.MealFor(TimeOnly.FromDateTime(Time.GetLocalNow().DateTime));
+        date = RouteDate.Parse(DateText);
+    }
 }
