@@ -1,5 +1,5 @@
 Feature: Dashboard
-  The Dashboard, titled Today in the design, is the day diary: a date strip, a compact card with the day's calories and macros, and four meals each with a +. A meal's + adds a food to that meal. A fresh install has no target and nothing logged.
+  Today (the DashboardPage in code) is the day diary: a date strip, a compact card with the day's calories and macros, and four meals each with a +. A meal's + adds a food to that meal. A fresh install has no target and nothing logged.
   On today a meal is open during its time window (breakfast 05:00-11:00, lunch 11:00-15:00, dinner 17:00-21:00), shows only its header before it, and folds to one line after it; snacks and every other day are always open. The Debug app's clock is pinned with "the app clock reads" (src/CalorieTracker.App/Diagnostics/E2EClockSeam.cs), so these scenarios do not depend on the time the suite runs; the @today tag keeps them away from midnight. Steps that read a meal's entries open a folded meal first.
 
   Scenario: First run shows nothing logged and a + on each meal
