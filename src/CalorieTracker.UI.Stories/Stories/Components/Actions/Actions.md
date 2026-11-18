@@ -39,7 +39,7 @@ A button that shows an `Icon`, with a 48px touch target.
 
 | Icon | Use for |
 |---|---|
-| Settings | Opening Settings from the Dashboard top bar. |
+| Settings | Opening Settings from the Today top bar. |
 | Back | The back arrow in the top bar. |
 | Close | Removing an item: `Muted`, `Small`. |
 | Delete | Deleting something, after a confirm. |

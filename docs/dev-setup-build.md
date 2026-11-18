@@ -21,6 +21,8 @@ The README shows the screen stories in the table below, light and dark, from `do
 
 | File | Story id |
 |---|---|
+| `today` | `screens-dashboard--today-midday` |
+| `trends` | `screens-trends--week` |
 | `food-search` | `screens-foodsearch--results` |
 | `serving` | `screens-serving--servings` |
 
