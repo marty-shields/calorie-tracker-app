@@ -80,21 +80,13 @@ public class ScanViewTests : ComponentTestBase
     }
 
     [Test]
-    public void Found_WithAServing_ShowsItInGramsOrMl()
-    {
-        var cut = Context.Render<ScanView>(p => p.Add(x => x.State, ScanState.Found).Add(x => x.Product, Consistent with { ServingLabel = "1 biscuit", ServingAmount = 15 }));
-        Assert.That(cut.Find("[data-testid=scan-serving]").TextContent, Is.EqualTo("Serving: 1 biscuit (15 g)"));
-
-        cut.Render(p => p.Add(x => x.State, ScanState.Found).Add(x => x.Product, Consistent with { IsLiquid = true, ServingLabel = "1 glass", ServingAmount = 200 }));
-        Assert.That(cut.Find("[data-testid=scan-serving]").TextContent, Is.EqualTo("Serving: 1 glass (200 ml)"));
-    }
-
-    [Test]
-    public void Found_WithoutAServing_ShowsNoServingLine()
+    public void Found_ShowsNoServingLine_ForAnyProduct()
     {
         var cut = Context.Render<ScanView>(p => p.Add(x => x.State, ScanState.Found).Add(x => x.Product, Consistent));
+        Assert.That(cut.Markup, Does.Not.Contain("Serving:"));
 
-        Assert.That(cut.FindAll("[data-testid=scan-serving]"), Is.Empty);
+        cut.Render(p => p.Add(x => x.State, ScanState.Found).Add(x => x.Product, Consistent with { IsLiquid = true }));
+        Assert.That(cut.Markup, Does.Not.Contain("Serving:"));
     }
 
     [Test]

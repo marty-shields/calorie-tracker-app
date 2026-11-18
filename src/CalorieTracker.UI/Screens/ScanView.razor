@@ -1,4 +1,3 @@
-@using System.Globalization
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Components.Lists
 @using CalorieTracker.UI.Models.Scan
@@ -26,10 +25,6 @@
                     <FoodValues Name="@product.Display.Title" Brand="@product.Display.BrandLine" Pack="@product.Display.Pack" GenericName="@product.Display.GenericName" IsLiquid="product.IsLiquid" Kcal="(double)product.Kcal" Protein="(double)product.Protein"
                                 Carbs="(double)product.Carbs" Fat="(double)product.Fat" Fibre="(double?)product.Fibre" Sugars="(double?)product.Sugars"
                                 Saturates="(double?)product.Saturates" Salt="(double?)product.Salt" TestId="scan">
-                        @if (product.ServingLabel is not null && product.ServingAmount is { } serving)
-                        {
-                            <p class="serving" data-testid="scan-serving" data-wrap-ok>Serving: @product.ServingLabel (@serving.ToString("0.##", CultureInfo.InvariantCulture) @(product.IsLiquid ? "ml" : "g"))</p>
-                        }
                         @if (product.KcalMismatch)
                         {
                             <p class="warning" role="alert" data-testid="scan-warning" data-wrap-ok>These values don't add up. Check the label before relying on them.</p>

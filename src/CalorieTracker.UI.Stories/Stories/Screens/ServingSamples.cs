@@ -6,7 +6,7 @@ namespace CalorieTracker.UI.Stories.Stories.Screens;
 /// <summary>Sample foods for the Serving stories.</summary>
 public static class ServingSamples
 {
-    /// <summary>A scanned product with a serving.</summary>
+    /// <summary>A scanned product with a serving the person added.</summary>
     public static Food Pizza { get; } = new()
     {
         Id = 11,
@@ -22,29 +22,7 @@ public static class ServingSamples
     /// <summary>The pizza's own serving.</summary>
     public static IReadOnlyList<StoredServing> PizzaServings { get; } =
     [
-        new() { Id = 111, FoodId = 11, Label = "½ pizza (201.8 g)", Amount = 201.8, Source = ServingSource.Product },
-    ];
-
-    /// <summary>A single-portion pack with no serving of its own: its pack is its only serving, shown as "1 serving".</summary>
-    public static Food Mars { get; } = new()
-    {
-        Id = 15,
-        Name = "Mars",
-        Brand = "Mars",
-        Brands = "Mars, Mars Wrigley",
-        PackageLabel = "51 g",
-        Unit = FoodUnit.Gram,
-        Kcal = 449,
-        ProteinG = 4,
-        CarbsG = 69,
-        FatG = 17,
-        PackageAmount = 51,
-    };
-
-    /// <summary>The pack as the only serving, as <c>FoodService</c> words it.</summary>
-    public static IReadOnlyList<StoredServing> MarsServings { get; } =
-    [
-        new() { Id = 151, FoodId = 15, Label = "1 serving", Amount = 51, Source = ServingSource.Pack },
+        new() { Id = 111, FoodId = 11, Label = "½ pizza (201.8 g)", Amount = 201.8, Source = ServingSource.User },
     ];
 
     /// <summary>A scanned product with no serving.</summary>
@@ -98,17 +76,10 @@ public static class ServingSamples
         PackageAmount = 330,
     };
 
-    /// <summary>The cola's own serving and its can.</summary>
+    /// <summary>Two servings the person added, smallest first as the app lists them.</summary>
     public static IReadOnlyList<StoredServing> ColaServings { get; } =
     [
-        new() { Id = 161, FoodId = 16, Label = "1 glass (250 ml)", Amount = 250, Source = ServingSource.Product },
-        new() { Id = 162, FoodId = 16, Label = "Whole pack (330 ml)", Amount = 330, Source = ServingSource.Pack },
-    ];
-
-    /// <summary>The cola's servings with one the person added, smallest first as the app lists them.</summary>
-    public static IReadOnlyList<StoredServing> ColaServingsWithOwn { get; } =
-    [
         new() { Id = 163, FoodId = 16, Label = "My mug", Amount = 200, Source = ServingSource.User },
-        .. ColaServings,
+        new() { Id = 161, FoodId = 16, Label = "1 glass (250 ml)", Amount = 250, Source = ServingSource.User },
     ];
 }

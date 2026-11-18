@@ -54,8 +54,19 @@ public sealed class FoodSearchOnlineSteps(FoodSearchScreen foods, ServingScreen 
     [Then(@"^the online search says nothing was found$")]
     public void ThenNothingFound() => web.Eventually(foods.OnlineNothingFound, Is.EqualTo("Nothing found online"));
 
-    [Then(@"^This adds names ""(.*)""$")]
-    public void ThenThisAddsNames(string text) => web.Eventually(serving.AddsDetail, Is.EqualTo(text));
+    [Then(@"^Serving opens in (g|ml) with no servings offered$")]
+    public void ThenServingOpensInUnitWithNoServings(string unit)
+    {
+        web.Eventually(serving.Unit, Is.EqualTo(unit));
+        Assert.That(serving.HasModeSwitch(), Is.False, "the Grams and Servings switch");
+        Assert.That(serving.ServingOptions(), Is.Empty, "the servings list");
+    }
+
+    [Then(@"^Serving is headed ""(.*)""$")]
+    public void ThenServingIsHeaded(string title) => web.Eventually(serving.Title, Is.EqualTo(title));
+
+    [Then(@"^Serving has no list of servings$")]
+    public void ThenServingHasNoList() => web.Eventually(serving.ServingOptions, Is.Empty);
 
     [Then(@"^the local results still show$")]
     public void ThenTheLocalResultsStillShow() => web.Eventually(foods.ResultRows, Has.Count.GreaterThan(0));

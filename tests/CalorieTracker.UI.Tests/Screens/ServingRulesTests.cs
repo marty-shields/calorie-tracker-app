@@ -5,9 +5,9 @@ namespace CalorieTracker.UI.Tests.Screens;
 
 public class ServingRulesTests
 {
-    private static readonly Serving Glass = new() { Id = 1, Label = "1 glass (250 ml)", Amount = 250, Source = ServingSource.Product };
-    private static readonly Serving Can = new() { Id = 2, Label = "Can 330 ml", Amount = 330, Source = ServingSource.Pack };
-    private static readonly Serving Bottle = new() { Id = 3, Label = "Bottle 1 L", Amount = 1000, Source = ServingSource.Pack };
+    private static readonly Serving Glass = new() { Id = 1, Label = "1 glass (250 ml)", Amount = 250, Source = ServingSource.User };
+    private static readonly Serving Can = new() { Id = 2, Label = "My can (330 ml)", Amount = 330, Source = ServingSource.User };
+    private static readonly Serving Bottle = new() { Id = 3, Label = "My bottle (1 L)", Amount = 1000, Source = ServingSource.User };
     private static readonly Serving Mug = new() { Id = 4, Label = "My mug", Amount = 200, Source = ServingSource.User };
 
     [Test]

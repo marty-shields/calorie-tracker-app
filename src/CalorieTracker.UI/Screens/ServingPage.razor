@@ -24,7 +24,7 @@
     private IReadOnlyList<Serving> offered = [];
     private Serving? chosen;
 
-    /// <summary>True while an entry being edited points at no serving the food offers (none, or one since deleted): the screen shows the smallest, but Save keeps the link empty until the person picks a serving, so the entry is not rewritten as a count of one it never used.</summary>
+    /// <summary>True while an entry being edited points at no serving the food offers (none, or one since deleted): the screen opens in grams with the stored amount, and Save keeps the link empty until the person switches to servings and picks one, so the entry is not rewritten as a count of one it never used.</summary>
     private bool entryServingUnmatched;
     private bool addingOwn;
     private string? ownLabel;
@@ -197,7 +197,8 @@
         entryServingUnmatched = Editing && offered.All(s => s.Id != EntryServingId);
         if (Editing && EntryAmount is { } stored)
         {
-            Carry(stored, EntryServings);
+            // An entry with no serving link, or one whose serving is not offered any more, has a count in a serving it can't name: keep its weight and drop the count.
+            Carry(stored, entryServingUnmatched ? null : EntryServings);
             return;
         }
 
@@ -361,10 +362,10 @@
         }
     }
 
-    /// <summary>Deletes the chosen serving when it is the person's own. Entries that used it keep their amounts; the screen opens on the smallest serving.</summary>
+    /// <summary>Deletes the chosen serving. Entries that used it keep their amounts; the screen opens on the smallest serving.</summary>
     private async Task DeleteOwnAsync()
     {
-        if (savingOwn || chosen is not { Source: ServingSource.User } own)
+        if (savingOwn || chosen is not { } own)
         {
             return;
         }

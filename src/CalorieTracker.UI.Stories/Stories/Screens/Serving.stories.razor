@@ -17,21 +17,15 @@
         </Template>
     </Story>
 
-    <Story Name="Pack as one serving">
-        <Template>
-            <ServingView Food="ServingSamples.Mars" Servings="ServingSamples.MarsServings" Mode="EntryMode.Servings" Amount="1" Grams="51" Meal="Meal.Snacks" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
-        </Template>
-    </Story>
-
     <Story Name="Choose between two servings">
         <Template>
-            <ServingView Food="ServingSamples.Cola" Servings="ServingSamples.ColaServings" ServingId="162" Mode="EntryMode.Servings" Amount="1" Grams="330" Meal="Meal.Snacks" OnServingChanged="(int _) => { }" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+            <ServingView Food="ServingSamples.Cola" Servings="ServingSamples.ColaServings" ServingId="161" Mode="EntryMode.Servings" Amount="1" Grams="250" Meal="Meal.Snacks" OnServingChanged="(int _) => { }" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
         </Template>
     </Story>
 
     <Story Name="Own serving chosen">
         <Template>
-            <ServingView Food="ServingSamples.Cola" Servings="ServingSamples.ColaServingsWithOwn" ServingId="163" Mode="EntryMode.Servings" Amount="2" Grams="400" Meal="Meal.Snacks" OnServingChanged="(int _) => { }" OnDeleteOwn="() => { }" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+            <ServingView Food="ServingSamples.Cola" Servings="ServingSamples.ColaServings" ServingId="163" Mode="EntryMode.Servings" Amount="2" Grams="400" Meal="Meal.Snacks" OnServingChanged="(int _) => { }" OnDeleteOwn="() => { }" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
         </Template>
     </Story>
 
@@ -49,7 +43,7 @@
 
     <Story Name="Own serving repeats a size">
         <Template>
-            <ServingView Food="ServingSamples.Cola" Servings="ServingSamples.ColaServingsWithOwn" ServingId="161" Mode="EntryMode.Servings" Amount="1" Grams="250" Meal="Meal.Snacks" AddingOwn OwnLabel="Big mug" OwnAmount="200" OwnError="You already have a serving of that size." OnServingChanged="(int _) => { }" OnOwnLabelChanged="(string _) => { }" OnOwnAmountChanged="(decimal? _) => { }" OnOwnSave="() => { }" OnOwnCancel="() => { }" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
+            <ServingView Food="ServingSamples.Cola" Servings="ServingSamples.ColaServings" ServingId="161" Mode="EntryMode.Servings" Amount="1" Grams="250" Meal="Meal.Snacks" AddingOwn OwnLabel="Big mug" OwnAmount="200" OwnError="You already have a serving of that size." OnServingChanged="(int _) => { }" OnOwnLabelChanged="(string _) => { }" OnOwnAmountChanged="(decimal? _) => { }" OnOwnSave="() => { }" OnOwnCancel="() => { }" OnModeChanged="(EntryMode _) => { }" OnAmountChanged="(decimal? _) => { }" OnUseServing="() => { }" OnMealChanged="(Meal _) => { }" OnAdd="() => { }" OnRetry="() => { }" OnBack="() => { }" />
         </Template>
     </Story>
 

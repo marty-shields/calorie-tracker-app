@@ -45,7 +45,20 @@ public static class ScreenStates
         FatG = 9.9,
     };
 
-    internal static readonly Food Mars = ServingSamples.Mars;
+    internal static readonly Food Mars = new()
+    {
+        Id = 15,
+        Name = "Mars",
+        Brand = "Mars",
+        Brands = "Mars, Mars Wrigley",
+        PackageLabel = "51 g",
+        Unit = FoodUnit.Gram,
+        Kcal = 449,
+        ProteinG = 4,
+        CarbsG = 69,
+        FatG = 17,
+        PackageAmount = 51,
+    };
 
     internal static readonly Food Biscuits = new()
     {
@@ -139,7 +152,6 @@ public static class ScreenStates
         new("Screens/Scan", "Found", c => Scan(c, ScanState.Found, new("Porridge oats", "Morning Mill", 372, 11, 60, 8, FoodId: 1))),
         new("Screens/Scan", "Found liquid", c => Scan(c, ScanState.Found, new("Semi-skimmed milk", null, 47, 3.5m, 4.8m, 1.7m, IsLiquid: true, FoodId: 2))),
         new("Screens/Scan", "Found with extra nutrients", c => Scan(c, ScanState.Found, new("Porridge oats", "Morning Mill", 372, 11, 60, 8, Fibre: 9, Sugars: 1.1m, Saturates: 1.4m, Salt: 0.01m, FoodId: 1))),
-        new("Screens/Scan", "Found with a serving", c => Scan(c, ScanState.Found, new("Digestive biscuits", "Morning Mill", 480, 7, 62, 22, FoodId: 3, ServingLabel: "1 biscuit", ServingAmount: 15))),
         new("Screens/Scan", "Found with brand and pack", c => Scan(c, ScanState.Found, new("Nutella", "Ferrero", 539, 6.3m, 57.5m, 30.9m, FoodId: 5, Brands: "Ferrero, Nutella", GenericName: "Hazelnut spread with cocoa", PackageLabel: "400 g e"))),
         new("Screens/Scan", "Found with warning", c => Scan(c, ScanState.Found, new("Chocolate spread", "Nutty Co", 250, 6, 55, 31, FoodId: 4))),
         new("Screens/Scan", "Not found", c => Scan(c, ScanState.NotFound)),
@@ -147,12 +159,11 @@ public static class ScreenStates
 
         new("Screens/Serving", "Servings", c => Serving(c, Pizza, EntryMode.Servings, 1, 201.8, Meal.Lunch, servings: ServingSamples.PizzaServings)),
         new("Screens/Serving", "Grams with a serving", c => Serving(c, Pizza, EntryMode.Grams, 150, 150, Meal.Lunch, servings: ServingSamples.PizzaServings)),
-        new("Screens/Serving", "Pack as one serving", c => Serving(c, Mars, EntryMode.Servings, 1, 51, Meal.Snacks, servings: ServingSamples.MarsServings)),
-        new("Screens/Serving", "Choose between two servings", c => Serving(c, ServingSamples.Cola, EntryMode.Servings, 1, 330, Meal.Snacks, servings: ServingSamples.ColaServings, servingId: 162)),
-        new("Screens/Serving", "Own serving chosen", c => Serving(c, ServingSamples.Cola, EntryMode.Servings, 2, 400, Meal.Snacks, servings: ServingSamples.ColaServingsWithOwn, servingId: 163)),
+        new("Screens/Serving", "Choose between two servings", c => Serving(c, ServingSamples.Cola, EntryMode.Servings, 1, 250, Meal.Snacks, servings: ServingSamples.ColaServings, servingId: 161)),
+        new("Screens/Serving", "Own serving chosen", c => Serving(c, ServingSamples.Cola, EntryMode.Servings, 2, 400, Meal.Snacks, servings: ServingSamples.ColaServings, servingId: 163)),
         new("Screens/Serving", "Add your own serving", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, addingOwn: true, ownLabel: "1 slice", ownAmount: 28)),
         new("Screens/Serving", "Own serving invalid", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch, addingOwn: true, ownLabel: "1 slice", ownAmount: 0)),
-        new("Screens/Serving", "Own serving repeats a size", c => Serving(c, ServingSamples.Cola, EntryMode.Servings, 1, 250, Meal.Snacks, servings: ServingSamples.ColaServingsWithOwn, servingId: 161, addingOwn: true, ownLabel: "Big mug", ownAmount: 200, ownError: "You already have a serving of that size.")),
+        new("Screens/Serving", "Own serving repeats a size", c => Serving(c, ServingSamples.Cola, EntryMode.Servings, 1, 250, Meal.Snacks, servings: ServingSamples.ColaServings, servingId: 161, addingOwn: true, ownLabel: "Big mug", ownAmount: 200, ownError: "You already have a serving of that size.")),
         new("Screens/Serving", "Scanned product with no serving", c => Serving(c, Biscuits, EntryMode.Grams, 30, 30, Meal.Lunch)),
         new("Screens/Serving", "CoFID ingredient", c => Serving(c, Cheddar, EntryMode.Grams, 30, 30, Meal.Lunch)),
         new("Screens/Serving", "Liquid", c => Serving(c, Milk, EntryMode.Grams, 250, 250, Meal.Breakfast)),

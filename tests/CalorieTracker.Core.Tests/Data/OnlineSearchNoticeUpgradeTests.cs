@@ -45,7 +45,7 @@ public class OnlineSearchNoticeUpgradeTests
     {
         await connection.CloseAsync();
         connection = new SQLiteAsyncConnection(databasePath);
-        await new DatabaseInitializer(connection, SchemaSteps.All(), new FakeLogger<DatabaseInitializer>()).InitializeAsync();
+        await new DatabaseInitializer(connection, SchemaSteps.Through(17), new FakeLogger<DatabaseInitializer>(), 17).InitializeAsync();
     }
 
     [Test]
