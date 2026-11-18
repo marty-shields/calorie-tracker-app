@@ -10,7 +10,7 @@ else
         {
             <li class="row" data-testid="@Id($"row-{index}")">
                 <span class="name" data-testid="@Id($"label-{index}")">@item.Label</span>
-                <span class="value" data-testid="@Id($"value-{index}")">@(item.ValueText ?? TargetStatuses.Kcal(item.Value))</span>
+                <span class="value" data-testid="@Id($"value-{index}")">@(item.ValueText ?? (double.IsFinite(item.Value) ? TargetStatuses.Kcal(item.Value) : "0"))</span>
                 <span class="track" aria-hidden="true"><span class="fill" style="--fill: @Share(item)" data-testid="@Id($"bar-{index}")"></span></span>
             </li>
         }
@@ -41,8 +41,8 @@ else
     /// <summary>Share of the track the bar fills, 0 to 1.</summary>
     private string Share(BarListItem item)
     {
-        var full = Max ?? Items.Max(i => i.Value);
-        return (full > 0 ? Math.Clamp(item.Value / full, 0, 1) : 0).ToString("0.####", CultureInfo.InvariantCulture);
+        var full = TargetStatuses.ValidTarget(Max) ?? Items.Where(i => double.IsFinite(i.Value)).Select(i => i.Value).DefaultIfEmpty(0).Max();
+        return (full > 0 && double.IsFinite(item.Value) ? Math.Clamp(item.Value / full, 0, 1) : 0).ToString("0.####", CultureInfo.InvariantCulture);
     }
 
     private string Id(string part) => $"{TestId}-{part}";

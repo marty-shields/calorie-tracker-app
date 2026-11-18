@@ -92,12 +92,12 @@
         }
 
         var day = Days.FirstOrDefault(d => d.Date == date);
-        if (day?.Value is not > 0)
+        if (!TargetStatuses.IsLogged(day?.Value))
         {
             return new CellInfo("none" + today, $"{name}{(isToday ? ", today" : "")}, not logged", false, TargetStatus.None);
         }
 
-        var status = TargetStatuses.Of(day.Value.Value, day.Target ?? Target);
+        var status = TargetStatuses.Of(day!.Value!.Value, TargetStatuses.ValidTarget(day.Target) ?? Target);
         var word = TargetStatuses.Word(status);
         var kcal = TargetStatuses.Kcal(day.Value.Value);
         var full = $"{name}{(isToday ? ", today" : "")}, {kcal} kcal{(word.Length > 0 ? ", " + word : "")}";

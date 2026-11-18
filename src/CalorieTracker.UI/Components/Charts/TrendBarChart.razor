@@ -5,11 +5,11 @@
         <line class="grid" x1="@N(Left)" x2="@N(Right)" y1="@N(Y(tick))" y2="@N(Y(tick))" data-testid="@Id($"grid-{tick}")" />
         @Text("tick", Left - 6, Y(tick) + 4, "end", TickText(tick), Id($"tick-{tick}"))
     }
-    @if (Target is > 0)
+    @if (TargetStatuses.ValidTarget(Target) is { } goal)
     {
-        <rect class="band" x="@N(Left)" width="@N(Right - Left)" y="@N(Y(Target.Value * (1 + TargetStatuses.Tolerance)))"
-              height="@N(Y(Target.Value * (1 - TargetStatuses.Tolerance)) - Y(Target.Value * (1 + TargetStatuses.Tolerance)))" data-testid="@Id("band")" />
-        <line class="target" x1="@N(Left)" x2="@N(Right)" y1="@N(Y(Target.Value))" y2="@N(Y(Target.Value))" data-testid="@Id("target")" />
+        <rect class="band" x="@N(Left)" width="@N(Right - Left)" y="@N(Y(goal * (1 + TargetStatuses.Tolerance)))"
+              height="@N(Y(goal * (1 - TargetStatuses.Tolerance)) - Y(goal * (1 + TargetStatuses.Tolerance)))" data-testid="@Id("band")" />
+        <line class="target" x1="@N(Left)" x2="@N(Right)" y1="@N(Y(goal))" y2="@N(Y(goal))" data-testid="@Id("target")" />
     }
     @if (highest is null)
     {
@@ -22,10 +22,10 @@
         var slotX = Left + i * Slot;
         var centre = slotX + Slot / 2;
         @Text("axis-label", centre, Height - 8, "middle", Short(bar.Label), hidden: true)
-        if (bar.Value is > 0)
+        if (TargetStatuses.IsLogged(bar.Value))
         {
             var value = bar.Value!.Value;
-            var status = TargetStatuses.Of(value, bar.Target ?? Target);
+            var status = TargetStatuses.Of(value, TargetStatuses.ValidTarget(bar.Target) ?? Target);
             var top = Y(value);
             var height = Base - top;
             var width = Slot * 0.6;
@@ -69,6 +69,12 @@
     /// <summary>The scale never has more intervals than this.</summary>
     private const int MaxIntervals = 4;
 
+    /// <summary>The step search stops here, so a huge value ends it too.</summary>
+    private const double MaxMagnitude = 1e15;
+
+    /// <summary>The tallest value the scale draws; larger ones are drawn at this height.</summary>
+    private const double MaxScale = 1e18;
+
     private static readonly double[] TickSteps = [1000, 2000, 5000];
 
     /// <summary>The bars, left to right.</summary>
@@ -97,7 +103,7 @@
 
     private TrendBar? highest;
 
-    protected override void OnParametersSet() => highest = Bars.Where(b => b.Value is > 0).MaxBy(b => b.Value);
+    protected override void OnParametersSet() => highest = Bars.Where(b => TargetStatuses.IsLogged(b.Value)).MaxBy(b => b.Value);
 
     private double Slot => (Right - Left) / Math.Max(Bars.Count, 1);
 
@@ -106,7 +112,7 @@
     {
         get
         {
-            for (var magnitude = 1.0; ; magnitude *= 10)
+            for (var magnitude = 1.0; magnitude < MaxMagnitude; magnitude *= 10)
             {
                 foreach (var step in TickSteps)
                 {
@@ -116,15 +122,19 @@
                     }
                 }
             }
+
+            return TickSteps[^1] * MaxMagnitude;
         }
     }
 
     /// <summary>The top of the y scale: at least 2k, and the first tick at or above the tallest bar and the band. The space above it holds the tooltip, the value and the over marker.</summary>
     private double Scale => Math.Max(2 * TickStep, Math.Ceiling(MaxValue / TickStep) * TickStep);
 
-    private double MaxValue => Math.Max(
-        Bars.Select(b => b.Value ?? 0).DefaultIfEmpty(0).Max(),
-        Target is > 0 ? Target.Value * (1 + TargetStatuses.Tolerance) : 0);
+    private double MaxValue => Math.Min(
+        MaxScale,
+        Math.Max(
+            Bars.Where(b => TargetStatuses.IsLogged(b.Value)).Select(b => b.Value!.Value).DefaultIfEmpty(0).Max(),
+            TargetStatuses.ValidTarget(Target) is { } target ? target * (1 + TargetStatuses.Tolerance) : 0));
 
     private IEnumerable<double> Ticks => Enumerable.Range(0, (int)(Scale / TickStep) + 1).Select(i => i * TickStep);
 

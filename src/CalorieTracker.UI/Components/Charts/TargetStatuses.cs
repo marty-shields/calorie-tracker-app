@@ -7,9 +7,16 @@ public static class TargetStatuses
     /// <summary>A day is on target within this share either side of its target.</summary>
     public const double Tolerance = 0.1;
 
+    /// <summary>True for a value that counts as logged: finite and above zero. NaN and infinity do not.</summary>
+    public static bool IsLogged(double? value) => value is > 0 and < double.PositiveInfinity;
+
+    /// <summary>The target when it is finite and above zero, otherwise null (no target).</summary>
+    public static double? ValidTarget(double? target) => IsLogged(target) ? target : null;
+
     public static TargetStatus Of(double value, double? target)
     {
-        if (target is not > 0)
+        target = ValidTarget(target);
+        if (target is null)
         {
             return TargetStatus.None;
         }

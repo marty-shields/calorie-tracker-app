@@ -397,4 +397,41 @@ public class TrendBarChartTests : ComponentTestBase
 
         Assert.That(cut.Find("[data-testid=chart-empty]"), Is.Not.Null);
     }
+
+    [TestCase(double.NaN)]
+    [TestCase(double.PositiveInfinity)]
+    [TestCase(double.NegativeInfinity)]
+    public void Render_NonFiniteValue_LeavesAnEmptySlotAndStillRenders(double value)
+    {
+        var cut = Render([Bar(0, value), Bar(1, 1500)]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=chart-gap-2026-11-09]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=chart-column-2026-11-09]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=chart-column-2026-11-10]"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public void Render_OnlyNonFiniteValues_ShowsTheEmptyChart()
+    {
+        var cut = Render([Bar(0, double.NaN), Bar(1, double.PositiveInfinity)], target: null);
+
+        Assert.That(cut.Find("[data-testid=chart-empty]"), Is.Not.Null);
+    }
+
+    [TestCase(double.NaN)]
+    [TestCase(double.PositiveInfinity)]
+    public void Render_NonFiniteTarget_DrawsNoBandAndNoStatus(double target)
+    {
+        var cut = Render([Bar(0, 1500)], target);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll("[data-testid=chart-band]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=chart-target]"), Is.Empty);
+            Assert.That(cut.Find("[data-testid=chart-column-2026-11-09]"), Is.Not.Null);
+        });
+    }
 }
