@@ -11,7 +11,7 @@ A message in a dashed box, for a list or section with nothing in it. An optional
 Stories: [EmptyState](./?path=/docs/components-lists-emptystate--docs)
 
 ## `FoodValues`
-A food's values block: the name (the food's title) as a heading, a muted generic name, brand line and pack (each when given), "Per 100 g" or "Per 100 ml" and the rows Energy, Protein, Carbs and Fat, then Fibre, Sugars, Saturates and Salt only for the values given. Each row is a muted label with its bold value, divided by a `--color-border` line. Content passed in shows under the rows (the Scan screen puts its warning there). Numbers show with at most one decimal.
+A food's values block: the name (the food's title) as a heading, a muted generic name, brand line and pack (each when given), "Per 100 g" or "Per 100 ml" and the rows Energy, Protein, Carbs and Fat, then Fibre, Sugars, Saturates and Salt only for the values given. Each row is a muted label with its bold value, divided by a `--color-border` line. Content passed in shows under the rows. Numbers show with at most one decimal.
 - `data-testid`: the prefix `TestId` gives `{TestId}-name`, `-generic`, `-brand`, `-pack`, `-per`, `-kcal`, `-protein`, `-carbs`, `-fat`, `-fibre`, `-sugars`, `-saturates`, `-salt`.
 
 Stories: [FoodValues](./?path=/docs/components-lists-foodvalues--docs)

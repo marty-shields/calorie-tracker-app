@@ -1,5 +1,5 @@
 Feature: Add sheet
-  The bar's Add button opens a sheet that guesses the meal from the time and opens search or scan for it, or adds a usual food of that meal in one tap. Which meal the time gives is covered by bUnit and Core's unit tests, since the emulator's clock is not fixed; here the sheet always has exactly one meal selected and the chosen one travels on. That the chosen meal reaches Scan is proved by Journey 3 in Journeys.feature (Scan offers no Search by name once the camera is refused).
+  The bar's Add button opens a sheet that guesses the meal from the time and opens search or scan for it, or adds a usual food of that meal in one tap. Which meal the time gives is covered by bUnit and Core's unit tests, since the emulator's clock is not fixed; here the sheet always has exactly one meal selected and the chosen one travels on. That the chosen meal reaches Scan is proved by its chip (below) and by Journey 3 in Journeys.feature.
 
   @smoke
   Scenario: Add opens a sheet with one meal selected
@@ -22,6 +22,7 @@ Feature: Add sheet
     And I tap Scan barcode on the Add sheet
     And I refuse the camera permission
     Then I am on Scan
+    And Scan says it is adding to Lunch today
 
   Scenario: Android back closes the sheet and focus returns to Add
     Given I am on the Dashboard

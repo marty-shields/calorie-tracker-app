@@ -15,7 +15,11 @@ public sealed class FoodSearchSteps(FoodSearchScreen foods, Journeys journeys, W
     {
         journeys.WaitFor(Journeys.Screen.Dashboard);
         web.NavigateTo(route);
-        foods.WaitUntilLoaded();
+        web.WaitUntil(() => journeys.Current() != Journeys.Screen.Dashboard, "the old link didn't open a screen");
+        if (route.StartsWith("/foods", StringComparison.Ordinal))
+        {
+            foods.WaitUntilLoaded();
+        }
     }
 
     [Given(@"^I have searched for ""(.*)""$")]
@@ -28,8 +32,20 @@ public sealed class FoodSearchSteps(FoodSearchScreen foods, Journeys journeys, W
     [Given(@"^I have opened the first result$")]
     public void GivenIHaveOpenedTheFirstResult() => foods.OpenFirstResult();
 
-    [When(@"^I tap Back to results$")]
-    public void WhenITapBackToResults() => foods.BackToResults();
+    [When(@"^I tap the barcode button in search$")]
+    public void WhenITapTheBarcodeButtonInSearch()
+    {
+        foods.WaitUntilLoaded();
+        Assert.That(foods.HasScanButton(), Is.True, "the barcode button");
+        foods.TapScan();
+    }
+
+    [Then(@"^search is titled for a meal of the time of day$")]
+    public void ThenSearchIsTitledForAMealOfTheTimeOfDay() =>
+        web.Eventually(foods.ScreenTitle, Does.Match(@"^Add to (Breakfast|Lunch|Dinner|Snacks)$"));
+
+    [Then(@"^no food values screen is shown$")]
+    public void ThenNoFoodValuesScreenIsShown() => Assert.That(foods.ShowsDetail(), Is.False);
 
     [Then(@"^no type chips show$")]
     public void ThenNoTypeChipsShow() =>
@@ -49,26 +65,4 @@ public sealed class FoodSearchSteps(FoodSearchScreen foods, Journeys journeys, W
     [Then(@"^the results include a food named like ""(.*)""$")]
     public void ThenTheResultsIncludeAFoodNamedLike(string word) =>
         web.Eventually(foods.ResultRows, Has.Some.Contains(word).IgnoreCase);
-
-    [Then(@"^the food's name and its energy are shown$")]
-    public void ThenTheFoodsValuesAreShown()
-    {
-        web.Eventually(foods.ShowsDetail, Is.True, "food values");
-        Assert.Multiple(() =>
-        {
-            Assert.That(foods.DetailName(), Is.Not.Empty);
-            Assert.That(foods.DetailEnergy(), Does.Match(@"^\d+(\.\d)? kcal$"));
-        });
-    }
-
-    [Then(@"^the results show again with ""(.*)"" still typed$")]
-    public void ThenTheResultsShowAgain(string text)
-    {
-        web.Eventually(foods.ShowsDetail, Is.False, "food values hidden");
-        Assert.Multiple(() =>
-        {
-            Assert.That(foods.ResultRows(), Is.Not.Empty);
-            Assert.That(foods.Typed(), Is.EqualTo(text));
-        });
-    }
 }

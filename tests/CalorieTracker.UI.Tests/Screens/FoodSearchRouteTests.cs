@@ -6,17 +6,6 @@ namespace CalorieTracker.UI.Tests.Screens;
 public class FoodSearchRouteTests
 {
     [Test]
-    public void Url_KeepsTheQueryEscaped_AndCarriesNoTypeValue()
-    {
-        Assert.Multiple(() =>
-        {
-            Assert.That(FoodSearchRoute.Url("oat"), Is.EqualTo("/foods?q=oat"));
-            Assert.That(FoodSearchRoute.Url("a&b c"), Is.EqualTo("/foods?q=a%26b%20c"));
-            Assert.That(FoodSearchRoute.Url(""), Is.EqualTo("/foods"));
-        });
-    }
-
-    [Test]
     public void AddUrl_NamesTheMealAndOptionallyTheDayAndQuery()
     {
         Assert.Multiple(() =>
@@ -42,11 +31,11 @@ public class FoodSearchRouteTests
     }
 
     [Test]
-    public void TheFoodsPage_ComesBackToTheSearchFromServingInAddMode()
+    public void TheFoodsPage_ComesBackToTheSearchFromServing()
     {
         var page = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Foods.razor");
 
-        Assert.That(page, Does.Contain("FoodSearchRoute.AddUrl(preset, date, request.Query)"));
+        Assert.That(page, Does.Contain("FoodSearchRoute.AddUrl(meal, date, request.Query)"));
     }
 
     [Test]
@@ -66,8 +55,8 @@ public class FoodSearchRouteTests
         Assert.Multiple(() =>
         {
             Assert.That(serving, Does.Contain("ServingRoute.AfterAddTarget(ReturnTo, RouteDate.Parse(DateText), meal)"));
-            Assert.That(foods, Does.Contain("ServingRoute.Url(request.Food.Id, preset, date, backTo:"));
-            Assert.That(foods, Does.Not.Contain("preset, date, returnTo"));
+            Assert.That(foods, Does.Contain("ServingRoute.Url(request.Food.Id, meal, date, backTo:"));
+            Assert.That(foods, Does.Not.Contain("meal, date, returnTo"));
         });
     }
 
@@ -83,6 +72,27 @@ public class FoodSearchRouteTests
             Assert.That(home, Does.Contain("RouteDate.Parse(DateText)"));
             Assert.That(home, Does.Contain("OnAdd=\"@(request => Navigation.GoTo(FoodSearchRoute.AddUrl(request.Meal, request.Date)))\""));
         });
+    }
+
+    [Test]
+    public void TheFoodsPage_WithoutAMeal_TakesTheMealFromTheMealWindows()
+    {
+        var page = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Foods.razor");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(page, Does.Contain("ServingRoute.ParseMeal(MealText) ?? MealWindows.MealFor(TimeOnly.FromDateTime(Time.GetLocalNow().DateTime))"));
+            Assert.That(page, Does.Contain("@inject TimeProvider Time"));
+            Assert.That(page, Does.Not.Contain("Meal?"));
+        });
+    }
+
+    [Test]
+    public void TheFoodsPage_ScanButtonOpensTheScannerForTheSameMealAndDayAndComesBack()
+    {
+        var page = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Foods.razor");
+
+        Assert.That(page, Does.Contain("OnScan=\"@(() => Navigation.GoTo(ScanRoute.AddUrl(meal, date, FoodSearchRoute.AddUrl(meal, date, Query))))\""));
     }
 
     [Test]
@@ -120,3 +130,4 @@ public class FoodSearchRouteTests
     public void RouteDate_ParsesTheDateQueryOrGivesNull(string? text, string? expected) =>
         Assert.That(RouteDate.Parse(text)?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), Is.EqualTo(expected));
 }
+

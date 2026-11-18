@@ -29,7 +29,7 @@ public sealed class BackSteps(WebView web, Native native, Journeys journeys)
         journeys.WaitFor(screen switch
         {
             "Settings" => Journeys.Screen.Settings,
-            "Foods" => Journeys.Screen.Foods,
+            "Foods" => Journeys.Screen.AddFood,
             "Scan" => Journeys.Screen.Scan,
             _ => Journeys.Screen.Dashboard,
         });

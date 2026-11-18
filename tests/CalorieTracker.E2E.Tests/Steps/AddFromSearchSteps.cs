@@ -4,7 +4,7 @@ using Reqnroll;
 
 namespace CalorieTracker.E2E.Tests.Steps;
 
-/// <summary>Adding a food from search: a meal's search, Add to diary, and the snackbar that follows.</summary>
+/// <summary>Adding a food from search: a meal's search, a result, and the snackbar that follows.</summary>
 [Binding]
 public sealed class AddFromSearchSteps(FoodSearchScreen foods, ServingScreen serving, SnackbarScreen snackbar, DashboardScreen dashboard, Journeys journeys, WebView web)
 {
@@ -29,9 +29,6 @@ public sealed class AddFromSearchSteps(FoodSearchScreen foods, ServingScreen ser
         Assert.That(foods.HasNavigationBar(), Is.False);
     }
 
-    [When(@"^I tap Add to diary$")]
-    public void WhenITapAddToDiary() => foods.AddToDiary();
-
     [Then(@"^Serving has the " + Meals + " meal chosen$")]
     public void ThenServingHasTheMealChosen(string meal)
     {
@@ -43,13 +40,6 @@ public sealed class AddFromSearchSteps(FoodSearchScreen foods, ServingScreen ser
     public void ThenTheSnackbarSaysAddedTo(string meal, string action)
     {
         web.Eventually(snackbar.Message, Does.EndWith($" added to {meal}"));
-        Assert.That(snackbar.ActionLabel(), Is.EqualTo(action));
-    }
-
-    [Then(@"^the snackbar says it was added to the suggested meal with the action ""(.*)""$")]
-    public void ThenTheSnackbarSaysAddedToTheSuggestedMeal(string action)
-    {
-        web.Eventually(snackbar.Message, Does.Match(@" added to (Breakfast|Lunch|Dinner|Snacks)$"));
         Assert.That(snackbar.ActionLabel(), Is.EqualTo(action));
     }
 }

@@ -159,7 +159,7 @@
         else
         {
             var now = TimeOnly.FromDateTime(Time.GetLocalNow().DateTime);
-            meal = MealSuggestion.For(now);
+            meal = MealWindows.MealFor(now);
             suggestedAt = now;
         }
 

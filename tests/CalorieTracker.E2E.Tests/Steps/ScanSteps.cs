@@ -5,7 +5,7 @@ using Reqnroll;
 namespace CalorieTracker.E2E.Tests.Steps;
 
 [Binding]
-public sealed class ScanSteps(ScanScreen scan, Native native, WebView web)
+public sealed class ScanSteps(ScanScreen scan, Native native, DeviceClock clock, WebView web)
 {
     [Given(@"^I have refused the camera permission$")]
     [When(@"^I refuse the camera permission$")]
@@ -22,15 +22,21 @@ public sealed class ScanSteps(ScanScreen scan, Native native, WebView web)
     public void GivenABarcodeIsHeldInFrontOfTheCamera() =>
         AppiumSetup.Adb.WriteText($"{AppiumSetup.App.ExternalFilesFolder}/{ScanSeamFileName}", ScanSeamBarcode);
 
-    [Then(@"^Scan shows the found product with Add to diary$")]
-    public void ThenScanShowsTheFoundProduct()
-    {
-        web.WaitUntil(scan.ShowsProduct, "Scan didn't show the found product");
-        Assert.That(scan.HasAddToDiary(), Is.True, "Add to diary");
-    }
+    [Then(@"^Scan says it is adding to (Breakfast|Lunch|Dinner|Snacks) today$")]
+    public void ThenScanSaysItIsAddingTo(string meal) =>
+        web.Eventually(scan.Chip, Is.EqualTo($"Adding to {meal} · {Today()}"), "the Scan chip");
 
-    [When(@"^I tap Add to diary on Scan$")]
-    public void WhenITapAddToDiaryOnScan() => scan.AddToDiary();
+    [Then(@"^Scan says it is adding to a meal today$")]
+    public void ThenScanSaysItIsAddingToAMealToday() =>
+        web.Eventually(scan.Chip, Does.Match(@$"^Adding to (Breakfast|Lunch|Dinner|Snacks) · {Today()}$"), "the Scan chip");
+
+    [Then(@"^Scan has no bottom bar$")]
+    public void ThenScanHasNoBottomBar() => Assert.That(scan.HasBottomBar(), Is.False);
+
+    [When(@"^I tap Search by name instead on Scan$")]
+    public void WhenITapSearchByNameInsteadOnScan() => scan.SearchByName();
+
+    private string Today() => clock.LocalNow().ToString("d MMM", System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>The file <c>E2EScanSeam</c> reads; <c>ScanSeamValuesTests</c> checks both constants match it.</summary>
     private const string ScanSeamFileName = "e2e-barcode.txt";

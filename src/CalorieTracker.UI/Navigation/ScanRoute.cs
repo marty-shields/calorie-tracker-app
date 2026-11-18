@@ -8,6 +8,14 @@ public static class ScanRoute
     public const string Template = "/scan";
 
     /// <summary>The route that opens the scanner to add to <paramref name="meal"/>; <paramref name="date"/> null is today.</summary>
-    public static string AddUrl(Meal meal, DateOnly? date = null) =>
-        $"{Template}?{RouteDate.MealQuery(meal, date)}";
+    /// <param name="backTo">An in-app route Back returns to, such as the search that opened the scanner; null returns to the Dashboard.</param>
+    public static string AddUrl(Meal meal, DateOnly? date = null, string? backTo = null)
+    {
+        var url = $"{Template}?{RouteDate.MealQuery(meal, date)}";
+        return backTo is null ? url : url + $"&back={Uri.EscapeDataString(backTo)}";
+    }
+
+    /// <summary>Where Back goes: the <c>back</c> route if it is in-app, else the Dashboard on <paramref name="date"/> (today when null).</summary>
+    public static string BackTarget(string? backTo, DateOnly? date) =>
+        ServingRoute.ReturnOr(backTo, date is { } day ? DashboardRoute.Url(day) : ServingRoute.DefaultAfterAdd);
 }

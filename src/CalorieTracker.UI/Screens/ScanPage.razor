@@ -1,21 +1,25 @@
 @using CalorieTracker.Core.Data
 @using CalorieTracker.UI.Models.Scan
-<ScanView State="state" Product="product" OnScanAgain="RunScanAsync" OnAddToDiary="AddToDiaryAsync" OnSearchByName="OnSearchByName" OnBack="OnBack" />
+<ScanView State="state" Meal="Meal" Date="Date ?? DateOnly.FromDateTime(Time.GetLocalNow().DateTime)" OnScanAgain="RunScanAsync" OnSearchByName="OnSearchByName" OnBack="OnBack" />
 
 @code {
     /// <summary>Raised by the back arrow, Android back, and when the camera is closed without a barcode.</summary>
     [Parameter]
     public EventCallback OnBack { get; set; }
 
-    /// <summary>Raised with the id of the scanned food when Add to diary is tapped.</summary>
+    /// <summary>Raised with the id of the scanned food as soon as the product is found, to open Serving for it.</summary>
     [Parameter]
-    public EventCallback<ScanAddRequest> OnAddToDiary { get; set; }
+    public EventCallback<ScanAddRequest> OnFound { get; set; }
 
-    /// <summary>The meal being added to, so Serving opens on that meal's last amount of the food. Null is any meal.</summary>
+    /// <summary>The meal being added to: Serving opens on that meal's last amount of the food.</summary>
     [Parameter]
-    public Meal? Meal { get; set; }
+    public Meal Meal { get; set; }
 
-    /// <summary>Raised by Search by name, shown when the product has no food id to add.</summary>
+    /// <summary>The day being added to, which the chip shows. Null is today.</summary>
+    [Parameter]
+    public DateOnly? Date { get; set; }
+
+    /// <summary>Raised by Search by name instead, shown when nothing was found.</summary>
     [Parameter]
     public EventCallback OnSearchByName { get; set; }
 }

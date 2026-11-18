@@ -51,25 +51,6 @@ public class ScanPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task ScanAgain_AfterAFoundProduct_ShowsOpeningCameraAgain()
-    {
-        lookup.Result = BarcodeLookupResult.Found(Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8));
-        var cut = Context.Render<ScanPage>();
-        scanner.Complete(ScanResult.Scanned(Barcode));
-        await WaitForRendererAsync();
-        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-again]"), Has.Count.EqualTo(1)));
-
-        cut.Find("[data-testid=scan-again]").Click();
-        await WaitForRendererAsync();
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(scanner.Scans, Has.Count.EqualTo(2));
-            Assert.That(cut.FindAll("[data-testid=scan-opening-camera]"), Has.Count.EqualTo(1));
-        });
-    }
-
-    [Test]
     public async Task AcceptedBarcode_IsLookedUpExactlyOnce()
     {
         lookup.Hold = true;
@@ -136,64 +117,6 @@ public class ScanPageTests : ComponentTestBase
         });
     }
 
-    [Test]
-    public async Task Found_ShowsTheProductPer100g()
-    {
-        lookup.Result = BarcodeLookupResult.Found(Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8));
-        var cut = await ScannedAsync();
-
-        cut.WaitForAssertion(() =>
-        {
-            Assert.That(cut.Find("[data-testid=scan-name]").TextContent, Is.EqualTo("Morning Mill Porridge oats"));
-            Assert.That(cut.FindAll("[data-testid=scan-brand]"), Is.Empty);
-            Assert.That(cut.Find("[data-testid=scan-per]").TextContent, Is.EqualTo("Per 100 g"));
-            Assert.That(cut.Find("[data-testid=scan-kcal]").TextContent, Is.EqualTo("372 kcal"));
-            Assert.That(cut.Find("[data-testid=scan-protein]").TextContent, Is.EqualTo("11 g"));
-            Assert.That(cut.Find("[data-testid=scan-carbs]").TextContent, Is.EqualTo("60 g"));
-            Assert.That(cut.Find("[data-testid=scan-fat]").TextContent, Is.EqualTo("8 g"));
-            Assert.That(cut.FindAll("[data-testid=scan-warning]"), Is.Empty);
-        });
-    }
-
-    [Test]
-    public async Task Found_WithBrandsPackAndGenericName_ShowsThemAll()
-    {
-        var food = Product("Nutella", null, FoodUnit.Gram, 539, 6.3, 57.5, 30.9);
-        (food.Brands, food.PackageLabel, food.GenericName) = ("Ferrero, Nutella", "400 g", "Hazelnut spread");
-        lookup.Result = BarcodeLookupResult.Found(food);
-        var cut = await ScannedAsync();
-
-        cut.WaitForAssertion(() =>
-        {
-            Assert.That(cut.Find("[data-testid=scan-name]").TextContent, Is.EqualTo("Nutella"));
-            Assert.That(cut.Find("[data-testid=scan-brand]").TextContent, Is.EqualTo("Ferrero"));
-            Assert.That(cut.Find("[data-testid=scan-pack]").TextContent, Is.EqualTo("400 g"));
-            Assert.That(cut.Find("[data-testid=scan-generic]").TextContent, Is.EqualTo("Hazelnut spread"));
-        });
-    }
-
-    [Test]
-    public async Task Found_Liquid_ShowsPer100mlAndNoBrandWhenThereIsNone()
-    {
-        lookup.Result = BarcodeLookupResult.Found(Product("Semi-skimmed milk", null, FoodUnit.Millilitre, 47, 3.5, 4.8, 1.7));
-        var cut = await ScannedAsync();
-
-        cut.WaitForAssertion(() =>
-        {
-            Assert.That(cut.Find("[data-testid=scan-per]").TextContent, Is.EqualTo("Per 100 ml"));
-            Assert.That(cut.FindAll("[data-testid=scan-brand]"), Is.Empty);
-        });
-    }
-
-    [Test]
-    public async Task Found_WithValuesThatDoNotAddUp_ShowsTheWarning()
-    {
-        lookup.Result = BarcodeLookupResult.Found(Product("Chocolate spread", "Nutty Co", FoodUnit.Gram, 250, 6, 55, 31));
-        var cut = await ScannedAsync();
-
-        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-warning]"), Has.Count.EqualTo(1)));
-    }
-
     [TestCase(BarcodeLookupStatus.NotFound)]
     [TestCase(BarcodeLookupStatus.Offline)]
     [TestCase(BarcodeLookupStatus.RateLimited)]
@@ -247,21 +170,6 @@ public class ScanPageTests : ComponentTestBase
 
         cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-not-found]"), Has.Count.EqualTo(1)));
         Assert.That(lookup.Barcodes, Is.Empty);
-    }
-
-    [TestCase(double.MaxValue)]
-    [TestCase(double.PositiveInfinity)]
-    [TestCase(double.NaN)]
-    public async Task Found_WithAValueThatCannotBeShown_ShowsNotFound(double kcal)
-    {
-        lookup.Result = BarcodeLookupResult.Found(Product("Odd", null, FoodUnit.Gram, kcal, 1, 1, 1));
-        var cut = await ScannedAsync();
-
-        cut.WaitForAssertion(() =>
-        {
-            Assert.That(cut.FindAll("[data-testid=scan-not-found]"), Has.Count.EqualTo(1));
-            Assert.That(cut.FindAll("[data-testid=scan-product]"), Is.Empty);
-        });
     }
 
     [Test]
@@ -340,7 +248,8 @@ public class ScanPageTests : ComponentTestBase
     {
         var late = new TaskCompletionSource<BarcodeLookupResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         lookup.Late = late;
-        var cut = Context.Render<ScanPage>();
+        var found = new List<ScanAddRequest>();
+        var cut = Context.Render<ScanPage>(p => p.Add(x => x.OnFound, found.Add));
         scanner.Complete(ScanResult.Scanned(Barcode));
         await WaitForRendererAsync();
         cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-looking-up]"), Has.Count.EqualTo(1)));
@@ -350,14 +259,14 @@ public class ScanPageTests : ComponentTestBase
         _ = cut.InvokeAsync(() => (Task)runScan.Invoke(cut.Instance, null)!);
         cut.WaitForAssertion(() => Assert.That(scanner.Scans, Has.Count.EqualTo(2)));
 
-        late.SetResult(BarcodeLookupResult.Found(Product("Porridge oats", null, FoodUnit.Gram, 372, 11, 60, 8)));
+        late.SetResult(BarcodeLookupResult.Found(Stored(42)));
         await WaitForRendererAsync();
 
         Assert.Multiple(() =>
         {
             Assert.That(cut.FindAll("[data-testid=scan-opening-camera]"), Has.Count.EqualTo(1));
-            Assert.That(cut.FindAll("[data-testid=scan-product]"), Is.Empty);
             Assert.That(cut.FindAll("[data-testid=scan-not-found]"), Is.Empty);
+            Assert.That(found, Is.Empty);
         });
     }
 
@@ -381,92 +290,90 @@ public class ScanPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task Found_WithExtraNutrients_ShowsTheirRows()
+    public async Task Found_WithAStoredFood_RaisesOnFoundAtOnceWithItsId_AndShowsNoValuesScreen()
     {
-        var food = Product("Porridge oats", null, FoodUnit.Gram, 372, 11, 60, 8);
-        (food.FibreG, food.SugarsG, food.SaturatesG, food.SaltG) = (9, 1.1, 1.4, 0.3);
-        lookup.Result = BarcodeLookupResult.Found(food);
-        var cut = await ScannedAsync();
+        lookup.Result = BarcodeLookupResult.Found(Stored(42));
+        var found = new List<ScanAddRequest>();
+        var cut = await ScannedAsync(p => p.Add(x => x.OnFound, found.Add));
 
-        cut.WaitForAssertion(() =>
+        cut.WaitForAssertion(() => Assert.That(found, Is.EqualTo(new[] { new ScanAddRequest(42) })));
+        Assert.Multiple(() =>
         {
-            Assert.That(cut.Find("[data-testid=scan-fibre]").TextContent, Is.EqualTo("9 g"));
-            Assert.That(cut.Find("[data-testid=scan-sugars]").TextContent, Is.EqualTo("1.1 g"));
-            Assert.That(cut.Find("[data-testid=scan-saturates]").TextContent, Is.EqualTo("1.4 g"));
-            Assert.That(cut.Find("[data-testid=scan-salt]").TextContent, Is.EqualTo("0.3 g"));
+            Assert.That(cut.FindAll("[data-testid=scan-product]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=scan-add]"), Is.Empty);
+            Assert.That(cut.FindAll("footer"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=scan-not-found]"), Is.Empty);
         });
     }
 
     [Test]
-    public async Task Found_WithAnExtraNutrientThatCannotBeShown_ShowsTheProductWithoutThatRow()
+    public async Task Found_WithAStoredFoodLoggedBefore_CarriesItsLastServing()
     {
-        var food = Product("Porridge oats", null, FoodUnit.Gram, 372, 11, 60, 8);
-        (food.FibreG, food.SugarsG) = (double.MaxValue, 2);
-        lookup.Result = BarcodeLookupResult.Found(food);
-        var cut = await ScannedAsync();
-
-        cut.WaitForAssertion(() =>
-        {
-            Assert.That(cut.FindAll("[data-testid=scan-product]"), Has.Count.EqualTo(1));
-            Assert.That(cut.FindAll("[data-testid=scan-fibre]"), Is.Empty);
-            Assert.That(cut.Find("[data-testid=scan-sugars]").TextContent, Is.EqualTo("2 g"));
-        });
-    }
-
-    [Test]
-    public async Task Found_WithAStoredFood_AddToDiaryRaisesOnAddToDiaryWithItsId()
-    {
-        var food = Product("Digestive biscuits", "Morning Mill", FoodUnit.Gram, 480, 7, 62, 22);
-        food.Id = 42;
-        lookup.Result = BarcodeLookupResult.Found(food);
-        var added = new List<ScanAddRequest>();
-        var cut = await ScannedAsync(p => p.Add(x => x.OnAddToDiary, added.Add));
-
-        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-add]"), Has.Count.EqualTo(1)));
-        Assert.That(cut.Markup, Does.Not.Contain("Serving:"));
-        cut.Find("[data-testid=scan-add]").Click();
-
-        Assert.That(added, Is.EqualTo(new[] { new ScanAddRequest(42) }));
-    }
-
-    [Test]
-    public async Task Found_WithAStoredFoodLoggedBefore_AddToDiaryCarriesItsLastServing()
-    {
-        var food = Product("Digestive biscuits", "Morning Mill", FoodUnit.Gram, 480, 7, 62, 22);
-        food.Id = 42;
-        lookup.Result = BarcodeLookupResult.Found(food);
+        lookup.Result = BarcodeLookupResult.Found(Stored(42));
         search.Last[42] = new CalorieTracker.Core.History.FoodHistory(42, 3, 9, new DateOnly(2031, 7, 19), 45, 3, 77);
-        var added = new List<ScanAddRequest>();
-        var cut = await ScannedAsync(p => p.Add(x => x.OnAddToDiary, added.Add));
+        var found = new List<ScanAddRequest>();
+        var cut = await ScannedAsync(p => p.Add(x => x.OnFound, found.Add));
 
-        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-add]"), Has.Count.EqualTo(1)));
-        cut.Find("[data-testid=scan-add]").Click();
-
-        Assert.That(added, Is.EqualTo(new[] { new ScanAddRequest(42, 45, 3, 77) }));
+        cut.WaitForAssertion(() => Assert.That(found, Is.EqualTo(new[] { new ScanAddRequest(42, 45, 3, 77) })));
     }
 
     [Test]
-    public async Task Found_WithAMeal_AddToDiaryAsksForThatMealsLastServing()
+    public async Task Found_AsksForTheLastServingInTheMealBeingAddedTo()
     {
-        var food = Product("Digestive biscuits", "Morning Mill", FoodUnit.Gram, 480, 7, 62, 22);
-        food.Id = 42;
-        lookup.Result = BarcodeLookupResult.Found(food);
-        var cut = await ScannedAsync(p => p.Add(x => x.Meal, Meal.Dinner).Add(x => x.OnAddToDiary, (ScanAddRequest _) => { }));
+        lookup.Result = BarcodeLookupResult.Found(Stored(42));
+        var found = new List<ScanAddRequest>();
+        var cut = await ScannedAsync(p => p.Add(x => x.Meal, Meal.Dinner).Add(x => x.OnFound, found.Add));
 
-        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-add]"), Has.Count.EqualTo(1)));
-        cut.Find("[data-testid=scan-add]").Click();
-
+        cut.WaitForAssertion(() => Assert.That(found, Has.Count.EqualTo(1)));
         Assert.That(search.MealsAsked, Is.EqualTo(new Meal?[] { Meal.Dinner }));
     }
 
     [Test]
-    public async Task Found_WithAFoodThatWasNotSaved_OffersNoAddToDiary()
+    public async Task Found_WithAFoodThatWasNotSaved_ShowsNotFoundAndHandsNothingOn()
     {
         lookup.Result = BarcodeLookupResult.Found(Product("Porridge oats", null, FoodUnit.Gram, 372, 11, 60, 8));
-        var cut = await ScannedAsync();
+        var found = new List<ScanAddRequest>();
+        var cut = await ScannedAsync(p => p.Add(x => x.OnFound, found.Add));
 
-        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-product]"), Has.Count.EqualTo(1)));
-        Assert.That(cut.FindAll("[data-testid=scan-add]"), Is.Empty);
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-not-found]"), Has.Count.EqualTo(1)));
+        Assert.That(found, Is.Empty);
+    }
+
+    [Test]
+    public async Task ScanAgain_AfterNotFound_ThenAFoundProduct_HandsItOn()
+    {
+        lookup.Result = BarcodeLookupResult.NotFound();
+        var found = new List<ScanAddRequest>();
+        var cut = await ScannedAsync(p => p.Add(x => x.OnFound, found.Add));
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-again]"), Has.Count.EqualTo(1)));
+        lookup.Result = BarcodeLookupResult.Found(Stored(7));
+
+        cut.Find("[data-testid=scan-again]").Click();
+        scanner.Detect(Barcode);
+        scanner.Complete(ScanResult.Scanned(Barcode));
+        await WaitForRendererAsync();
+
+        cut.WaitForAssertion(() => Assert.That(found, Is.EqualTo(new[] { new ScanAddRequest(7) })));
+    }
+
+    [Test]
+    public void TheChip_ShowsTheMealAndTheGivenDay()
+    {
+        var cut = Context.Render<ScanPage>(p => p.Add(x => x.Meal, Meal.Dinner).Add(x => x.Date, new DateOnly(2026, 11, 12)));
+
+        Assert.That(cut.Find("[data-testid=scan-adding]").TextContent, Is.EqualTo("Adding to Dinner · 12 Nov"));
+    }
+
+    [Test]
+    public void TheChip_WithoutADay_ShowsToday()
+    {
+        var clock = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(new DateTimeOffset(2026, 11, 18, 12, 0, 0, TimeSpan.Zero));
+        clock.SetLocalTimeZone(TimeZoneInfo.Utc);
+        Context.Services.AddSingleton<TimeProvider>(clock);
+
+        var cut = Context.Render<ScanPage>(p => p.Add(x => x.Meal, Meal.Lunch));
+
+        Assert.That(cut.Find("[data-testid=scan-adding]").TextContent, Is.EqualTo("Adding to Lunch · 18 Nov"));
     }
 
     [Test]
@@ -480,17 +387,6 @@ public class ScanPageTests : ComponentTestBase
         cut.Find("[data-testid=scan-search]").Click();
 
         Assert.That(searched, Is.EqualTo(1));
-    }
-
-    [Test]
-    public void ToProduct_NutrientAboveTheCapOrNegative_IsLeftOut()
-    {
-        var food = Product("Biscuits", null, FoodUnit.Gram, 480, 7, 62, 22);
-        (food.FibreG, food.SugarsG, food.SaturatesG, food.SaltG) = (FoodService.MaxNutrientPer100 + 1, -1, FoodService.MaxNutrientPer100, 0);
-
-        var product = ScanPage.ToProduct(food)!;
-
-        Assert.That((product.Fibre, product.Sugars, product.Saturates, product.Salt), Is.EqualTo(((decimal?)null, (decimal?)null, (decimal?)100, (decimal?)0)));
     }
 
     [Test]
@@ -552,15 +448,14 @@ public class ScanPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task Logs_TheBarcodeAndStatus_ButNeverTheProductNameOrBrand()
+    public async Task Logs_TheBarcodeAndStatus_ButNeverTheProductNameBrandOrMeal()
     {
         var food = Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8);
         food.Id = 42;
         lookup.Result = BarcodeLookupResult.Found(food);
-        var cut = await ScannedAsync();
-        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-add]"), Has.Count.EqualTo(1)));
-        cut.Find("[data-testid=scan-add]").Click();
-        cut.Find("[data-testid=scan-again]").Click();
+        var found = new List<ScanAddRequest>();
+        var cut = await ScannedAsync(p => p.Add(x => x.OnFound, found.Add));
+        cut.WaitForAssertion(() => Assert.That(found, Has.Count.EqualTo(1)));
 
         var lines = logger.Collector.GetSnapshot().Select(r => r.Message).ToList();
         Assert.Multiple(() =>
@@ -580,6 +475,8 @@ public class ScanPageTests : ComponentTestBase
         await WaitForRendererAsync();
         return cut;
     }
+
+    private static Food Stored(int id) => new() { Id = id, Source = FoodSource.OpenFoodFacts, SourceId = Barcode, Name = "Porridge oats", Brand = "Morning Mill", Unit = FoodUnit.Gram, Kcal = 372, ProteinG = 11, CarbsG = 60, FatG = 8 };
 
     private static Food Product(string name, string? brand, FoodUnit unit, double kcal, double protein, double carbs, double fat) =>
         new() { Source = FoodSource.OpenFoodFacts, SourceId = Barcode, Name = name, Brand = brand, Unit = unit, Kcal = kcal, ProteinG = protein, CarbsG = carbs, FatG = fat };

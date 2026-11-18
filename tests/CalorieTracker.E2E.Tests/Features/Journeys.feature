@@ -34,8 +34,6 @@ Feature: Diary journeys
     When I open the Add sheet
     And I choose Snacks on the Add sheet
     And I tap Scan barcode on the Add sheet
-    Then Scan shows the found product with Add to diary
-    When I tap Add to diary on Scan
     Then Serving has the Snacks meal chosen
     When I tap Add
     Then I am on the Dashboard

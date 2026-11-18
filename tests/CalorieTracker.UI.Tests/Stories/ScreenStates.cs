@@ -136,14 +136,6 @@ public static class ScreenStates
         new("Screens/FoodSearch", "Results with more to show", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.LongGroup)),
         new("Screens/FoodSearch", "Results with an expanded group", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.LongGroup, expanded: [FoodGroupKind.Common])),
         new("Screens/FoodSearch", "No results", c => FoodSearch(c, query: "zzz")),
-        new("Screens/FoodSearch", "Food selected", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups, selected: SampleFoods[0], favourite: false)),
-        new("Screens/FoodSearch", "Favourite food selected", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups, selected: SampleFoods[0], favourite: true, snackbar: "Added to favourites", snackbarAction: null)),
-        new("Screens/FoodSearch", "Favourite update failed", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups, selected: SampleFoods[0], favourite: false, snackbar: "Couldn't update favourites. Try again.", snackbarAction: null)),
-        new("Screens/FoodSearch", "Branded food selected", c => FoodSearch(c, query: "nutella", groups: FoodSearchSamples.BrandedGroup, selected: FoodSearchSamples.BrandedFoods[1])),
-        new("Screens/FoodSearch", "Add to a meal", c => FoodSearch(c, query: "oat", groups: FoodSearchSamples.AllGroups, meal: Meal.Lunch)),
-        new("Screens/FoodSearch", "Add to a meal with nothing typed", c => FoodSearch(c, meal: Meal.Snacks)),
-        new("Screens/FoodSearch", "Add to a meal with history", c => FoodSearch(c, groups: FoodSearchSamples.Idle, meal: Meal.Breakfast)),
-        new("Screens/FoodSearch", "Add to a meal with no results", c => FoodSearch(c, query: "xyzzy", meal: Meal.Lunch)),
         new("Screens/FoodSearch", "Online search button", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored, noticeVisible: true)),
         new("Screens/FoodSearch", "Online search button after the notice", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored)),
         new("Screens/FoodSearch", "No results with online search", c => FoodSearch(c, query: "zzz", noticeVisible: true)),
@@ -157,16 +149,11 @@ public static class ScreenStates
         new("Screens/FoodSearch", "Online offline", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Offline)),
         new("Screens/FoodSearch", "Online failed", c => FoodSearch(c, query: "cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Failed)),
         new("Screens/FoodSearch", "Online product unavailable", c => FoodSearch(c, query: "coca-cola", groups: FoodSearchSamples.ColaStored, online: OnlineSearchState.Unavailable, products: FoodSearchSamples.OnlineFew, country: "United Kingdom")),
-        new("Screens/FoodSearch", "Online results in add mode", c => FoodSearch(c, query: "coca-cola", meal: Meal.Lunch, online: OnlineSearchState.Results, products: FoodSearchSamples.OnlineFew, country: "United Kingdom")),
         new("Screens/FoodSearch", "Search failed", c => FoodSearch(c, query: "oat", failed: true)),
         new("Screens/Scan", "Opening camera", c => Scan(c, ScanState.OpeningCamera)),
         new("Screens/Scan", "Closing camera", c => Scan(c, ScanState.Closing)),
         new("Screens/Scan", "Looking up", c => Scan(c, ScanState.LookingUp)),
-        new("Screens/Scan", "Found", c => Scan(c, ScanState.Found, new("Porridge oats", "Morning Mill", 372, 11, 60, 8, FoodId: 1))),
-        new("Screens/Scan", "Found liquid", c => Scan(c, ScanState.Found, new("Semi-skimmed milk", null, 47, 3.5m, 4.8m, 1.7m, IsLiquid: true, FoodId: 2))),
-        new("Screens/Scan", "Found with extra nutrients", c => Scan(c, ScanState.Found, new("Porridge oats", "Morning Mill", 372, 11, 60, 8, Fibre: 9, Sugars: 1.1m, Saturates: 1.4m, Salt: 0.01m, FoodId: 1))),
-        new("Screens/Scan", "Found with brand and pack", c => Scan(c, ScanState.Found, new("Nutella", "Ferrero", 539, 6.3m, 57.5m, 30.9m, FoodId: 5, Brands: "Ferrero, Nutella", GenericName: "Hazelnut spread with cocoa", PackageLabel: "400 g e"))),
-        new("Screens/Scan", "Found with warning", c => Scan(c, ScanState.Found, new("Chocolate spread", "Nutty Co", 250, 6, 55, 31, FoodId: 4))),
+        new("Screens/Scan", "Adding to another day", c => Scan(c, ScanState.LookingUp, Meal.Dinner, DashboardSamples.Today.AddDays(-6))),
         new("Screens/Scan", "Not found", c => Scan(c, ScanState.NotFound)),
         new("Screens/Scan", "Camera unavailable", c => Scan(c, ScanState.CameraUnavailable)),
 
@@ -203,25 +190,20 @@ public static class ScreenStates
         new("Screens/Error", "Error", c => c.Render<ErrorView>(p => p.Add(x => x.OnRestart, () => { })).FindAll("*")),
     ];
 
-    private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", IReadOnlyList<FoodGroup>? groups = null, Food? selected = null, bool loading = false, bool failed = false, Meal? meal = null, FoodGroupKind[]? expanded = null,
-        OnlineSearchState online = OnlineSearchState.Idle, IReadOnlyList<OnlineProduct>? products = null, string? country = null, bool onlineExpanded = false, bool noticeVisible = false,
-        bool? favourite = null, string? snackbar = null, string? snackbarAction = "Undo") =>
-        Posted(context, snackbar, snackbarAction).Render<FoodSearchView>(p => p
-            .Add(x => x.Favourite, favourite)
-            .Add(x => x.OnToggleFavourite, () => { })
+    private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", IReadOnlyList<FoodGroup>? groups = null, bool loading = false, bool failed = false, Meal meal = Meal.Lunch, FoodGroupKind[]? expanded = null,
+        OnlineSearchState online = OnlineSearchState.Idle, IReadOnlyList<OnlineProduct>? products = null, string? country = null, bool onlineExpanded = false, bool noticeVisible = false) =>
+        Posted(context, null, null).Render<FoodSearchView>(p => p
             .Add(x => x.Meal, meal)
-            .Add(x => x.OnAdd, (Food _) => { })
+            .Add(x => x.OnScan, () => { })
             .Add(x => x.OnBack, () => { })
             .Add(x => x.Query, query)
             .Add(x => x.Groups, groups ?? [])
             .Add(x => x.Expanded, (expanded ?? []).ToHashSet())
             .Add(x => x.OnExpand, (FoodGroupKind _) => { })
-            .Add(x => x.Selected, selected)
             .Add(x => x.Loading, loading)
             .Add(x => x.Failed, failed)
             .Add(x => x.OnQueryChanged, (string _) => { })
             .Add(x => x.OnSelect, (Food _) => { })
-            .Add(x => x.OnClearSelection, () => { })
             .Add(x => x.OnRetry, () => { })
             .Add(x => x.OnlineState, online)
             .Add(x => x.OnlineProducts, products ?? [])
@@ -279,10 +261,12 @@ public static class ScreenStates
             .Add(x => x.OnBack, () => { }))
             .FindAll("*");
 
-    private static IReadOnlyList<IElement> Scan(BunitContext context, ScanState state, ScannedProduct? product = null) =>
+    private static IReadOnlyList<IElement> Scan(BunitContext context, ScanState state, Meal meal = Meal.Lunch, DateOnly? date = null) =>
         context.Render<ScanView>(p => p
             .Add(x => x.State, state)
-            .Add(x => x.Product, product)
+            .Add(x => x.Meal, meal)
+            .Add(x => x.Date, date ?? DashboardSamples.Today)
+            .Add(x => x.OnSearchByName, () => { })
             .Add(x => x.OnScanAgain, () => { })
             .Add(x => x.OnBack, () => { }))
             .FindAll("*");

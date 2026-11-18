@@ -1,15 +1,18 @@
 @page "/foods"
 @using CalorieTracker.Core.Data
+@using CalorieTracker.Core.Diary
 @using CalorieTracker.UI.Navigation
 @using CalorieTracker.UI.Screens
 @inject NavigationManager Navigation
+@inject TimeProvider Time
 
-@* Back goes to the Dashboard (or from a food's values, to the list).
+@* Back goes to the Dashboard (on the day in date).
    Query: meal and date (yyyy-MM-dd, default today) open search to add to that meal, q restores a search (an old type value is ignored).
-   A meal's + sends a person here with a meal: a result opens Serving with that meal, and Add goes on to the Dashboard (on that day when a date is given).
-   Without a meal (an old link) a food's Add to diary opens Serving with a suggested meal, and Add comes back to this search. *@
+   Without a meal (an old link) the meal is the one the time of day suggests (MealWindows).
+   A result opens Serving with that meal, and Add goes on to the Dashboard (on that day when a date is given). The barcode button opens the scanner for the same meal and day, and its Back returns here. *@
 <FoodSearchPage Meal="meal" InitialQuery="@Query"
-                OnAdd="Add" OnBack="@(() => Navigation.GoTo(date is { } day ? DashboardRoute.Url(day) : "/"))" />
+                OnAdd="Add" OnBack="@(() => Navigation.GoTo(date is { } day ? DashboardRoute.Url(day) : "/"))"
+                OnScan="@(() => Navigation.GoTo(ScanRoute.AddUrl(meal, date, FoodSearchRoute.AddUrl(meal, date, Query))))" />
 
 @code {
     [SupplyParameterFromQuery(Name = "meal")]
@@ -21,12 +24,10 @@
     [SupplyParameterFromQuery(Name = "q")]
     public string? Query { get; set; }
 
-    private Meal? meal => ServingRoute.ParseMeal(MealText);
+    private Meal meal => ServingRoute.ParseMeal(MealText) ?? MealWindows.MealFor(TimeOnly.FromDateTime(Time.GetLocalNow().DateTime));
 
     private DateOnly? date => RouteDate.Parse(DateText);
 
     private void Add(FoodAddRequest request) =>
-        Navigation.GoTo(meal is { } preset
-            ? ServingRoute.Url(request.Food.Id, preset, date, backTo: FoodSearchRoute.AddUrl(preset, date, request.Query), amount: request.LastAmount, servings: request.LastServings, servingId: request.LastServingId)
-            : ServingRoute.Url(request.Food.Id, returnTo: FoodSearchRoute.Url(request.Query), amount: request.LastAmount, servings: request.LastServings, servingId: request.LastServingId));
+        Navigation.GoTo(ServingRoute.Url(request.Food.Id, meal, date, backTo: FoodSearchRoute.AddUrl(meal, date, request.Query), amount: request.LastAmount, servings: request.LastServings, servingId: request.LastServingId));
 }
