@@ -33,8 +33,8 @@ public enum IconName
     /// <summary>Tick (<c>check</c>).</summary>
     Check,
 
-    /// <summary>House (<c>home</c>).</summary>
-    Home,
+    /// <summary>Calendar page with today's square marked (<c>today</c>).</summary>
+    Today,
 
     /// <summary>Barcode in scanner corners (<c>barcode_scanner</c>).</summary>
     Scan,

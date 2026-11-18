@@ -265,13 +265,12 @@ public class DashboardPageTests : ComponentTestBase
             .Add(x => x.OnNavigate, navigated.Add)
             .Add(x => x.OnSettings, () => settings++));
 
-        await cut.Find("[data-testid=dashboard-link]").ClickAsync();
+        await cut.Find("[data-testid=today-link]").ClickAsync();
         await cut.Find("[data-testid=settings]").ClickAsync();
-        await cut.Find("[data-testid=scan-link]").ClickAsync();
 
         cut.WaitForAssertion(() =>
         {
-            Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Scan }));
+            Assert.That(navigated, Is.Empty, "Today is the screen showing");
             Assert.That(settings, Is.EqualTo(1));
         });
     }

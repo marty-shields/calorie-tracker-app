@@ -226,8 +226,7 @@ public static class ScreenStates
             .Add(x => x.OnSearchOnline, () => { })
             .Add(x => x.OnSelectOnline, (OnlineProduct _) => { })
             .Add(x => x.OnExpandOnline, () => { })
-            .Add(x => x.OnRetryOnline, () => { })
-            .Add(x => x.OnNavigate, (NavDestination _) => { }))
+            .Add(x => x.OnRetryOnline, () => { }))
             .FindAll("*");
 
     internal static IReadOnlyList<IElement> Serving(BunitContext context, Food? food, EntryMode mode = EntryMode.Servings, decimal? amount = null, double? grams = null, Meal meal = Meal.Breakfast,
@@ -280,7 +279,7 @@ public static class ScreenStates
             .Add(x => x.State, state)
             .Add(x => x.Product, product)
             .Add(x => x.OnScanAgain, () => { })
-            .Add(x => x.OnNavigate, (NavDestination _) => { }))
+            .Add(x => x.OnBack, () => { }))
             .FindAll("*");
 
     private static IReadOnlyList<IElement> Settings(BunitContext context, string? version = null, ThemePreference theme = ThemePreference.System, decimal? target = null, string? targetInvalidMessage = null) =>
@@ -305,7 +304,8 @@ public static class ScreenStates
             .Add(x => x.OnEdit, (EntryEditRequest _) => { })
             .Add(x => x.OnRetry, () => { })
             .Add(x => x.OnSettings, () => { })
-            .Add(x => x.OnNavigate, (NavDestination _) => { }))
+            .Add(x => x.OnNavigate, (NavDestination _) => { })
+            .Add(x => x.OnScan, (MealAddRequest _) => { }))
             .FindAll("*");
 
     /// <summary>Posts the message (with the action when given) to the context's snackbar before the screen renders, as another screen would; returns the context.</summary>

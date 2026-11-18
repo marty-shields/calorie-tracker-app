@@ -1,5 +1,5 @@
 Feature: Add a food from food search
-  Both routes end at the Serving screen. A meal's + on the Dashboard opens search to add to that meal. The Foods tab route is tapped through: open a food, then Add to diary. Each scenario adds one entry and checks where the person lands and the snackbar.
+  Both routes end at the Serving screen. A meal's + on the Dashboard opens search to add to that meal. The old route without a meal is tapped through: open a food, then Add to diary. Each scenario adds one entry and checks where the person lands and the snackbar.
 
   Scenario: A meal's search adds to that meal and goes to the Dashboard with Undo
     Given I am on the Dashboard

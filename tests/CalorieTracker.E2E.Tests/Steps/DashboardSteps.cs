@@ -5,7 +5,7 @@ using Reqnroll;
 namespace CalorieTracker.E2E.Tests.Steps;
 
 [Binding]
-public sealed class DashboardSteps(WebView web, DashboardScreen dashboard, NavigationBar navigation, Journeys journeys)
+public sealed class DashboardSteps(WebView web, DashboardScreen dashboard, Journeys journeys)
 {
     [Then(@"^I am on the Dashboard titled ""(.*)""$")]
     public void ThenOnTheDashboardTitled(string title) => web.Eventually(() => web.Text("screen-title"), Is.EqualTo(title));
@@ -16,9 +16,6 @@ public sealed class DashboardSteps(WebView web, DashboardScreen dashboard, Navig
         journeys.WaitFor(Journeys.Screen.Dashboard);
         web.Eventually(dashboard.EmptyText, Is.EqualTo(text));
     }
-
-    [Then(@"^I can open the Dashboard from the navigation bar$")]
-    public void ThenTheNavigationBarShows() => Assert.That(navigation.Has("Dashboard"), Is.True, "Dashboard");
 
     [Then(@"^no startup error is shown$")]
     public void ThenNoStartupError() => Assert.That(dashboard.HasStartupError(), Is.False);

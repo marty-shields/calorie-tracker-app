@@ -92,6 +92,10 @@
     --radio-dot-size: 0.75rem;
     --nav-indicator-width: 4rem;
     --nav-indicator-height: 2rem;
+    --add-button-size: 3.5rem;
+    --add-button-lift: 1.25rem;
+    --sheet-enter-duration: 200ms;
+    --sheet-max-width: 32rem;
 }
 
 /* Forces a theme on an element and its children. */

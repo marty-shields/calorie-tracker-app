@@ -1,10 +1,11 @@
 Feature: Food search
-  The Foods item of the navigation bar opens food search over the bundled foods. Results update as I type. On the first launch the foods may still be loading; the screen says so.
+  The Add sheet's Search foods opens food search over the bundled foods, for a meal. Without a meal, search is reached only by an old link (the scenarios below that open Foods use it) until that view is removed. Results update as I type. On the first launch the foods may still be loading; the screen says so.
 
   @smoke
-  Scenario: Foods opens from the navigation bar
-    When I open Foods from the navigation bar
-    Then I am on Foods
+  Scenario: Search foods opens from the Add sheet
+    Given I am on the Dashboard
+    When I open Foods from the Add sheet
+    Then I am on search to add to a meal
 
   Scenario: Nothing typed shows the prompt
     Given I have opened Foods

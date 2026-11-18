@@ -6,15 +6,18 @@ $attribute: CustomPage("Foundations/Navigation")
 
 The app opens on [Startup](./?path=/custom/screens-startup-overview), then the Dashboard.
 
-The Dashboard, Foods and [Scan](./?path=/custom/screens-scan-overview) are the top-level screens: each shows the navigation bar ([`BottomNav`](./?path=/custom/components-layout-overview)) and has no back arrow. Android back from Foods or Scan goes to the Dashboard; from the Dashboard it leaves the app. Add a `NavDestination` and its `NavDestinations` entry for each new top-level screen.
+The Dashboard (the **Today** item) is the top-level screen: it shows the navigation bar ([`BottomNav`](./?path=/custom/components-layout-overview)) and has no back arrow; Android back leaves the app. The bar's raised **Add** button is an action, not a destination: it opens the [`AddSheet`](./?path=/custom/components-layout-overview), whose Search foods and Scan barcode open [food search](./?path=/custom/screens-foodsearch-overview) and [Scan](./?path=/custom/screens-scan-overview) for a meal and a day, each with a back arrow. Add a `NavDestination` and its `NavDestinations` entry for each new top-level screen.
 
 | From | Action | To |
 |---|---|---|
 | Dashboard | Settings gear | Settings |
 | Dashboard | Back | Leaves the app |
-| Dashboard, Foods, Scan | Navigation bar item | That screen |
-| Foods | Back | Dashboard |
-| Foods (a food open) | Back, Back to results | Foods list |
+| Dashboard | Add | Add sheet |
+| Add sheet | Scrim, Back, Escape | Dashboard (the sheet closes, focus returns to Add) |
+| Add sheet | Search foods | Food search for the chosen meal and day |
+| Add sheet | Scan barcode | Scan for the chosen meal and day |
+| Food search | Back | Dashboard |
+| Food search (a food open, no meal) | Back, Back to results | Food search list |
 | Scan | Back, or the camera cancelled | Dashboard |
 | Settings | Back | Dashboard |
 | Error | Restart | Dashboard |

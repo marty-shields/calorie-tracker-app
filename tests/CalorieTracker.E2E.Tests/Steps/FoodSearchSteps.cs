@@ -5,17 +5,10 @@ using Reqnroll;
 namespace CalorieTracker.E2E.Tests.Steps;
 
 [Binding]
-public sealed class FoodSearchSteps(FoodSearchScreen foods, NavigationBar navigation, Journeys journeys, WebView web)
+public sealed class FoodSearchSteps(FoodSearchScreen foods, Journeys journeys, WebView web)
 {
     [Given(@"^I have opened Foods$")]
     public void GivenIHaveOpenedFoods() => journeys.OpenFoods();
-
-    [When(@"^I open Foods from the navigation bar$")]
-    public void WhenIOpenFoodsFromTheNavigationBar()
-    {
-        journeys.WaitFor(Journeys.Screen.Dashboard);
-        navigation.Open("Foods");
-    }
 
     [When(@"^I open the old link ""(.*)""$")]
     public void WhenIOpenTheOldLink(string route)

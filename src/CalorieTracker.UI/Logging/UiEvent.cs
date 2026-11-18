@@ -24,6 +24,15 @@ internal enum UiEvent
     /// <summary><see cref="Navigation.BackButton"/>: a back handler failed.</summary>
     BackHandlerFailed = 2203,
 
+    /// <summary><see cref="Components.Layout.AddSheet"/>: the sheet opened, with the meal it guessed.</summary>
+    AddSheetOpened = 2301,
+
+    /// <summary><see cref="Components.Layout.AddSheet"/>: Search foods, Scan barcode or a dismissal, with the meal chosen.</summary>
+    AddSheetChose = 2302,
+
+    /// <summary><see cref="Components.Layout.AddSheet"/>: keeping focus in the sheet or returning it to Add failed; the sheet still works.</summary>
+    AddSheetFocusFailed = 2303,
+
     /// <summary><see cref="Lifecycle.AppLifecycle"/>: an app start handler failed.</summary>
     AppStartHandlerFailed = 3201,
 

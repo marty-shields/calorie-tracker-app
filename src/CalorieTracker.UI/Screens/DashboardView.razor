@@ -4,7 +4,7 @@
 @using CalorieTracker.UI.Components.Charts
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Components.Inputs
-<AppScreen Title="Calorie Tracker" Destination="NavDestination.Dashboard" OnNavigate="OnNavigate" Status="Notice">
+<AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="OnNavigate" OnAdd="OpenSheet" Status="Notice">
     <Actions>
         <IconButton Icon="IconName.Settings" AriaLabel="Settings" TestId="settings" OnClick="OnSettings" />
     </Actions>
@@ -71,11 +71,25 @@
                 }
             }
         </div>
+        <AddSheet Open="sheetOpen" OnClose="CloseSheet" OnSearch="@(meal => ChooseAsync(meal, OnAdd))" OnScan="@(meal => ChooseAsync(meal, OnScan))" />
     </ChildContent>
 </AppScreen>
 
 @code {
     private RenderFragment Notice => @<Snackbar />;
+
+    private bool sheetOpen;
+
+    private void OpenSheet() => sheetOpen = true;
+
+    private void CloseSheet() => sheetOpen = false;
+
+    /// <summary>Closes the sheet and raises the callback with the chosen meal and the day on the date strip.</summary>
+    private Task ChooseAsync(Meal meal, EventCallback<MealAddRequest> callback)
+    {
+        sheetOpen = false;
+        return callback.InvokeAsync(new MealAddRequest(meal, Date));
+    }
 
     /// <summary>The row's tap, or none when nothing handles <see cref="OnEdit"/>, so the row isn't tappable.</summary>
     private EventCallback EditTap(SummaryEntry entry, Meal meal) =>
@@ -113,9 +127,13 @@
     [Parameter]
     public EventCallback OnToday { get; set; }
 
-    /// <summary>Raised by a meal's +.</summary>
+    /// <summary>Raised by a meal's + and by the Add sheet's Search foods (with the meal chosen there), each with the day on the date strip.</summary>
     [Parameter]
     public EventCallback<MealAddRequest> OnAdd { get; set; }
+
+    /// <summary>Raised by the Add sheet's Scan barcode, with the meal chosen there and the day on the date strip.</summary>
+    [Parameter]
+    public EventCallback<MealAddRequest> OnScan { get; set; }
 
     /// <summary>Raised by a tapped entry, to change or remove it.</summary>
     [Parameter]

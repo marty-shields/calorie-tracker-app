@@ -17,7 +17,7 @@ Feature: Food search favourites
     When I go back with the back arrow
     Then search lists only the Common group
 
-  Scenario: A food starred from its values on the Foods tab is under Favourites before typing
+  Scenario: A food starred from its values in search without a meal is under Favourites before typing
     Given I have opened Foods
     And I have searched for "oat"
     When I open the first result

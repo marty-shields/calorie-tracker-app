@@ -7,7 +7,7 @@
 
 <DashboardView Date="date" Today="Today()" Summary="summary" Loading="loading" LoadFailed="loadFailed"
                OnPrevious="@(() => ShowAsync(date.AddDays(-1)))" OnNext="@(() => ShowAsync(date.AddDays(1)))" OnToday="@(() => ShowAsync(Today()))"
-               OnAdd="OnAdd" OnEdit="OnEdit" OnRetry="LoadAsync" OnNavigate="OnNavigate" OnSettings="OnSettings" />
+               OnAdd="OnAdd" OnScan="OnScan" OnEdit="OnEdit" OnRetry="LoadAsync" OnNavigate="OnNavigate" OnSettings="OnSettings" />
 
 @code {
     private DateOnly date;
@@ -22,9 +22,13 @@
     [Parameter]
     public DateOnly? Date { get; set; }
 
-    /// <summary>Raised with the meal and day when a meal's + is tapped.</summary>
+    /// <summary>Raised with the meal and day when a meal's + or the Add sheet's Search foods is tapped.</summary>
     [Parameter]
     public EventCallback<MealAddRequest> OnAdd { get; set; }
+
+    /// <summary>Raised with the meal and day when the Add sheet's Scan barcode is tapped.</summary>
+    [Parameter]
+    public EventCallback<MealAddRequest> OnScan { get; set; }
 
     /// <summary>Raised with the entry, its meal and the day when an entry is tapped.</summary>
     [Parameter]

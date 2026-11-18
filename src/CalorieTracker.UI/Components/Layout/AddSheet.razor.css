@@ -1,0 +1,83 @@
+.scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    background-color: var(--color-scrim);
+}
+
+.sheet {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 11;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    box-sizing: border-box;
+    max-width: var(--sheet-max-width);
+    margin: 0 auto;
+    padding: var(--space-6) var(--space-4) calc(var(--space-6) + var(--inset-bottom));
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    animation: rise var(--sheet-enter-duration) ease-out;
+}
+
+.sheet:focus {
+    outline: none;
+}
+
+@keyframes rise {
+    from {
+        transform: translateY(100%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sheet {
+        animation: none;
+    }
+}
+
+.title {
+    margin: 0;
+    font-size: var(--font-size-lg);
+}
+
+.tiles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+}
+
+.tile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-2);
+    min-width: 0;
+    min-height: var(--touch-target);
+    padding: var(--space-4);
+    border: 0;
+    border-radius: var(--radius-lg);
+    background-color: var(--color-secondary);
+    color: var(--color-on-secondary);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+}
+
+.tile:active {
+    background-image: linear-gradient(var(--state-pressed), var(--state-pressed));
+}
+
+/* The four meal chips share one row at the narrowest width. */
+.sheet ::deep .chips {
+    flex-wrap: nowrap;
+}
+
+.sheet ::deep .chip {
+    padding: 0 var(--space-3);
+}

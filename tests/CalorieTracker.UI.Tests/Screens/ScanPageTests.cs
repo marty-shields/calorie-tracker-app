@@ -446,6 +446,20 @@ public class ScanPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task Found_WithAMeal_AddToDiaryAsksForThatMealsLastServing()
+    {
+        var food = Product("Digestive biscuits", "Morning Mill", FoodUnit.Gram, 480, 7, 62, 22);
+        food.Id = 42;
+        lookup.Result = BarcodeLookupResult.Found(food);
+        var cut = await ScannedAsync(p => p.Add(x => x.Meal, Meal.Dinner).Add(x => x.OnAddToDiary, (ScanAddRequest _) => { }));
+
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-add]"), Has.Count.EqualTo(1)));
+        cut.Find("[data-testid=scan-add]").Click();
+
+        Assert.That(search.MealsAsked, Is.EqualTo(new Meal?[] { Meal.Dinner }));
+    }
+
+    [Test]
     public async Task Found_WithAFoodThatWasNotSaved_OffersNoAddToDiary()
     {
         lookup.Result = BarcodeLookupResult.Found(Product("Porridge oats", null, FoodUnit.Gram, 372, 11, 60, 8));
@@ -456,16 +470,16 @@ public class ScanPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task NotFound_SearchByName_OpensTheFoodsTab()
+    public async Task NotFound_SearchByName_RaisesOnSearchByName()
     {
         lookup.Result = BarcodeLookupResult.NotFound();
-        var navigated = new List<NavDestination>();
-        var cut = await ScannedAsync(p => p.Add(x => x.OnNavigate, navigated.Add));
+        var searched = 0;
+        var cut = await ScannedAsync(p => p.Add(x => x.OnSearchByName, () => searched++));
         cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-search]"), Has.Count.EqualTo(1)));
 
         cut.Find("[data-testid=scan-search]").Click();
 
-        Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Foods }));
+        Assert.That(searched, Is.EqualTo(1));
     }
 
     [Test]
@@ -516,27 +530,25 @@ public class ScanPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task NavigationBar_RaisesOnNavigate()
+    public async Task ThereIsNoNavigationBar()
     {
-        var navigated = new List<NavDestination>();
-        var cut = Context.Render<ScanPage>(p => p.Add(x => x.OnNavigate, navigated.Add));
+        var cut = Context.Render<ScanPage>();
         await WaitForRendererAsync();
 
-        await cut.Find("[data-testid=dashboard-link]").ClickAsync(new());
-
-        Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Dashboard }));
+        Assert.That(cut.FindAll("[data-testid=bottom-nav]"), Is.Empty);
     }
 
     [Test]
-    public async Task AndroidBack_GoesToTheDashboard()
+    public async Task BackArrowAndAndroidBack_RaiseOnBack()
     {
-        var navigated = new List<NavDestination>();
-        Context.Render<ScanPage>(p => p.Add(x => x.OnNavigate, navigated.Add));
+        var back = 0;
+        var cut = Context.Render<ScanPage>(p => p.Add(x => x.OnBack, () => back++));
         await WaitForRendererAsync();
 
+        await cut.Find("[data-testid=back]").ClickAsync(new());
         await BackButton.HandleAsync();
 
-        Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Dashboard }));
+        Assert.That(back, Is.EqualTo(2));
     }
 
     [Test]
@@ -576,7 +588,13 @@ public class ScanPageTests : ComponentTestBase
     {
         public Dictionary<int, CalorieTracker.Core.History.FoodHistory> Last { get; } = [];
 
-        public Task<CalorieTracker.Core.History.FoodHistory?> LastLoggedAsync(int foodId, Meal? meal = null) => Task.FromResult(Last.GetValueOrDefault(foodId));
+        public List<Meal?> MealsAsked { get; } = [];
+
+        public Task<CalorieTracker.Core.History.FoodHistory?> LastLoggedAsync(int foodId, Meal? meal = null)
+        {
+            MealsAsked.Add(meal);
+            return Task.FromResult(Last.GetValueOrDefault(foodId));
+        }
 
         public Task<FoodSearchResult> SearchAsync(string query, int limit = IFoodSearch.DefaultLimit, CancellationToken ct = default) => throw new NotSupportedException();
 

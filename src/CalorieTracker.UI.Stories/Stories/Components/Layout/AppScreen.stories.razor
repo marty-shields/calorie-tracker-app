@@ -18,7 +18,7 @@
 
     <Story Name="Top-level with bottom bar">
         <Template>
-            <AppScreen Title="Screen title" Destination="NavDestination.Dashboard" OnNavigate="(NavDestination _) => { }">
+            <AppScreen Title="Screen title" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }" OnAdd="() => { }">
                 <ChildContent>
                     <p>Scrolling content.</p>
                 </ChildContent>
@@ -31,7 +31,7 @@
 
     <Story Name="Top-level">
         <Template>
-            <AppScreen Title="Screen title" Destination="NavDestination.Dashboard" OnNavigate="(NavDestination _) => { }">
+            <AppScreen Title="Screen title" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }" OnAdd="() => { }">
                 <p>Scrolling content.</p>
             </AppScreen>
         </Template>
@@ -39,7 +39,7 @@
 
     <Story Name="Pulling">
         <Template>
-            <AppScreen Title="Screen title" Destination="NavDestination.Dashboard" OnNavigate="(NavDestination _) => { }" OnRefresh="() => { }">
+            <AppScreen Title="Screen title" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }" OnAdd="() => { }" OnRefresh="() => { }">
                 <p>Scrolling content.</p>
                 <HoldPull />
             </AppScreen>

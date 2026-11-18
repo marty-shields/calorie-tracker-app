@@ -2,7 +2,9 @@ using CalorieTracker.Core.Data;
 using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Screens;
 using CalorieTracker.UI.Stories.Stories.Screens;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 
 namespace CalorieTracker.UI.Tests.Screens;
 
@@ -243,14 +245,105 @@ public class DashboardViewTests : ComponentTestBase
     }
 
     [Test]
-    public void NavigationBar_ShowsTheDashboardAsCurrentWithNoBackArrow()
+    public void NavigationBar_ShowsTodayAsCurrentWithNoBackArrow()
     {
         var cut = Render(DashboardSamples.Loaded);
 
         Assert.Multiple(() =>
         {
-            Assert.That(cut.Find("[aria-current=page]").GetAttribute("data-testid"), Is.EqualTo("dashboard-link"));
+            Assert.That(cut.Find("[aria-current=page]").GetAttribute("data-testid"), Is.EqualTo("today-link"));
             Assert.That(cut.FindAll("[data-testid=back]"), Is.Empty);
+        });
+    }
+
+    private BunitJSModuleInterop? sheetModule;
+
+    private void UseSheetModule()
+    {
+        sheetModule = Context.JSInterop.SetupModule("./_content/CalorieTracker.UI/Components/Layout/AddSheet.razor.js");
+        sheetModule.Mode = JSRuntimeMode.Loose;
+    }
+
+    private IRenderedComponent<DashboardView> OpenSheetAt(int hour, DateOnly? date = null, Action<ComponentParameterCollectionBuilder<DashboardView>>? more = null)
+    {
+        UseSheetModule();
+        ((FakeTimeProvider)Context.Services.GetRequiredService<TimeProvider>()).SetUtcNow(new DateTimeOffset(2026, 11, 18, hour, 0, 0, TimeSpan.Zero));
+        var cut = Render(DashboardSamples.Loaded, more, date);
+        cut.Find("[data-testid=add-button]").Click();
+        return cut;
+    }
+
+    [Test]
+    public void TheSheet_IsClosedUntilAddIsTapped()
+    {
+        UseSheetModule();
+        var cut = Render(DashboardSamples.Loaded);
+        Assert.That(Exists(cut, "add-sheet"), Is.False);
+
+        cut.Find("[data-testid=add-button]").Click();
+
+        Assert.That(Exists(cut, "add-sheet"), Is.True);
+    }
+
+    [TestCase(8, "breakfast")]
+    [TestCase(18, "dinner")]
+    public void Add_SelectsTheMealOfTheTime(int hour, string meal)
+    {
+        var cut = OpenSheetAt(hour);
+
+        Assert.That(cut.Find($"[data-testid=add-sheet-meal-{meal}]").HasAttribute("checked"), Is.True);
+    }
+
+    [Test]
+    public void SearchFoods_RaisesTheChosenMealAndTheDayOnTheStrip_AndClosesTheSheet()
+    {
+        var requests = new List<MealAddRequest>();
+        var day = new DateOnly(2026, 11, 12);
+        var cut = OpenSheetAt(8, day, p => p.Add(x => x.OnAdd, requests.Add));
+
+        cut.Find("[data-testid=add-sheet-meal-lunch]").Change(true);
+        cut.Find("[data-testid=add-sheet-search]").Click();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(requests, Is.EqualTo(new[] { new MealAddRequest(Meal.Lunch, day) }));
+            Assert.That(Exists(cut, "add-sheet"), Is.False);
+        });
+    }
+
+    [Test]
+    public void ScanBarcode_RaisesTheChosenMealAndTheDayOnTheStrip()
+    {
+        var requests = new List<MealAddRequest>();
+        var day = new DateOnly(2026, 11, 12);
+        var cut = OpenSheetAt(18, day, p => p.Add(x => x.OnScan, requests.Add));
+
+        cut.Find("[data-testid=add-sheet-scan]").Click();
+
+        Assert.That(requests, Is.EqualTo(new[] { new MealAddRequest(Meal.Dinner, day) }));
+    }
+
+    [Test]
+    public async Task ScrimEscapeAndBack_CloseTheSheetWithoutNavigating_AndFocusGoesBackToAdd()
+    {
+        var requests = new List<MealAddRequest>();
+        var cut = OpenSheetAt(12, null, p => p.Add(x => x.OnAdd, requests.Add).Add(x => x.OnScan, requests.Add));
+
+        cut.Find("[data-testid=add-sheet-scrim]").Click();
+        Assert.That(Exists(cut, "add-sheet"), Is.False, "scrim");
+
+        cut.Find("[data-testid=add-button]").Click();
+        cut.Find("[data-testid=add-sheet]").KeyDown(new KeyboardEventArgs { Key = "Escape" });
+        Assert.That(Exists(cut, "add-sheet"), Is.False, "Escape");
+
+        cut.Find("[data-testid=add-button]").Click();
+        await BackButton.HandleAsync();
+        cut.WaitForAssertion(() => Assert.That(Exists(cut, "add-sheet"), Is.False), TimeSpan.FromSeconds(2));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(requests, Is.Empty);
+            Assert.That(sheetModule!.Invocations["close"], Has.Count.EqualTo(3), "focus is released to Add each time");
         });
     }
 

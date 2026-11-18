@@ -1,0 +1,143 @@
+@using CalorieTracker.Core.Data
+@using CalorieTracker.Core.Diary
+@using CalorieTracker.UI.Components.Inputs
+@using CalorieTracker.UI.Navigation
+@using Microsoft.Extensions.Logging
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject TimeProvider Time
+@inject ILogger<AddSheet> Logger
+
+@if (Open)
+{
+    <BackHandler OnBack="DismissAsync" />
+    <div class="scrim" data-testid="add-sheet-scrim" aria-hidden="true" @onclick="DismissAsync"></div>
+    <div @ref="sheet" class="sheet" role="dialog" aria-modal="true" tabindex="-1" aria-labelledby="add-sheet-title" data-testid="add-sheet" @onkeydown="OnKeyDown">
+        <h2 id="add-sheet-title" class="title">Add food</h2>
+        <FilterChips TValue="Meal" Label="Meal" Options="Meals" Value="meal" ValueChanged="PickMeal" TestId="add-sheet-meals" />
+        <div class="tiles">
+            <button type="button" class="tile" data-testid="add-sheet-search" @onclick="() => ChooseAsync(AddSheetAction.Search, OnSearch)">
+                <Icon Name="IconName.Search" />
+                <span class="text">Search foods</span>
+            </button>
+            <button type="button" class="tile" data-testid="add-sheet-scan" @onclick="() => ChooseAsync(AddSheetAction.Scan, OnScan)">
+                <Icon Name="IconName.Scan" />
+                <span class="text">Scan barcode</span>
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    private static readonly IReadOnlyList<RadioOption<Meal>> Meals =
+    [
+        new(Meal.Breakfast, "Breakfast", "add-sheet-meal-breakfast"),
+        new(Meal.Lunch, "Lunch", "add-sheet-meal-lunch"),
+        new(Meal.Dinner, "Dinner", "add-sheet-meal-dinner"),
+        new(Meal.Snacks, "Snacks", "add-sheet-meal-snacks"),
+    ];
+
+    private ElementReference sheet;
+    private IJSObjectReference? module;
+    private Meal meal;
+    private bool wasOpen;
+    private bool trapping;
+
+    /// <summary>Shows the sheet. The meal for the time on the <see cref="TimeProvider"/> is selected each time it opens.</summary>
+    [Parameter]
+    public bool Open { get; set; }
+
+    /// <summary>The clock that picks the meal, in place of the registered <see cref="TimeProvider"/>. Stories set it to show each guess.</summary>
+    [Parameter]
+    public TimeProvider? Clock { get; set; }
+
+    /// <summary>Raised with the selected meal by Search foods.</summary>
+    [Parameter]
+    public EventCallback<Meal> OnSearch { get; set; }
+
+    /// <summary>Raised with the selected meal by Scan barcode.</summary>
+    [Parameter]
+    public EventCallback<Meal> OnScan { get; set; }
+
+    /// <summary>Raised by the scrim, Android back and Escape. The sheet stays open until <see cref="Open"/> is cleared.</summary>
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Open && !wasOpen)
+        {
+            meal = MealWindows.MealFor(TimeOnly.FromDateTime((Clock ?? Time).GetLocalNow().DateTime));
+            Log.Opened(Logger, meal);
+        }
+
+        wasOpen = Open;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Open == trapping)
+        {
+            return;
+        }
+
+        trapping = Open;
+        try
+        {
+            module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./_content/CalorieTracker.UI/Components/Layout/AddSheet.razor.js");
+            if (Open)
+            {
+                await module.InvokeVoidAsync("open", sheet);
+            }
+            else
+            {
+                await module.InvokeVoidAsync("close");
+            }
+        }
+        catch (JSException exception)
+        {
+            Log.FocusFailed(Logger, exception);
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+
+    private void PickMeal(Meal picked) => meal = picked;
+
+    private Task ChooseAsync(AddSheetAction action, EventCallback<Meal> callback)
+    {
+        Log.Chose(Logger, action, meal);
+        return callback.InvokeAsync(meal);
+    }
+
+    private Task DismissAsync()
+    {
+        Log.Chose(Logger, AddSheetAction.Dismiss, meal);
+        return OnClose.InvokeAsync();
+    }
+
+    private Task OnKeyDown(KeyboardEventArgs args) => args.Key == "Escape" ? DismissAsync() : Task.CompletedTask;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (module is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (trapping)
+            {
+                await module.InvokeVoidAsync("close");
+            }
+
+            await module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+}

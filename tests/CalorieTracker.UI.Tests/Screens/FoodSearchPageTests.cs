@@ -1,7 +1,6 @@
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Seed;
-using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Logging;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Screens;
@@ -241,9 +240,9 @@ public class FoodSearchPageTests : ComponentTestBase
     [Test]
     public async Task AndroidBack_WithAFoodOpen_ReturnsToTheListNotTheDashboard()
     {
-        var navigated = new List<NavDestination>();
+        var back = 0;
         search.Results = [Oats];
-        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.OnNavigate, navigated.Add));
+        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.OnBack, () => back++));
         await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
         await cut.Find("[data-testid=food-result-1]").ClickAsync(new());
 
@@ -253,31 +252,29 @@ public class FoodSearchPageTests : ComponentTestBase
         {
             Assert.That(cut.FindAll("[data-testid=food-detail]"), Is.Empty);
             Assert.That(cut.FindAll("[data-testid=food-result-1]"), Has.Count.EqualTo(1));
-            Assert.That(navigated, Is.Empty);
+            Assert.That(back, Is.Zero);
         });
     }
 
     [Test]
-    public async Task AndroidBack_FromTheList_GoesToTheDashboard()
+    public async Task AndroidBack_FromTheList_RaisesOnBack()
     {
-        var navigated = new List<NavDestination>();
-        Context.Render<FoodSearchPage>(p => p.Add(x => x.OnNavigate, navigated.Add));
+        var back = 0;
+        Context.Render<FoodSearchPage>(p => p.Add(x => x.OnBack, () => back++));
 
         await BackButton.HandleAsync();
 
-        Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Dashboard }));
+        Assert.That(back, Is.EqualTo(1));
     }
 
     [Test]
-    public async Task DashboardItem_NavigatesToTheDashboard()
+    public async Task ThereIsNoNavigationBar()
     {
-        var navigated = new List<NavDestination>();
-        var cut = Context.Render<FoodSearchPage>(p => p.Add(x => x.OnNavigate, navigated.Add));
+        var cut = Context.Render<FoodSearchPage>();
 
         await WaitForRendererAsync();
-        await cut.Find("[data-testid=dashboard-link]").ClickAsync(new());
 
-        Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Dashboard }));
+        Assert.That(cut.FindAll("[data-testid=bottom-nav]"), Is.Empty);
     }
 
     [Test]
@@ -904,21 +901,6 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
-    public void TabMode_ShowsAPostedSnackbar_WhereAddModeLeavesItToTheDashboard()
-    {
-        Context.Services.GetRequiredService<SnackbarService>().Show("Oats added to Lunch");
-
-        var tab = Context.Render<FoodSearchPage>();
-        var add = Context.Render<FoodSearchPage>(p => p.Add(x => x.Meal, Meal.Lunch));
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(tab.FindAll("[data-testid=snackbar]"), Has.Count.EqualTo(1));
-            Assert.That(add.FindAll("[data-testid=snackbar]"), Is.Empty);
-        });
-    }
-
-    [Test]
     public void AddMode_TitlesTheMeal_HasABackArrowAndNoNavigationBar()
     {
         var backed = 0;
@@ -935,14 +917,14 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
-    public void FoodsTab_IsTitledSearchFoods_WithTheNavigationBar()
+    public void WithoutAMeal_IsTitledSearchFoods_WithNoNavigationBar()
     {
         var cut = Context.Render<FoodSearchPage>();
 
         Assert.Multiple(() =>
         {
             Assert.That(cut.Find("[data-testid=screen-title]").TextContent.Trim(), Is.EqualTo("Search foods"));
-            Assert.That(cut.FindAll("[data-testid=bottom-nav]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=bottom-nav]"), Is.Empty);
         });
     }
 
@@ -959,17 +941,6 @@ public class FoodSearchPageTests : ComponentTestBase
             Assert.That(cut.Find("[data-testid=food-search-input]").GetAttribute("value"), Is.EqualTo("oat"));
             Assert.That(cut.FindAll("[data-testid=food-result-1]"), Has.Count.EqualTo(1));
         });
-    }
-
-    [Test]
-    public void ASnackbarPosted_ShowsAboveTheNavigationBar()
-    {
-        var cut = Context.Render<FoodSearchPage>();
-
-        Context.Services.GetRequiredService<SnackbarService>().Show("Oats added to Lunch", "View day", () => Task.CompletedTask);
-
-        cut.WaitForState(() => cut.FindAll("[data-testid=snackbar]").Count == 1);
-        Assert.That(cut.Find("[data-testid=snackbar-action]").TextContent.Trim(), Is.EqualTo("View day"));
     }
 
     private async Task<Food> StoreOats()
