@@ -2,6 +2,7 @@ using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Logging;
 using CalorieTracker.Core.Targets;
 using Microsoft.Extensions.Logging.Testing;
+using Microsoft.Extensions.Time.Testing;
 using SQLite;
 
 namespace CalorieTracker.Core.Tests.Targets;
@@ -13,6 +14,7 @@ public class TargetServiceTests
     private DatabaseGate gate = null!;
     private FakeLogger<TargetService> logger = null!;
     private TargetService service = null!;
+    private FakeTimeProvider time = null!;
 
     [SetUp]
     public async Task SetUp()
@@ -20,9 +22,11 @@ public class TargetServiceTests
         databasePath = TempDatabase.NewPath();
         connection = new SQLiteAsyncConnection(databasePath);
         await connection.CreateTableAsync<AppSettings>();
+        await connection.CreateTableAsync<TargetHistory>();
+        time = new FakeTimeProvider(new DateTimeOffset(2031, 7, 19, 12, 0, 0, TimeSpan.Zero));
         gate = new DatabaseGate();
         logger = new FakeLogger<TargetService>();
-        service = new TargetService(new TargetStore(connection, gate), logger);
+        service = new TargetService(new TargetStore(connection, gate), time, logger);
     }
 
     [TearDown]
@@ -114,6 +118,31 @@ public class TargetServiceTests
         Assert.That((await service.SaveAsync(2000)).Status, Is.EqualTo(TargetStatus.Failed));
         Assert.That((await service.ClearAsync()).Status, Is.EqualTo(TargetStatus.Failed));
         Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { CoreEvent.TargetFailed, CoreEvent.TargetFailed, CoreEvent.TargetFailed }));
+    }
+
+    [Test]
+    public async Task ForDateAsyncAndForRangeAsync_WhenTheDatabaseFails_ReturnFailedInsteadOfThrowing()
+    {
+        await connection.ExecuteAsync("DROP TABLE TargetHistory");
+
+        var forDate = await service.ForDateAsync(new DateOnly(2031, 7, 19));
+        var forRange = await service.ForRangeAsync(new DateOnly(2031, 7, 1), new DateOnly(2031, 7, 19));
+
+        Assert.That((forDate.Status, forDate.Kcal), Is.EqualTo((TargetStatus.Failed, (int?)null)));
+        Assert.That(forRange.Status, Is.EqualTo(TargetStatus.Failed));
+        Assert.That(forRange.Days, Is.Empty);
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { CoreEvent.TargetFailed, CoreEvent.TargetFailed }));
+    }
+
+    [Test]
+    public async Task SaveAsyncAndClearAsync_WhenTheHistoryWriteFails_ReturnFailedAndLeaveTheSettingAlone()
+    {
+        await service.SaveAsync(2000);
+        await connection.ExecuteAsync("DROP TABLE TargetHistory");
+
+        Assert.That((await service.SaveAsync(1500)).Status, Is.EqualTo(TargetStatus.Failed));
+        Assert.That((await service.ClearAsync()).Status, Is.EqualTo(TargetStatus.Failed));
+        Assert.That((await service.GetAsync()).Kcal, Is.EqualTo(2000));
     }
 
     [Test]
