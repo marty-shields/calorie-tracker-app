@@ -1036,6 +1036,25 @@ public class FoodSearchTests
     }
 
     [Test]
+    public async Task Suggest_Favourites_GetTheirLastAmountEvenWhenOlderThanEveryRecentFood_AndNeverLoggedOnesGetNone()
+    {
+        await Add("Zed oats", "zed oats");
+        await Add("Zed unlogged", "zed unlogged");
+        await Log("Zed oats", Meal.Breakfast, 55);
+        for (var i = 0; i < IFoodSearch.RecentLimit + IFoodSearch.UsualLimit + 3; i++)
+        {
+            await Add($"Filler {i}", $"filler {i}");
+            await Log($"Filler {i}", Meal.Lunch, 10);
+        }
+
+        await Star("Zed oats", "Zed unlogged");
+
+        var favouriteGroup = (await search.SuggestAsync(Meal.Breakfast)).Groups.Single(g => g.Kind == FoodGroupKind.Favourites);
+
+        Assert.That(favouriteGroup.Foods.Select(l => (l.Food.Name, l.History?.LastAmount)), Is.EqualTo(new (string, double?)[] { ("Zed oats", 55), ("Zed unlogged", null) }));
+    }
+
+    [Test]
     public async Task Suggest_FavouritesReadFails_LeavesOutTheGroupOnly()
     {
         await Add("Zed oats", "zed oats");

@@ -116,32 +116,73 @@ public class FavouriteServiceTests
         });
     }
 
-    private async Task AssertWaitsForTheGate<T>(Func<Task<T>> call)
+    /// <summary>Holds the gate, starts the call, checks it is still pending, then lets the holder run <paramref name="whileHeld"/> and release. A call that skipped the gate would already have changed what the holder sees.</summary>
+    private async Task<T> CallWhileTheGateIsBusy<T, TSeen>(Func<Task<T>> call, Func<Task<TSeen>> whileHeld, Action<TSeen> assertSeen)
     {
         var holding = new TaskCompletionSource();
-        var busy = gate.RunAsync(async () => await holding.Task);
+        var busy = gate.RunAsync(async () =>
+        {
+            await holding.Task;
+            return await whileHeld();
+        });
 
         var pending = call();
-        await Task.Delay(100);
-        var finishedEarly = pending.IsCompleted;
+        // A call that skipped the gate sends its statement to the connection at once. Probes through the connection give it the turns it needs; with the gate held a correct call sends nothing.
+        for (var turn = 0; turn < 10; turn++)
+        {
+            await connection.QueryScalarsAsync<int>("SELECT 1");
+        }
+
+        Assert.That(pending.IsCompleted, Is.False);
         holding.SetResult();
 
-        await busy;
-        await pending;
-        Assert.That(finishedEarly, Is.False);
+        assertSeen(await busy);
+        return await pending;
+    }
+
+    private Task<int> FavouriteCount() => connection.Table<Favourite>().CountAsync();
+
+    [Test]
+    public async Task AddAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
+    {
+        var result = await CallWhileTheGateIsBusy(() => service.AddAsync(foodId), FavouriteCount, seen => Assert.That(seen, Is.Zero));
+
+        Assert.That(result.Status, Is.EqualTo(FavouriteStatus.Added));
+        Assert.That(await FavouriteCount(), Is.EqualTo(1));
     }
 
     [Test]
-    public Task AddAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes() => AssertWaitsForTheGate(() => service.AddAsync(foodId));
+    public async Task RemoveAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
+    {
+        await service.AddAsync(foodId);
+
+        var result = await CallWhileTheGateIsBusy(() => service.RemoveAsync(foodId), FavouriteCount, seen => Assert.That(seen, Is.EqualTo(1)));
+
+        Assert.That(result.Status, Is.EqualTo(FavouriteStatus.Removed));
+        Assert.That(await FavouriteCount(), Is.Zero);
+    }
 
     [Test]
-    public Task RemoveAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes() => AssertWaitsForTheGate(() => service.RemoveAsync(foodId));
+    public async Task IsFavouriteAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
+    {
+        var result = await CallWhileTheGateIsBusy(
+            () => service.IsFavouriteAsync(foodId),
+            () => connection.InsertAsync(new Favourite { FoodId = foodId, CreatedAt = Now }), // the holder's own write, ahead of the queued read
+            _ => { });
+
+        Assert.That((result.Status, result.IsFavourite), Is.EqualTo((FavouriteReadStatus.Found, true)));
+    }
 
     [Test]
-    public Task IsFavouriteAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes() => AssertWaitsForTheGate(() => service.IsFavouriteAsync(foodId));
+    public async Task IdsAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
+    {
+        var result = await CallWhileTheGateIsBusy(
+            () => service.IdsAsync(),
+            () => connection.InsertAsync(new Favourite { FoodId = foodId, CreatedAt = Now }),
+            _ => { });
 
-    [Test]
-    public Task IdsAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes() => AssertWaitsForTheGate(() => service.IdsAsync());
+        Assert.That((result.Status, result.FoodIds), Is.EqualTo((FavouriteReadStatus.Found, new[] { foodId })));
+    }
 
     [Test]
     public async Task EveryCall_DatabaseFails_IsFailedWithoutThrowing()
@@ -179,7 +220,7 @@ public class FavouriteServiceTests
             }));
             Assert.That(lines.Select(l => l.Message), Has.None.Contain("Zebra").And.None.Contain("pie"));
             Assert.That(lines[0].Message, Is.EqualTo($"Food {foodId} marked as a favourite"));
-            Assert.That(lines[3].Message, Is.EqualTo("Favourites read, 1 foods"));
+            Assert.That(lines[3].Message, Is.EqualTo("Favourites read, count 1"));
             Assert.That(lines.Where(l => l.Id == CoreEvent.FavouriteFailed).Select(l => l.Level), Is.All.EqualTo(LogLevel.Warning));
         });
     }

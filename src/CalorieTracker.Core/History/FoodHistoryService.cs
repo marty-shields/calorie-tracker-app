@@ -49,6 +49,13 @@ public sealed partial class FoodHistoryService
     public Task<FoodHistoryResult> AllAsync(Meal? meal = null) =>
         ReadAsync(() => store.AllAsync(meal), Log.ForFoods);
 
+    /// <summary>The history of just <paramref name="foodIds"/>, in no set order; a food never logged, or an unknown id, is left out. TimesLogged counts all its kept entries. No ids is an empty result without a database call.</summary>
+    /// <param name="meal">When set, each food's last values are those of its newest entry in that meal, or of its newest entry in any meal when it was never logged in that one.</param>
+    public Task<FoodHistoryResult> ForFoodsAsync(IReadOnlyCollection<int> foodIds, Meal? meal = null) =>
+        foodIds.Count == 0
+            ? Task.FromResult(FoodHistoryResult.Found([]))
+            : ReadAsync(() => store.ForFoodsAsync(foodIds, meal), Log.ByIds);
+
     private async Task<FoodHistoryResult> ReadAsync(Func<Task<List<FoodHistoryRow>>> read, Action<ILogger, int> logged)
     {
         try
@@ -66,14 +73,17 @@ public sealed partial class FoodHistoryService
 
     private static partial class Log
     {
-        [LoggerMessage((int)CoreEvent.FoodHistoryRecent, LogLevel.Debug, "Recent foods read, {Count} foods")]
+        [LoggerMessage((int)CoreEvent.FoodHistoryRecent, LogLevel.Debug, "Recent foods read, count {Count}")]
         public static partial void Recent(ILogger logger, int count);
 
-        [LoggerMessage((int)CoreEvent.FoodHistoryUsual, LogLevel.Debug, "Usual foods read, {Count} foods")]
+        [LoggerMessage((int)CoreEvent.FoodHistoryUsual, LogLevel.Debug, "Usual foods read, count {Count}")]
         public static partial void Usual(ILogger logger, int count);
 
-        [LoggerMessage((int)CoreEvent.FoodHistoryForFoods, LogLevel.Debug, "Food history read, {Count} foods")]
+        [LoggerMessage((int)CoreEvent.FoodHistoryForFoods, LogLevel.Debug, "Food history read, count {Count}")]
         public static partial void ForFoods(ILogger logger, int count);
+
+        [LoggerMessage((int)CoreEvent.FoodHistoryByIds, LogLevel.Debug, "Food history read for chosen foods, count {Count}")]
+        public static partial void ByIds(ILogger logger, int count);
 
         [LoggerMessage((int)CoreEvent.FoodHistoryFailed, LogLevel.Warning, "Food history read failed")]
         public static partial void Failed(ILogger logger);

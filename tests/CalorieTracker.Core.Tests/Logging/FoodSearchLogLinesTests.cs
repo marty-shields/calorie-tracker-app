@@ -21,6 +21,7 @@ public class FoodSearchLogLinesTests
         CoreEvent.FoodHistoryUsual,
         CoreEvent.FoodHistoryForFoods,
         CoreEvent.FoodHistoryFailed,
+        CoreEvent.FoodHistoryByIds,
         CoreEvent.StoredLookupRefreshed,
         CoreEvent.StoredLookupServingMissing,
         CoreEvent.StoredLookupServingFailed,

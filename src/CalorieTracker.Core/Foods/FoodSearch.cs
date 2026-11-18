@@ -101,7 +101,9 @@ internal sealed partial class FoodSearch(FoodStore store, FoodHistoryService his
             var usualRows = usual.Foods.Where(h => !favouriteIds.Contains(h.FoodId)).Take(IFoodSearch.UsualLimit).ToList();
             var usualIds = usualRows.Select(h => h.FoodId).ToHashSet();
             var recentRows = recent.Foods.Where(h => !usualIds.Contains(h.FoodId) && !favouriteIds.Contains(h.FoodId)).Take(IFoodSearch.RecentLimit).ToList();
-            var favouriteHistory = favouriteIds.Count > 0 && await history.AllAsync(meal) is { Status: FoodHistoryStatus.Found } all ? all.Foods.ToDictionary(h => h.FoodId) : [];
+            // Usual and Recent are limited reads, so they can't stand in for the favourites' own history: ask for just those foods.
+            // A failing read leaves the favourites without last amounts (each shows its values per 100), the way a failing favourites read leaves out the group and nothing else.
+            var favouriteHistory = await history.ForFoodsAsync(favouriteIds, meal) is { Status: FoodHistoryStatus.Found } own ? own.Foods.ToDictionary(h => h.FoodId) : [];
             var foods = (await store.GetManyAsync(usualRows.Concat(recentRows).Select(h => h.FoodId).Concat(favouriteIds).ToList()).WaitAsync(ct)).ToDictionary(f => f.Id);
             var favouriteListings = favouriteIds
                 .Where(foods.ContainsKey)

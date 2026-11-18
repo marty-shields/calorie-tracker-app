@@ -265,6 +265,9 @@ internal enum CoreEvent
     /// <summary><see cref="History.FoodHistoryService"/>: the database failed, so the call returned <see cref="History.FoodHistoryStatus.Failed"/>.</summary>
     FoodHistoryFailed = 1054,
 
+    /// <summary><see cref="History.FoodHistoryService"/>: the history of the given foods was read; carries the count of foods that had history, never the ids asked for.</summary>
+    FoodHistoryByIds = 1055,
+
     /// <summary>Start of the ten ids reserved for <see cref="Foods.FoodImportService"/>.</summary>
     FoodImportServiceBlock = 1060,
 

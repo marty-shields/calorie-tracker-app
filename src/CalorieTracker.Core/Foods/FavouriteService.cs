@@ -112,7 +112,7 @@ public sealed partial class FavouriteService
         [LoggerMessage((int)CoreEvent.FavouriteNotFavourite, LogLevel.Debug, "Food {FoodId} was not a favourite")]
         public static partial void NotFavourite(ILogger logger, int foodId);
 
-        [LoggerMessage((int)CoreEvent.FavouriteListed, LogLevel.Debug, "Favourites read, {Count} foods")]
+        [LoggerMessage((int)CoreEvent.FavouriteListed, LogLevel.Debug, "Favourites read, count {Count}")]
         public static partial void Listed(ILogger logger, int count);
 
         [LoggerMessage((int)CoreEvent.FavouriteFailed, LogLevel.Warning, "Favourites database call failed")]
