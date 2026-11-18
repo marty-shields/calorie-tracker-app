@@ -1,3 +1,4 @@
+using CalorieTracker.Core.Diary;
 using CalorieTracker.E2E.Tests.Device;
 using CalorieTracker.E2E.Tests.Screens;
 using Reqnroll;
@@ -27,8 +28,14 @@ public sealed class ScanSteps(ScanScreen scan, Native native, DeviceClock clock,
         web.Eventually(scan.Chip, Is.EqualTo($"Adding to {meal} · {Today()}"), "the Scan chip");
 
     [Then(@"^Scan says it is adding to a meal today$")]
-    public void ThenScanSaysItIsAddingToAMealToday() =>
+    public void ThenScanSaysItIsAddingToAMealToday()
+    {
+        // The clock is read either side of the render: across a window boundary either meal is right.
+        var before = MealWindows.MealFor(TimeOnly.FromDateTime(clock.LocalNow()));
         web.Eventually(scan.Chip, Does.Match(@$"^Adding to (Breakfast|Lunch|Dinner|Snacks) · {Today()}$"), "the Scan chip");
+        var after = MealWindows.MealFor(TimeOnly.FromDateTime(clock.LocalNow()));
+        Assert.That(scan.Chip(), Is.AnyOf($"Adding to {before} · {Today()}", $"Adding to {after} · {Today()}"), "the meal of the time of day");
+    }
 
     [Then(@"^Scan has no bottom bar$")]
     public void ThenScanHasNoBottomBar() => Assert.That(scan.HasBottomBar(), Is.False);

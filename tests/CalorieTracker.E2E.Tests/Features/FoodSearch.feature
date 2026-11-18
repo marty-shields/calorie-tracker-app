@@ -55,7 +55,7 @@ Feature: Food search
     And no food values screen is shown
 
   @smoke
-  Scenario: The barcode button in search opens Scan for the same meal and Back returns to the search
+  Scenario Outline: The barcode button in search opens Scan for the same meal and Back returns to the search
     Given I am on the Dashboard
     When I tap + on Dinner
     And I search for "oat"
@@ -63,6 +63,11 @@ Feature: Food search
     And I refuse the camera permission
     Then I am on Scan
     And Scan says it is adding to Dinner today
-    When I go back with the back arrow
+    When I go back with <way>
     Then search is titled "Add to Dinner" with no navigation bar
     And "oat" is still typed
+
+    Examples:
+      | way            |
+      | the back arrow |
+      | Android back   |

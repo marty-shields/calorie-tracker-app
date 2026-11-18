@@ -73,6 +73,8 @@ public sealed class DashboardScreen(WebView web)
 
     public string DateLabel() => web.Text("date-strip-label");
 
+    public void PreviousDay() => web.Tap("date-strip-previous");
+
     public void NextDay() => web.Tap("date-strip-next");
 
     public void PreviousDay() => web.Tap("date-strip-previous");

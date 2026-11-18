@@ -1,3 +1,5 @@
+using CalorieTracker.Core.Diary;
+using CalorieTracker.E2E.Tests.Device;
 using CalorieTracker.E2E.Tests.Screens;
 using CalorieTracker.E2E.Tests.Support;
 using Reqnroll;
@@ -5,7 +7,7 @@ using Reqnroll;
 namespace CalorieTracker.E2E.Tests.Steps;
 
 [Binding]
-public sealed class FoodSearchSteps(FoodSearchScreen foods, Journeys journeys, WebView web)
+public sealed class FoodSearchSteps(FoodSearchScreen foods, Journeys journeys, WebView web, DeviceClock clock)
 {
     [Given(@"^I have opened Foods$")]
     public void GivenIHaveOpenedFoods() => journeys.OpenFoods();
@@ -41,8 +43,14 @@ public sealed class FoodSearchSteps(FoodSearchScreen foods, Journeys journeys, W
     }
 
     [Then(@"^search is titled for a meal of the time of day$")]
-    public void ThenSearchIsTitledForAMealOfTheTimeOfDay() =>
+    public void ThenSearchIsTitledForAMealOfTheTimeOfDay()
+    {
+        // The clock is read either side of the render: across a window boundary either meal is right.
+        var before = MealWindows.MealFor(TimeOnly.FromDateTime(clock.LocalNow()));
         web.Eventually(foods.ScreenTitle, Does.Match(@"^Add to (Breakfast|Lunch|Dinner|Snacks)$"));
+        var after = MealWindows.MealFor(TimeOnly.FromDateTime(clock.LocalNow()));
+        Assert.That(foods.ScreenTitle(), Is.AnyOf($"Add to {before}", $"Add to {after}"), "the meal of the time of day");
+    }
 
     [Then(@"^no food values screen is shown$")]
     public void ThenNoFoodValuesScreenIsShown() => Assert.That(foods.ShowsDetail(), Is.False);

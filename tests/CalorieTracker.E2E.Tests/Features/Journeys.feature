@@ -39,3 +39,16 @@ Feature: Diary journeys
     Then I am on the Dashboard
     And the snackbar says it was added to Snacks with the action "Undo"
     And Snacks lists 1 entry
+
+  Scenario: Journey 4 Add a scanned product to another day from Scan
+    Given I am on the Dashboard
+    And a barcode is held in front of the camera
+    When I tap the previous day
+    And I open the Add sheet
+    And I choose Dinner on the Add sheet
+    And I tap Scan barcode on the Add sheet
+    Then Serving has the Dinner meal chosen
+    When I tap Add
+    Then I am on the Dashboard
+    And the date strip says "Yesterday"
+    And Dinner lists 1 entry
