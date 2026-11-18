@@ -10,7 +10,7 @@ namespace CalorieTracker.Core.Trends;
 /// <summary>
 /// Builds the figures of the Trends screen for a range of days from one read of the range's kept entries and their foods and of the streak (<see cref="TrendsStore"/>) and one read of the targets each day had (<see cref="TargetService.ForRangeAsync"/>).
 /// Nothing throws: a failing database, an entry whose food is gone or a figure too large gives <see cref="TrendsStatus.Failed"/>.
-/// Logs carry the range length and counts only, never a food name, title or calories.
+/// Logs carry the range length, counts and entry and food ids only, never a food name, title or calories.
 /// </summary>
 public sealed partial class TrendsService
 {
