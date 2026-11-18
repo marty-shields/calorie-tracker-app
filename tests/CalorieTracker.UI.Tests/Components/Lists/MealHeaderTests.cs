@@ -185,6 +185,8 @@ public class MealHeaderTests : ComponentTestBase
             Assert.That(toggle.GetAttribute("aria-expanded"), Is.EqualTo(aria));
             Assert.That(cut.Find("[data-testid=meal-summary]").TextContent, Is.EqualTo("3 items · 348 kcal"));
             Assert.That(raised, Is.EqualTo(1));
+            var icon = Context.Render<Icon>(p => p.Add(x => x.Name, expanded ? IconName.Up : IconName.Down));
+            Assert.That(toggle.QuerySelector("svg path")!.GetAttribute("d"), Is.EqualTo(icon.Find("path").GetAttribute("d")));
         });
     }
 

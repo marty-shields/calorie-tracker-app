@@ -23,11 +23,11 @@
         {
             <span class="chip" data-testid="@($"{TestId}-now")">Now</span>
         }
+        <span class="spacer"></span>
         @if (Hint is not null)
         {
             <span class="hint" data-testid="@($"{TestId}-hint")">@Hint</span>
         }
-        <span class="spacer"></span>
         @if (Summary is not null)
         {
             <span class="summary" data-testid="@($"{TestId}-summary")">@Summary</span>
