@@ -53,7 +53,7 @@ public static class FoodSearchSamples
         new(new Food { Id = 205, Name = "Honey", Unit = FoodUnit.Gram, Kcal = 288, ProteinG = 0.4, CarbsG = 76, FatG = 0 }, null),
         Logged(new Food { Id = 206, Name = "Semi-skimmed milk (pasteurised)", Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 3.4, CarbsG = 4.7, FatG = 1.7 }, 14, 200),
         new(new Food { Id = 207, Name = "Sourdough bread", Unit = FoodUnit.Gram, Kcal = 240, ProteinG = 8, CarbsG = 47, FatG = 1.5 }, null),
-        Logged(new Food { Id = 208, Name = "Original", Brand = "Weetabix", Brands = "Weetabix", Unit = FoodUnit.Gram, Kcal = 362, ProteinG = 11.5, CarbsG = 69, FatG = 2 }, 5, 76, servings: 2),
+        Logged(new Food { Id = 208, Name = "Original", Brand = "Weetabix", Brands = "Weetabix", Unit = FoodUnit.Gram, Kcal = 362, ProteinG = 11.5, CarbsG = 69, FatG = 2 }, 5, 75, servings: 2),
         new(new Food { Id = 209, Name = "Wholemeal pasta", Unit = FoodUnit.Gram, Kcal = 324, ProteinG = 13, CarbsG = 62, FatG = 2.5 }, null),
     ];
 
@@ -70,11 +70,10 @@ public static class FoodSearchSamples
     /// <summary>Favourites and nothing logged yet.</summary>
     public static IReadOnlyList<FoodGroup> OnlyFavourites { get; } = [new(FoodGroupKind.Favourites, [FavouriteFoods[0], FavouriteFoods[3], FavouriteFoods[4], FavouriteFoods[8]])];
 
-    /// <summary>Typing "milk": the two matching favourites, a logged food and eight common foods.</summary>
+    /// <summary>Typing "milk": the two matching favourites, then common foods (eight, so five show and the row says "Show 3 more"; the rows above leave it room in the phone frame).</summary>
     public static IReadOnlyList<FoodGroup> MilkWithFavourites { get; } =
     [
         new(FoodGroupKind.Favourites, [FavouriteFoods[5], FavouriteFoods[0]]),
-        new(FoodGroupKind.Diary, [Logged(new Food { Id = 301, Name = "Whole milk", Unit = FoodUnit.Millilitre, Kcal = 63, ProteinG = 3.3, CarbsG = 4.5, FatG = 3.6 }, 3, 250)]),
         new(FoodGroupKind.Common, Enumerable.Range(1, 8).Select(i => new FoodListing(
             new Food { Id = 310 + i, Name = $"Milk, type {i}", Unit = FoodUnit.Millilitre, Kcal = 40 + i, ProteinG = 3, CarbsG = 5, FatG = 2 }, null)).ToList()),
     ];

@@ -4,11 +4,24 @@ namespace CalorieTracker.Core.Data;
 internal sealed class DatabaseGate
 {
     private readonly SemaphoreSlim semaphore = new(1, 1);
+    private int waiting;
+
+    /// <summary>How many calls are queued behind the running one. Lets a test see that a call is waiting for the gate instead of guessing with a delay.</summary>
+    internal int Waiting => Volatile.Read(ref waiting);
 
     /// <summary>Waits for earlier work to finish, then runs <paramref name="work"/>.</summary>
     public async Task<T> RunAsync<T>(Func<Task<T>> work)
     {
-        await semaphore.WaitAsync();
+        Interlocked.Increment(ref waiting);
+        try
+        {
+            await semaphore.WaitAsync();
+        }
+        finally
+        {
+            Interlocked.Decrement(ref waiting);
+        }
+
         try
         {
             return await work();

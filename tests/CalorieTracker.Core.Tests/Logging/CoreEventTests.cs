@@ -102,6 +102,7 @@ public class CoreEventTests
             [CoreEvent.FoodHistoryUsual] = 1052,
             [CoreEvent.FoodHistoryForFoods] = 1053,
             [CoreEvent.FoodHistoryFailed] = 1054,
+            [CoreEvent.FoodHistoryByIds] = 1055,
             [CoreEvent.FoodImportServiceBlock] = 1060,
             [CoreEvent.FoodImportCreated] = 1061,
             [CoreEvent.FoodImportAttached] = 1062,

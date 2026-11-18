@@ -1036,6 +1036,48 @@ public class FoodSearchTests
     }
 
     [Test]
+    public async Task Suggest_Favourites_GetTheirLastAmountEvenWhenOlderThanEveryRecentFood_AndNeverLoggedOnesGetNone()
+    {
+        await Add("Zed oats", "zed oats");
+        await Add("Zed unlogged", "zed unlogged");
+        await Log("Zed oats", Meal.Breakfast, 55);
+        for (var i = 0; i < IFoodSearch.RecentLimit + IFoodSearch.UsualLimit + 3; i++)
+        {
+            await Add($"Filler {i}", $"filler {i}");
+            await Log($"Filler {i}", Meal.Lunch, 10);
+        }
+
+        await Star("Zed oats", "Zed unlogged");
+
+        var favouriteGroup = (await search.SuggestAsync(Meal.Breakfast)).Groups.Single(g => g.Kind == FoodGroupKind.Favourites);
+
+        Assert.That(favouriteGroup.Foods.Select(l => (l.Food.Name, l.History?.LastAmount)), Is.EqualTo(new (string, double?)[] { ("Zed oats", 55), ("Zed unlogged", null) }));
+    }
+
+    [Test]
+    public async Task Suggest_OnlyTheFavouritesHistoryReadFails_KeepsTheGroupWithoutLastAmounts()
+    {
+        await Add("Zed oats", "zed oats");
+        await Add("Zed unlogged", "zed unlogged");
+        // The one entry with a date that can't be read is older than every food Recent asks for, so only the read of the favourites' own history reaches it.
+        await connection.InsertAsync(new DiaryEntry { Date = "not a date", Meal = Meal.Lunch, FoodId = await IdOf("Zed oats"), Amount = 55 });
+        for (var i = 0; i < IFoodSearch.RecentLimit + IFoodSearch.UsualLimit + 3; i++)
+        {
+            await Add($"Filler {i}", $"filler {i}");
+            await Log($"Filler {i}", Meal.Lunch, 10);
+        }
+
+        await Star("Zed oats", "Zed unlogged");
+
+        var result = await search.SuggestAsync();
+
+        var favouriteGroup = result.Groups.Single(g => g.Kind == FoodGroupKind.Favourites);
+        Assert.That(result.Status, Is.EqualTo(FoodSearchStatus.Found));
+        Assert.That(favouriteGroup.Foods.Select(l => (l.Food.Name, l.History)), Is.EqualTo(new (string, FoodHistory?)[] { ("Zed oats", null), ("Zed unlogged", null) }));
+        Assert.That(result.Groups.Single(g => g.Kind == FoodGroupKind.Recent).Foods, Has.Count.EqualTo(IFoodSearch.RecentLimit));
+    }
+
+    [Test]
     public async Task Suggest_FavouritesReadFails_LeavesOutTheGroupOnly()
     {
         await Add("Zed oats", "zed oats");
