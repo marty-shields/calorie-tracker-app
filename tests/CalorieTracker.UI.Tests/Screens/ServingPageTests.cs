@@ -77,7 +77,7 @@ public class ServingPageTests : ComponentTestBase
         await connection.InsertAsync(food);
         if (serving is not null)
         {
-            await connection.InsertAsync(new StoredServing { FoodId = food.Id, Label = serving.Label, Amount = serving.Amount, Source = ServingSource.User, SortOrder = 2 });
+            await connection.InsertAsync(new StoredServing { FoodId = food.Id, Label = serving.Label, Amount = serving.Amount, Source = ServingSource.User });
         }
 
         return food.Id;
@@ -183,8 +183,8 @@ public class ServingPageTests : ComponentTestBase
     public async Task FoodWithProductAndPackRowsLeftByAnOlderVersion_OpensInGrams_AndNeverOffersThem()
     {
         var id = await InsertMars();
-        await connection.InsertAsync(new StoredServing { FoodId = id, Label = "1 bar (30 g)", Amount = 30, Source = ServingSource.Product, SortOrder = 0 });
-        await connection.InsertAsync(new StoredServing { FoodId = id, Label = "Whole pack (51 g)", Amount = 51, Source = ServingSource.Pack, SortOrder = 1 });
+        await connection.InsertAsync(new StoredServing { FoodId = id, Label = "1 bar (30 g)", Amount = 30, Source = ServingSource.Product });
+        await connection.InsertAsync(new StoredServing { FoodId = id, Label = "Whole pack (51 g)", Amount = 51, Source = ServingSource.Pack });
 
         var cut = Render(id, Meal.Snacks);
 
@@ -793,13 +793,13 @@ public class ServingPageTests : ComponentTestBase
     }
 
     /// <summary>Adds an entry to the test day and opens the page in edit mode on it, as the Dashboard's tap does.</summary>
-    private async Task<(IRenderedComponent<ServingPage> Cut, int EntryId)> RenderEditing(int foodId, Meal meal, double amount, double? servings = null, Action? onSaved = null, Action? onRemoved = null)
+    private async Task<(IRenderedComponent<ServingPage> Cut, int EntryId)> RenderEditing(int foodId, Meal meal, double amount, double? servings = null, Action? onSaved = null, Action? onRemoved = null, int? servingId = null)
     {
-        var entry = (await core.GetRequiredService<DiaryService>().AddAsync(Day, meal, foodId, amount, servings)).Entry!;
+        var entry = (await core.GetRequiredService<DiaryService>().AddAsync(Day, meal, foodId, amount, servings, servingId)).Entry!;
         var cut = Loaded(Context.Render<ServingPage>(p =>
         {
             p.Add(x => x.FoodId, foodId).Add(x => x.Meal, meal).Add(x => x.Date, Day)
-                .Add(x => x.EntryId, entry.Id).Add(x => x.EntryAmount, amount).Add(x => x.EntryServings, servings);
+                .Add(x => x.EntryId, entry.Id).Add(x => x.EntryAmount, amount).Add(x => x.EntryServings, servings).Add(x => x.EntryServingId, servingId);
             if (onSaved is not null)
             {
                 p.Add(x => x.OnSaved, onSaved);
@@ -812,6 +812,8 @@ public class ServingPageTests : ComponentTestBase
         }));
         return (cut, entry.Id);
     }
+
+    private Task<int> ServingIdOf(int foodId) => connection.ExecuteScalarAsync<int>("SELECT Id FROM Serving WHERE FoodId = ?", foodId);
 
     private async Task<DiaryEntry?> Kept(int id, DateOnly? day = null) => (await core.GetRequiredService<DiaryService>().ListAsync(day ?? Day)).Entries.SingleOrDefault(e => e.Id == id);
 
@@ -836,7 +838,7 @@ public class ServingPageTests : ComponentTestBase
     [Test]
     public async Task Edit_OfAnEntryAddedByServings_OpensInServingsKeepingTheExactWeight()
     {
-        var (cut, id) = await RenderEditing(pizzaId, Meal.Lunch, 150, 0.74);
+        var (cut, id) = await RenderEditing(pizzaId, Meal.Lunch, 150, 0.74, servingId: await ServingIdOf(pizzaId));
 
         var opened = (cut.Find("[data-testid=serving-mode-servings]").HasAttribute("checked"), cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Text(cut, "serving-weight"));
         await cut.Find("[data-testid=serving-save]").ClickAsync(new());
@@ -872,6 +874,22 @@ public class ServingPageTests : ComponentTestBase
         {
             Assert.That(cut.Find("[data-testid=serving-mode-servings]").HasAttribute("checked"), Is.False);
             Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("150"));
+        });
+    }
+
+    [Test]
+    public async Task Edit_OfAServingsEntryWithNoServingLink_OpensInGramsWithTheStoredAmount()
+    {
+        var (cut, id) = await RenderEditing(pizzaId, Meal.Lunch, 150, 2);
+
+        var opened = (cut.Find("[data-testid=serving-mode-servings]").HasAttribute("checked"), cut.Find("[data-testid=serving-amount]").GetAttribute("value"));
+        await cut.Find("[data-testid=serving-save]").ClickAsync(new());
+
+        var entry = await Kept(id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(opened, Is.EqualTo((false, "150")));
+            Assert.That((entry!.Amount, entry.Servings, entry.ServingId), Is.EqualTo((150.0, (double?)null, (int?)null)));
         });
     }
 
@@ -992,7 +1010,7 @@ public class ServingPageTests : ComponentTestBase
     public async Task Undo_AfterRemove_RestoresTheEntryExactly_EvenAfterThePageIsGone()
     {
         var snackbar = Context.Services.GetRequiredService<SnackbarService>();
-        var (cut, id) = await RenderEditing(pizzaId, Meal.Dinner, 150, 0.74);
+        var (cut, id) = await RenderEditing(pizzaId, Meal.Dinner, 150, 0.74, servingId: await ServingIdOf(pizzaId));
         await cut.Find("[data-testid=serving-remove]").ClickAsync(new());
         var message = snackbar.Current!;
         await Context.DisposeComponentsAsync();
@@ -1185,7 +1203,7 @@ public class ServingPageTests : ComponentTestBase
     [Test]
     public async Task Remove_ThenSwitchingModeOrUsingServing_ClearsTheRemoveError()
     {
-        var (cut, _) = await RenderEditing(pizzaId, Meal.Lunch, 150, 0.74);
+        var (cut, _) = await RenderEditing(pizzaId, Meal.Lunch, 150, 0.74, servingId: await ServingIdOf(pizzaId));
         await connection.ExecuteAsync("DROP TABLE DiaryEntry");
         await cut.Find("[data-testid=serving-remove]").ClickAsync(new());
         var failed = Exists(cut, "serving-error");
@@ -1208,7 +1226,7 @@ public class ServingPageTests : ComponentTestBase
     {
         var cola = Stored(ServingSamples.Cola, "cola");
         colaId = await Insert(cola, new OwnServing("1 glass (250 ml)", 250));
-        await connection.InsertAsync(new StoredServing { FoodId = colaId, Label = "My can (330 ml)", Amount = 330, Source = ServingSource.User, SortOrder = 2 });
+        await connection.InsertAsync(new StoredServing { FoodId = colaId, Label = "My can (330 ml)", Amount = 330, Source = ServingSource.User });
         var rows = await connection.QueryAsync<StoredServing>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY Amount", colaId);
         (glassId, canId) = (rows[0].Id, rows[1].Id);
     }
@@ -1298,7 +1316,7 @@ public class ServingPageTests : ComponentTestBase
     public async Task NoServingNamed_OpensOnTheSmallest_EvenWhenItWasAddedLast()
     {
         await SeedCola();
-        await connection.ExecuteAsync("INSERT INTO Serving (FoodId, Label, Amount, Source, SortOrder) VALUES (?, 'My sip', 100, 2, 2)", colaId);
+        await connection.ExecuteAsync("INSERT INTO Serving (FoodId, Label, Amount, Source) VALUES (?, 'My sip', 100, 2)", colaId);
 
         var cut = Render(colaId, Meal.Snacks);
 
@@ -1341,20 +1359,22 @@ public class ServingPageTests : ComponentTestBase
         });
     }
 
-    [TestCase(null, 2.0)]
-    [TestCase(99999, null)]
-    public async Task Edit_OfAnEntryWhoseServingTheFoodDoesNotOffer_SavesWithNoLink_AndTheCountOnlyWhenTheEntryNamedNoServing(int? unknown, double? savedServings)
+    [TestCase(null)]
+    [TestCase(99999)]
+    public async Task Edit_OfAnEntryWhoseServingTheFoodDoesNotOffer_OpensInGrams_AndSavesWithNoLinkAndNoCount(int? unknown)
     {
         await SeedCola();
         var entry = (await core.GetRequiredService<DiaryService>().AddAsync(Day, Meal.Snacks, colaId, 500, 2, null)).Entry!;
         var cut = Loaded(Context.Render<ServingPage>(p => p.Add(x => x.FoodId, colaId).Add(x => x.Meal, Meal.Snacks).Add(x => x.Date, Day)
             .Add(x => x.EntryId, entry.Id).Add(x => x.EntryAmount, 500.0).Add(x => x.EntryServings, 2.0).Add(x => x.EntryServingId, unknown)));
+        var openedInGrams = !cut.Find("[data-testid=serving-mode-servings]").HasAttribute("checked");
         await cut.Find("[data-testid=serving-save]").ClickAsync(new());
 
         var saved = await Kept(entry.Id);
         Assert.Multiple(() =>
         {
-            Assert.That((saved!.Amount, saved.Servings, saved.ServingId), Is.EqualTo((500.0, savedServings, (int?)null)));
+            Assert.That(openedInGrams, Is.True);
+            Assert.That((saved!.Amount, saved.Servings, saved.ServingId), Is.EqualTo((500.0, (double?)null, (int?)null)));
         });
     }
 

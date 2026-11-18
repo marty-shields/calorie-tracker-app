@@ -287,6 +287,7 @@ public class ServingTableUpgradeTests
     public async Task Upgrade_GivesTheSameServingSchemaAsANewDatabase()
     {
         await Upgrade();
+        await connection.RunInTransactionAsync(db => new DropImportedServingsUpgrade().Apply(db)); // a new database has the schema after step 18
         var upgraded = await Schema();
         await connection.CloseAsync();
         File.Delete(databasePath);
@@ -296,7 +297,7 @@ public class ServingTableUpgradeTests
         await new DatabaseInitializer(connection, SchemaSteps.All(), new Microsoft.Extensions.Logging.Testing.FakeLogger<DatabaseInitializer>()).InitializeAsync();
 
         Assert.That(await Schema(), Is.EqualTo(upgraded));
-        Assert.That(upgraded, Does.Contain("Source:INTEGER:1:0").And.Contain("Amount:float:1:0"));
+        Assert.That(upgraded, Does.Contain("Source:INTEGER:1:0").And.Contain("Amount:float:1:0").And.Not.Contain("SortOrder:INTEGER:1:0"));
     }
 
     private async Task<List<string>> Schema()

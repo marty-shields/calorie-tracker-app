@@ -32,7 +32,8 @@ public class StorageCleanupUpgradeTests
     private async Task BuildVersion15()
     {
         await connection.CreateTableAsync<Food>();
-        await connection.CreateTableAsync<Serving>();
+        await connection.ExecuteAsync(SchemaSteps.ServingTableWithSortOrder);
+        await connection.ExecuteAsync("CREATE UNIQUE INDEX IF NOT EXISTS \"UX_Serving_Food_Source_Amount\" ON \"Serving\" (\"FoodId\", \"Source\", \"Amount\")");
         await connection.CreateTableAsync<Barcode>();
         await connection.CreateTableAsync<SeedVersion>();
         await connection.CreateTableAsync<AppSettings>();

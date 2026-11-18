@@ -77,7 +77,7 @@ public sealed partial class FoodService
                 continue;
             }
 
-            offered.Add(new Serving { Id = row.Id, FoodId = row.FoodId, Label = label, Amount = amount, Source = row.Source, SortOrder = row.SortOrder });
+            offered.Add(new Serving { Id = row.Id, FoodId = row.FoodId, Label = label, Amount = amount, Source = row.Source });
         }
 
         if (dropped > 0 && logger is not null)

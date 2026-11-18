@@ -60,8 +60,8 @@ public class FoodHistoryServiceTests
     {
         var rows = new List<Serving>
         {
-            new() { FoodId = oats, Label = "1 bowl", Amount = 40, Source = ServingSource.User, SortOrder = 2 },
-            new() { FoodId = oats, Label = "1 cup", Amount = 90, Source = ServingSource.User, SortOrder = 2 },
+            new() { FoodId = oats, Label = "1 bowl", Amount = 40, Source = ServingSource.User },
+            new() { FoodId = oats, Label = "1 cup", Amount = 90, Source = ServingSource.User },
         };
         await connection.InsertAllAsync(rows);
         await diary.AddAsync(Today.AddDays(-1), Meal.Lunch, oats, 40, 1, rows[0].Id);

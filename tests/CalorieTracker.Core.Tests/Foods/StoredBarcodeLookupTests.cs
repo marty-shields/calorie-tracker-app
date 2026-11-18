@@ -712,7 +712,7 @@ public class StoredBarcodeLookupTests
     public async Task Lookup_RefreshOfAFoodWithAPersonsOwnServing_KeepsTheOwnRowAndTheFoodId()
     {
         var stored = await store.UpsertAsync(NoDetails("1"), Barcode);
-        await connection.InsertAsync(new Serving { FoodId = stored.Id, Label = "My bowl", Amount = 75, Source = ServingSource.User, SortOrder = 2 });
+        await connection.InsertAsync(new Serving { FoodId = stored.Id, Label = "My bowl", Amount = 75, Source = ServingSource.User });
         inner.Enqueue(Found(Detailed("1")));
 
         await lookup.LookupAsync(Barcode);
@@ -931,7 +931,7 @@ public class StoredBarcodeLookupTests
         var first = await lookup.LookupAsync(Barcode);
         await lookup.LookupAsync(litre);
         await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = first.Food!.Id, Amount = 330 });
-        await connection.InsertAsync(new Serving { FoodId = first.Food.Id, Label = "My glass", Amount = 200, Source = ServingSource.User, SortOrder = 2 });
+        await connection.InsertAsync(new Serving { FoodId = first.Food.Id, Label = "My glass", Amount = 200, Source = ServingSource.User });
         var refreshed = Cola("5000000000017", kcal: 43, pack: 350);
         inner.Enqueue(Found(refreshed));
 

@@ -2,7 +2,7 @@ using SQLite;
 
 namespace CalorieTracker.Core.Data;
 
-/// <summary>Where a serving came from. Stored as its number, so keep the values; the number is also the serving's <see cref="Serving.SortOrder"/> when it is written. Only <see cref="User"/> is written now.</summary>
+/// <summary>Where a serving came from. Stored as its number, so keep the values; Only <see cref="User"/> is written now.</summary>
 public enum ServingSource
 {
     /// <summary>No longer written; the value is kept because schema steps 13 and 15 use it.</summary>
@@ -37,8 +37,4 @@ public class Serving
 
     [NotNull, Indexed("UX_Serving_Food_Source_Amount", 2, Unique = true)]
     public ServingSource Source { get; set; }
-
-    /// <summary>Breaks a tie when servings of a food have the same amount: they are listed smallest amount first, then by this. Written as the number of <see cref="Source"/>.</summary>
-    [NotNull]
-    public int SortOrder { get; set; }
 }

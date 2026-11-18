@@ -42,7 +42,7 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             return found;
         });
 
-    /// <summary>The food with this id and its servings smallest amount first, ties by <see cref="Serving.SortOrder"/>, read together; null food when there is none.</summary>
+    /// <summary>The food with this id and its servings smallest amount first, read together; null food when there is none.</summary>
     public Task<(Food? Food, List<Serving> Servings)> GetWithServingsAsync(int id) =>
         gate.RunAsync(async () =>
         {
@@ -60,9 +60,9 @@ internal sealed partial class FoodStore(SQLiteAsyncConnection connection, Databa
             return (found, servings);
         });
 
-    /// <summary>The servings of a food, smallest amount first, ties by <see cref="Serving.SortOrder"/>. Runs on the caller's connection, inside the gate.</summary>
+    /// <summary>The servings of a food, smallest amount first, ties by id. Runs on the caller's connection, inside the gate.</summary>
     internal static List<Serving> ServingsOf(SQLiteConnection db, int foodId) =>
-        db.Query<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY Amount, SortOrder, Id", foodId);
+        db.Query<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY Amount, Id", foodId);
 
     /// <summary>Links the barcode to the food with the food's pack, unless the barcode is linked already (it stays with its food). Runs on the caller's connection, inside the gate.</summary>
     private static void AddBarcode(SQLiteConnection db, int foodId, string barcode, Food pack, DateTimeOffset seen) =>

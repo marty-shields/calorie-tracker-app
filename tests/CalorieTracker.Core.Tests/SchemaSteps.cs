@@ -11,6 +11,9 @@ internal static class SchemaSteps
     /// <summary>The steps up to and including <paramref name="version"/>, for a test of what an older step leaves behind (pair it with an initializer at that version).</summary>
     public static ISchemaUpgrade[] Through(int version) => [.. All().Where(s => s.Version <= version)];
 
+    /// <summary>The Serving table as schemas 13 to 17 had it, with the <c>SortOrder</c> column step 18 drops.</summary>
+    public const string ServingTableWithSortOrder = "CREATE TABLE IF NOT EXISTS \"Serving\" (\"Id\" integer primary key autoincrement not null, \"FoodId\" integer not null, \"Label\" varchar not null, \"Amount\" float not null, \"Source\" integer not null, \"SortOrder\" integer not null)";
+
     /// <summary>The <c>FoodBarcode</c> table as step 2 made it; the app has no type for it any more, so a test of an older schema creates it with this.</summary>
     public const string FoodBarcodeTable = "CREATE TABLE IF NOT EXISTS \"FoodBarcode\" (\"Barcode\" varchar primary key not null, \"FoodId\" integer not null)";
 }

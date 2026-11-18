@@ -112,7 +112,7 @@ public class ServingStoreTests
         Assert.Multiple(() =>
         {
             Assert.That(outcome, Is.EqualTo(AddUserServingOutcome.Added));
-            Assert.That((serving!.FoodId, serving.Label, serving.Amount, serving.Source, serving.SortOrder), Is.EqualTo((food.Id, "My mug", 200.0, ServingSource.User, 2)));
+            Assert.That((serving!.FoodId, serving.Label, serving.Amount, serving.Source), Is.EqualTo((food.Id, "My mug", 200.0, ServingSource.User)));
         });
     }
 
@@ -173,7 +173,7 @@ public class ServingStoreTests
     public async Task RemoveUserAsync_ARowThatIsNotTheUsersOrAnUnknownId_DeletesNothing()
     {
         var food = await Stored("1");
-        await connection.InsertAsync(new Serving { FoodId = food.Id, Label = "Left from an old version", Amount = 330, Source = ServingSource.Pack, SortOrder = 1 });
+        await connection.InsertAsync(new Serving { FoodId = food.Id, Label = "Left from an old version", Amount = 330, Source = ServingSource.Pack });
         var row = (await Rows(food.Id)).Single();
         await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = food.Id, Amount = 330, Servings = 1, ServingId = row.Id });
 
@@ -206,9 +206,9 @@ public class ServingStoreTests
     public async Task UniqueIndex_RejectsASecondRowOfOneFoodSourceAndAmount()
     {
         var food = await Stored("1");
-        await connection.InsertAsync(new Serving { FoodId = food.Id, Label = "A", Amount = 100, Source = ServingSource.User, SortOrder = 2 });
+        await connection.InsertAsync(new Serving { FoodId = food.Id, Label = "A", Amount = 100, Source = ServingSource.User });
 
-        Assert.That(async () => await connection.InsertAsync(new Serving { FoodId = food.Id, Label = "B", Amount = 100, Source = ServingSource.User, SortOrder = 2 }), Throws.InstanceOf<SQLiteException>());
-        Assert.That(async () => await connection.InsertAsync(new Serving { FoodId = food.Id, Label = "B", Amount = 200, Source = ServingSource.User, SortOrder = 2 }), Throws.Nothing);
+        Assert.That(async () => await connection.InsertAsync(new Serving { FoodId = food.Id, Label = "B", Amount = 100, Source = ServingSource.User }), Throws.InstanceOf<SQLiteException>());
+        Assert.That(async () => await connection.InsertAsync(new Serving { FoodId = food.Id, Label = "B", Amount = 200, Source = ServingSource.User }), Throws.Nothing);
     }
 }

@@ -40,8 +40,8 @@ public class FoodStoreTests
     {
         var food = new Food { Source = FoodSource.OpenFoodFacts, SourceId = "1", Name = "Cola", Unit = FoodUnit.Millilitre, Kcal = 42, SearchText = "cola" };
         await connection.InsertAsync(food);
-        await connection.InsertAsync(new Serving { FoodId = food.Id, Label = "My can", Amount = 330, Source = ServingSource.User, SortOrder = (int)ServingSource.User });
-        await connection.InsertAsync(new Serving { FoodId = food.Id, Label = "My glass", Amount = 250, Source = ServingSource.User, SortOrder = (int)ServingSource.User });
+        await connection.InsertAsync(new Serving { FoodId = food.Id, Label = "My can", Amount = 330, Source = ServingSource.User });
+        await connection.InsertAsync(new Serving { FoodId = food.Id, Label = "My glass", Amount = 250, Source = ServingSource.User });
 
         var servings = await Servings(food.Id);
 
@@ -316,7 +316,7 @@ public class FoodStoreTests
     public async Task RefreshAsync_LeavesTheServingsOfTheFoodAlone()
     {
         var target = await store.UpsertAsync(NewFood("1"));
-        await connection.InsertAsync(new Serving { FoodId = target.Id, Label = "My cup", Amount = 240, Source = ServingSource.User, SortOrder = 2 });
+        await connection.InsertAsync(new Serving { FoodId = target.Id, Label = "My cup", Amount = 240, Source = ServingSource.User });
         var cup = (await Servings(target.Id)).Single();
         await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = target.Id, Amount = 480, Servings = 2, ServingId = cup.Id });
 

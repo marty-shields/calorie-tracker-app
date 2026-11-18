@@ -58,7 +58,7 @@ public class FoodServiceTests
         await connection.InsertAsync(food);
         if (ownRow.ServingAmount is { } amount)
         {
-            await connection.InsertAsync(new Serving { FoodId = food.Id, Label = ownRow.ServingLabel ?? "", Amount = amount, Source = ServingSource.User, SortOrder = 2 });
+            await connection.InsertAsync(new Serving { FoodId = food.Id, Label = ownRow.ServingLabel ?? "", Amount = amount, Source = ServingSource.User });
         }
 
         foreach (var row in extra)
@@ -78,12 +78,12 @@ public class FoodServiceTests
     }
 
     /// <summary>A Pack row, as schema step 13 and 15 stored them before step 18 deleted them.</summary>
-    private static Serving Pack(double amount, string label = "Whole pack") => new() { Label = label, Amount = amount, Source = ServingSource.Pack, SortOrder = 1 };
+    private static Serving Pack(double amount, string label = "Whole pack") => new() { Label = label, Amount = amount, Source = ServingSource.Pack };
 
     /// <summary>A Product row, as older versions stored one before step 18 deleted them.</summary>
-    private static Serving Product(double amount, string label) => new() { Label = label, Amount = amount, Source = ServingSource.Product, SortOrder = 0 };
+    private static Serving Product(double amount, string label) => new() { Label = label, Amount = amount, Source = ServingSource.Product };
 
-    private static Serving Own(string label, double amount) => new() { Label = label, Amount = amount, Source = ServingSource.User, SortOrder = 2 };
+    private static Serving Own(string label, double amount) => new() { Label = label, Amount = amount, Source = ServingSource.User };
 
     private static (string?, double?) First(FoodResult result) => result.Servings.Count == 0 ? (null, null) : (result.Servings[0].Label, result.Servings[0].Amount);
 

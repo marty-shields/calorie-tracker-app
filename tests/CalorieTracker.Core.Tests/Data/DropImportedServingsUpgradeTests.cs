@@ -34,7 +34,8 @@ public class DropImportedServingsUpgradeTests
     private async Task BuildVersion17()
     {
         await connection.CreateTableAsync<Food>();
-        await connection.CreateTableAsync<Serving>();
+        await connection.ExecuteAsync(SchemaSteps.ServingTableWithSortOrder);
+        await connection.ExecuteAsync("CREATE UNIQUE INDEX IF NOT EXISTS \"UX_Serving_Food_Source_Amount\" ON \"Serving\" (\"FoodId\", \"Source\", \"Amount\")");
         await connection.CreateTableAsync<Barcode>();
         await connection.CreateTableAsync<SeedVersion>();
         await connection.CreateTableAsync<AppSettings>();
@@ -71,12 +72,12 @@ public class DropImportedServingsUpgradeTests
     [Test]
     public async Task Upgrade_DeletesEveryProductAndPackRow_AndLeavesTheUserRowsAsTheyWere()
     {
-        var userBefore = await Rows("SELECT Id || '|' || FoodId || '|' || Label || '|' || Amount || '|' || Source || '|' || SortOrder FROM Serving WHERE Source = 2");
+        var userBefore = await Rows("SELECT Id || '|' || FoodId || '|' || Label || '|' || Amount || '|' || Source FROM Serving WHERE Source = 2");
 
         await Upgrade();
 
         Assert.That(await Rows("SELECT COUNT(*) FROM Serving WHERE Source IN (0, 1)"), Is.EqualTo(new[] { "0" }));
-        Assert.That(await Rows("SELECT Id || '|' || FoodId || '|' || Label || '|' || Amount || '|' || Source || '|' || SortOrder FROM Serving"), Is.EqualTo(userBefore));
+        Assert.That(await Rows("SELECT Id || '|' || FoodId || '|' || Label || '|' || Amount || '|' || Source FROM Serving"), Is.EqualTo(userBefore));
         Assert.That(userBefore, Has.Count.EqualTo(1));
     }
 
@@ -98,6 +99,35 @@ public class DropImportedServingsUpgradeTests
 
         Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM pragma_table_info('Food') WHERE name = 'ServingChecked'"), Is.Zero);
         Assert.That(await Rows("SELECT Name || '|' || Kcal FROM Food ORDER BY Id"), Is.EqualTo(new[] { "Bar|430.0", "Cola|42.0" }));
+    }
+
+    [Test]
+    public async Task Upgrade_DropsTheSortOrderColumn_AndGivesTheSameServingSchemaAsANewDatabase()
+    {
+        await Upgrade();
+        var upgraded = await Rows("SELECT name || ':' || type || ':' || \"notnull\" FROM pragma_table_info('Serving') ORDER BY name");
+        var upgradedIndexes = await Rows("SELECT name || ':' || \"unique\" FROM pragma_index_list('Serving') ORDER BY name");
+        await connection.CloseAsync();
+        File.Delete(databasePath);
+
+        databasePath = TempDatabase.NewPath();
+        connection = new SQLiteAsyncConnection(databasePath);
+        await new DatabaseInitializer(connection, SchemaSteps.All(), new FakeLogger<DatabaseInitializer>()).InitializeAsync();
+
+        Assert.That(upgraded, Does.Not.Contain("SortOrder:integer:1"));
+        Assert.That(upgraded.Any(c => c.StartsWith("SortOrder")), Is.False);
+        Assert.That(await Rows("SELECT name || ':' || type || ':' || \"notnull\" FROM pragma_table_info('Serving') ORDER BY name"), Is.EqualTo(upgraded));
+        Assert.That(await Rows("SELECT name || ':' || \"unique\" FROM pragma_index_list('Serving') ORDER BY name"), Is.EqualTo(upgradedIndexes));
+    }
+
+    [Test]
+    public async Task Upgrade_AnUpgradedDatabase_TakesANewServingFromTheModel()
+    {
+        await Upgrade();
+
+        await connection.InsertAsync(new Serving { FoodId = 2, Label = "My can", Amount = 330, Source = ServingSource.User });
+
+        Assert.That(await Rows("SELECT Label FROM Serving WHERE FoodId = 2"), Is.EqualTo(new[] { "My can" }));
     }
 
     [Test]
@@ -123,7 +153,8 @@ public class DropImportedServingsUpgradeTests
         await connection.RunInTransactionAsync(db => new DropImportedServingsUpgrade().Apply(db));
         await connection.CreateTableAsync<Food>();
         await connection.RunInTransactionAsync(db => new DropImportedServingsUpgrade().Apply(db));
-        await connection.CreateTableAsync<Serving>();
+        await connection.ExecuteAsync(SchemaSteps.ServingTableWithSortOrder);
+        await connection.ExecuteAsync("CREATE UNIQUE INDEX IF NOT EXISTS \"UX_Serving_Food_Source_Amount\" ON \"Serving\" (\"FoodId\", \"Source\", \"Amount\")");
         await connection.RunInTransactionAsync(db => new DropImportedServingsUpgrade().Apply(db));
 
         Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM Serving"), Is.Zero);

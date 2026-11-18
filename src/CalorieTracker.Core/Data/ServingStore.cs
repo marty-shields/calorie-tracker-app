@@ -33,7 +33,7 @@ internal sealed class ServingStore(SQLiteAsyncConnection connection, DatabaseGat
                     return;
                 }
 
-                added = new Serving { FoodId = foodId, Label = label, Amount = amount, Source = ServingSource.User, SortOrder = (int)ServingSource.User };
+                added = new Serving { FoodId = foodId, Label = label, Amount = amount, Source = ServingSource.User };
                 db.Insert(added);
             });
 

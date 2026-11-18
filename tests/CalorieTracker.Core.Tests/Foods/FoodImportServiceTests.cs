@@ -368,7 +368,7 @@ public class FoodImportServiceTests
     {
         var can = await Import(OriginalCode, await Original());
         await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = can.Food!.Id, Amount = 330 });
-        await connection.InsertAsync(new Serving { FoodId = can.Food.Id, Label = "My glass", Amount = 200, Source = ServingSource.User, SortOrder = 2 });
+        await connection.InsertAsync(new Serving { FoodId = can.Food.Id, Label = "My glass", Amount = 200, Source = ServingSource.User });
 
         await Import(OneLitreCode, await Resized(OneLitreCode, "Coca-Cola Original 1L", "1L", 1000));
 

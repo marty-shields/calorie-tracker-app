@@ -369,9 +369,9 @@ public class DaySummaryServiceTests
     {
         var drink = new Food { Source = FoodSource.OpenFoodFacts, SourceId = "drink", Name = "Cola", Unit = FoodUnit.Millilitre, Kcal = 42, SearchText = "cola" };
         await connection.InsertAsync(drink);
-        var glass = new Serving { FoodId = drink.Id, Label = "1 glass (250 ml)", Amount = 250, Source = ServingSource.User, SortOrder = 2 };
-        var can = new Serving { FoodId = drink.Id, Label = "My can (330 ml)", Amount = 330, Source = ServingSource.User, SortOrder = 2 };
-        var own = new Serving { FoodId = drink.Id, Label = "My mug", Amount = 200, Source = ServingSource.User, SortOrder = 2 };
+        var glass = new Serving { FoodId = drink.Id, Label = "1 glass (250 ml)", Amount = 250, Source = ServingSource.User };
+        var can = new Serving { FoodId = drink.Id, Label = "My can (330 ml)", Amount = 330, Source = ServingSource.User };
+        var own = new Serving { FoodId = drink.Id, Label = "My mug", Amount = 200, Source = ServingSource.User };
         await connection.InsertAllAsync(new List<Serving> { glass, can, own });
         return (drink.Id, glass.Id, can.Id, own.Id);
     }

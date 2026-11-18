@@ -46,9 +46,9 @@ public class DiaryServiceTests
         await connection.InsertAsync(other);
         var rows = new List<Serving>
         {
-            new() { FoodId = foodId, Label = "1 slice", Amount = 30, Source = ServingSource.User, SortOrder = 2 },
-            new() { FoodId = foodId, Label = "My bowl", Amount = 90, Source = ServingSource.User, SortOrder = 2 },
-            new() { FoodId = other.Id, Label = "1 cup", Amount = 240, Source = ServingSource.User, SortOrder = 2 },
+            new() { FoodId = foodId, Label = "1 slice", Amount = 30, Source = ServingSource.User },
+            new() { FoodId = foodId, Label = "My bowl", Amount = 90, Source = ServingSource.User },
+            new() { FoodId = other.Id, Label = "1 cup", Amount = 240, Source = ServingSource.User },
         };
         await connection.InsertAllAsync(rows);
         return (rows[0].Id, rows[1].Id, rows[2].Id);
