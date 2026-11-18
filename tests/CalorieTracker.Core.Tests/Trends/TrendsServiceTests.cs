@@ -187,6 +187,7 @@ public class TrendsServiceTests
         {
             DayStatus.NoTarget, DayStatus.NotLogged, DayStatus.NotLogged, DayStatus.Today, DayStatus.Future, DayStatus.Future,
         }));
+        Assert.That(days[0].TargetKcal, Is.Null);
     }
 
     [Test]
@@ -260,6 +261,28 @@ public class TrendsServiceTests
                 (Nov(23), Nov(29), (int?)null, 0, 0),
                 (Nov(30), Nov(30), (int?)null, 0, 0),
             }));
+    }
+
+    [Test]
+    public async Task Ac6_ALoggedFutureDayIsLeftOutOfTheRangeFigures()
+    {
+        await SaveTargetOn(Nov(1), 2100);
+        await LogWeek();
+        await Log(Nov(2), 2000);
+        await Log(Nov(3), 2400);
+        await Log(Nov(30), 1000);
+
+        var range = (await Get(Nov(1), Nov(30), Nov(16))).Range;
+
+        // Past days Nov 1 to 15; 9 logged: week 14865 + 2000 + 2400 = 19265, so 2140.6. With Nov 30 it would be 10 days and 2027.
+        // Bands against 1890 to 2310: under 1875 and 1720; on target 1980, 2240, 2050 and 2000; over 2390, 2610 and 2400 (Nov 30's 1000 would be a third under).
+        // Rice: 12065 + 1600 + 2000 = 15665 over 9 days; cheddar 9 x 400 (Nov 30 would make 10 and 11 each).
+        Assert.Multiple(() =>
+        {
+            Assert.That((range.PastDays, range.DaysLogged, range.AverageKcal), Is.EqualTo((15, 9, (int?)2141)));
+            Assert.That((range.Under, range.OnTarget, range.Over), Is.EqualTo((2, 4, 3)));
+            Assert.That(range.TopFoods.Select(f => (f.FoodId, f.TimesEaten, f.Kcal)), Is.EqualTo(new[] { (rice, 9, 15665), (cheddar, 9, 3600) }));
+        });
     }
 
     [Test]
