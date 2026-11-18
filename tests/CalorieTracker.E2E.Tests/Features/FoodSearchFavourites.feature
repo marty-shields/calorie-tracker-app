@@ -26,3 +26,5 @@ Feature: Food search favourites
     When I tap Back to results
     And I search for ""
     Then search lists only the Favourites group
+    When I open the first food in the Favourites group
+    Then the star on the food's values is filled and named "Remove from favourites"

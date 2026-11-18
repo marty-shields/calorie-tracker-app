@@ -51,10 +51,10 @@ public sealed partial class FoodHistoryService
 
     /// <summary>The history of just <paramref name="foodIds"/>, in no set order; a food never logged, or an unknown id, is left out. TimesLogged counts all its kept entries. No ids is an empty result without a database call.</summary>
     /// <param name="meal">When set, each food's last values are those of its newest entry in that meal, or of its newest entry in any meal when it was never logged in that one.</param>
-    public Task<FoodHistoryResult> ForFoodsAsync(IReadOnlyCollection<int> foodIds, Meal? meal = null) =>
+    public Task<FoodHistoryResult> ByFoodIdsAsync(IReadOnlyCollection<int> foodIds, Meal? meal = null) =>
         foodIds.Count == 0
             ? Task.FromResult(FoodHistoryResult.Found([]))
-            : ReadAsync(() => store.ForFoodsAsync(foodIds, meal), Log.ByIds);
+            : ReadAsync(() => store.ByFoodIdsAsync(foodIds, meal), Log.ByIds);
 
     private async Task<FoodHistoryResult> ReadAsync(Func<Task<List<FoodHistoryRow>>> read, Action<ILogger, int> logged)
     {

@@ -116,20 +116,14 @@ public class FavouriteServiceTests
         });
     }
 
-    private async Task<T> CallWhileTheGateIsBusy<T, TSeen>(Func<Task<T>> call, Func<Task<TSeen>> whileHeld, Action<TSeen> assertSeen)
-    {
-        var (seen, result) = await GateHolder.CallWhileHeld(gate, call, whileHeld);
-        assertSeen(seen);
-        return result;
-    }
-
     private Task<int> FavouriteCount() => connection.Table<Favourite>().CountAsync();
 
     [Test]
     public async Task AddAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
     {
-        var result = await CallWhileTheGateIsBusy(() => service.AddAsync(foodId), FavouriteCount, seen => Assert.That(seen, Is.Zero));
+        var (seen, result) = await GateHolder.CallWhileHeld(gate, () => service.AddAsync(foodId), FavouriteCount);
 
+        Assert.That(seen, Is.Zero);
         Assert.That(result.Status, Is.EqualTo(FavouriteStatus.Added));
         Assert.That(await FavouriteCount(), Is.EqualTo(1));
     }
@@ -139,8 +133,9 @@ public class FavouriteServiceTests
     {
         await service.AddAsync(foodId);
 
-        var result = await CallWhileTheGateIsBusy(() => service.RemoveAsync(foodId), FavouriteCount, seen => Assert.That(seen, Is.EqualTo(1)));
+        var (seen, result) = await GateHolder.CallWhileHeld(gate, () => service.RemoveAsync(foodId), FavouriteCount);
 
+        Assert.That(seen, Is.EqualTo(1));
         Assert.That(result.Status, Is.EqualTo(FavouriteStatus.Removed));
         Assert.That(await FavouriteCount(), Is.Zero);
     }
@@ -148,10 +143,10 @@ public class FavouriteServiceTests
     [Test]
     public async Task IsFavouriteAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
     {
-        var result = await CallWhileTheGateIsBusy(
+        var (_, result) = await GateHolder.CallWhileHeld(
+            gate,
             () => service.IsFavouriteAsync(foodId),
-            () => connection.InsertAsync(new Favourite { FoodId = foodId, CreatedAt = Now }), // the holder's own write, ahead of the queued read
-            _ => { });
+            () => connection.InsertAsync(new Favourite { FoodId = foodId, CreatedAt = Now })); // the holder's own write, ahead of the queued read
 
         Assert.That((result.Status, result.IsFavourite), Is.EqualTo((FavouriteReadStatus.Found, true)));
     }
@@ -159,10 +154,10 @@ public class FavouriteServiceTests
     [Test]
     public async Task IdsAsync_WhileTheGateIsBusy_RunsAfterTheHolderFinishes()
     {
-        var result = await CallWhileTheGateIsBusy(
+        var (_, result) = await GateHolder.CallWhileHeld(
+            gate,
             () => service.IdsAsync(),
-            () => connection.InsertAsync(new Favourite { FoodId = foodId, CreatedAt = Now }),
-            _ => { });
+            () => connection.InsertAsync(new Favourite { FoodId = foodId, CreatedAt = Now }));
 
         Assert.That((result.Status, result.FoodIds), Is.EqualTo((FavouriteReadStatus.Found, new[] { foodId })));
     }

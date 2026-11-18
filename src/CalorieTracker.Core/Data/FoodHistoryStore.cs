@@ -70,7 +70,7 @@ internal sealed class FoodHistoryStore(SQLiteAsyncConnection connection, Databas
             Args(meal, [(int)meal, since], limit)));
 
     /// <summary>The foods among <paramref name="foodIds"/> that have a kept entry, in no set order; as <see cref="AllAsync"/> otherwise. Ids go in chunks, so a long list stays under SQLite's limit on bound values.</summary>
-    public Task<List<FoodHistoryRow>> ForFoodsAsync(IReadOnlyCollection<int> foodIds, Meal? meal = null) =>
+    public Task<List<FoodHistoryRow>> ByFoodIdsAsync(IReadOnlyCollection<int> foodIds, Meal? meal = null) =>
         gate.RunAsync(async () =>
         {
             var rows = new List<FoodHistoryRow>();
