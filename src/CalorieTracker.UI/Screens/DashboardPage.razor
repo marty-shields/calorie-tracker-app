@@ -1,10 +1,10 @@
-@using System.Globalization
 @using Microsoft.Extensions.Logging
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Foods
 @using CalorieTracker.Core.History
 @using CalorieTracker.Core.Summary
 @using CalorieTracker.UI.Components.Feedback
+@using CalorieTracker.UI.Components.Layout
 @inject DaySummaryService Summaries
 @using CalorieTracker.Core.Diary
 @implements IDisposable
@@ -33,7 +33,6 @@
     private bool adding;
     private IReadOnlyList<UsualFoodRow>? usual;
     private string? usualError;
-    private Dictionary<int, FoodHistory> usualHistory = [];
 
     /// <summary>The day to open on the date strip, from the route's <c>date</c>. Null opens today. A change opens that day.</summary>
     [Parameter]
@@ -86,7 +85,6 @@
         var read = ++usualRead;
         usual = null;
         usualError = null;
-        usualHistory = [];
         var history = await History.UsualAsync(meal, UsualRows);
         if (read != usualRead || disposed)
         {
@@ -100,7 +98,6 @@
         }
 
         var rows = new List<UsualFoodRow>();
-        var byFood = new Dictionary<int, FoodHistory>();
         foreach (var entry in history.Foods)
         {
             var found = await Foods.GetAsync(entry.FoodId);
@@ -111,20 +108,18 @@
 
             if (found is { Status: FoodStatus.Found, Food: { } food })
             {
-                rows.Add(new UsualFoodRow(food.Id, FoodDisplay.Of(food).Title, UsualDetail(food, found.Servings, entry)));
-                byFood[food.Id] = entry;
+                rows.Add(UsualFoodRow.From(food, found.Servings, entry));
             }
         }
 
         Log.UsualRead(Logger, meal, rows.Count);
-        usualHistory = byFood;
         usual = rows;
     }
 
     /// <summary>Adds the usual food to the meal and day with its last amount, servings and serving, and posts "{title} added to {meal}" with Undo. False keeps the sheet open, with <see cref="usualError"/> saying what failed.</summary>
     private async Task<bool> AddUsualAsync(UsualAddRequest request, DateOnly day)
     {
-        if (adding || !usualHistory.TryGetValue(request.Food.FoodId, out var last))
+        if (adding)
         {
             return false;
         }
@@ -132,7 +127,7 @@
         adding = true;
         try
         {
-            var result = await Diary.AddAsync(day, request.Meal, request.Food.FoodId, last.LastAmount, last.LastServings, last.LastServingId);
+            var result = await Diary.AddAsync(day, request.Meal, request.Food.FoodId, request.Food.LastAmount, request.Food.LastServings, request.Food.LastServingId);
             if (result.Status != DiaryStatus.Ok || result.Entry is not { } entry)
             {
                 Log.UsualAddFailed(Logger, request.Food.FoodId, request.Meal, result.Status);
@@ -143,7 +138,8 @@
 
             Log.UsualAdded(Logger, request.Food.FoodId, request.Meal);
             usualError = null;
-            Snackbar.Show($"{request.Food.Title} added to {request.Meal}", "Undo", () => UndoAsync(Diary, Snackbar, Logger, entry.Id));
+            var (diary, snackbar, logger) = (Diary, Snackbar, Logger);
+            Snackbar.Show($"{request.Food.Title} added to {request.Meal}", "Undo", () => AddUndo.RunAsync(diary, snackbar, status => Log.UsualUndoFailed(logger, status), entry.Id));
             return true;
         }
         finally
@@ -151,34 +147,6 @@
             adding = false;
         }
     }
-
-    /// <summary>Removes the entry just added. An entry already gone counts as undone. A failure is logged and said in a snackbar; it never throws. Uses nothing of the screen, which may be gone.</summary>
-    private static async Task UndoAsync(DiaryService diary, SnackbarService snackbar, ILogger logger, int entryId)
-    {
-        var result = await diary.RemoveAsync(entryId);
-        if (result.Status is not (DiaryStatus.Ok or DiaryStatus.NotFound))
-        {
-            Log.UsualUndoFailed(logger, result.Status);
-            snackbar.Show("Couldn't undo. Remove it from the day.");
-        }
-    }
-
-    /// <summary>The last amount and its kcal, such as "150 g · 222 kcal"; for an entry added by servings "1 serving · the serving's label · kcal" (the amount when the serving is gone).</summary>
-    private static string UsualDetail(Food food, IReadOnlyList<Serving> servings, FoodHistory last)
-    {
-        var amount = $"{Count(last.LastAmount)} {(food.Unit == FoodUnit.Millilitre ? "ml" : "g")}";
-        var kcal = $"{Nutrition.ForAmount(food, last.LastAmount).Kcal.ToString("N0", CultureInfo.InvariantCulture)} kcal";
-        if (last.LastServings is not { } count)
-        {
-            return $"{amount} · {kcal}";
-        }
-
-        var label = servings.FirstOrDefault(s => s.Id == last.LastServingId)?.Label;
-        var text = $"{Count(count)} {(Math.Abs(count - 1) < 0.005 ? "serving" : "servings")}";
-        return $"{text} · {(string.IsNullOrWhiteSpace(label) ? amount : label)} · {kcal}";
-    }
-
-    private static string Count(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
 
     /// <summary>Today by the clock now, so the screen is right when it is used past midnight.</summary>
     private DateOnly Today() => DateOnly.FromDateTime(Time.GetLocalNow().DateTime);

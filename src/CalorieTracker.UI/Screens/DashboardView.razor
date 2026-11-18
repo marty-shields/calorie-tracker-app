@@ -178,21 +178,9 @@
 
     private static string Number(int value) => value.ToString("N0", CultureInfo.InvariantCulture);
 
-    private static string Count(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
-
-    /// <summary>The amount, or for an entry added by servings "1 serving · the serving's label" (the amount when the entry has no serving), after the brand line when the food has one.</summary>
-    private static string EntryDetail(SummaryEntry entry)
-    {
-        var amount = $"{Count(entry.Amount)} {(entry.Unit == FoodUnit.Millilitre ? "ml" : "g")}";
-        var brand = entry.Display.BrandLine;
-        if (entry.Servings is not { } servings)
-        {
-            return Prefixed(brand, amount);
-        }
-
-        var servingText = $"{Count(servings)} {(Math.Abs(servings - 1) < 0.005 ? "serving" : "servings")}";
-        return Prefixed(brand, $"{servingText} · {(string.IsNullOrWhiteSpace(entry.ServingLabel) ? amount : entry.ServingLabel)}");
-    }
+    /// <summary>The amount text after the brand line when the food has one.</summary>
+    private static string EntryDetail(SummaryEntry entry) =>
+        Prefixed(entry.Display.BrandLine, AmountText.Of(entry.Amount, entry.Unit, entry.Servings, entry.ServingLabel));
 
     private static string Prefixed(string? brand, string text) => brand is null ? text : $"{brand} · {text}";
 }

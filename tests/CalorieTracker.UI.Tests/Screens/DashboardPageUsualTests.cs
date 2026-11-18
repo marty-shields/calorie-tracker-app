@@ -59,9 +59,9 @@ public class DashboardPageUsualTests : ComponentTestBase
     private void At(int hour, int minute) =>
         ((FakeTimeProvider)Context.Services.GetRequiredService<TimeProvider>()).SetUtcNow(new DateTimeOffset(2031, 7, 19, hour, minute, 0, TimeSpan.Zero));
 
-    private async Task<Food> Food(string name, double kcal, double? servingGrams = null, string? servingLabel = null)
+    private async Task<Food> Food(string name, double kcal, double? servingGrams = null, string? servingLabel = null, FoodUnit unit = FoodUnit.Gram)
     {
-        var food = new Food { Source = FoodSource.OpenFoodFacts, SourceId = name, Name = name, Type = FoodType.Ingredient, Unit = FoodUnit.Gram, Kcal = kcal, ProteinG = 1, CarbsG = 1, FatG = 1, SearchText = name.ToLowerInvariant() };
+        var food = new Food { Source = FoodSource.OpenFoodFacts, SourceId = name, Name = name, Type = FoodType.Ingredient, Unit = unit, Kcal = kcal, ProteinG = 1, CarbsG = 1, FatG = 1, SearchText = name.ToLowerInvariant() };
         await connection.InsertAsync(food);
         if (servingGrams is { } grams)
         {
@@ -152,9 +152,9 @@ public class DashboardPageUsualTests : ComponentTestBase
         await Log(Today.AddDays(-1), Meal.Dinner, pasta, 150);
         await Log(Today.AddDays(-1), Meal.Breakfast, oats, 40);
         var cut = OpenSheet();
-        cut.WaitForAssertion(() => Assert.That(UsualTitles(cut), Is.EqualTo(new[] { "Pasta" })));
+        cut.WaitForState(() => UsualTitles(cut).SequenceEqual(new[] { "Pasta" }));
 
-        cut.Find("[data-testid=add-sheet-meal-breakfast]").Change(true);
+        await cut.InvokeAsync(() => cut.Find("[data-testid=add-sheet-meal-breakfast]").Change(true));
 
         cut.WaitForAssertion(() =>
         {
@@ -170,6 +170,7 @@ public class DashboardPageUsualTests : ComponentTestBase
         await Log(Today.AddDays(-1), Meal.Breakfast, await Food("Oats", 370), 40);
 
         var cut = OpenSheet();
+        cut.WaitForAssertion(() => Assert.That(logger.Collector.GetSnapshot().Select(r => r.Message), Does.Contain("Usual foods for the Add sheet read for Dinner, rows 0")));
 
         Assert.Multiple(() =>
         {
@@ -188,7 +189,7 @@ public class DashboardPageUsualTests : ComponentTestBase
         var cut = Context.Render<DashboardPage>(p => p.Add(x => x.OnAdd, requests.Add));
         cut.Find("[data-testid=add-button]").Click();
         cut.WaitForState(() => Exists(cut, "add-sheet-search"));
-        cut.WaitForAssertion(() => Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Contain(UiEvent.UsualReadFailed)));
+        cut.WaitForAssertion(() => Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Contain(UiEvent.UsualReadFailed)), TimeSpan.FromSeconds(5));
 
         cut.Find("[data-testid=add-sheet-search]").Click();
 
@@ -232,6 +233,7 @@ public class DashboardPageUsualTests : ComponentTestBase
         await Log(Today.AddDays(-1), Meal.Dinner, pizza, 403.6, 2, servingId);
         var cut = OpenSheet();
         cut.WaitForState(() => Exists(cut, $"add-sheet-usual-{pizza.Id}-add"));
+        Assert.That(Text(cut, $"add-sheet-usual-{pizza.Id}-detail"), Is.EqualTo("2 servings · ½ pizza (201.8 g) · 1,041 kcal"));
 
         await Tap(cut, $"[data-testid=add-sheet-usual-{pizza.Id}-add]");
 
@@ -282,6 +284,7 @@ public class DashboardPageUsualTests : ComponentTestBase
         cut.WaitForState(() => Exists(cut, $"add-sheet-usual-{pasta.Id}-add"));
         await Tap(cut, $"[data-testid=add-sheet-usual-{pasta.Id}-add]");
         var message = snackbar.Current!;
+        cut.WaitForAssertion(() => Assert.That(Text(cut, "meal-dinner-calories"), Is.EqualTo("222 kcal")));
         await connection.ExecuteAsync("DROP TABLE DiaryEntry");
 
         await snackbar.InvokeActionAsync(message);
@@ -321,6 +324,7 @@ public class DashboardPageUsualTests : ComponentTestBase
         var cut = OpenSheet();
         cut.WaitForState(() => Exists(cut, $"add-sheet-usual-{pasta.Id}-add"));
         await Tap(cut, $"[data-testid=add-sheet-usual-{pasta.Id}-add]");
+        cut.WaitForAssertion(() => Assert.That(Text(cut, "meal-dinner-calories"), Is.EqualTo("232 kcal")));
         await connection.ExecuteAsync("DROP TABLE DiaryEntry");
         await snackbar.InvokeActionAsync(snackbar.Current!);
 
@@ -331,5 +335,132 @@ public class DashboardPageUsualTests : ComponentTestBase
             Assert.That(messages, Does.Contain("Usual food " + pasta.Id + " added to Dinner"));
             Assert.That(messages, Has.None.Contain("Pasta").And.None.Contain("Carbonara").And.None.Contain("157").And.None.Contain("kcal"));
         });
+    }
+
+    [Test]
+    public async Task LogLines_OfAFailedAdd_CarryNoFoodNameOrAmount()
+    {
+        var pasta = await Food("Pasta Carbonara", 148);
+        await Log(Today.AddDays(-1), Meal.Dinner, pasta, 157);
+        var cut = OpenSheet();
+        cut.WaitForState(() => Exists(cut, $"add-sheet-usual-{pasta.Id}-add"));
+        await connection.ExecuteAsync("DROP TABLE DiaryEntry");
+
+        await Tap(cut, $"[data-testid=add-sheet-usual-{pasta.Id}-add]");
+
+        var messages = logger.Collector.GetSnapshot().Select(r => r.Message).ToList();
+        Assert.Multiple(() =>
+        {
+            Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Contain(UiEvent.UsualAddFailed));
+            Assert.That(messages, Has.None.Contain("Pasta").And.None.Contain("Carbonara").And.None.Contain("157").And.None.Contain("kcal"));
+        });
+    }
+
+    [Test]
+    public async Task LogLines_OfAFailedRead_CarryNoFoodNameOrAmount()
+    {
+        await Log(Today.AddDays(-1), Meal.Dinner, await Food("Pasta Carbonara", 148), 157);
+        await connection.ExecuteAsync("ALTER TABLE DiaryEntry RENAME TO DiaryEntryAway");
+        var cut = Context.Render<DashboardPage>();
+        cut.Find("[data-testid=add-button]").Click();
+        cut.WaitForState(() => Exists(cut, "add-sheet-search"));
+        cut.WaitForAssertion(() => Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Contain(UiEvent.UsualReadFailed)), TimeSpan.FromSeconds(5));
+
+        var messages = logger.Collector.GetSnapshot().Select(r => r.Message).ToList();
+        Assert.That(messages, Has.None.Contain("Pasta").And.None.Contain("Carbonara").And.None.Contain("157").And.None.Contain("kcal"));
+    }
+
+    [Test]
+    public async Task Plus_AddsToTheMealOfTheChosenChip()
+    {
+        var oats = await Food("Oats", 370);
+        var soup = await Food("Soup", 50);
+        await Log(Today.AddDays(-1), Meal.Dinner, oats, 40);
+        await Log(Today.AddDays(-1), Meal.Lunch, soup, 300);
+        var cut = OpenSheet();
+        cut.WaitForState(() => UsualTitles(cut).SequenceEqual(new[] { "Oats" }));
+        await cut.InvokeAsync(() => cut.Find("[data-testid=add-sheet-meal-lunch]").Change(true));
+        cut.WaitForState(() => UsualTitles(cut).SequenceEqual(new[] { "Soup" }));
+
+        await Tap(cut, $"[data-testid=add-sheet-usual-{soup.Id}-add]");
+
+        var added = (await core.GetRequiredService<DiaryService>().ListAsync(Today)).Entries.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(added.Meal, Is.EqualTo(Meal.Lunch));
+            Assert.That(snackbar.Current!.Text, Is.EqualTo("Soup added to Lunch"));
+        });
+    }
+
+    [Test]
+    public async Task ARowOfAMillilitreFood_ShowsMl_AndOneWhoseServingWasDeleted_FallsBackToTheAmount()
+    {
+        var milk = await Food("Milk", 46, unit: FoodUnit.Millilitre);
+        var pizza = await Food("Pizza", 258, 201.8, "½ pizza (201.8 g)");
+        var servingId = await connection.ExecuteScalarAsync<int>("SELECT Id FROM Serving WHERE FoodId = ?", pizza.Id);
+        await Log(Today.AddDays(-1), Meal.Dinner, milk, 200);
+        await Log(Today.AddDays(-1), Meal.Dinner, pizza, 201.8, 1, servingId);
+        await connection.ExecuteAsync("DELETE FROM Serving WHERE Id = ?", servingId);
+
+        var cut = OpenSheet();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.That(Text(cut, $"add-sheet-usual-{milk.Id}-detail"), Is.EqualTo("200 ml · 92 kcal"));
+            Assert.That(Text(cut, $"add-sheet-usual-{pizza.Id}-detail"), Is.EqualTo("1 serving · 201.8 g · 521 kcal"));
+        });
+    }
+
+    [Test]
+    public async Task SwitchingChipsTwiceWithoutWaiting_ShowsTheLastMealOnly()
+    {
+        var oats = await Food("Oats", 370);
+        var soup = await Food("Soup", 50);
+        await Log(Today.AddDays(-1), Meal.Breakfast, oats, 40);
+        await Log(Today.AddDays(-1), Meal.Lunch, soup, 300);
+        var cut = OpenSheet();
+
+        await cut.InvokeAsync(() => cut.Find("[data-testid=add-sheet-meal-lunch]").Change(true));
+        await cut.InvokeAsync(() => cut.Find("[data-testid=add-sheet-meal-breakfast]").Change(true));
+
+        cut.WaitForState(() => UsualTitles(cut).SequenceEqual(new[] { "Oats" }));
+        Assert.That(Text(cut, "add-sheet-usual-heading"), Is.EqualTo("Usual for breakfast"));
+    }
+
+    [Test]
+    public async Task Undo_OfAnEntryAlreadyRemoved_SaysNothingAndLogsNothing()
+    {
+        var pasta = await Food("Pasta", 148);
+        await Log(Today.AddDays(-1), Meal.Dinner, pasta, 150);
+        var cut = OpenSheet();
+        cut.WaitForState(() => Exists(cut, $"add-sheet-usual-{pasta.Id}-add"));
+        await Tap(cut, $"[data-testid=add-sheet-usual-{pasta.Id}-add]");
+        var message = snackbar.Current!;
+        var diary = core.GetRequiredService<DiaryService>();
+        await diary.RemoveAsync((await diary.ListAsync(Today)).Entries.Single().Id);
+
+        await snackbar.InvokeActionAsync(message);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snackbar.Current?.Text ?? "", Does.Not.StartWith("Couldn't undo"));
+            Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Not.Contain(UiEvent.UsualUndoFailed));
+        });
+    }
+
+    [Test]
+    public async Task AFailedAddFollowedByAChipChange_ClearsTheError()
+    {
+        var pasta = await Food("Pasta", 148);
+        await Log(Today.AddDays(-1), Meal.Dinner, pasta, 150);
+        var cut = OpenSheet();
+        cut.WaitForState(() => Exists(cut, $"add-sheet-usual-{pasta.Id}-add"));
+        await connection.ExecuteAsync("DROP TABLE DiaryEntry");
+        await Tap(cut, $"[data-testid=add-sheet-usual-{pasta.Id}-add]");
+        cut.WaitForState(() => Exists(cut, "add-sheet-add-error"));
+
+        await cut.InvokeAsync(() => cut.Find("[data-testid=add-sheet-meal-breakfast]").Change(true));
+
+        cut.WaitForAssertion(() => Assert.That(Exists(cut, "add-sheet-add-error"), Is.False));
     }
 }
