@@ -125,14 +125,42 @@ public class AppScreenTests : ComponentTestBase
     {
         var cut = Context.Render<AppScreen>(p => p
             .Add(x => x.Title, "Calorie Tracker")
-            .Add(x => x.Destination, NavDestination.Dashboard)
+            .Add(x => x.Destination, NavDestination.Today)
             .Add(x => x.BottomBar, (RenderFragment)(b => b.AddContent(0, "Main action"))));
 
         Assert.Multiple(() =>
         {
             Assert.That(cut.FindAll("footer > *").Select(e => e.GetAttribute("data-testid")), Is.EqualTo(new[] { "bottom-bar", "bottom-nav" }));
-            Assert.That(cut.Find("[aria-current=page]").GetAttribute("data-testid"), Is.EqualTo("dashboard-link"));
+            Assert.That(cut.Find("[aria-current=page]").GetAttribute("data-testid"), Is.EqualTo("today-link"));
         });
+    }
+
+    [Test]
+    public void TheAddButton_RaisesOnAdd()
+    {
+        var added = 0;
+        var cut = Context.Render<AppScreen>(p => p
+            .Add(x => x.Title, "Calorie Tracker")
+            .Add(x => x.Destination, NavDestination.Today)
+            .Add(x => x.OnAdd, () => added++));
+
+        cut.Find("[data-testid=add-button]").Click();
+
+        Assert.That(added, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task TopLevelScreenWithOnBack_AndroidBackRaisesOnBack()
+    {
+        var back = 0;
+        Context.Render<AppScreen>(p => p
+            .Add(x => x.Title, "Calorie Tracker")
+            .Add(x => x.Destination, NavDestination.Today)
+            .Add(x => x.OnBack, () => back++));
+
+        await BackButton.HandleAsync();
+
+        Assert.That(back, Is.EqualTo(1));
     }
 
     [Test]
@@ -140,44 +168,10 @@ public class AppScreenTests : ComponentTestBase
     {
         Context.Render<AppScreen>(p => p
             .Add(x => x.Title, "Calorie Tracker")
-            .Add(x => x.Destination, NavDestination.Dashboard)
+            .Add(x => x.Destination, NavDestination.Today)
             .Add(x => x.OnNavigate, (NavDestination _) => { }));
 
         Assert.That(BackButton.HasHandler, Is.False);
-    }
-
-    [Test]
-    public async Task Foods_AndroidBack_GoesToTheStart()
-    {
-        var navigated = new List<NavDestination>();
-        Context.Render<AppScreen>(p => p
-            .Add(x => x.Title, "Search foods")
-            .Add(x => x.Destination, NavDestination.Foods)
-            .Add(x => x.OnNavigate, navigated.Add));
-
-        await BackButton.HandleAsync();
-
-        Assert.That(navigated, Is.EqualTo(new[] { NavDestinations.Start }));
-    }
-
-    [Test]
-    public async Task TopLevelScreenWithOnBack_AndroidBackRaisesOnBackNotNavigate()
-    {
-        var navigated = new List<NavDestination>();
-        var back = 0;
-        Context.Render<AppScreen>(p => p
-            .Add(x => x.Title, "Search foods")
-            .Add(x => x.Destination, NavDestination.Foods)
-            .Add(x => x.OnNavigate, navigated.Add)
-            .Add(x => x.OnBack, () => back++));
-
-        await BackButton.HandleAsync();
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(back, Is.EqualTo(1));
-            Assert.That(navigated, Is.Empty);
-        });
     }
 
     [Test]

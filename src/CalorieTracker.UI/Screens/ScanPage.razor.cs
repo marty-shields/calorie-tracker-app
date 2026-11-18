@@ -3,7 +3,6 @@ using CalorieTracker.Core.Foods;
 using CalorieTracker.UI.Logging;
 using CalorieTracker.UI.Models.Scan;
 using CalorieTracker.UI.Models.Settings;
-using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Scanning;
 using CalorieTracker.UI.Theme;
 using Microsoft.AspNetCore.Components;
@@ -157,8 +156,6 @@ public partial class ScanPage : IDisposable
         var last = await Search.LastLoggedAsync(id);
         await OnAddToDiary.InvokeAsync(new ScanAddRequest(id, last?.LastAmount, last?.LastServings, last?.LastServingId));
     }
-
-    private Task SearchByNameAsync() => OnNavigate.InvokeAsync(NavDestination.Foods);
 
     private async Task LookUpAsync(string barcode, CancellationToken token)
     {

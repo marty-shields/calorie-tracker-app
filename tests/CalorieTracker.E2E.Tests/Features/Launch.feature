@@ -5,9 +5,9 @@ Feature: Launch
   Scenario: A fresh install opens on the empty Dashboard
     Then I am on the Dashboard titled "Calorie Tracker"
     And the Dashboard shows "Nothing logged today"
-    And I can open the Dashboard from the navigation bar
+    And the navigation bar shows Today and Add only
     And no startup error is shown
 
-  Scenario: The title and the tabs clear the system bars
+  Scenario: The title and the bar clear the system bars
     Given I am on the Dashboard
-    Then the screen title is below the status bar and the tabs are above the navigation bar
+    Then the screen title is below the status bar and the bar is above the navigation bar

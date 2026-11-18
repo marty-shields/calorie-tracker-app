@@ -6,56 +6,56 @@
 
     <Story Name="First run">
         <Template>
-            <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.FirstRun" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.FirstRun" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnSearch="(MealAddRequest _) => { }" OnScan="(MealAddRequest _) => { }" />
         </Template>
     </Story>
 
     <Story Name="No target">
         <Template>
-            <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.NoTarget" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.NoTarget" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnSearch="(MealAddRequest _) => { }" OnScan="(MealAddRequest _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Loaded">
         <Template>
-            <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.Loaded" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.Loaded" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnSearch="(MealAddRequest _) => { }" OnScan="(MealAddRequest _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Over target">
         <Template>
-            <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.OverTarget" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.OverTarget" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnSearch="(MealAddRequest _) => { }" OnScan="(MealAddRequest _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Loading">
         <Template>
-            <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Loading OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Loading OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnSearch="(MealAddRequest _) => { }" OnScan="(MealAddRequest _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Load failed">
         <Template>
-            <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" LoadFailed OnRetry="() => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" LoadFailed OnRetry="() => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnSearch="(MealAddRequest _) => { }" OnScan="(MealAddRequest _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Future day">
         <Template>
-            <DashboardView Date="DashboardSamples.Today.AddDays(1)" Today="DashboardSamples.Today" Summary="DashboardSamples.Loaded" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <DashboardView Date="DashboardSamples.Today.AddDays(1)" Today="DashboardSamples.Today" Summary="DashboardSamples.Loaded" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnSearch="(MealAddRequest _) => { }" OnScan="(MealAddRequest _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Branded foods">
         <Template>
-            <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.Branded" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.Branded" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnSearch="(MealAddRequest _) => { }" OnScan="(MealAddRequest _) => { }" />
         </Template>
     </Story>
 
     <Story Name="Entry removed">
         <Template>
             @{ PostRemoved(); }
-            <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.Loaded" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" />
+            <DashboardView Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.Loaded" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnSearch="(MealAddRequest _) => { }" OnScan="(MealAddRequest _) => { }" />
         </Template>
     </Story>
 

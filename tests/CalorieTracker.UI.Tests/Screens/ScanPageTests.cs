@@ -456,16 +456,16 @@ public class ScanPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task NotFound_SearchByName_OpensTheFoodsTab()
+    public async Task NotFound_SearchByName_RaisesOnSearchByName()
     {
         lookup.Result = BarcodeLookupResult.NotFound();
-        var navigated = new List<NavDestination>();
-        var cut = await ScannedAsync(p => p.Add(x => x.OnNavigate, navigated.Add));
+        var searched = 0;
+        var cut = await ScannedAsync(p => p.Add(x => x.OnSearchByName, () => searched++));
         cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-search]"), Has.Count.EqualTo(1)));
 
         cut.Find("[data-testid=scan-search]").Click();
 
-        Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Foods }));
+        Assert.That(searched, Is.EqualTo(1));
     }
 
     [Test]
@@ -516,27 +516,25 @@ public class ScanPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task NavigationBar_RaisesOnNavigate()
+    public async Task ThereIsNoNavigationBar()
     {
-        var navigated = new List<NavDestination>();
-        var cut = Context.Render<ScanPage>(p => p.Add(x => x.OnNavigate, navigated.Add));
+        var cut = Context.Render<ScanPage>();
         await WaitForRendererAsync();
 
-        await cut.Find("[data-testid=dashboard-link]").ClickAsync(new());
-
-        Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Dashboard }));
+        Assert.That(cut.FindAll("[data-testid=bottom-nav]"), Is.Empty);
     }
 
     [Test]
-    public async Task AndroidBack_GoesToTheDashboard()
+    public async Task BackArrowAndAndroidBack_RaiseOnBack()
     {
-        var navigated = new List<NavDestination>();
-        Context.Render<ScanPage>(p => p.Add(x => x.OnNavigate, navigated.Add));
+        var back = 0;
+        var cut = Context.Render<ScanPage>(p => p.Add(x => x.OnBack, () => back++));
         await WaitForRendererAsync();
 
+        await cut.Find("[data-testid=back]").ClickAsync(new());
         await BackButton.HandleAsync();
 
-        Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Dashboard }));
+        Assert.That(back, Is.EqualTo(2));
     }
 
     [Test]

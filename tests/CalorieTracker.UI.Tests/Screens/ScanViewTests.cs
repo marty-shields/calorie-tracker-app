@@ -182,14 +182,19 @@ public class ScanViewTests : ComponentTestBase
     }
 
     [Test]
-    public void IsATopLevelScreen_WithScanCurrentInTheNavigationBar()
+    public void HasABackArrowAndNoNavigationBar()
     {
-        var cut = Context.Render<ScanView>(p => p.Add(x => x.State, ScanState.OpeningCamera));
+        var back = 0;
+        var cut = Context.Render<ScanView>(p => p
+            .Add(x => x.State, ScanState.OpeningCamera)
+            .Add(x => x.OnBack, () => back++));
+
+        cut.Find("[data-testid=back]").Click();
 
         Assert.Multiple(() =>
         {
-            Assert.That(cut.Find("[data-testid=scan-link]").GetAttribute("aria-current"), Is.EqualTo("page"));
-            Assert.That(cut.FindAll("[data-testid=back]"), Is.Empty);
+            Assert.That(back, Is.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=bottom-nav]"), Is.Empty);
         });
     }
 }

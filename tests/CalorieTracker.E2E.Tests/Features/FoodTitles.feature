@@ -23,7 +23,7 @@ Feature: Food titles
   Scenario: Scan headed a product with the title Serving then shows
     Given I am on the Dashboard
     And a barcode is held in front of the camera
-    When I open Scan from the navigation bar
+    When I open Scan from the Add sheet
     Then Scan shows the found product with Add to diary
     And I have noted the product's title on Scan
     When I tap Add to diary on Scan

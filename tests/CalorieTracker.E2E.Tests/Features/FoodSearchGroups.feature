@@ -3,7 +3,7 @@ Feature: Food search groups
 
   Scenario: Foods logged before show under Recent on the Foods tab with their last amount
     Given I have logged 35 g of the first food found by "oat" in Lunch
-    When I open Foods from the navigation bar
+    And I have opened Foods
     Then search lists only the Recent group
     When I open the first food in the Recent group
     And I tap Add to diary

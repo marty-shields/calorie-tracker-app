@@ -1,0 +1,51 @@
+@using CalorieTracker.UI.Components.Layout
+@attribute [Stories("Components/Layout/AddSheet")]
+
+<Stories TComponent="AddSheet" Layout="typeof(PhoneLayout)">
+
+    <Story Name="Breakfast">
+        <Template>
+            <AddSheet Open Clock="new FixedTimeProvider(new TimeOnly(8, 0))" OnSearch="(Meal _) => { }" OnScan="(Meal _) => { }" OnClose="() => { }" />
+            <AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
+                <p>Today</p>
+            </AppScreen>
+        </Template>
+    </Story>
+
+    <Story Name="Lunch">
+        <Template>
+            <AddSheet Open Clock="new FixedTimeProvider(new TimeOnly(12, 30))" OnSearch="(Meal _) => { }" OnScan="(Meal _) => { }" OnClose="() => { }" />
+            <AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
+                <p>Today</p>
+            </AppScreen>
+        </Template>
+    </Story>
+
+    <Story Name="Dinner">
+        <Template>
+            <AddSheet Open Clock="new FixedTimeProvider(new TimeOnly(18, 0))" OnSearch="(Meal _) => { }" OnScan="(Meal _) => { }" OnClose="() => { }" />
+            <AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
+                <p>Today</p>
+            </AppScreen>
+        </Template>
+    </Story>
+
+    <Story Name="Snacks between meals">
+        <Template>
+            <AddSheet Open Clock="new FixedTimeProvider(new TimeOnly(16, 0))" OnSearch="(Meal _) => { }" OnScan="(Meal _) => { }" OnClose="() => { }" />
+            <AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
+                <p>Today</p>
+            </AppScreen>
+        </Template>
+    </Story>
+
+    <Story Name="Snacks overnight">
+        <Template>
+            <AddSheet Open Clock="new FixedTimeProvider(new TimeOnly(22, 30))" OnSearch="(Meal _) => { }" OnScan="(Meal _) => { }" OnClose="() => { }" />
+            <AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
+                <p>Today</p>
+            </AppScreen>
+        </Template>
+    </Story>
+
+</Stories>

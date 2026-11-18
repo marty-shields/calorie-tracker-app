@@ -15,7 +15,7 @@
 @inject ILogger<FoodSearchPage> Logger
 
 <FoodSearchView Meal="Meal" Query="@query" Groups="groups" Expanded="expanded" OnExpand="Expand" Selected="selected" Favourite="star.IsFavourite" OnToggleFavourite="star.ToggleAsync" Loading="loading" Failed="failed"
-                OnQueryChanged="SearchAsync" OnSelect="SelectAsync" OnAdd="AddAsync" OnBack="OnBack" OnClearSelection="ClearSelection" OnRetry="Retry" OnNavigate="OnNavigate"
+                OnQueryChanged="SearchAsync" OnSelect="SelectAsync" OnAdd="AddAsync" OnBack="OnBack" OnClearSelection="ClearSelection" OnRetry="Retry"
                 OnlineState="onlineState" OnlineProducts="onlineProducts" OnlineCountry="@onlineCountry" OnlineExpanded="onlineExpanded" OnlineNoticeVisible="noticeVisible"
                 OnSearchOnline="SearchOnlineAsync" OnSelectOnline="SelectOnlineAsync" OnExpandOnline="ExpandOnline" OnRetryOnline="RetryOnlineAsync" />
 
@@ -57,13 +57,9 @@
     [Parameter]
     public EventCallback<FoodAddRequest> OnAdd { get; set; }
 
-    /// <summary>Raised by the back arrow and Android back in add mode.</summary>
+    /// <summary>Raised by the back arrow and Android back, except while a food's values show without a meal, where they return to the list.</summary>
     [Parameter]
     public EventCallback OnBack { get; set; }
-
-    /// <summary>Raised with the destination tapped in the bottom navigation bar, or with the start screen on Android back.</summary>
-    [Parameter]
-    public EventCallback<NavDestination> OnNavigate { get; set; }
 
     protected override async Task OnInitializedAsync()
     {

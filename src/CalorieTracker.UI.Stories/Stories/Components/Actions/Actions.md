@@ -28,9 +28,9 @@ A Material Symbols Outlined icon (weight 400), drawn as an SVG and hidden from s
 - Search: a search box, `Muted`.
 - Up and Down: an increase (`Success`) or decrease (`Error`).
 - Edit (pencil) and Check (tick): used by `IconButton`.
-- Home: the Dashboard item in `BottomNav`.
-- Scan: the Scan item in `BottomNav`.
-- Plus and Minus: add or remove, e.g. a stepper or a meal's add button.
+- Today: the Today item in `BottomNav`.
+- Scan: the Scan barcode tile of the `AddSheet`, and Search: its Search foods tile.
+- Plus and Minus: add or remove, e.g. a stepper, a meal's add button or the raised Add button of `BottomNav`.
 - ChevronLeft: the previous item in a sequence, such as the previous day; Chevron points right. Back is for leaving a screen.
 - Star and StarFilled: not a favourite and a favourite. The star button in the top bar of Serving and of a food's values on the Foods tab; the icon takes the top bar's text colour.
 

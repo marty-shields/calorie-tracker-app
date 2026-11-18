@@ -15,7 +15,7 @@ Feature: Upgrade
     When I tap the Lunch entry
     Then Serving is headed with the noted title
     When I tap Back on Serving in edit mode
-    And I open Foods from the navigation bar
+    And I open Foods from the Add sheet
     And I search for the noted title
     Then the results include a food titled with the noted title
     When I go back to the Dashboard

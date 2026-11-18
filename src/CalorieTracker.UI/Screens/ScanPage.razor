@@ -1,8 +1,8 @@
 @using CalorieTracker.UI.Models.Scan
-<ScanView State="state" Product="product" OnScanAgain="RunScanAsync" OnAddToDiary="AddToDiaryAsync" OnSearchByName="SearchByNameAsync" OnNavigate="OnNavigate" />
+<ScanView State="state" Product="product" OnScanAgain="RunScanAsync" OnAddToDiary="AddToDiaryAsync" OnSearchByName="OnSearchByName" OnBack="OnBack" />
 
 @code {
-    /// <summary>Raised when the camera is closed without a barcode.</summary>
+    /// <summary>Raised by the back arrow, Android back, and when the camera is closed without a barcode.</summary>
     [Parameter]
     public EventCallback OnBack { get; set; }
 
@@ -10,7 +10,7 @@
     [Parameter]
     public EventCallback<ScanAddRequest> OnAddToDiary { get; set; }
 
-    /// <summary>Raised with the destination tapped in the bottom navigation bar, or with the start screen on Android back.</summary>
+    /// <summary>Raised by Search by name, shown when the product has no food id to add.</summary>
     [Parameter]
-    public EventCallback<NavDestination> OnNavigate { get; set; }
+    public EventCallback OnSearchByName { get; set; }
 }

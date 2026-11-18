@@ -6,9 +6,8 @@
 @using CalorieTracker.UI.Components.Inputs
 @using CalorieTracker.UI.Components.Lists
 @using CalorieTracker.UI.Models.Search
-@* AppScreen shows Status only with a navigation bar, and add mode has none. The snackbar there is shown by the Dashboard. *@
-<AppScreen Title="@(Meal is { } meal ? $"Add to {meal}" : "Search foods")" Destination="@(Meal is null ? NavDestination.Foods : null)" OnNavigate="OnNavigate"
-           OnBack="@(Meal is not null ? OnBack : Selected is null ? default : OnClearSelection)" Toolbar="@(Selected is null && !Failed ? Tools : null)"
+@* AppScreen shows Status only with a bottom bar or navigation bar: a food's values have the first, add mode neither. The snackbar in add mode is shown by the Dashboard. *@
+<AppScreen Title="@(Meal is { } meal ? $"Add to {meal}" : "Search foods")" OnBack="@(Meal is null && Selected is not null ? OnClearSelection : OnBack)" Toolbar="@(Selected is null && !Failed ? Tools : null)"
            Status="@(Meal is null ? Notice : null)" BottomBar="@(Selected is { } chosen ? Actions(chosen) : null)">
     <Actions>
         @if (Selected is not null && Favourite is { } favourite)
@@ -185,7 +184,7 @@
     [Parameter]
     public EventCallback<Food> OnAdd { get; set; }
 
-    /// <summary>Raised by the back arrow and Android back in add mode.</summary>
+    /// <summary>Raised by the back arrow and Android back, except while a food's values show without a meal, where they return to the list.</summary>
     [Parameter]
     public EventCallback OnBack { get; set; }
 
@@ -196,10 +195,6 @@
     /// <summary>Raised by Try again.</summary>
     [Parameter]
     public EventCallback OnRetry { get; set; }
-
-    /// <summary>Raised with the destination tapped in the bottom navigation bar, or with the start screen on Android back.</summary>
-    [Parameter]
-    public EventCallback<NavDestination> OnNavigate { get; set; }
 
     private RenderFragment Actions(Food chosen) =>
         @<div class="actions">

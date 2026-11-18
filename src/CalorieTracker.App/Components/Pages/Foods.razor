@@ -4,12 +4,12 @@
 @using CalorieTracker.UI.Screens
 @inject NavigationManager Navigation
 
-@* Back goes to the Dashboard (or from a food's values, to the list); AppScreen does both.
+@* Back goes to the Dashboard (or from a food's values, to the list).
    Query: meal and date (yyyy-MM-dd, default today) open search to add to that meal, q restores a search (an old type value is ignored).
    A meal's + sends a person here with a meal: a result opens Serving with that meal, and Add goes on to the Dashboard (on that day when a date is given).
-   From the Foods tab a food's Add to diary opens Serving with a suggested meal, and Add comes back to this search. *@
+   Without a meal (an old link) a food's Add to diary opens Serving with a suggested meal, and Add comes back to this search. *@
 <FoodSearchPage Meal="meal" InitialQuery="@Query"
-                OnAdd="Add" OnBack="@(() => Navigation.GoTo(date is { } day ? DashboardRoute.Url(day) : "/"))" OnNavigate="@(destination => Navigation.GoTo(destination))" />
+                OnAdd="Add" OnBack="@(() => Navigation.GoTo(date is { } day ? DashboardRoute.Url(day) : "/"))" />
 
 @code {
     [SupplyParameterFromQuery(Name = "meal")]

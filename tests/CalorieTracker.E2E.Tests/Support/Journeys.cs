@@ -3,8 +3,8 @@ using CalorieTracker.E2E.Tests.Screens;
 
 namespace CalorieTracker.E2E.Tests.Support;
 
-/// <summary>What a user does across screens: open Settings, Foods or Scan, go back to the Dashboard.</summary>
-public sealed class Journeys(WebView web, Native native, DashboardScreen dashboard, SettingsScreen settings, NavigationBar navigation)
+/// <summary>What a user does across screens: open Settings, Foods or Scan (the last two through the Add sheet), go back to the Dashboard.</summary>
+public sealed class Journeys(WebView web, Native native, DashboardScreen dashboard, SettingsScreen settings, AddSheetScreen addSheet)
 {
     public enum Screen
     {
@@ -38,23 +38,36 @@ public sealed class Journeys(WebView web, Native native, DashboardScreen dashboa
         WaitFor(Screen.Settings);
     }
 
-    /// <summary>Opens Foods from the Dashboard's navigation bar and waits for it.</summary>
+    /// <summary>
+    /// Opens food search with no meal, by the old <c>/foods</c> link, and waits for it. Nothing in the app leads there now:
+    /// the Add sheet always opens search for a meal (<see cref="OpenFoodsFromTheAddSheet"/>). Scenarios that need the meal-less values step use this until it is removed.
+    /// </summary>
     public void OpenFoods()
     {
         WaitFor(Screen.Dashboard);
-        navigation.Open("Foods");
+        web.NavigateTo("/foods");
         WaitFor(Screen.Foods);
     }
 
-    /// <summary>Opens Scan from the navigation bar and waits for it.</summary>
+    /// <summary>Opens search from the Dashboard through the Add sheet's Search foods, which adds to the meal the sheet guessed, and waits for it.</summary>
+    public void OpenFoodsFromTheAddSheet()
+    {
+        WaitFor(Screen.Dashboard);
+        addSheet.Open();
+        addSheet.Search();
+        WaitFor(Screen.AddFood);
+    }
+
+    /// <summary>Opens Scan from the Dashboard through the Add sheet's Scan barcode and waits for it.</summary>
     public void OpenScan()
     {
         WaitFor(Screen.Dashboard);
-        navigation.Open("Scan");
+        addSheet.Open();
+        addSheet.Scan();
         WaitFor(Screen.Scan);
     }
 
-    /// <summary>Goes to the Dashboard from Settings, Foods or Scan, or stays on it.</summary>
+    /// <summary>Goes to the Dashboard from Settings, Foods, Scan or search for a meal (Android back, which the bar no longer replaces), or stays on it.</summary>
     public void GoToDashboard()
     {
         switch (Current())
@@ -64,7 +77,8 @@ public sealed class Journeys(WebView web, Native native, DashboardScreen dashboa
                 break;
             case Screen.Foods:
             case Screen.Scan:
-                navigation.Open("Dashboard");
+            case Screen.AddFood:
+                native.BackKey();
                 break;
         }
 
