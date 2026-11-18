@@ -27,15 +27,6 @@ public sealed record MealKcal(int Breakfast, int Lunch, int Dinner, int Snacks)
 {
     public static MealKcal Zero { get; } = new(0, 0, 0, 0);
 
-    public int Of(Meal meal) =>
-        meal switch
-        {
-            Meal.Breakfast => Breakfast,
-            Meal.Lunch => Lunch,
-            Meal.Dinner => Dinner,
-            _ => Snacks,
-        };
-
     internal MealKcal Add(Meal meal, int kcal) =>
         meal switch
         {
@@ -65,7 +56,7 @@ public sealed record TrendsEnoughData(bool Average, bool Macros, bool ByMeal, bo
 /// <param name="AverageKcal">Whole kcal a logged past day.</param>
 /// <param name="AverageMacros">Grams to one decimal; <see cref="Nutrition.Kcal"/> repeats <paramref name="AverageKcal"/>.</param>
 /// <param name="TopFoods">At most 5, most kcal first, then most times eaten, then lowest food id.</param>
-/// <param name="Streak">Days in a row with an entry, back from today, or from yesterday when today is empty. It counts only days the read covers, which start at the range's first day.</param>
+/// <param name="Streak">Days in a row with an entry, back from today, or from yesterday when today is empty. It looks past the range's start and counts through any number of days, stops at the first day with no entry, and never counts a day after today.</param>
 public sealed record TrendsRange(
     int PastDays,
     int DaysLogged,

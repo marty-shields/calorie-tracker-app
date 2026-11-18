@@ -108,7 +108,7 @@ public class TrendsServiceTests
             Assert.That(range.TopFoods.Select(f => (f.FoodId, f.Title, f.TimesEaten, f.Kcal)), Is.EqualTo(new[] { (rice, "Secret rice", 7, 12065), (cheddar, "Secret cheddar", 7, 2800) }));
             Assert.That(range.Enough, Is.EqualTo(new TrendsEnoughData(true, true, true, true, true)));
             Assert.That(range.AverageKcalByMeal, Is.EqualTo(new MealKcal(0, 400, 1724, 0)));
-            Assert.That(range.AverageMacros!.Kcal, Is.EqualTo(2124));
+            Assert.That(range.AverageMacros, Is.EqualTo(new Nutrition(2124, 182.4, 364.7, 91.2)));
             Assert.That(report.BucketKind, Is.EqualTo(TrendBucketKind.None));
         });
     }
@@ -378,23 +378,158 @@ public class TrendsServiceTests
     }
 
     [Test]
-    public async Task Ac8_ACallReadsEntriesOnceAndTargetsOnceThroughTheGate()
+    public async Task Ac8_ACallReadsTheRangeEntriesOnceTheStreakDatesOnceAndTargetsOnce()
     {
         await LogWeek();
         await SaveTargetOn(Nov(1), 2100);
-        var entryReads = 0;
+        var rangeReads = 0;
+        var streakReads = 0;
         var targetReads = 0;
         connection.Trace = true;
         connection.Tracer = sql =>
         {
-            entryReads += sql.Contains("FROM DiaryEntry", StringComparison.Ordinal) ? 1 : 0;
+            var diaryRead = sql.Contains("FROM DiaryEntry", StringComparison.Ordinal);
+            var streak = sql.Contains("SELECT DISTINCT Date FROM DiaryEntry", StringComparison.Ordinal);
+            rangeReads += diaryRead && !streak ? 1 : 0;
+            streakReads += streak ? 1 : 0;
             targetReads += sql.Contains("FROM TargetHistory", StringComparison.Ordinal) ? 1 : 0;
         };
 
         var (_, result) = await GateHolder.CallWhileHeld(gate, () => service.GetAsync(Nov(1), Nov(30), Nov(16)), () => Task.FromResult(0));
 
         Assert.That(result.Status, Is.EqualTo(TrendsStatus.Ok));
-        Assert.That((entryReads, targetReads), Is.EqualTo((1, 1)));
+        Assert.That((rangeReads, streakReads, targetReads), Is.EqualTo((1, 1, 1)));
+    }
+
+    [Test]
+    public async Task Ac8_TheStoreReadWaitsForTheGate()
+    {
+        await LogWeek();
+
+        var (_, read) = await GateHolder.CallWhileHeld(gate, () => new TrendsStore(connection, gate).ReadAsync("2026-11-09", "2026-11-15", Nov(16)), () => Task.FromResult(0));
+
+        Assert.That((read.Entries.Count, read.Streak), Is.EqualTo((14, 7)));
+    }
+
+    [Test]
+    public async Task AStreakOfTwentyDaysIsReportedOnASevenDayRange()
+    {
+        for (var i = 0; i < 20; i++)
+        {
+            await Log(Nov(1).AddDays(i), 2000);
+        }
+
+        Assert.That((await Get(Nov(14), Nov(20), Nov(21))).Range.Streak, Is.EqualTo(20));
+    }
+
+    [Test]
+    public async Task APastRangeStillReportsTheStreakThroughToday()
+    {
+        await Log(Nov(14), 2000);
+        await Log(Nov(15), 2000);
+        await Log(Nov(16), 2000);
+
+        Assert.That((await Get(Nov(1), Nov(5), Nov(16))).Range.Streak, Is.EqualTo(3));
+    }
+
+    [Test]
+    public async Task AnEntryAfterTheRangeWithADeletedFood_DoesNotFailAnOlderRange()
+    {
+        await Log(Nov(9), 2000);
+        await diary.AddAsync(Nov(20), Meal.Lunch, await AddFood("Gone", 100), 100);
+        await connection.ExecuteAsync("DELETE FROM Food WHERE Name = 'Gone'");
+
+        var result = await service.GetAsync(Nov(9), Nov(15), Nov(21));
+
+        Assert.That(result.Status, Is.EqualTo(TrendsStatus.Ok));
+        Assert.That(LoggedEvents.Of(logger).Single().Message, Is.EqualTo("Trends built for 7 days from 2 entries"));
+    }
+
+    [Test]
+    public async Task EachMealHasItsOwnKcalInTheDayAndTheAverage()
+    {
+        await diary.AddAsync(Nov(9), Meal.Breakfast, rice, 150);
+        await diary.AddAsync(Nov(9), Meal.Lunch, rice, 250);
+        await diary.AddAsync(Nov(9), Meal.Dinner, rice, 350);
+        await diary.AddAsync(Nov(9), Meal.Snacks, rice, 450);
+
+        var report = await Get(Nov(9), Nov(9), Nov(20));
+
+        Assert.That(report.Days.Single().KcalByMeal, Is.EqualTo(new MealKcal(150, 250, 350, 450)));
+        Assert.That(report.Range.AverageKcalByMeal, Is.EqualTo(new MealKcal(150, 250, 350, 450)));
+    }
+
+    [Test]
+    public async Task OneLoggedDayGivesItsOwnMacrosAsTheAverage()
+    {
+        await Log(Nov(9), 1980);
+
+        Assert.That((await Get(Nov(9), Nov(15), Nov(16))).Range.AverageMacros, Is.EqualTo(new Nutrition(1980, 168, 336, 84)));
+    }
+
+    [Test]
+    public async Task AnAverageOnExactlyHalfRoundsAwayFromZero()
+    {
+        await Log(Nov(9), 2000);
+        await Log(Nov(10), 2001);
+
+        var range = (await Get(Nov(9), Nov(15), Nov(16))).Range;
+
+        Assert.That((range.AverageKcal, range.AverageMacros!.Kcal), Is.EqualTo(((int?)2001, 2001)));
+    }
+
+    [Test]
+    public async Task AFractionalAmountGivesTheSameDayTotalsAsTheDaySummary()
+    {
+        var snack = await AddFood("Snack", 150);
+        await diary.AddAsync(Nov(9), Meal.Snacks, snack, 33.3);
+        await diary.AddAsync(Nov(9), Meal.Snacks, rice, 33.3);
+        var summary = new DaySummaryService(new DaySummaryStore(connection, gate), NullLogger<DaySummaryService>.Instance);
+
+        var expected = (await summary.GetAsync(Nov(9))).Summary!.Totals;
+        var day = (await Get(Nov(9), Nov(9), Nov(20))).Days.Single();
+
+        Assert.That(day.Totals, Is.EqualTo(expected));
+        Assert.That(day.Totals.Kcal, Is.EqualTo(83));
+    }
+
+    [Test]
+    public async Task TopFoodsWithEqualKcalAreOrderedByTimesEatenThenFoodId()
+    {
+        var a = await AddFood("A", 100);
+        var b = await AddFood("B", 100);
+        var c = await AddFood("C", 100);
+        await diary.AddAsync(Nov(9), Meal.Snacks, c, 100);
+        await diary.AddAsync(Nov(9), Meal.Snacks, b, 50);
+        await diary.AddAsync(Nov(9), Meal.Snacks, b, 50);
+        await diary.AddAsync(Nov(9), Meal.Snacks, a, 100);
+
+        var top = (await Get(Nov(9), Nov(9), Nov(20))).Range.TopFoods;
+
+        Assert.That(top.Select(f => (f.FoodId, f.TimesEaten)), Is.EqualTo(new[] { (b, 2), (a, 1), (c, 1) }));
+    }
+
+    [TestCase(7, TrendBucketKind.None)]
+    [TestCase(8, TrendBucketKind.Week)]
+    [TestCase(62, TrendBucketKind.Week)]
+    [TestCase(63, TrendBucketKind.Month)]
+    public async Task TheBucketKindChangesAtSevenToEightAndSixtyTwoToSixtyThreeDays(int length, TrendBucketKind expected)
+    {
+        var report = await Get(Nov(1), Nov(1).AddDays(length - 1), Nov(20));
+
+        Assert.That(report.BucketKind, Is.EqualTo(expected));
+    }
+
+    [Test]
+    public async Task AnEntryWithAnUnknownMeal_ReturnsFailedAndLogsTheEntry()
+    {
+        await Log(Nov(9), 2000);
+        await connection.ExecuteAsync("UPDATE DiaryEntry SET Meal = 9");
+
+        var result = await service.GetAsync(Nov(9), Nov(15), Nov(16));
+
+        Assert.That(result.Status, Is.EqualTo(TrendsStatus.Failed));
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Is.EqualTo(new[] { CoreEvent.TrendsMealUnknown }));
     }
 
     [Test]

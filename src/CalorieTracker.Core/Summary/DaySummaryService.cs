@@ -55,11 +55,7 @@ public sealed partial class DaySummaryService
                 protein += p;
                 carbs += c;
                 fat += f;
-                var nutrition = new Nutrition(
-                    (int)Math.Round(Nutrition.ToDecimal(food.Kcal) * scale, MidpointRounding.AwayFromZero),
-                    Nutrition.Round(p),
-                    Nutrition.Round(c),
-                    Nutrition.Round(f));
+                var nutrition = Nutrition.ForAmount(food, entry.Amount);
                 var serving = entry.ServingId is { } servingId && read.Servings.TryGetValue(servingId, out var chosen) ? chosen : null;
                 mealEntries.Add(new SummaryEntry(entry.Id, food.Id, food.Name, food.Brand, food.Unit, entry.Amount, entry.Servings, nutrition, serving?.Label, food.Brands, entry.ServingId));
             }

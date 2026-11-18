@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace CalorieTracker.Core.Trends;
 
 /// <summary>
-/// Builds the figures of the Trends screen for a range of days from one read of the kept entries and their foods (<see cref="TrendsStore"/>) and one read of the targets each day had (<see cref="TargetService.ForRangeAsync"/>).
+/// Builds the figures of the Trends screen for a range of days from one read of the range's kept entries and their foods and of the streak (<see cref="TrendsStore"/>) and one read of the targets each day had (<see cref="TargetService.ForRangeAsync"/>).
 /// Nothing throws: a failing database, an entry whose food is gone or a figure too large gives <see cref="TrendsStatus.Failed"/>.
 /// Logs carry the range length and counts only, never a food name, title or calories.
 /// </summary>
@@ -55,12 +55,10 @@ public sealed partial class TrendsService
             var targetRange = await targets.ForRangeAsync(from, to);
             if (targetRange.Status != TargetStatus.Ok)
             {
-                return targetRange.Status == TargetStatus.Invalid ? TrendsResult.Invalid() : TrendsResult.Failed();
+                return TrendsResult.Failed();
             }
 
-            // Read on to today so the streak sees the days between the range and today.
-            var readTo = to > today ? to : today;
-            var read = await store.ReadAsync(DiaryEntry.FormatDate(from), DiaryEntry.FormatDate(readTo));
+            var read = await store.ReadAsync(DiaryEntry.FormatDate(from), DiaryEntry.FormatDate(to), today);
             var report = Build(from, to, today, targetRange.Days, read);
             if (report is null)
             {
@@ -108,7 +106,7 @@ public sealed partial class TrendsService
         }
 
         var days = new List<TrendDay>(dayTargets.Count);
-        var foodTotals = new Dictionary<int, (string Title, int Times, int Kcal)>();
+        var foodTotals = new Dictionary<int, (Food Food, int Times, int Kcal)>();
         foreach (var dayTarget in dayTargets)
         {
             var key = DiaryEntry.FormatDate(dayTarget.Date);
@@ -122,7 +120,7 @@ public sealed partial class TrendsService
                 if (dayTarget.Date < today)
                 {
                     var (_, times, kcal) = foodTotals.GetValueOrDefault(food.Id);
-                    foodTotals[food.Id] = (FoodDisplay.Of(food.Name, food.Brand, food.Brands, null).Title, checked(times + 1), checked(kcal + nutrition.Kcal));
+                    foodTotals[food.Id] = (food, checked(times + 1), checked(kcal + nutrition.Kcal));
                 }
             }
 
@@ -143,13 +141,13 @@ public sealed partial class TrendsService
             past.Count(d => d.Status == DayStatus.OnTarget),
             past.Count(d => d.Status == DayStatus.Over),
             foodTotals
-                .Select(f => new TopFood(f.Key, f.Value.Title, f.Value.Times, f.Value.Kcal))
-                .OrderByDescending(f => f.Kcal)
-                .ThenByDescending(f => f.TimesEaten)
-                .ThenBy(f => f.FoodId)
+                .OrderByDescending(f => f.Value.Kcal)
+                .ThenByDescending(f => f.Value.Times)
+                .ThenBy(f => f.Key)
                 .Take(TopFoodCount)
+                .Select(f => new TopFood(f.Key, FoodDisplay.Of(f.Value.Food.Name, f.Value.Food.Brand, f.Value.Food.Brands, null).Title, f.Value.Times, f.Value.Kcal))
                 .ToList(),
-            Streak(byDate.Keys, today),
+            read.Streak,
             new TrendsEnoughData(enough, enough, enough, judged >= MinDays, enough));
 
         var (kind, buckets) = BucketsOf(days, today, to.DayNumber - from.DayNumber + 1);
@@ -182,20 +180,6 @@ public sealed partial class TrendsService
         return 10L * kcal < 9L * target ? DayStatus.Under
             : 10L * kcal > 11L * target ? DayStatus.Over
             : DayStatus.OnTarget;
-    }
-
-    private static int Streak(IEnumerable<string> loggedDates, DateOnly today)
-    {
-        var logged = loggedDates.ToHashSet(StringComparer.Ordinal);
-        var day = logged.Contains(DiaryEntry.FormatDate(today)) ? today : today.AddDays(-1);
-        var streak = 0;
-        while (logged.Contains(DiaryEntry.FormatDate(day)))
-        {
-            streak++;
-            day = day.AddDays(-1);
-        }
-
-        return streak;
     }
 
     private static int? AverageKcal(List<TrendDay> logged) =>
