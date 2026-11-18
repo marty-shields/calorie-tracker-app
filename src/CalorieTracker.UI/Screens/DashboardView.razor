@@ -71,7 +71,7 @@
                 }
             }
         </div>
-        <AddSheet Open="sheetOpen" OnClose="CloseSheet" OnSearch="@(meal => ChooseAsync(meal, OnSearch))" OnScan="@(meal => ChooseAsync(meal, OnScan))" />
+        <AddSheet Open="sheetOpen" OnClose="CloseSheet" OnSearch="@(meal => ChooseAsync(meal, OnAdd))" OnScan="@(meal => ChooseAsync(meal, OnScan))" />
     </ChildContent>
 </AppScreen>
 
@@ -127,13 +127,9 @@
     [Parameter]
     public EventCallback OnToday { get; set; }
 
-    /// <summary>Raised by a meal's +.</summary>
+    /// <summary>Raised by a meal's + and by the Add sheet's Search foods (with the meal chosen there), each with the day on the date strip.</summary>
     [Parameter]
     public EventCallback<MealAddRequest> OnAdd { get; set; }
-
-    /// <summary>Raised by the Add sheet's Search foods, with the meal chosen there and the day on the date strip.</summary>
-    [Parameter]
-    public EventCallback<MealAddRequest> OnSearch { get; set; }
 
     /// <summary>Raised by the Add sheet's Scan barcode, with the meal chosen there and the day on the date strip.</summary>
     [Parameter]

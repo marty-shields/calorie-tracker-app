@@ -9,5 +9,5 @@ public static class ScanRoute
 
     /// <summary>The route that opens the scanner to add to <paramref name="meal"/>; <paramref name="date"/> null is today.</summary>
     public static string AddUrl(Meal meal, DateOnly? date = null) =>
-        $"{Template}?meal={meal}" + (date is { } d ? $"&date={RouteDate.ToText(d)}" : "");
+        $"{Template}?{RouteDate.MealQuery(meal, date)}";
 }

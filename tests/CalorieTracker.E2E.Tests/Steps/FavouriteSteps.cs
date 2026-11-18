@@ -4,7 +4,7 @@ using Reqnroll;
 
 namespace CalorieTracker.E2E.Tests.Steps;
 
-/// <summary>The star that makes a food a favourite, on Serving (add and edit mode) and on a food's values on the Foods tab.</summary>
+/// <summary>The star that makes a food a favourite, on Serving (add and edit mode) and on a food's values in search without a meal (old link).</summary>
 [Binding]
 public sealed class FavouriteSteps(ServingScreen serving, FoodSearchScreen foods, SnackbarScreen snackbar, Journeys journeys, WebView web)
 {

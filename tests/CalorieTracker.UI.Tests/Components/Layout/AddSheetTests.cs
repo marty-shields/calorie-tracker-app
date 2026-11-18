@@ -96,6 +96,37 @@ public class AddSheetTests : ComponentTestBase
     }
 
     [Test]
+    public void Open_UsesTheDevicesLocalTimeNotUtc()
+    {
+        var clock = (FakeTimeProvider)Context.Services.GetRequiredService<TimeProvider>();
+        clock.SetLocalTimeZone(TimeZoneInfo.CreateCustomTimeZone("plus-one", TimeSpan.FromHours(1), "plus-one", "plus-one"));
+        At(10, 30);
+
+        var cut = Render();
+
+        Assert.That(SelectedMeal(cut), Is.EqualTo("lunch"), "UTC 10:30 is breakfast, local 11:30 is lunch");
+    }
+
+    [Test]
+    public void RenderingAgainWhileOpen_KeepsThePickedMeal_AndLogsOneOpening()
+    {
+        var logger = new FakeLogger<AddSheet>();
+        Context.Services.AddSingleton<ILogger<AddSheet>>(logger);
+        At(8);
+        var cut = Render();
+        cut.Find("[data-testid=add-sheet-meal-dinner]").Change(true);
+
+        At(12);
+        cut.Render(p => p.Add(x => x.Open, true));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(SelectedMeal(cut), Is.EqualTo("dinner"));
+            Assert.That(LoggedEvents.Of(logger).Count(e => e.Id == UiEvent.AddSheetOpened), Is.EqualTo(1));
+        });
+    }
+
+    [Test]
     public void ReopeningTheSheet_GuessesTheMealAgain()
     {
         At(8);

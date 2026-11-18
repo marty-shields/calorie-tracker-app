@@ -35,7 +35,7 @@
     <main @ref="content" class="content">
         @ChildContent
     </main>
-    @if (BottomBar is not null || Destination is not null)
+    @if (BottomBar is not null || Destination is not null || Status is not null)
     {
         <footer class="bottom">
             @if (Status is not null)
@@ -114,7 +114,7 @@
 
     /// <summary>
     /// A message just above the bottom bar, over the content. Its slot is a polite live region, there whenever this is set,
-    /// so a message shown later is read out. Needs <see cref="BottomBar"/> or <see cref="Destination"/>.
+    /// so a message shown later is read out. Without <see cref="BottomBar"/> or <see cref="Destination"/> it floats over the foot of the content on its own.
     /// </summary>
     [Parameter]
     public RenderFragment? Status { get; set; }

@@ -14,7 +14,7 @@ public static class FoodSearchRoute
     /// <summary>The route that opens search to add to <paramref name="meal"/>; <paramref name="date"/> null is today. A non-null <paramref name="query"/> also restores that search.</summary>
     public static string AddUrl(Meal meal, DateOnly? date = null, string? query = null)
     {
-        var url = $"{Template}?meal={meal}" + (date is { } d ? $"&date={RouteDate.ToText(d)}" : "");
+        var url = $"{Template}?{RouteDate.MealQuery(meal, date)}";
         return string.IsNullOrEmpty(query) ? url : url + $"&q={Uri.EscapeDataString(query)}";
     }
 }

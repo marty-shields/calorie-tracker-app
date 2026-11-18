@@ -153,7 +153,7 @@ public partial class ScanPage : IDisposable
             return;
         }
 
-        var last = await Search.LastLoggedAsync(id);
+        var last = await Search.LastLoggedAsync(id, Meal);
         await OnAddToDiary.InvokeAsync(new ScanAddRequest(id, last?.LastAmount, last?.LastServings, last?.LastServingId));
     }
 

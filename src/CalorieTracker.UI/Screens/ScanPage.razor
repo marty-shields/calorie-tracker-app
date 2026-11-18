@@ -1,3 +1,4 @@
+@using CalorieTracker.Core.Data
 @using CalorieTracker.UI.Models.Scan
 <ScanView State="state" Product="product" OnScanAgain="RunScanAsync" OnAddToDiary="AddToDiaryAsync" OnSearchByName="OnSearchByName" OnBack="OnBack" />
 
@@ -9,6 +10,10 @@
     /// <summary>Raised with the id of the scanned food when Add to diary is tapped.</summary>
     [Parameter]
     public EventCallback<ScanAddRequest> OnAddToDiary { get; set; }
+
+    /// <summary>The meal being added to, so Serving opens on that meal's last amount of the food. Null is any meal.</summary>
+    [Parameter]
+    public Meal? Meal { get; set; }
 
     /// <summary>Raised by Search by name, shown when the product has no food id to add.</summary>
     [Parameter]

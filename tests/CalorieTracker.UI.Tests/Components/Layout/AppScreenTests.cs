@@ -192,6 +192,20 @@ public class AppScreenTests : ComponentTestBase
     }
 
     [Test]
+    public void Status_WithNeitherBottomBarNorNavigation_StillShows()
+    {
+        var cut = Context.Render<AppScreen>(p => p
+            .Add(x => x.Title, "Screen title")
+            .Add(x => x.Status, "<p data-testid=\"shown\">Oats added to Lunch</p>"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("footer > [role=status] [data-testid=shown]"), Is.Not.Null);
+            Assert.That(cut.FindAll("[data-testid=bottom-bar]"), Is.Empty);
+        });
+    }
+
+    [Test]
     public void NoStatus_HasNoLiveRegion()
     {
         var cut = Context.Render<AppScreen>(p => p

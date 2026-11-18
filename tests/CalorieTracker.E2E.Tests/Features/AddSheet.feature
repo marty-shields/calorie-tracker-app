@@ -1,5 +1,5 @@
 Feature: Add sheet
-  The bar's Add button opens a sheet that guesses the meal from the time and opens search or scan for it. Which meal the time gives is covered by bUnit and Core's unit tests, since the emulator's clock is not fixed; here the sheet always has exactly one meal selected and the chosen one travels on.
+  The bar's Add button opens a sheet that guesses the meal from the time and opens search or scan for it. Which meal the time gives is covered by bUnit and Core's unit tests, since the emulator's clock is not fixed; here the sheet always has exactly one meal selected and the chosen one travels on. That the chosen meal reaches Scan is proved by Journey 3 in Journeys.feature (Scan offers no Search by name once the camera is refused).
 
   @smoke
   Scenario: Add opens a sheet with one meal selected
@@ -27,6 +27,14 @@ Feature: Add sheet
     Given I am on the Dashboard
     And I have opened the Add sheet
     When I press Android back on the Add sheet
+    Then the Add sheet is closed
+    And I am on the Dashboard
+    And focus is back on the Add button
+
+  Scenario: Tapping the dimmed screen closes the sheet and focus returns to Add
+    Given I am on the Dashboard
+    And I have opened the Add sheet
+    When I tap the dimmed screen above the Add sheet
     Then the Add sheet is closed
     And I am on the Dashboard
     And focus is back on the Add button

@@ -30,6 +30,9 @@ public sealed class AddSheetScreen(WebView web, NavigationBar navigation)
 
     public void Scan() => web.Tap("add-sheet-scan");
 
+    /// <summary>Taps the dimmed screen above the sheet.</summary>
+    public void TapScrim() => web.Tap("add-sheet-scrim");
+
     /// <summary>Whether the Add button has focus, as it should after the sheet closes.</summary>
     public bool AddButtonHasFocus() => web.Focused() == "add-button";
 

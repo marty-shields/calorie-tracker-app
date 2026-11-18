@@ -299,7 +299,7 @@ public class DashboardViewTests : ComponentTestBase
     {
         var requests = new List<MealAddRequest>();
         var day = new DateOnly(2026, 11, 12);
-        var cut = OpenSheetAt(8, day, p => p.Add(x => x.OnSearch, requests.Add));
+        var cut = OpenSheetAt(8, day, p => p.Add(x => x.OnAdd, requests.Add));
 
         cut.Find("[data-testid=add-sheet-meal-lunch]").Change(true);
         cut.Find("[data-testid=add-sheet-search]").Click();
@@ -327,7 +327,7 @@ public class DashboardViewTests : ComponentTestBase
     public async Task ScrimEscapeAndBack_CloseTheSheetWithoutNavigating_AndFocusGoesBackToAdd()
     {
         var requests = new List<MealAddRequest>();
-        var cut = OpenSheetAt(12, null, p => p.Add(x => x.OnSearch, requests.Add).Add(x => x.OnScan, requests.Add));
+        var cut = OpenSheetAt(12, null, p => p.Add(x => x.OnAdd, requests.Add).Add(x => x.OnScan, requests.Add));
 
         cut.Find("[data-testid=add-sheet-scrim]").Click();
         Assert.That(Exists(cut, "add-sheet"), Is.False, "scrim");

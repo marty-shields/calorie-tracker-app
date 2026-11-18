@@ -446,6 +446,20 @@ public class ScanPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task Found_WithAMeal_AddToDiaryAsksForThatMealsLastServing()
+    {
+        var food = Product("Digestive biscuits", "Morning Mill", FoodUnit.Gram, 480, 7, 62, 22);
+        food.Id = 42;
+        lookup.Result = BarcodeLookupResult.Found(food);
+        var cut = await ScannedAsync(p => p.Add(x => x.Meal, Meal.Dinner).Add(x => x.OnAddToDiary, (ScanAddRequest _) => { }));
+
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-add]"), Has.Count.EqualTo(1)));
+        cut.Find("[data-testid=scan-add]").Click();
+
+        Assert.That(search.MealsAsked, Is.EqualTo(new Meal?[] { Meal.Dinner }));
+    }
+
+    [Test]
     public async Task Found_WithAFoodThatWasNotSaved_OffersNoAddToDiary()
     {
         lookup.Result = BarcodeLookupResult.Found(Product("Porridge oats", null, FoodUnit.Gram, 372, 11, 60, 8));
@@ -574,7 +588,13 @@ public class ScanPageTests : ComponentTestBase
     {
         public Dictionary<int, CalorieTracker.Core.History.FoodHistory> Last { get; } = [];
 
-        public Task<CalorieTracker.Core.History.FoodHistory?> LastLoggedAsync(int foodId, Meal? meal = null) => Task.FromResult(Last.GetValueOrDefault(foodId));
+        public List<Meal?> MealsAsked { get; } = [];
+
+        public Task<CalorieTracker.Core.History.FoodHistory?> LastLoggedAsync(int foodId, Meal? meal = null)
+        {
+            MealsAsked.Add(meal);
+            return Task.FromResult(Last.GetValueOrDefault(foodId));
+        }
 
         public Task<FoodSearchResult> SearchAsync(string query, int limit = IFoodSearch.DefaultLimit, CancellationToken ct = default) => throw new NotSupportedException();
 

@@ -75,6 +75,9 @@ public sealed class AddSheetSteps(AddSheetScreen sheet, NavigationBar navigation
     public void ThenFocusIsBackOnTheAddButton() =>
         web.Eventually(sheet.AddButtonHasFocus, Is.True, "focus on the Add button");
 
+    [When(@"^I tap the dimmed screen above the Add sheet$")]
+    public void TapTheScrim() => sheet.TapScrim();
+
     [When(@"^I press Android back on the Add sheet$")]
     public void PressAndroidBack() => native.BackKey();
 }

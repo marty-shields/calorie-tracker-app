@@ -6,7 +6,7 @@
 @using CalorieTracker.UI.Components.Inputs
 @using CalorieTracker.UI.Components.Lists
 @using CalorieTracker.UI.Models.Search
-@* AppScreen shows Status only with a bottom bar or navigation bar: a food's values have the first, add mode neither. The snackbar in add mode is shown by the Dashboard. *@
+@* Add mode leaves the snackbar to the Dashboard; search without a meal (an old link) shows it itself, as the return to /foods?q= posts "<food> added to <meal>" with View day. *@
 <AppScreen Title="@(Meal is { } meal ? $"Add to {meal}" : "Search foods")" OnBack="@(Meal is null && Selected is not null ? OnClearSelection : OnBack)" Toolbar="@(Selected is null && !Failed ? Tools : null)"
            Status="@(Meal is null ? Notice : null)" BottomBar="@(Selected is { } chosen ? Actions(chosen) : null)">
     <Actions>
@@ -168,7 +168,7 @@
     [Parameter]
     public bool Failed { get; set; }
 
-    /// <summary>The meal being added to, which turns search into add mode: the title reads "Add to Lunch", a back arrow leaves for the Dashboard and no navigation bar shows. Null is the Foods tab.</summary>
+    /// <summary>The meal being added to, which turns search into add mode: the title reads "Add to Lunch", a back arrow leaves for the Dashboard and no navigation bar shows. Null is search without a meal (an old link).</summary>
     [Parameter]
     public Meal? Meal { get; set; }
 

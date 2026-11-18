@@ -13,7 +13,7 @@ The frame of every screen:
 | Content | Scrolls. 16px padding. |
 | Bottom bar | `BottomBar` actions, in thumb reach. Optional. |
 | Navigation bar | `BottomNav` under the bottom bar, when `Destination` is set; its Add button raises `OnAdd`. |
-| Status | `Status`, a message (such as a snackbar) just above the bottom bar (or the navigation bar), over the content. Its slot is a polite live region (`role="status"`), there whenever `Status` is set, so a message shown later is read out. While a status message shows, the content gets room at its foot (`2 × --touch-target` more) so its last controls scroll clear of it. Needs a bottom bar or a navigation bar. Optional. |
+| Status | `Status`, a message (such as a snackbar) just above the bottom bar (or the navigation bar, or the foot of the content with neither), over the content. Its slot is a polite live region (`role="status"`), there whenever `Status` is set, so a message shown later is read out. While a status message shows, the content gets room at its foot (`2 × --touch-target` more) so its last controls scroll clear of it. Floats over the foot of the content on its own when there is no bottom bar or navigation bar. Optional. |
 
 - `Destination` makes the screen top-level: it shows the `BottomNav` with that item current, raises `OnNavigate` with the item tapped and `OnAdd` with a tap on Add. A top-level screen sets no `OnBack`, so it has no back arrow and Android back leaves the app, unless it layers a view over itself, where `OnBack` is shown and takes Android back.
 - Top padding includes the safe-area inset (`--inset-top`). The bottom inset (`--inset-bottom`) goes under the last thing on screen: the navigation bar, else the bottom bar, else the content.

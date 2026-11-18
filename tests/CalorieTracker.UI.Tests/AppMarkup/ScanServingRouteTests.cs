@@ -22,6 +22,8 @@ public partial class ScanServingRouteTests
 
         Assert.Multiple(() =>
         {
+            Assert.That(scan, Does.Contain("<ScanPage Meal=\"meal\""));
+            Assert.That(scan, Does.Contain("OnBack=\"@(() => Navigation.GoTo(date is { } day ? DashboardRoute.Url(day) : string.Empty))\""));
             Assert.That(scan, Does.Contain("SupplyParameterFromQuery(Name = \"meal\")"));
             Assert.That(scan, Does.Contain("SupplyParameterFromQuery(Name = \"date\")"));
         });
@@ -34,7 +36,8 @@ public partial class ScanServingRouteTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(home, Does.Contain("OnSearch=\"@(request => Navigation.GoTo(FoodSearchRoute.AddUrl(request.Meal, request.Date)))\""));
+            Assert.That(home, Does.Contain("OnAdd=\"@(request => Navigation.GoTo(FoodSearchRoute.AddUrl(request.Meal, request.Date)))\""));
+            Assert.That(home, Does.Not.Contain("OnSearch="));
             Assert.That(home, Does.Contain("OnScan=\"@(request => Navigation.GoTo(ScanRoute.AddUrl(request.Meal, request.Date)))\""));
         });
     }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using CalorieTracker.Core.Data;
 
 namespace CalorieTracker.UI.Navigation;
 
@@ -9,6 +10,10 @@ public static class RouteDate
 
     /// <summary>The query text for <paramref name="date"/>, such as 2031-07-04.</summary>
     public static string ToText(DateOnly date) => date.ToString(Format, CultureInfo.InvariantCulture);
+
+    /// <summary>The <c>meal=&lt;Meal&gt;</c> query, with <c>&amp;date=</c> when <paramref name="date"/> is set (null is today), that a route adds to a meal on a day.</summary>
+    public static string MealQuery(Meal meal, DateOnly? date) =>
+        $"meal={meal}" + (date is { } d ? $"&date={ToText(d)}" : "");
 
     /// <summary>The day named by a query value in yyyy-MM-dd form; null when it is missing or not a date.</summary>
     public static DateOnly? Parse(string? text) =>

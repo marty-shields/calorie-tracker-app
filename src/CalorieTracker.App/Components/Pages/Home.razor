@@ -7,7 +7,6 @@
    A meal's + and the bar's Add sheet (Search foods) open search to add to that meal and day, the sheet's Scan barcode opens the scanner the same way; an entry opens Serving in edit mode. *@
 <DashboardPage Date="date"
                OnAdd="@(request => Navigation.GoTo(FoodSearchRoute.AddUrl(request.Meal, request.Date)))"
-               OnSearch="@(request => Navigation.GoTo(FoodSearchRoute.AddUrl(request.Meal, request.Date)))"
                OnScan="@(request => Navigation.GoTo(ScanRoute.AddUrl(request.Meal, request.Date)))"
                OnEdit="@(request => Navigation.GoTo(ServingRoute.EditUrl(request.Entry.EntryId, request.Entry.FoodId, request.Meal, request.Date, request.Entry.Amount, request.Entry.Servings, request.Entry.ServingId)))"
                OnNavigate="@(destination => Navigation.GoTo(destination))"

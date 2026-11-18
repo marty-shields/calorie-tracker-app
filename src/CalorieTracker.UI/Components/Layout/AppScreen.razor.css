@@ -100,6 +100,11 @@
     background-color: var(--color-bg);
 }
 
+/* A footer holding only the floating status message has no bar of its own to rule off. */
+.bottom:not(:has(> :not(.status-slot))) {
+    border-top: 0;
+}
+
 .bottom-bar {
     display: flex;
     gap: var(--space-3);
