@@ -197,7 +197,8 @@
         entryServingUnmatched = Editing && offered.All(s => s.Id != EntryServingId);
         if (Editing && EntryAmount is { } stored)
         {
-            Carry(stored, EntryServings);
+            // An entry whose serving is not offered any more has a count in a serving it can't name: keep its weight and drop the count.
+            Carry(stored, entryServingUnmatched && EntryServingId is not null ? null : EntryServings);
             return;
         }
 

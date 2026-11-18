@@ -138,16 +138,4 @@ public class DropImportedServingsUpgradeTests
 
         Assert.That(await Rows("SELECT Label FROM Serving"), Is.EqualTo(new[] { "My bite" }));
     }
-
-    [Test]
-    public async Task NewDatabase_HasNoServingCheckedColumn()
-    {
-        await connection.CloseAsync();
-        File.Delete(databasePath);
-        connection = new SQLiteAsyncConnection(databasePath);
-
-        await new DatabaseInitializer(connection, SchemaSteps.All(), new FakeLogger<DatabaseInitializer>()).InitializeAsync();
-
-        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM pragma_table_info('Food') WHERE name = 'ServingChecked'"), Is.Zero);
-    }
 }

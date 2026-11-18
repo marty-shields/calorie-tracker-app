@@ -49,8 +49,11 @@ internal sealed class ServingStore(SQLiteAsyncConnection connection, DatabaseGat
             var removed = false;
             await connection.RunInTransactionAsync(db =>
             {
-                db.Execute("UPDATE DiaryEntry SET ServingId = NULL WHERE ServingId IN (SELECT Id FROM Serving WHERE Id = ? AND Source = ?)", id, (int)ServingSource.User);
                 removed = db.Execute("DELETE FROM Serving WHERE Id = ? AND Source = ?", id, (int)ServingSource.User) > 0;
+                if (removed)
+                {
+                    db.Execute("UPDATE DiaryEntry SET ServingId = NULL WHERE ServingId = ?", id);
+                }
             });
             return removed;
         });

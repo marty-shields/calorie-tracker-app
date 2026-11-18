@@ -134,7 +134,7 @@ public class FoodServiceTests
     }
 
     [Test]
-    public async Task GetAsync_NoServingRows_OffersNoServing()
+    public async Task GetAsync_NoOwnServings_OffersNoServing()
     {
         var id = await Store(f => f.PackageAmount = 51, p => { p.ServingLabel = null; p.ServingAmount = null; });
 

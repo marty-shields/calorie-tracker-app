@@ -175,11 +175,18 @@ public class ServingStoreTests
         var food = await Stored("1");
         await connection.InsertAsync(new Serving { FoodId = food.Id, Label = "Left from an old version", Amount = 330, Source = ServingSource.Pack, SortOrder = 1 });
         var row = (await Rows(food.Id)).Single();
+        await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = food.Id, Amount = 330, Servings = 1, ServingId = row.Id });
 
         var results = new[] { await servings.RemoveUserAsync(row.Id), await servings.RemoveUserAsync(999) };
 
-        Assert.That(results, Is.All.False);
-        Assert.That((await Rows(food.Id)).Count, Is.EqualTo(1));
+        var rowCount = (await Rows(food.Id)).Count;
+        var linked = (await connection.Table<DiaryEntry>().FirstAsync()).ServingId;
+        Assert.Multiple(() =>
+        {
+            Assert.That(results, Is.All.False);
+            Assert.That(rowCount, Is.EqualTo(1));
+            Assert.That(linked, Is.EqualTo(row.Id));
+        });
     }
 
     [Test]

@@ -54,9 +54,6 @@ public sealed class FoodSearchOnlineSteps(FoodSearchScreen foods, ServingScreen 
     [Then(@"^the online search says nothing was found$")]
     public void ThenNothingFound() => web.Eventually(foods.OnlineNothingFound, Is.EqualTo("Nothing found online"));
 
-    [Then(@"^This adds names ""(.*)""$")]
-    public void ThenThisAddsNames(string text) => web.Eventually(serving.AddsDetail, Is.EqualTo(text));
-
     [Then(@"^Serving opens in (g|ml) with no servings offered$")]
     public void ThenServingOpensInUnitWithNoServings(string unit)
     {

@@ -862,6 +862,20 @@ public class ServingPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task Edit_OfAnEntryWhoseServingIsNotOffered_OpensInGramsWithTheStoredAmount()
+    {
+        var entry = (await core.GetRequiredService<DiaryService>().AddAsync(Day, Meal.Lunch, pizzaId, 150, 2)).Entry!;
+        var cut = Loaded(Context.Render<ServingPage>(p => p.Add(x => x.FoodId, pizzaId).Add(x => x.Meal, Meal.Lunch).Add(x => x.Date, Day)
+            .Add(x => x.EntryId, entry.Id).Add(x => x.EntryAmount, 150.0).Add(x => x.EntryServings, 2.0).Add(x => x.EntryServingId, 9999)));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=serving-mode-servings]").HasAttribute("checked"), Is.False);
+            Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("150"));
+        });
+    }
+
+    [Test]
     public async Task Save_ChangesTheAmountAndUpdatesTheTotals_KeepingTheEntryAndItsDay()
     {
         var saved = 0;
@@ -1327,9 +1341,9 @@ public class ServingPageTests : ComponentTestBase
         });
     }
 
-    [TestCase(null)]
-    [TestCase(99999)]
-    public async Task Edit_OfAnEntryWhoseServingTheFoodDoesNotOffer_KeepsItsCountAndLinkOnSave(int? unknown)
+    [TestCase(null, 2.0)]
+    [TestCase(99999, null)]
+    public async Task Edit_OfAnEntryWhoseServingTheFoodDoesNotOffer_SavesWithNoLink_AndTheCountOnlyWhenTheEntryNamedNoServing(int? unknown, double? savedServings)
     {
         await SeedCola();
         var entry = (await core.GetRequiredService<DiaryService>().AddAsync(Day, Meal.Snacks, colaId, 500, 2, null)).Entry!;
@@ -1340,7 +1354,7 @@ public class ServingPageTests : ComponentTestBase
         var saved = await Kept(entry.Id);
         Assert.Multiple(() =>
         {
-            Assert.That((saved!.Amount, saved.Servings, saved.ServingId), Is.EqualTo((500.0, (double?)2, (int?)null)));
+            Assert.That((saved!.Amount, saved.Servings, saved.ServingId), Is.EqualTo((500.0, savedServings, (int?)null)));
         });
     }
 
