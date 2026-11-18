@@ -116,28 +116,11 @@ public class FavouriteServiceTests
         });
     }
 
-    /// <summary>Holds the gate, starts the call, checks it is still pending, then lets the holder run <paramref name="whileHeld"/> and release. A call that skipped the gate would already have changed what the holder sees.</summary>
     private async Task<T> CallWhileTheGateIsBusy<T, TSeen>(Func<Task<T>> call, Func<Task<TSeen>> whileHeld, Action<TSeen> assertSeen)
     {
-        var holding = new TaskCompletionSource();
-        var busy = gate.RunAsync(async () =>
-        {
-            await holding.Task;
-            return await whileHeld();
-        });
-
-        var pending = call();
-        // A call that skipped the gate sends its statement to the connection at once. Probes through the connection give it the turns it needs; with the gate held a correct call sends nothing.
-        for (var turn = 0; turn < 10; turn++)
-        {
-            await connection.QueryScalarsAsync<int>("SELECT 1");
-        }
-
-        Assert.That(pending.IsCompleted, Is.False);
-        holding.SetResult();
-
-        assertSeen(await busy);
-        return await pending;
+        var (seen, result) = await GateHolder.CallWhileHeld(gate, call, whileHeld);
+        assertSeen(seen);
+        return result;
     }
 
     private Task<int> FavouriteCount() => connection.Table<Favourite>().CountAsync();

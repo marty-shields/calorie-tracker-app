@@ -373,20 +373,9 @@ public class FoodHistoryServiceTests
 
         foreach (var read in reads)
         {
-            var holding = new TaskCompletionSource();
-            var busy = gate.RunAsync(async () =>
-            {
-                await holding.Task;
-                return 0;
-            });
+            var (_, result) = await GateHolder.CallWhileHeld(gate, read, () => Task.FromResult(0));
 
-            var pending = read();
-            await Task.Delay(50);
-            Assert.That(pending.IsCompleted, Is.False);
-            holding.SetResult();
-
-            await busy;
-            Assert.That((await pending).Status, Is.EqualTo(FoodHistoryStatus.Found));
+            Assert.That(result.Status, Is.EqualTo(FoodHistoryStatus.Found));
         }
     }
 
