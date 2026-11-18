@@ -1,3 +1,4 @@
+using Bunit.TestDoubles;
 using CalorieTracker.Core;
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Diary;
@@ -133,7 +134,7 @@ public class TrendsPageTests : ComponentTestBase
             Assert.That(Text(cut, "trends-label"), Is.EqualTo("14 – 20 Jul"));
             Assert.That(Text(cut, "trends-average-figure"), Is.EqualTo("1,800"));
             Assert.That(Text(cut, "trends-average-caption"), Is.EqualTo("kcal a day on average, 200 under target"));
-            Assert.That(Text(cut, "trends-on-target-figure"), Is.EqualTo("1 of 3"));
+            Assert.That(Text(cut, "trends-on-target-figure"), Is.EqualTo("1 of 7"));
             Assert.That(cut.Find("[data-testid=trends-chart-bar-2031-07-17]").ClassList, Does.Contain("over"));
         });
     }
@@ -186,7 +187,7 @@ public class TrendsPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task TappingADaysBar_RaisesThatDay_AndALogsOnlyTheKind()
+    public async Task TappingADaysBar_RaisesThatDay_AndLogsOnlyTheKind()
     {
         await LogThreeDaysOfLastWeek();
         var opened = new List<DateOnly>();
@@ -194,7 +195,11 @@ public class TrendsPageTests : ComponentTestBase
 
         await Tap(cut, "trends-chart-bar-2031-07-15");
 
-        Assert.That(opened, Is.EqualTo(new[] { new DateOnly(2031, 7, 15) }));
+        Assert.Multiple(() =>
+        {
+            Assert.That(opened, Is.EqualTo(new[] { new DateOnly(2031, 7, 15) }));
+            Assert.That(LoggedEvents.Of(logger).Where(r => r.Id == UiEvent.TrendsOpened).Select(r => r.Message), Is.EqualTo(new[] { "Trends opened a day from Week" }));
+        });
     }
 
     [Test]
@@ -213,6 +218,96 @@ public class TrendsPageTests : ComponentTestBase
         {
             Assert.That(Text(cut, "trends-label"), Is.EqualTo("14 – 20 Jul"));
             Assert.That(cut.Find("[data-testid=trends-period-week]").HasAttribute("checked"), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task TappingTheFirstWeekBarOfAMonthThatStartsMidWeek_OpensThatWeekFromItsMonday()
+    {
+        await Log(new DateOnly(2031, 7, 2), 2000);
+        await Log(new DateOnly(2031, 7, 3), 2000);
+        var cut = Open(p => p.Add(x => x.Period, TrendsPeriod.Month));
+
+        // 1 Jul 2031 is a Tuesday, so the first bucket is clipped to Tuesday to Sunday.
+        await Tap(cut, "trends-weeks-chart-bar-2031-06-30");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "trends-label"), Is.EqualTo("30 Jun – 6 Jul"));
+            Assert.That(cut.Find("[data-testid=trends-period-week]").HasAttribute("checked"), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task TheArrows_StepAMonthAndAYear_AndNextStopsAtTheCurrentOne()
+    {
+        await LogThreeDaysOfLastWeek();
+        var month = Open(p => p.Add(x => x.Period, TrendsPeriod.Month));
+        await Tap(month, "trends-previous");
+        var june = Text(month, "trends-label");
+        await Tap(month, "trends-next");
+        var july = Text(month, "trends-label");
+        var year = Open(p => p.Add(x => x.Period, TrendsPeriod.Year));
+        await Tap(year, "trends-previous");
+        var last = Text(year, "trends-label");
+        await Tap(year, "trends-next");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(june, Is.EqualTo("June 2031"));
+            Assert.That(july, Is.EqualTo("July 2031"));
+            Assert.That(month.Find("[data-testid=trends-next]").HasAttribute("disabled"), Is.True);
+            Assert.That(last, Is.EqualTo("2030"));
+            Assert.That(Text(year, "trends-label"), Is.EqualTo("2031"));
+        });
+    }
+
+    [Test]
+    public async Task SwitchingFromAPastSpan_OpensTheSpanHoldingItsFirstDay()
+    {
+        var cut = Open(p => p.Add(x => x.Period, TrendsPeriod.Year));
+        await Tap(cut, "trends-previous");
+
+        await cut.InvokeAsync(() => cut.Find("[data-testid=trends-period-month]").Change(true));
+        cut.WaitForState(() => !Exists(cut, "trends-loading"));
+
+        Assert.That(Text(cut, "trends-label"), Is.EqualTo("January 2030"));
+    }
+
+    [Test]
+    public async Task SwitchingFromTheCurrentWeekThatSpansTwoMonths_OpensTheMonthHoldingToday()
+    {
+        // Friday 1 Aug 2031: the week is 28 Jul to 3 Aug.
+        ((FakeTimeProvider)Context.Services.GetRequiredService<TimeProvider>()).SetUtcNow(new DateTimeOffset(2031, 8, 1, 12, 0, 0, TimeSpan.Zero));
+        var cut = Open();
+        var week = Text(cut, "trends-label");
+
+        await cut.InvokeAsync(() => cut.Find("[data-testid=trends-period-month]").Change(true));
+        cut.WaitForState(() => !Exists(cut, "trends-loading"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(week, Is.EqualTo("28 Jul – 3 Aug"));
+            Assert.That(Text(cut, "trends-label"), Is.EqualTo("August 2031"));
+        });
+    }
+
+    [Test]
+    public async Task EachChangeOfSpan_PutsItInTheAddressWithoutAddingAHistoryEntry_SoReturningShowsIt()
+    {
+        var navigation = Context.Services.GetRequiredService<BunitNavigationManager>();
+        var cut = Open();
+
+        await Tap(cut, "trends-previous");
+        var previous = navigation.Uri;
+        await cut.InvokeAsync(() => cut.Find("[data-testid=trends-period-month]").Change(true));
+        cut.WaitForState(() => !Exists(cut, "trends-loading"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(previous, Does.EndWith("/trends?period=week&from=2031-07-07"));
+            Assert.That(navigation.Uri, Does.EndWith("/trends?period=month&from=2031-07-01"));
+            Assert.That(navigation.History.All(h => h.Options.ReplaceHistoryEntry), Is.True);
         });
     }
 
@@ -257,7 +352,9 @@ public class TrendsPageTests : ComponentTestBase
         await Log(new DateOnly(2031, 7, 15), 2000);
         await Log(new DateOnly(2031, 7, 16), 2000);
 
-        cut.WaitForAssertion(() => Assert.That(Text(cut, "trends-average-figure"), Is.EqualTo("2,000")), TimeSpan.FromSeconds(5));
+        cut.WaitForState(() => Exists(cut, "trends-average-figure") && Text(cut, "trends-average-figure") == "2,000", TimeSpan.FromSeconds(5));
+
+        Assert.That(Text(cut, "trends-average-figure"), Is.EqualTo("2,000"));
     }
 
     [Test]
@@ -330,7 +427,7 @@ public class TrendsPageTests : ComponentTestBase
             Assert.That(records.Select(r => r.Id), Does.Contain(UiEvent.TrendsLoaded).And.Contain(UiEvent.TrendsOpened));
             Assert.That(messages, Does.Contain("Trends read for Week, days 7"));
             Assert.That(messages, Does.Contain("Trends opened a day from Week"));
-            Assert.That(messages, Does.Contain("Trends opened a month from Year").Or.Contain("Trends opened a month from Month"));
+            Assert.That(messages, Does.Contain("Trends opened a month from Year"));
             Assert.That(messages, Has.None.Contain("Secret").And.None.Contain("rice").And.None.Contain("2031").And.None.Contain("2400").And.None.Contain("1,800").And.None.Contain("kcal"));
         });
     }

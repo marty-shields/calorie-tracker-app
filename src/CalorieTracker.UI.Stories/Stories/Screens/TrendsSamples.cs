@@ -1,5 +1,6 @@
 using CalorieTracker.Core.Summary;
 using CalorieTracker.Core.Trends;
+using CalorieTracker.UI.Navigation;
 
 namespace CalorieTracker.UI.Stories.Stories.Screens;
 
@@ -127,7 +128,7 @@ public static class TrendsSamples
         var kind = length <= 7 ? TrendBucketKind.None : length <= 62 ? TrendBucketKind.Week : TrendBucketKind.Month;
         var buckets = kind == TrendBucketKind.None
             ? []
-            : days.GroupBy(d => kind == TrendBucketKind.Week ? WeekStart(d.Date) : new DateOnly(d.Date.Year, d.Date.Month, 1))
+            : days.GroupBy(d => kind == TrendBucketKind.Week ? TrendsRoute.Start(TrendsPeriod.Week, d.Date) : new DateOnly(d.Date.Year, d.Date.Month, 1))
                 .Select(g =>
                 {
                     var inBucket = g.Where(d => d.Date < Today && d.IsLogged).ToList();
@@ -164,5 +165,4 @@ public static class TrendsSamples
         return streak;
     }
 
-    private static DateOnly WeekStart(DateOnly date) => date.AddDays(-(((int)date.DayOfWeek + 6) % 7));
 }

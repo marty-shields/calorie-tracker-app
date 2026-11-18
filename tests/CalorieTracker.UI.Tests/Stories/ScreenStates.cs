@@ -326,7 +326,7 @@ public static class ScreenStates
             .Add(x => x.OnRetry, () => { })
             .Add(x => x.OnSettings, () => { })
             .Add(x => x.OnNavigate, (NavDestination _) => { })
-            .Add(x => x.OnAddSearch, (MealAddRequest _) => { })
+            .Add(x => x.OnAdd, (MealAddRequest _) => { })
             .Add(x => x.OnScan, (MealAddRequest _) => { }))
             .FindAll("*");
 

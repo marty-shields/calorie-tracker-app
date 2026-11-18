@@ -16,7 +16,7 @@ How a week, a month or a year went, from the bar's **Trends** item. View: `Trend
 ## Week
 | Part | Content |
 |---|---|
-| Tiles | The average kcal a day with how far it is from the target ("kcal a day on average, 24 over target", or "under" or "on target"), and "N of M days within 10% of target" (M is the logged days judged against a target, 7 in a full week). |
+| Tiles | The average kcal a day with how far it is from the target ("kcal a day on average, 24 over target", or "under" or "on target"), and "N of 7 days within 10% of target" (7 is the days of the week). |
 | Calories by day | `ChartLegend` (Under, On target, Over, "Target 2,100, band ±10%") and a `TrendBarChart`: one bar for each past logged day, coloured by its status against its own target, an over marker on Over days and the tallest value labelled. Today and later days, and days not logged, are empty slots. A bar is a button: it opens that day on Today (`/?date=yyyy-MM-dd`). |
 | Average macros | `EnergyShareBar` with the average protein, carbs and fat in grams. |
 | Kcal by meal | `BarList` of the average kcal in Breakfast, Lunch, Dinner and Snacks. |
@@ -24,15 +24,15 @@ How a week, a month or a year went, from the bar's **Trends** item. View: `Trend
 ## Month
 | Part | Content |
 |---|---|
-| Tiles | The average; "N of M logged days within 10% of target"; the logging streak ("13 days, logging streak, through today"; another month shows its longest run as "longest logging streak"); "N of M past days logged". |
+| Tiles | The average; "N of M logged days within 10% of target"; the logging streak ("13 days, logging streak"; another month shows its longest run as "longest logging streak"); "N of M past days logged". |
 | Each day | The `MonthCalendar`: a cell for each day coloured by status, an over marker, today outlined, later days disabled. A cell is a button that opens that day on Today. |
-| Average a day, by week | A `TrendBarChart` of Monday-start weeks (the first and last clipped to the month), labelled W1, W2, … A bar opens that week in Week. |
+| Average a day, by week | A `TrendBarChart` of Monday-start weeks (the first and last cover only their days in the month, but are named and opened by their Monday), labelled W1, W2, … A bar opens that week in Week. |
 | Top foods | `BarList` of the 5 foods with the most kcal, as `TrendsService` ranks them. |
 
 ## Year
 | Part | Content |
 |---|---|
-| Tiles | The average; "N of M months averaging within 10% of target"; "88%" with "283 of 321 days logged"; the lowest month ("Oct, lowest month, 1,990 kcal a day"). |
+| Tiles | The average; "N of M months averaging within 10% of target" (M is the months judged against a target; a month of fewer than 3 logged days is left out here and from the lowest month); "88%" with "283 of 321 days logged"; the lowest month ("Oct, lowest month, 1,990 kcal a day"). |
 | Average a day, by month | A `TrendBarChart` against the target band, one bar for each month with a logged day, labelled by its first letter. A bar opens that month in Month. |
 | Days logged per month | `BarList` of "28 of 31" for each month, full at 31 days. |
 

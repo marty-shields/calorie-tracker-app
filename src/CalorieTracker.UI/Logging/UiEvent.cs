@@ -54,7 +54,7 @@ internal enum UiEvent
     /// <summary><see cref="Screens.TrendsPage"/>: a period's trends could not be read, so the screen offers Try again; carries the period.</summary>
     TrendsLoadFailed = 2402,
 
-    /// <summary><see cref="Screens.TrendsPage"/>: a day or month was opened from the screen; carries what was opened (day or month) and the period it was opened from.</summary>
+    /// <summary><see cref="Screens.TrendsPage"/>: a day, week or month was opened from the screen; carries what was opened (day, week or month) and the period it was opened from.</summary>
     TrendsOpened = 2403,
 
     /// <summary><see cref="Lifecycle.AppLifecycle"/>: an app start handler failed.</summary>

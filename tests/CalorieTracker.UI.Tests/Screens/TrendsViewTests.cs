@@ -160,9 +160,10 @@ public class TrendsViewTests : ComponentTestBase
             Assert.That(Text(cut, "trends-on-target-figure"), Is.EqualTo("10 of 16"));
             Assert.That(Text(cut, "trends-on-target-caption"), Is.EqualTo("logged days within 10% of target"));
             Assert.That(Text(cut, "trends-streak-figure"), Is.EqualTo("13 days"));
-            Assert.That(Text(cut, "trends-streak-caption"), Is.EqualTo("logging streak, through today"));
+            Assert.That(Text(cut, "trends-streak-caption"), Is.EqualTo("logging streak"));
             Assert.That(Text(cut, "trends-logged-figure"), Is.EqualTo("16 of 17"));
-            Assert.That(new[] { 1, 5, 7, 8, 11, 13, 19 }.Select(Status), Is.EqualTo(new[] { "on", "none", "over", "under", "under", "over", "future" }));
+            Assert.That(new[] { 1, 5, 7, 8, 11, 13, 18, 19 }.Select(Status), Is.EqualTo(new[] { "on", "none", "over", "under", "under", "over", "none", "future" }), "today's own figure is left out, as in every other count");
+            Assert.That(cut.Find("[data-testid=trends-calendar-day-2026-11-18]").ClassList, Does.Contain("today"));
             Assert.That(cut.FindAll("[data-testid^=trends-weeks-chart-bar-]"), Has.Count.EqualTo(4));
             Assert.That(cut.FindAll("[data-testid^=trends-top-list-row-]"), Has.Count.EqualTo(5));
             Assert.That(Text(cut, "trends-top-list-label-0"), Is.EqualTo("Chicken curry"));
@@ -179,7 +180,7 @@ public class TrendsViewTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(thin, Is.EqualTo(new[] { "Week of 1 Nov, 2,090 kcal, on target, based on 1 day", "Week of 16 Nov, 2,090 kcal, on target, based on 2 days" }));
+            Assert.That(thin, Is.EqualTo(new[] { "Week of 26 Oct, 2,090 kcal, on target, based on 1 day", "Week of 16 Nov, 2,090 kcal, on target, based on 2 days" }));
             Assert.That(Text(cut, "trends-thin-note"), Is.EqualTo("Faded bars rest on fewer than 3 logged days."));
         });
     }
@@ -218,6 +219,90 @@ public class TrendsViewTests : ComponentTestBase
             Assert.That(Exists(cut, "trends-months-chart-band"), Is.True);
             Assert.That(Text(cut, "trends-logged-list-value-0"), Is.EqualTo("27 of 31"));
             Assert.That(cut.FindAll("[data-testid^=trends-logged-list-row-]"), Has.Count.EqualTo(11), "months to come are not listed");
+        });
+    }
+
+    private IRenderedComponent<TrendsView> YearWith(Func<TrendBucket, int, TrendBucket> change, Func<TrendDay, TrendDay>? changeDay = null) =>
+        Render(TrendsPeriod.Year, new(2026, 1, 1), TrendsSamples.Year with
+        {
+            Buckets = TrendsSamples.Year.Buckets.Select(change).ToList(),
+            Days = TrendsSamples.Year.Days.Select(changeDay ?? (d => d)).ToList(),
+        });
+
+    [Test]
+    public void Year_CountsOnlyMonthsOnTarget_SoAnUnderAndAnOverMonthAreNotCounted()
+    {
+        var cut = YearWith((b, i) => i switch { 0 => b with { AverageKcal = 1500 }, 1 => b with { AverageKcal = 2800 }, _ => b });
+
+        Assert.That(Text(cut, "trends-on-target-figure"), Is.EqualTo("9 of 11"));
+    }
+
+    [Test]
+    public void Year_LeavesAMonthOfFewerThanThreeLoggedDaysOutOfTheMonthsOnTargetAndTheLowestMonth()
+    {
+        var cut = YearWith((b, i) => i == 0 ? b with { AverageKcal = 900, DaysLogged = 2 } : b);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "trends-on-target-figure"), Is.EqualTo("10 of 10"));
+            Assert.That(Text(cut, "trends-lowest-figure"), Is.EqualTo("Oct"));
+            Assert.That(cut.Find("[data-testid=trends-months-chart-bar-2026-01-01]").ClassList, Does.Contain("thin"));
+        });
+    }
+
+    [Test]
+    public void Year_AMonthOfExactlyThreeLoggedDays_IsNotThin_SoItCounts()
+    {
+        var cut = YearWith((b, i) => i == 0 ? b with { AverageKcal = 900, DaysLogged = 3 } : b);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "trends-on-target-figure"), Is.EqualTo("10 of 11"));
+            Assert.That(Text(cut, "trends-lowest-figure"), Is.EqualTo("Jan"));
+            Assert.That(cut.Find("[data-testid=trends-months-chart-bar-2026-01-01]").ClassList, Does.Not.Contain("thin"));
+        });
+    }
+
+    [Test]
+    public void Year_AMonthWithNoTargetOnItsLoggedDays_IsNotJudged()
+    {
+        var cut = YearWith((b, _) => b, d => d.Date.Month == 1 ? d with { TargetKcal = null } : d);
+
+        Assert.That(Text(cut, "trends-on-target-figure"), Is.EqualTo("10 of 10"));
+    }
+
+    [Test]
+    public void Week_CountsDaysOnTargetOutOfTheSevenDaysOfTheWeek()
+    {
+        var cut = Render(TrendsPeriod.Week, new(2026, 11, 16), TrendsSamples.Week);
+
+        Assert.That(Text(cut, "trends-on-target-figure"), Does.EndWith("of 7"));
+    }
+
+    [Test]
+    public void AWeekWithOnlyTodayLogged_ShowsTheEmptyState_LikeTheFiguresWhichLeaveTodayOut()
+    {
+        var report = TrendsSamples.LittleData with { Days = TrendsSamples.LittleData.Days.Select(d => d with { IsLogged = d.Date == Today }).ToList() };
+
+        var cut = Render(TrendsPeriod.Week, new(2026, 11, 16), report);
+
+        Assert.That(Exists(cut, "trends-empty"), Is.True);
+    }
+
+    [Test]
+    public void Next_IsOnWhenTodayIsAMondayAndTheShownWeekStartedTheMondayBefore()
+    {
+        DateOnly monday = new(2026, 11, 16);
+        IRenderedComponent<TrendsView> Shown(DateOnly start) => Context.Render<TrendsView>(p => p
+            .Add(x => x.Period, TrendsPeriod.Week)
+            .Add(x => x.Start, start)
+            .Add(x => x.Today, monday)
+            .Add(x => x.Report, TrendsSamples.Week));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Shown(monday.AddDays(-7)).Find("[data-testid=trends-next]").HasAttribute("disabled"), Is.False);
+            Assert.That(Shown(monday).Find("[data-testid=trends-next]").HasAttribute("disabled"), Is.True);
         });
     }
 

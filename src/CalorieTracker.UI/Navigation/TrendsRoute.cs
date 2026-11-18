@@ -43,6 +43,9 @@ public static class TrendsRoute
         _ => start.AddDays(6),
     };
 
+    /// <summary>True when the period that starts at <paramref name="start"/> holds <paramref name="today"/> or ends after it: Next stops there.</summary>
+    public static bool IsCurrent(TrendsPeriod period, DateOnly start, DateOnly today) => End(period, start) >= today;
+
     /// <summary>The period start one period before or after <paramref name="start"/>.</summary>
     public static DateOnly Step(TrendsPeriod period, DateOnly start, int direction) => period switch
     {
@@ -51,7 +54,7 @@ public static class TrendsRoute
         _ => start.AddDays(7 * direction),
     };
 
-    /// <summary>The label of the period strip: "9 – 15 Nov", "9 Nov – 6 Dec" across months, "30 Dec 2026 – 5 Jan 2027" across years, "November 2026" or "2026".</summary>
+    /// <summary>The label of the period strip: "9 – 15 Nov", "30 Nov – 6 Dec" across months, "30 Dec 2026 – 5 Jan 2027" across years, "November 2026" or "2026".</summary>
     public static string Label(TrendsPeriod period, DateOnly start)
     {
         var culture = CultureInfo.InvariantCulture;

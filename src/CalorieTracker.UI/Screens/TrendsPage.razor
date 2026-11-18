@@ -12,12 +12,13 @@
 @inject SnackbarService Snackbar
 @inject ILogger<TrendsPage> Logger
 @inject TimeProvider Time
+@inject NavigationManager Navigation
 
 <TrendsView Period="period" Start="start" Today="Today()" Report="report" Loading="loading" LoadFailed="loadFailed"
             OnPeriodChanged="SwitchAsync" OnPrevious="@(() => ShowAsync(period, TrendsRoute.Step(period, start, -1)))" OnNext="NextAsync"
             OnSelectDay="OpenDayAsync" OnSelectWeek="@(day => OpenAsync(TrendsPeriod.Week, day))" OnSelectMonth="@(day => OpenAsync(TrendsPeriod.Month, day))"
             OnRetry="ReloadAsync" OnNavigate="OnNavigate" OnSettings="OnSettings"
-            UsualFoods="feed.Usual" UsualAddError="@feed.AddError" OnMealChanged="feed.LoadAsync" OnAddUsual="feed.AddAsync" OnAddSearch="OnAdd" OnScan="OnScan" />
+            UsualFoods="feed.Usual" UsualAddError="@feed.AddError" OnMealChanged="feed.LoadAsync" OnAddUsual="feed.AddAsync" OnAdd="OnAdd" OnScan="OnScan" />
 
 @code {
     private TrendsPeriod period;
@@ -82,7 +83,7 @@
 
         opened = true;
         openedWith = (Period, From);
-        await ShowAsync(Period, TrendsRoute.Start(Period, From ?? Today()));
+        await ShowAsync(Period, TrendsRoute.Start(Period, From ?? Today()), rewriteRoute: false);
     }
 
     /// <summary>Today by the clock now, so the screen is right when it is used past midnight.</summary>
@@ -91,15 +92,14 @@
     /// <summary>The span of the other kind that holds the day the shown one starts on, or today when the shown one is the current one.</summary>
     private Task SwitchAsync(TrendsPeriod next)
     {
-        var anchor = Today() >= start && Today() <= TrendsRoute.End(period, start) ? Today() : start;
+        var anchor = TrendsRoute.IsCurrent(period, start, Today()) ? Today() : start;
         return ShowAsync(next, TrendsRoute.Start(next, anchor));
     }
 
     /// <summary>The next span, unless the shown one is the current one: Next stops there.</summary>
     private Task NextAsync()
     {
-        var next = TrendsRoute.Step(period, start, 1);
-        return next > Today() ? Task.CompletedTask : ShowAsync(period, next);
+        return TrendsRoute.IsCurrent(period, start, Today()) ? Task.CompletedTask : ShowAsync(period, TrendsRoute.Step(period, start, 1));
     }
 
     private Task OpenAsync(TrendsPeriod next, DateOnly day)
@@ -114,10 +114,18 @@
         return OnOpenDay.InvokeAsync(day);
     }
 
-    private Task ShowAsync(TrendsPeriod next, DateOnly first)
+    /// <param name="rewriteRoute">Put the span in the address, replacing the entry, so coming back to the screen shows it again. False when the address is where the span came from.</param>
+    private Task ShowAsync(TrendsPeriod next, DateOnly first, bool rewriteRoute = true)
     {
         period = next;
         start = first;
+        if (rewriteRoute)
+        {
+            // Set first: the address change comes back as the Period and From parameters and must not read again.
+            openedWith = (next, first);
+            Navigation.NavigateTo(TrendsRoute.Url(next, first), replace: true);
+        }
+
         return LoadAsync(blank: true);
     }
 

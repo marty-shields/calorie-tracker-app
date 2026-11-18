@@ -44,6 +44,15 @@ public class TrendsRouteTests
     public void Step_MovesAWeekMonthOrYear(TrendsPeriod period, string start, int direction, string expected) =>
         Assert.That(TrendsRoute.Step(period, DateOnly.Parse(start), direction), Is.EqualTo(DateOnly.Parse(expected)));
 
+    [TestCase(TrendsPeriod.Week, "2026-11-09", "2026-11-16", false, TestName = "Monday today, the week before")]
+    [TestCase(TrendsPeriod.Week, "2026-11-09", "2026-11-15", true, TestName = "the week that ends today")]
+    [TestCase(TrendsPeriod.Week, "2026-11-02", "2026-11-09", false, TestName = "a Monday, the week before it is past")]
+    [TestCase(TrendsPeriod.Month, "2026-11-01", "2026-11-30", true, TestName = "last day of the month")]
+    [TestCase(TrendsPeriod.Month, "2026-10-01", "2026-11-01", false, TestName = "first of the next month")]
+    [TestCase(TrendsPeriod.Year, "2026-01-01", "2026-12-31", true, TestName = "last day of the year")]
+    public void IsCurrent_IsTrueUntilTheDayAfterThePeriodEnds(TrendsPeriod period, string start, string today, bool expected) =>
+        Assert.That(TrendsRoute.IsCurrent(period, DateOnly.Parse(start), DateOnly.Parse(today)), Is.EqualTo(expected));
+
     [TestCase(TrendsPeriod.Week, "2026-11-09", "9 – 15 Nov")]
     [TestCase(TrendsPeriod.Week, "2026-11-30", "30 Nov – 6 Dec")]
     [TestCase(TrendsPeriod.Week, "2026-12-28", "28 Dec 2026 – 3 Jan 2027")]
