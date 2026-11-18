@@ -5,7 +5,7 @@ $attribute: CustomPage("Components/Charts/Overview")
 # Charts
 
 ## `CalorieRing`
-A ring for the day's calories. With a `Target` the centre shows the calories left ("1,441 kcal left"); with none it shows calories eaten ("659 kcal eaten"; negative `Eaten` counts as 0); over the target it shows the amount over, in `--color-error` ("259 kcal over"). The arc is `--color-accent` on a `--color-ring-track` track and fills with `Eaten` / `Target`, full at or over the target. A target of null or 0 counts as none. `--ring-size` across, `--ring-width` thick.
+A ring for the day's calories. With a `Target` the centre shows the calories left ("1,441 kcal left"); with none it shows calories eaten ("659 kcal eaten"; negative `Eaten` counts as 0); over the target it shows the amount over, in `--color-error` ("259 kcal over"). The arc is `--color-accent` on a `--color-ring-track` track and fills with `Eaten` / `Target`, full at or over the target. A target of null or 0 counts as none. `--ring-size` across, `--ring-width` thick; `Compact` makes it `--ring-size-compact` across and `--ring-width-compact` thick (the Today card's ring).
 - Text alternative: the ring is `role="img"` with an `aria-label` carrying the numbers, e.g. "1,441 kcal left. Eaten 659 of 2,100 kcal target." or "659 kcal eaten. No target set."
 - `data-testid`: `TestId`; the number `{TestId}-value`, the words under it `{TestId}-label`.
 

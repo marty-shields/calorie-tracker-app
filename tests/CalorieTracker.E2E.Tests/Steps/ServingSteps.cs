@@ -66,7 +66,7 @@ public sealed class ServingSteps(ServingScreen serving, FoodSearchScreen foods, 
 
     [Then(@"^the " + Meals + @" entry reads ""(.*)""$")]
     public void ThenTheEntryReads(string meal, string text) =>
-        web.Eventually(() => dashboard.Entries(meal).FirstOrDefault() ?? "", Does.Contain(text));
+        web.Eventually(() => dashboard.OpenAndReadEntries(meal).FirstOrDefault() ?? "", Does.Contain(text));
 
     [When(@"^I tap Add$")]
     public void WhenITapAdd() => serving.Add();

@@ -24,6 +24,15 @@ public class ScanSeamValuesTests
         Assert.That(Value(Constant(steps, "SeamFileName")), Is.EqualTo(Value(Constant(seam, "FileName"))));
     }
 
+    [Test]
+    public void ClockSteps_UseTheSeamsFileName()
+    {
+        var seam = RepoFiles.Read("src", "CalorieTracker.App", "Diagnostics", "E2EClockSeam.cs");
+        var steps = RepoFiles.Read("tests", "CalorieTracker.E2E.Tests", "Steps", "DashboardSteps.cs");
+
+        Assert.That(Value(Constant(steps, "ClockSeamFileName")), Is.EqualTo(Value(Constant(seam, "FileName"))));
+    }
+
     private static Match Constant(string source, string name) => Regex.Match(source, $@"const string {name} = ""([^""]+)"";");
 
     private static string Value(Match match)

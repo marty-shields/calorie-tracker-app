@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using CalorieTracker.E2E.Tests.Screens;
 using CalorieTracker.E2E.Tests.Support;
 using Reqnroll;
@@ -5,7 +6,7 @@ using Reqnroll;
 namespace CalorieTracker.E2E.Tests.Steps;
 
 [Binding]
-public sealed class DashboardSteps(WebView web, DashboardScreen dashboard, Journeys journeys)
+public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboard, Journeys journeys)
 {
     [Then(@"^I am on the Dashboard titled ""(.*)""$")]
     public void ThenOnTheDashboardTitled(string title) => web.Eventually(() => web.Text("screen-title"), Is.EqualTo(title));
@@ -20,25 +21,25 @@ public sealed class DashboardSteps(WebView web, DashboardScreen dashboard, Journ
     [Then(@"^no startup error is shown$")]
     public void ThenNoStartupError() => Assert.That(dashboard.HasStartupError(), Is.False);
 
-    private static readonly string[] Meals = ["Breakfast", "Lunch", "Dinner", "Snacks"];
+    private static readonly string[] MealNames = ["Breakfast", "Lunch", "Dinner", "Snacks"];
 
     [Then(@"^every meal has a \+ button$")]
     public void ThenEveryMealHasAPlus()
     {
         journeys.WaitFor(Journeys.Screen.Dashboard);
-        web.Eventually(() => Meals.Where(dashboard.HasAddButton).ToList(), Is.EqualTo(Meals));
+        web.Eventually(() => MealNames.Where(dashboard.HasAddButton).ToList(), Is.EqualTo(MealNames));
     }
 
     [Then(@"^Lunch lists 1 entry with a kcal total$")]
     public void ThenLunchListsOneEntry()
     {
-        web.Eventually(() => dashboard.EntryCount("Lunch"), Is.EqualTo(1));
-        Assert.That(dashboard.MealTotal("Lunch"), Does.EndWith(" kcal"));
+        web.Eventually(() => dashboard.OpenAndCountEntries("Lunch"), Is.EqualTo(1));
+        Assert.That(dashboard.OpenAndReadMealTotal("Lunch"), Does.EndWith(" kcal"));
     }
 
     [Then(@"^the other meals list no entries$")]
     public void ThenTheOtherMealsListNoEntries() =>
-        Assert.That(new[] { "Breakfast", "Dinner", "Snacks" }.Sum(dashboard.EntryCount), Is.Zero);
+        Assert.That(new[] { "Breakfast", "Dinner", "Snacks" }.Sum(dashboard.OpenAndCountEntries), Is.Zero);
 
     [Then(@"^the calories eaten are above 0$")]
     public void ThenTheCaloriesEatenAreAbove0() =>
@@ -71,4 +72,105 @@ public sealed class DashboardSteps(WebView web, DashboardScreen dashboard, Journ
 
     [When(@"^I go back to the Dashboard$")]
     public void WhenIGoBackToTheDashboard() => journeys.GoToDashboard();
+
+    private const string Meals = "(Breakfast|Lunch|Dinner|Snacks)";
+
+    /// <summary>The file <c>E2EClockSeam</c> reads; <c>ScanSeamValuesTests</c> checks it matches.</summary>
+    private const string ClockSeamFileName = "e2e-clock.txt";
+
+    /// <summary>
+    /// Pins the Debug app's clock to a time of day on the device's date, so which meals are open does not depend on the wall clock,
+    /// then goes to tomorrow and back to today so the Dashboard reads the clock again.
+    /// </summary>
+    [Given(@"^the app clock reads (\d\d:\d\d)$")]
+    public void GivenTheAppClockReads(string time)
+    {
+        journeys.WaitFor(Journeys.Screen.Dashboard);
+        AppiumSetup.Adb.WriteText($"{AppiumSetup.App.ExternalFilesFolder}/{ClockSeamFileName}", time);
+        dashboard.NextDay();
+        web.Eventually(dashboard.DateLabel, Does.StartWith("Tomorrow"));
+        dashboard.ToToday();
+        web.Eventually(dashboard.DateLabel, Does.StartWith("Today"));
+    }
+
+    [When(@"^I leave Today and come back$")]
+    public void WhenILeaveTodayAndComeBack()
+    {
+        journeys.OpenSettings();
+        journeys.GoToDashboard();
+    }
+
+    [When(@"^I tap the previous day$")]
+    public void WhenITapThePreviousDay() => dashboard.PreviousDay();
+
+    [When(@"^I tap the " + Meals + " header$")]
+    public void WhenITapTheMealHeader(string meal) => dashboard.ToggleMeal(meal);
+
+    [Then(@"^" + Meals + " is open and marked Now$")]
+    public void ThenMealIsOpenAndMarkedNow(string meal)
+    {
+        web.Eventually(() => dashboard.HasNowChip(meal), Is.True, $"{meal} is marked Now");
+        Assert.That(dashboard.Expanded(meal), Is.Null.Or.EqualTo("true"), $"{meal} is open");
+    }
+
+    [Then(@"^" + Meals + " is open$")]
+    public void ThenMealIsOpen(string meal)
+    {
+        web.Eventually(() => dashboard.Expanded(meal), Is.Null.Or.EqualTo("true"), $"{meal} is open");
+        Assert.That(dashboard.FromText(meal), Is.Null, $"{meal} shows no start time");
+    }
+
+    [Then(@"^" + Meals + @" shows ""(from \d\d:\d\d)"" with a \+ and no entries$")]
+    public void ThenMealShowsFrom(string meal, string from)
+    {
+        web.Eventually(() => dashboard.FromText(meal), Is.EqualTo(from));
+        Assert.Multiple(() =>
+        {
+            Assert.That(dashboard.HasAddButton(meal), Is.True, $"{meal} has a +");
+            Assert.That(dashboard.OpenAndCountEntries(meal), Is.Zero, $"{meal} lists no entries");
+            Assert.That(web.Exists($"meal-{meal.ToLowerInvariant()}-none"), Is.False, $"{meal} says nothing logged");
+        });
+    }
+
+    [Then(@"^" + Meals + " is folded to one line with 1 item and its kcal$")]
+    public void ThenMealIsFolded(string meal)
+    {
+        web.Eventually(() => dashboard.Expanded(meal), Is.EqualTo("false"), $"{meal} is folded");
+        Assert.That(dashboard.FoldedLine(meal), Does.Match(OneItem()), $"{meal}'s folded line");
+        Assert.That(dashboard.HasAddButton(meal), Is.True, $"{meal} keeps its +");
+    }
+
+    [Then(@"^" + Meals + @" is open with (\d+) entries shown$")]
+    public void ThenMealIsOpenWithEntries(string meal, int count)
+    {
+        web.Eventually(() => dashboard.Expanded(meal), Is.EqualTo("true"), $"{meal} is open");
+        Assert.That(dashboard.FoldedLine(meal), Is.Null, $"{meal} is no longer a single line");
+        web.Eventually(() => dashboard.OpenAndCountEntries(meal), Is.EqualTo(count), $"{meal}'s entries");
+    }
+
+    [Then(@"^" + Meals + " is open with its entry shown$")]
+    public void ThenMealIsOpenWithItsEntry(string meal)
+    {
+        web.Eventually(() => dashboard.Expanded(meal), Is.EqualTo("true"), $"{meal} is open");
+        Assert.That(dashboard.FoldedLine(meal), Is.Null, $"{meal} is no longer a single line");
+        Assert.That(dashboard.OpenAndCountEntries(meal), Is.EqualTo(1), $"{meal}'s entries");
+    }
+
+    [Then(@"^no meal is marked Now, shows a start time or is folded$")]
+    public void ThenNoMealHasAWindow()
+    {
+        journeys.WaitFor(Journeys.Screen.Dashboard);
+        Assert.Multiple(() =>
+        {
+            foreach (var meal in MealNames)
+            {
+                Assert.That(dashboard.HasNowChip(meal), Is.False, $"{meal} is marked Now");
+                Assert.That(dashboard.FromText(meal), Is.Null, $"{meal} shows a start time");
+                Assert.That(dashboard.Expanded(meal), Is.Null.Or.EqualTo("true"), $"{meal} is folded");
+            }
+        });
+    }
+
+    [GeneratedRegex(@"^1 item · [\d,]+ kcal$")]
+    private static partial Regex OneItem();
 }

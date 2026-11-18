@@ -13,7 +13,7 @@
              AfterAdd="ServingRoute.FollowUpFor(ReturnTo)"
              ViewDay="@(day => { Navigation.GoTo(DashboardRoute.Url(day)); return Task.CompletedTask; })"
              OnBack="@(() => Navigation.GoTo(EntryId is null ? ServingRoute.BackTarget(BackTo, ReturnTo) : DashboardRoute.Url(EntryDay)))"
-             OnAdded="@(() => Navigation.GoTo(ServingRoute.AfterAddTarget(ReturnTo, RouteDate.Parse(DateText))))" />
+             OnAdded="@(meal => Navigation.GoTo(ServingRoute.AfterAddTarget(ReturnTo, RouteDate.Parse(DateText), meal)))" />
 
 @code {
     [Parameter]

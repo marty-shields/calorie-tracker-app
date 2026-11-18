@@ -28,8 +28,8 @@ public sealed class FoodTitleSteps(FoodSearchScreen foods, ServingScreen serving
     [Then(@"^I have noted the title of the " + Meals + " entry$")]
     public void GivenIHaveNotedTheTitleOfTheEntry(string meal)
     {
-        web.Eventually(() => dashboard.Entries(meal).Count, Is.EqualTo(1));
-        noted = FirstLine(dashboard.Entries(meal).Single());
+        web.Eventually(() => dashboard.OpenAndReadEntries(meal).Count, Is.EqualTo(1));
+        noted = FirstLine(dashboard.OpenAndReadEntries(meal).Single());
         Assert.That(noted, Is.Not.Empty, "the entry shows its food's title");
     }
 
@@ -51,7 +51,7 @@ public sealed class FoodTitleSteps(FoodSearchScreen foods, ServingScreen serving
     {
         web.WaitUntil(() => web.Exists("dashboard-ring"), "the Dashboard didn't show the day");
         web.Eventually(
-            () => new[] { "Breakfast", "Lunch", "Dinner", "Snacks" }.SelectMany(dashboard.Entries).Any(row => row.StartsWith(noted, StringComparison.Ordinal)),
+            () => new[] { "Breakfast", "Lunch", "Dinner", "Snacks" }.SelectMany(dashboard.OpenAndReadEntries).Any(row => row.StartsWith(noted, StringComparison.Ordinal)),
             Is.True,
             "a diary row that starts with the noted title");
     }

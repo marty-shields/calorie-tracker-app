@@ -22,9 +22,9 @@
 
 ## What's here
 
-A day diary for Android with a food search, a barcode scanner, a design system, tests and CI. It starts on the Dashboard, and these screens are the main ones:
+A day diary for Android with a food search, a barcode scanner, a design system, tests and CI. It starts on Today (the Dashboard in the code), and these screens are the main ones:
 
-- **Dashboard**: the day diary, with a date strip, calories and macros, and four meals to add food to.
+- **Today**: the day diary, with a date strip, a compact card with calories and macros, and four meals to add food to. On today a meal is open in its time window (breakfast 05:00-11:00, lunch 11:00-15:00, dinner 17:00-21:00, snacks any time) and folds to one line after it; tap it to open it.
 - **Foods**: type a name to search the bundled food data and the products you scanned. Results come in groups (the foods you logged, then Common, then Branded), best match first; before you type it lists the foods you usually have at the meal and the ones you had lately. A food reads as its brand and name, with its pack size and brand line under it. There is no filter by type. Under the results, **Search online** looks the typed words up on Open Food Facts too, for your phone's country (worldwide when it has none there); tapping a product stores it the way a scan does.
 - **Scan**: read a barcode and add the product to a meal. A scanned product keeps its name, brands, generic name, pack size and extra nutrients. Another size of a product you already have (a 1 L bottle of a drink you scanned as a can) is added to that food, not stored again, when its brand, name (size words ignored), unit and every nutrient agree closely (see [Scan](src/CalorieTracker.UI.Stories/Stories/Screens/Scan.md)); the food then keeps each barcode's pack size.
 - **Serving**: set the amount in grams or ml, or a number of servings, and the meal. A food has the servings you add yourself, such as a mug or a bowl, and nothing else; a dropdown picks which one the servings count, and you can add or delete them. A food with none is measured in grams or ml.

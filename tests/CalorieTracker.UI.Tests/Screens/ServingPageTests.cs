@@ -88,7 +88,7 @@ public class ServingPageTests : ComponentTestBase
 
     private static FakeTimeProvider Clock(int hour, int minute) => new(new DateTimeOffset(2031, 7, 19, hour, minute, 0, TimeSpan.Zero));
 
-    private IRenderedComponent<ServingPage> Render(int foodId, Meal? meal = null, Action? onAdded = null, Action<ComponentParameterCollectionBuilder<ServingPage>>? more = null, bool expectStar = true) =>
+    private IRenderedComponent<ServingPage> Render(int foodId, Meal? meal = null, Action<Meal>? onAdded = null, Action<ComponentParameterCollectionBuilder<ServingPage>>? more = null, bool expectStar = true) =>
         Loaded(Context.Render<ServingPage>(p =>
         {
             p.Add(x => x.FoodId, foodId).Add(x => x.Meal, meal).Add(x => x.Date, Day);
@@ -149,7 +149,7 @@ public class ServingPageTests : ComponentTestBase
     {
         var id = await InsertMars();
         var added = 0;
-        var cut = Render(id, Meal.Snacks, () => added++);
+        var cut = Render(id, Meal.Snacks, _ => added++);
 
         Assert.Multiple(() =>
         {
@@ -433,7 +433,7 @@ public class ServingPageTests : ComponentTestBase
     public async Task InvalidAmount_Add_SavesNothing_AndShowsNoSaveError(string typed)
     {
         var added = false;
-        var cut = Render(cheddarId, Meal.Lunch, () => added = true);
+        var cut = Render(cheddarId, Meal.Lunch, _ => added = true);
         await cut.Find("[data-testid=serving-amount]").InputAsync(typed);
 
         await cut.Find("[data-testid=serving-add]").ClickAsync(new());
@@ -558,7 +558,7 @@ public class ServingPageTests : ComponentTestBase
     public async Task Add_InGramsMode_SavesTheGramsForTheDayAndMeal_WithNoServings()
     {
         var added = 0;
-        var cut = Render(cheddarId, Meal.Dinner, () => added++);
+        var cut = Render(cheddarId, Meal.Dinner, _ => added++);
         await cut.Find("[data-testid=serving-amount]").InputAsync("30");
 
         await cut.Find("[data-testid=serving-add]").ClickAsync(new());
@@ -615,7 +615,7 @@ public class ServingPageTests : ComponentTestBase
     public async Task Add_WhenSavingFails_ShowsTheErrorKeepsTheScreenAndDoesNotLeave()
     {
         var added = false;
-        var cut = Render(cheddarId, Meal.Lunch, () => added = true);
+        var cut = Render(cheddarId, Meal.Lunch, _ => added = true);
         await cut.Find("[data-testid=serving-amount]").InputAsync("30");
         await connection.ExecuteAsync("DROP TABLE DiaryEntry");
 
@@ -1772,11 +1772,23 @@ public class ServingPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task Add_RaisesOnAddedWithTheMealTheEntryWasAddedTo()
+    {
+        Meal? addedTo = null;
+        var cut = Render(cheddarId, Meal.Lunch, onAdded: meal => addedTo = meal, expectStar: false);
+
+        await cut.Find("[data-testid=serving-meal-dinner]").ChangeAsync(true);
+        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
+
+        Assert.That(addedTo, Is.EqualTo(Meal.Dinner));
+    }
+
+    [Test]
     public async Task AFailedRead_ShowsNoStar_AndTheRestOfTheScreenWorks()
     {
         await connection.ExecuteAsync("DROP TABLE Favourite");
         var added = false;
-        var cut = Render(cheddarId, Meal.Lunch, onAdded: () => added = true, expectStar: false);
+        var cut = Render(cheddarId, Meal.Lunch, onAdded: _ => added = true, expectStar: false);
 
         await cut.Find("[data-testid=serving-add]").ClickAsync(new());
 

@@ -111,9 +111,9 @@
     [Parameter]
     public EventCallback OnRemoved { get; set; }
 
-    /// <summary>Raised once the entry is saved, after its snackbar is posted.</summary>
+    /// <summary>Raised with the meal the entry was added to, once it is saved and its snackbar is posted.</summary>
     [Parameter]
-    public EventCallback OnAdded { get; set; }
+    public EventCallback<Meal> OnAdded { get; set; }
 
     /// <summary>Raised by the back arrow and the Android back button.</summary>
     [Parameter]
@@ -513,7 +513,7 @@
 
         if (!saveFailed)
         {
-            await OnAdded.InvokeAsync();
+            await OnAdded.InvokeAsync(meal);
         }
     }
 

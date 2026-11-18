@@ -97,6 +97,20 @@ public class ServingRouteTests
         Assert.That(ServingRoute.AfterAddTarget(returnTo), Is.EqualTo(expected));
 
     [Test]
+    public void AfterAddTarget_WithAMeal_OpensThatMealOnTheDashboard_UnlessTheReturnRouteIsAccepted()
+    {
+        var day = new DateOnly(2031, 7, 4);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ServingRoute.AfterAddTarget(null, day, Meal.Lunch), Is.EqualTo("/?date=2031-07-04&open=Lunch"));
+            Assert.That(ServingRoute.AfterAddTarget(null, null, Meal.Lunch), Is.EqualTo("/?open=Lunch"));
+            Assert.That(ServingRoute.AfterAddTarget("//evil", null, Meal.Dinner), Is.EqualTo("/?open=Dinner"));
+            Assert.That(ServingRoute.AfterAddTarget("/foods", day, Meal.Lunch), Is.EqualTo("/foods"));
+        });
+    }
+
+    [Test]
     public void AfterAddTarget_WithADayAndNoReturnRoute_IsThatDayOnTheDashboard()
     {
         var day = new DateOnly(2031, 7, 4);

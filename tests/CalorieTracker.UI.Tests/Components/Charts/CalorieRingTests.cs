@@ -80,4 +80,21 @@ public class CalorieRingTests : ComponentTestBase
             Assert.That(at.Find("[data-testid=ring]").ClassList, Does.Not.Contain("over"));
         });
     }
+
+    [Test]
+    public void Compact_UsesTheCompactTokens()
+    {
+        var css = RepoFiles.Read("src", "CalorieTracker.UI", "Components", "Charts", "CalorieRing.razor.css");
+        var tokens = RepoFiles.Read("src", "CalorieTracker.UI", "wwwroot", "css", "tokens.css");
+        var normal = Context.Render<CalorieRing>(p => p.Add(x => x.Eaten, 100).Add(x => x.TestId, "ring"));
+        var compact = Context.Render<CalorieRing>(p => p.Add(x => x.Eaten, 100).Add(x => x.Compact, true).Add(x => x.TestId, "ring"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(normal.Find("[data-testid=ring]").ClassList, Does.Not.Contain("compact"));
+            Assert.That(compact.Find("[data-testid=ring]").ClassList, Does.Contain("compact"));
+            Assert.That(css.Split(".compact {")[1].Split('}')[0], Does.Contain("--size: var(--ring-size-compact)").And.Contain("--stroke: var(--ring-width-compact)"));
+            Assert.That(tokens, Does.Contain("--ring-size-compact: 6rem;").And.Contain("--ring-width-compact:"));
+        });
+    }
 }

@@ -49,4 +49,23 @@ public class MealWindowsTests
             Assert.That(MealWindows.StateFor(meal, time), Is.EqualTo(expected), time.ToString());
         }
     }
+
+    [TestCase(Meal.Breakfast, 5)]
+    [TestCase(Meal.Lunch, 11)]
+    [TestCase(Meal.Dinner, 17)]
+    public void StartOf_AMealWithAWindow_IsTheFirstMinuteItIsOpen(Meal meal, int hour)
+    {
+        var start = MealWindows.StartOf(meal);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(start, Is.EqualTo(new TimeOnly(hour, 0)));
+            Assert.That(MealWindows.StateFor(meal, start), Is.EqualTo(MealWindowState.During));
+            Assert.That(MealWindows.StateFor(meal, start.AddMinutes(-1)), Is.EqualTo(MealWindowState.Before));
+        });
+    }
+
+    [Test]
+    public void StartOf_Snacks_Throws() =>
+        Assert.That(() => MealWindows.StartOf(Meal.Snacks), Throws.InstanceOf<ArgumentOutOfRangeException>());
 }

@@ -31,7 +31,7 @@ public sealed class FoodSearchGroupsSteps(FoodSearchScreen foods, ServingScreen 
         serving.EnterGrams(grams);
         serving.Add();
         journeys.WaitFor(Journeys.Screen.Dashboard);
-        web.Eventually(() => dashboard.Entries(meal).Count, Is.EqualTo(1));
+        web.Eventually(() => dashboard.OpenAndReadEntries(meal).Count, Is.EqualTo(1));
         web.Eventually(snackbar.IsShowing, Is.False);
     }
 
