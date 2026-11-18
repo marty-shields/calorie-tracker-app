@@ -1,0 +1,26 @@
+@page "/trends"
+@using CalorieTracker.UI.Navigation
+@using CalorieTracker.UI.Screens
+@inject NavigationManager Navigation
+
+@* Query: period (week, month or year) and from (yyyy-MM-dd, any day of the span); without them Trends opens on the current week.
+   Android back goes to Today through the bar's start destination. A day's bar or cell opens Today on that day; the bar's Add sheet adds to today. *@
+<TrendsPage Period="period"
+            From="from"
+            OnOpenDay="@(day => Navigation.GoTo(DashboardRoute.Url(day)))"
+            OnAdd="@(request => Navigation.GoTo(FoodSearchRoute.AddUrl(request.Meal, request.Date)))"
+            OnScan="@(request => Navigation.GoTo(ScanRoute.AddUrl(request.Meal, request.Date)))"
+            OnNavigate="@(destination => Navigation.GoTo(destination))"
+            OnSettings="@(() => Navigation.GoTo("settings"))" />
+
+@code {
+    [SupplyParameterFromQuery(Name = "period")]
+    public string? PeriodText { get; set; }
+
+    [SupplyParameterFromQuery(Name = "from")]
+    public string? FromText { get; set; }
+
+    private TrendsPeriod period => TrendsRoute.ParsePeriod(PeriodText);
+
+    private DateOnly? from => RouteDate.Parse(FromText);
+}

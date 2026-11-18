@@ -339,6 +339,18 @@ public class TrendsServiceTests
     }
 
     [Test]
+    public async Task AnyLoggedBeforeToday_IsFalseWithNothingOrOnlyTodayLogged_AndTrueOnceAPastDayIsLogged_WhateverTheRange()
+    {
+        Assert.That((await service.GetAsync(Nov(9), Nov(15), Nov(16))).Report!.AnyLoggedBeforeToday, Is.False);
+
+        await Log(Nov(16), 2000);
+        Assert.That((await service.GetAsync(Nov(9), Nov(15), Nov(16))).Report!.AnyLoggedBeforeToday, Is.False);
+
+        await Log(Nov(1), 2000);
+        Assert.That((await service.GetAsync(Nov(9), Nov(15), Nov(16))).Report!.AnyLoggedBeforeToday, Is.True);
+    }
+
+    [Test]
     public async Task EnoughData_NeedsThreeLoggedDaysAndCountsNeedThreeJudgedDays()
     {
         await SaveTargetOn(Nov(1), 2000);

@@ -77,6 +77,7 @@
     --focus-width: 2px;
     --focus-offset: 2px;
     --opacity-disabled: 0.5;
+    --opacity-thin: 0.55;
     --spinner-size: 40px;
     --spinner-width: 4px;
     --spinner-size-small: 1.125rem;

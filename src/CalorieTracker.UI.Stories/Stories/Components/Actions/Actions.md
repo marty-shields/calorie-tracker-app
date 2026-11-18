@@ -28,7 +28,7 @@ A Material Symbols Outlined icon (weight 400), drawn as an SVG and hidden from s
 - Search: a search box, `Muted`.
 - Up and Down: an increase (`Success`) or decrease (`Error`).
 - Edit (pencil) and Check (tick): used by `IconButton`.
-- Today: the Today item in `BottomNav`.
+- Today and BarChart: the Today and Trends items in `BottomNav`.
 - Scan: the Scan barcode tile of the `AddSheet`, and Search: its Search foods tile.
 - Plus and Minus: add or remove, e.g. a stepper, a meal's add button or the raised Add button of `BottomNav`.
 - ChevronLeft: the previous item in a sequence, such as the previous day; Chevron points right. Back is for leaving a screen.
@@ -48,6 +48,7 @@ A button that shows an `Icon`, with a 48px touch target.
 | Star, StarFilled | Starring a food as a favourite (`Pressed` says which). |
 
 - `AriaLabel` names the button.
+- `Disabled` dims the button with `--opacity-disabled` and ignores taps; it keeps its place (the Trends strip's Next on the current span).
 - The icon is `--color-text`; on the top bar that is `--color-on-bar`. `Muted` uses `--color-text-muted`.
 - `Pressed` makes the button a toggle: `aria-pressed` is "true" or "false" (the star button). Null leaves the attribute off.
 - `Active` fills the button with a round `--color-selected` background to show it is on.

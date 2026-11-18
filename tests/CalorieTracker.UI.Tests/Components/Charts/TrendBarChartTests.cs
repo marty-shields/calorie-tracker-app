@@ -434,4 +434,21 @@ public class TrendBarChartTests : ComponentTestBase
             Assert.That(cut.Find("[data-testid=chart-column-2026-11-09]"), Is.Not.Null);
         });
     }
+
+    [Test]
+    public void ABarWithANote_IsFaded_AndTheNoteEndsItsTextAlternative()
+    {
+        var cut = Render([Bar(0, 2000), Bar(1, 2000) with { Note = "based on 2 days" }]);
+
+        var plain = cut.Find($"[data-testid=chart-bar-{Monday:yyyy-MM-dd}]");
+        var thin = cut.Find($"[data-testid=chart-bar-{Monday.AddDays(1):yyyy-MM-dd}]");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(plain.ClassList, Does.Not.Contain("thin"));
+            Assert.That(thin.ClassList, Does.Contain("thin"));
+            Assert.That(thin.GetAttribute("aria-label"), Does.EndWith(", based on 2 days"));
+            Assert.That(plain.GetAttribute("aria-label"), Does.Not.Contain("based on"));
+        });
+    }
 }

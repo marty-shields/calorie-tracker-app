@@ -59,6 +59,22 @@ public partial class ScanServingRouteTests
     }
 
     [Test]
+    public void Trends_ReadsPeriodAndFromFromTheQuery_AndRoutesDaysAddAndScan()
+    {
+        var trends = AppPage("Trends.razor");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(trends, Does.Contain("@page \"/trends\""));
+            Assert.That(trends, Does.Contain("SupplyParameterFromQuery(Name = \"period\")"));
+            Assert.That(trends, Does.Contain("SupplyParameterFromQuery(Name = \"from\")"));
+            Assert.That(trends, Does.Contain("OnOpenDay=\"@(day => Navigation.GoTo(DashboardRoute.Url(day)))\""));
+            Assert.That(trends, Does.Contain("OnAdd=\"@(request => Navigation.GoTo(FoodSearchRoute.AddUrl(request.Meal, request.Date)))\""));
+            Assert.That(trends, Does.Contain("OnScan=\"@(request => Navigation.GoTo(ScanRoute.AddUrl(request.Meal, request.Date)))\""));
+        });
+    }
+
+    [Test]
     public void Foods_CarriesNoPackToTheServingScreen()
     {
         var foods = AppPage("Foods.razor");

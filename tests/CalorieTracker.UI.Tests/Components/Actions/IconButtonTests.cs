@@ -208,4 +208,12 @@ public class IconButtonTests : ComponentTestBase
             Assert.That(filledStories.Select(m => m.Groups[1].Value), Has.All.Contain("IconButtonStyle.Filled"));
         });
     }
+
+    [Test]
+    public void Disabled_DisablesTheButton() =>
+        Assert.That(Context.Render<IconButton>(p => p.Add(x => x.Icon, IconName.Chevron).Add(x => x.AriaLabel, "Next").Add(x => x.Disabled, true)).Find("button").HasAttribute("disabled"), Is.True);
+
+    [Test]
+    public void NotDisabled_ByDefault() =>
+        Assert.That(Context.Render<IconButton>(p => p.Add(x => x.Icon, IconName.Chevron).Add(x => x.AriaLabel, "Next")).Find("button").HasAttribute("disabled"), Is.False);
 }

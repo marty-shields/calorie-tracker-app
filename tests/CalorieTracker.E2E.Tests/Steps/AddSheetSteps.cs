@@ -38,13 +38,14 @@ public sealed class AddSheetSteps(AddSheetScreen sheet, NavigationBar navigation
     [Then(@"^I am on search to add to a meal$")]
     public void ThenIAmOnSearchToAddToAMeal() => journeys.WaitFor(Journeys.Screen.AddFood);
 
-    [Then(@"^the navigation bar shows Today and Add only$")]
-    public void ThenTheNavigationBarShowsTodayAndAddOnly()
+    [Then(@"^the navigation bar shows Today, Add and Trends only$")]
+    public void ThenTheNavigationBarShowsTodayAddAndTrendsOnly()
     {
         Assert.Multiple(() =>
         {
             Assert.That(navigation.Has("Today"), Is.True, "Today");
             Assert.That(navigation.HasAdd(), Is.True, "Add");
+            Assert.That(navigation.Has("Trends"), Is.True, "Trends");
             Assert.That(navigation.Has("Foods"), Is.False, "Foods");
             Assert.That(navigation.Has("Scan"), Is.False, "Scan");
         });

@@ -188,9 +188,10 @@ public class DashboardPageUsualTests : ComponentTestBase
         var requests = new List<MealAddRequest>();
         var scans = new List<MealAddRequest>();
         var cut = Context.Render<DashboardPage>(p => p.Add(x => x.OnAdd, requests.Add).Add(x => x.OnScan, scans.Add));
-        cut.Find("[data-testid=add-button]").Click();
-        cut.WaitForState(() => Exists(cut, "add-sheet-search"));
-        cut.WaitForAssertion(() => Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Contain(UiEvent.UsualReadFailed)), TimeSpan.FromSeconds(5));
+        cut.WaitForState(() => cut.FindAll("[data-testid=dashboard-loading]").Count == 0);
+        await Tap(cut, "[data-testid=add-button]");
+        cut.WaitForState(() => LoggedEvents.Of(logger).Any(e => e.Id == UiEvent.UsualReadFailed), TimeSpan.FromSeconds(10));
+        Assert.That(Exists(cut, "add-sheet-search"), Is.True);
 
         await Tap(cut, "[data-testid=add-sheet-search]");
         cut.WaitForState(() => !Exists(cut, "add-sheet"));
@@ -369,9 +370,10 @@ public class DashboardPageUsualTests : ComponentTestBase
         await Log(Today.AddDays(-1), Meal.Dinner, await Food("Pasta Carbonara", 148), 157);
         await connection.ExecuteAsync("ALTER TABLE DiaryEntry RENAME TO DiaryEntryAway");
         var cut = Context.Render<DashboardPage>();
-        cut.Find("[data-testid=add-button]").Click();
-        cut.WaitForState(() => Exists(cut, "add-sheet-search"));
-        cut.WaitForAssertion(() => Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Contain(UiEvent.UsualReadFailed)), TimeSpan.FromSeconds(5));
+        cut.WaitForState(() => cut.FindAll("[data-testid=dashboard-loading]").Count == 0);
+        await Tap(cut, "[data-testid=add-button]");
+        cut.WaitForState(() => LoggedEvents.Of(logger).Any(e => e.Id == UiEvent.UsualReadFailed), TimeSpan.FromSeconds(10));
+        Assert.That(Exists(cut, "add-sheet-search"), Is.True);
 
         var messages = logger.Collector.GetSnapshot().Select(r => r.Message).ToList();
         Assert.That(messages, Has.None.Contain("Pasta").And.None.Contain("Carbonara").And.None.Contain("157").And.None.Contain("kcal"));

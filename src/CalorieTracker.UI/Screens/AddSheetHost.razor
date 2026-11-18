@@ -1,0 +1,56 @@
+@using CalorieTracker.Core.Data
+@using CalorieTracker.UI.Components.Layout
+<AddSheet Open="Open" OnClose="OnClose" Usual="Usual" AddError="@AddError" OnMealChanged="OnMealChanged" OnAddUsual="AddUsualAsync"
+          OnSearch="@(meal => ChooseAsync(meal, OnSearch))" OnScan="@(meal => ChooseAsync(meal, OnScan))" />
+
+@code {
+    /// <summary>Shows the sheet.</summary>
+    [Parameter]
+    public bool Open { get; set; }
+
+    /// <summary>The day the sheet adds to: the day on the screen's date strip, or today on a screen without one.</summary>
+    [Parameter, EditorRequired]
+    public DateOnly Date { get; set; }
+
+    /// <summary>Raised by the scrim, Android back and Escape, and after a choice, so the screen clears <see cref="Open"/>.</summary>
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    /// <summary>Raised by Search foods with the chosen meal and <see cref="Date"/>; the sheet closes first.</summary>
+    [Parameter]
+    public EventCallback<MealAddRequest> OnSearch { get; set; }
+
+    /// <summary>Raised by Scan barcode with the chosen meal and <see cref="Date"/>; the sheet closes first.</summary>
+    [Parameter]
+    public EventCallback<MealAddRequest> OnScan { get; set; }
+
+    /// <summary>The usual foods for the chosen meal. None hides the section.</summary>
+    [Parameter]
+    public IReadOnlyList<UsualFoodRow>? Usual { get; set; }
+
+    /// <summary>What failed when a usual food could not be added; shown in the open sheet.</summary>
+    [Parameter]
+    public string? AddError { get; set; }
+
+    /// <summary>Raised with the meal when the sheet opens and when another meal is chosen there, so the usual foods can be read for it.</summary>
+    [Parameter]
+    public EventCallback<Meal> OnMealChanged { get; set; }
+
+    /// <summary>Adds a usual food (the request) to <see cref="Date"/> and returns true when it was added, so the sheet closes. Plain delegate, since the sheet needs the result. The + does nothing when unset.</summary>
+    [Parameter]
+    public Func<UsualAddRequest, DateOnly, Task<bool>>? OnAddUsual { get; set; }
+
+    private async Task ChooseAsync(Meal meal, EventCallback<MealAddRequest> callback)
+    {
+        await OnClose.InvokeAsync();
+        await callback.InvokeAsync(new MealAddRequest(meal, Date));
+    }
+
+    private async Task AddUsualAsync(UsualAddRequest request)
+    {
+        if (OnAddUsual is { } add && await add(request, Date))
+        {
+            await OnClose.InvokeAsync();
+        }
+    }
+}

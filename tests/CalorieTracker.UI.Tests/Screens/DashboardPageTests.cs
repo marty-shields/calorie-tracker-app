@@ -299,7 +299,7 @@ public class DashboardPageTests : ComponentTestBase
         Assert.That(Text(cut, "meal-lunch-now"), Is.EqualTo("Now"));
         Assert.That(Text(cut, "meal-dinner-hint"), Is.EqualTo("from 17:00"));
 
-        cut.Find("[data-testid=meal-breakfast-toggle]").Click();
+        await cut.Find("[data-testid=meal-breakfast-toggle]").ClickAsync();
 
         Assert.That(cut.FindAll("[data-testid=meal-breakfast] ~ ul .row"), Has.Count.EqualTo(1));
     }
