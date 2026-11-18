@@ -133,8 +133,8 @@ internal sealed partial class FoodSearch(FoodStore store, FoodHistoryService his
 
     public async Task<FoodHistory?> LastLoggedAsync(int foodId, Meal? meal = null)
     {
-        var logged = await history.AllAsync(meal);
-        return logged.Status == FoodHistoryStatus.Found ? logged.Foods.FirstOrDefault(h => h.FoodId == foodId) : null;
+        var logged = await history.ByFoodIdsAsync([foodId], meal);
+        return logged.Status == FoodHistoryStatus.Found && logged.Foods.Count > 0 ? logged.Foods[0] : null;
     }
 
     /// <summary>The favourite food ids, or none when the read fails: a failing favourites read leaves out the group and nothing else.</summary>
