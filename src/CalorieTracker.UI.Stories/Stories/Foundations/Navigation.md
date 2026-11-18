@@ -18,12 +18,11 @@ Today (the **Today** item; `DashboardPage` in the code) and [Trends](./?path=/cu
 | Trends | Settings gear | Settings |
 | Trends | A day's bar or calendar cell | Today on that day |
 | Trends | Add | Add sheet (adds to today) |
-| Add sheet | Scrim, Back, Escape | Today (the sheet closes, focus returns to Add) |
+| Add sheet | Scrim, Back, Escape | The screen it opened on, Today or Trends (the sheet closes, focus returns to Add) |
 | Add sheet | Search foods | Food search for the chosen meal and day |
 | Add sheet | Scan barcode | Scan for the chosen meal and day |
 | Food search | Back | Today |
-| Food search (a food open, no meal) | Back, Back to results | Food search list |
-| Scan | Back, or the camera cancelled | Today |
+| Scan | Back, or the camera cancelled | Its `back` route (such as the search that opened it), else Today on that day |
 | Settings | Back | Today |
 | Error | Restart | Today |
 

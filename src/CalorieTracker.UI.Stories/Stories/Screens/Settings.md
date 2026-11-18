@@ -4,7 +4,7 @@ $attribute: CustomPage("Screens/Settings/Overview")
 
 # Settings
 
-Opened from the gear on Today. View: `SettingsView`; page: `SettingsPage`.
+Opened from the gear on Today or Trends; Back goes to Today. View: `SettingsView`; page: `SettingsPage`.
 
 | Part | Content |
 |---|---|
