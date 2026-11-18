@@ -186,18 +186,25 @@ public class DashboardPageUsualTests : ComponentTestBase
         await Log(Today.AddDays(-1), Meal.Dinner, await Food("Pasta", 148), 150);
         await connection.ExecuteAsync("ALTER TABLE DiaryEntry RENAME TO DiaryEntryAway");
         var requests = new List<MealAddRequest>();
-        var cut = Context.Render<DashboardPage>(p => p.Add(x => x.OnAdd, requests.Add));
+        var scans = new List<MealAddRequest>();
+        var cut = Context.Render<DashboardPage>(p => p.Add(x => x.OnAdd, requests.Add).Add(x => x.OnScan, scans.Add));
         cut.Find("[data-testid=add-button]").Click();
         cut.WaitForState(() => Exists(cut, "add-sheet-search"));
         cut.WaitForAssertion(() => Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Contain(UiEvent.UsualReadFailed)), TimeSpan.FromSeconds(5));
 
-        cut.Find("[data-testid=add-sheet-search]").Click();
+        await Tap(cut, "[data-testid=add-sheet-search]");
+        cut.WaitForState(() => !Exists(cut, "add-sheet"));
+        cut.Find("[data-testid=add-button]").Click();
+        cut.WaitForState(() => Exists(cut, "add-sheet-scan"));
+        await Tap(cut, "[data-testid=add-sheet-scan]");
 
         Assert.Multiple(() =>
         {
             Assert.That(Exists(cut, "add-sheet-usual"), Is.False);
             Assert.That(requests, Has.Count.EqualTo(1));
             Assert.That(requests[0].Meal, Is.EqualTo(Meal.Dinner));
+            Assert.That(scans, Has.Count.EqualTo(1));
+            Assert.That(scans[0].Meal, Is.EqualTo(Meal.Dinner));
             Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Contain(UiEvent.UsualReadFailed));
         });
     }
