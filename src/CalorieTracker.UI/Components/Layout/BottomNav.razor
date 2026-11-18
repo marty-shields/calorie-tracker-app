@@ -30,7 +30,7 @@
     /// <summary>The items left of Add: the first half of the bar.</summary>
     private static IEnumerable<NavItem> Before => NavDestinations.All.Take((NavDestinations.All.Count + 1) / 2);
 
-    /// <summary>The items right of Add. Empty until the bar has a second screen.</summary>
+    /// <summary>The items right of Add.</summary>
     private static IEnumerable<NavItem> After => NavDestinations.All.Skip((NavDestinations.All.Count + 1) / 2);
 
     /// <summary>The screen showing; its item is marked as the current page.</summary>

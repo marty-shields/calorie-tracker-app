@@ -14,7 +14,7 @@ public class NavRouteTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(NavDestinations.All.Select(i => i.Route), Is.EqualTo(new[] { "" }), "Today only until Trends is added");
+            Assert.That(NavDestinations.All.Select(i => i.Route), Is.EqualTo(new[] { "", "trends" }));
             foreach (var item in NavDestinations.All)
             {
                 Assert.That(pages.Any(p => p.Contains($"@page \"/{item.Route}\"")), Is.True, item.Route);

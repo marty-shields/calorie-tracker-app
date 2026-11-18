@@ -37,6 +37,10 @@
     fill: transparent;
 }
 
+.bar.thin .column {
+    opacity: var(--opacity-thin);
+}
+
 .bar.selectable {
     cursor: pointer;
 }

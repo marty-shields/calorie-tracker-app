@@ -1,0 +1,47 @@
+@attribute [Stories("Screens/Trends")]
+
+<Stories TComponent="TrendsView" Layout="typeof(PhoneLayout)">
+
+    <Story Name="Week">
+        <Template>
+            <TrendsView Today="TrendsSamples.Today" Period="TrendsPeriod.Week" Start="new DateOnly(2026, 11, 9)" Report="TrendsSamples.Week" OnPeriodChanged="(TrendsPeriod _) => { }" OnPrevious="() => { }" OnNext="() => { }" OnSelectDay="(DateOnly _) => { }" OnSelectWeek="(DateOnly _) => { }" OnSelectMonth="(DateOnly _) => { }" OnRetry="() => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnAddSearch="(MealAddRequest _) => { }" OnScan="(MealAddRequest _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Month">
+        <Template>
+            <TrendsView Today="TrendsSamples.Today" Period="TrendsPeriod.Month" Start="new DateOnly(2026, 11, 1)" Report="TrendsSamples.Month" OnPeriodChanged="(TrendsPeriod _) => { }" OnPrevious="() => { }" OnNext="() => { }" OnSelectDay="(DateOnly _) => { }" OnSelectWeek="(DateOnly _) => { }" OnSelectMonth="(DateOnly _) => { }" OnRetry="() => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnAddSearch="(MealAddRequest _) => { }" OnScan="(MealAddRequest _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Year">
+        <Template>
+            <TrendsView Today="TrendsSamples.Today" Period="TrendsPeriod.Year" Start="new DateOnly(2026, 1, 1)" Report="TrendsSamples.Year" OnPeriodChanged="(TrendsPeriod _) => { }" OnPrevious="() => { }" OnNext="() => { }" OnSelectDay="(DateOnly _) => { }" OnSelectWeek="(DateOnly _) => { }" OnSelectMonth="(DateOnly _) => { }" OnRetry="() => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnAddSearch="(MealAddRequest _) => { }" OnScan="(MealAddRequest _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Loading">
+        <Template>
+            <TrendsView Today="TrendsSamples.Today" Period="TrendsPeriod.Week" Start="new DateOnly(2026, 11, 9)" Loading OnPeriodChanged="(TrendsPeriod _) => { }" OnPrevious="() => { }" OnNext="() => { }" OnSelectDay="(DateOnly _) => { }" OnSelectWeek="(DateOnly _) => { }" OnSelectMonth="(DateOnly _) => { }" OnRetry="() => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnAddSearch="(MealAddRequest _) => { }" OnScan="(MealAddRequest _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Failed">
+        <Template>
+            <TrendsView Today="TrendsSamples.Today" Period="TrendsPeriod.Week" Start="new DateOnly(2026, 11, 9)" LoadFailed OnPeriodChanged="(TrendsPeriod _) => { }" OnPrevious="() => { }" OnNext="() => { }" OnSelectDay="(DateOnly _) => { }" OnSelectWeek="(DateOnly _) => { }" OnSelectMonth="(DateOnly _) => { }" OnRetry="() => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnAddSearch="(MealAddRequest _) => { }" OnScan="(MealAddRequest _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="No data">
+        <Template>
+            <TrendsView Today="TrendsSamples.Today" Period="TrendsPeriod.Week" Start="new DateOnly(2026, 11, 2)" Report="TrendsSamples.NoData" OnPeriodChanged="(TrendsPeriod _) => { }" OnPrevious="() => { }" OnNext="() => { }" OnSelectDay="(DateOnly _) => { }" OnSelectWeek="(DateOnly _) => { }" OnSelectMonth="(DateOnly _) => { }" OnRetry="() => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnAddSearch="(MealAddRequest _) => { }" OnScan="(MealAddRequest _) => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="Little data">
+        <Template>
+            <TrendsView Today="TrendsSamples.Today" Period="TrendsPeriod.Week" Start="new DateOnly(2026, 11, 16)" Report="TrendsSamples.LittleData" OnPeriodChanged="(TrendsPeriod _) => { }" OnPrevious="() => { }" OnNext="() => { }" OnSelectDay="(DateOnly _) => { }" OnSelectWeek="(DateOnly _) => { }" OnSelectMonth="(DateOnly _) => { }" OnRetry="() => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnAddSearch="(MealAddRequest _) => { }" OnScan="(MealAddRequest _) => { }" />
+        </Template>
+    </Story>
+
+</Stories>

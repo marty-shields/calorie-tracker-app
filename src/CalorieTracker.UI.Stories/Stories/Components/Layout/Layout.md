@@ -23,23 +23,23 @@ The frame of every screen:
 Stories: [AppScreen](./?path=/docs/components-layout-appscreen--docs)
 
 ## `BottomNav`
-The Material navigation bar for the top-level screens, with a raised **Add** button in the middle. The items come from the `NavDestinations` table (label, icon, test id and route of each `NavDestination`): today only Today; Trends is added with its screen. Foods and Scan are not in the bar: they open from the Add sheet.
+The Material navigation bar for the top-level screens, with a raised **Add** button in the middle. The items come from the `NavDestinations` table (label, icon, test id and route of each `NavDestination`): Today and Trends. Foods and Scan are not in the bar: they open from the Add sheet.
 
 | Part | Content |
 |---|---|
-| Item | Icon over its label, sharing the width of its side, at least 48px tall. Today: the `today` calendar. Add an item per top-level screen. |
+| Item | Icon over its label, sharing the width of its side, at least 48px tall. Today: the `today` calendar; Trends: the `bar_chart` bars, right of Add. Add an item per top-level screen. |
 | Current item | A `--color-selected` pill behind the icon, label and icon in the text colour and bold; the others are muted. `aria-current="page"`. |
 | Add | A 56px (`--add-button-size`) `--color-primary` circle with a plus, lifted `--add-button-lift` above the bar, labelled "Add" under it, centred between the two sides. An action, not a destination: it never shows as current, and it has `aria-haspopup="dialog"`. |
 
 - Tapping an item raises `OnNavigate` with its destination. Tapping the current item does nothing. Tapping Add raises `OnAdd`; the screen opens its [`AddSheet`](#addsheet).
 - A `<nav>` labelled "Main"; each item is a button. A pressed item shows the shared state layer on its indicator pill, not across the whole item and the inset; Add shows it on its circle.
 - Its bottom padding is the safe-area inset (`--inset-bottom`).
-- `data-testid`: `bottom-nav`, `today-link` (one `{name}-link` per destination), `add-button`.
+- `data-testid`: `bottom-nav`, `today-link`, `trends-link` (one `{name}-link` per destination), `add-button`.
 
 Stories: [BottomNav](./?path=/docs/components-layout-bottomnav--docs)
 
 ## `AddSheet`
-The modal bottom sheet the bar's Add button opens, on Today (and on Trends when it has one). Shown while `Open` is set; the screen owns that state.
+The modal bottom sheet the bar's Add button opens, on Today and on Trends (both through `AddSheetHost`, which adds the day: the date strip's on Today, today on Trends). Shown while `Open` is set; the screen owns that state.
 
 | Part | Content |
 |---|---|
@@ -52,7 +52,7 @@ The modal bottom sheet the bar's Add button opens, on Today (and on Trends when 
 
 - The scrim, Android back and Escape raise `OnClose` and navigate nowhere. While it is open, Tab stays inside the sheet, and when it closes focus returns to the Add button (the element marked `data-sheet-opener`).
 - The clock is the registered `TimeProvider`; the `Clock` parameter replaces it, which is how each story fixes its time.
-- It logs the action (Search, Scan, Add usual or Dismiss) and the meal, never anything else (`UiEvent` 2300 block). The Today page logs the usual foods read, the add and a failed Undo with food ids, meals, counts and statuses only.
+- It logs the action (Search, Scan, Add usual or Dismiss) and the meal, never anything else (`UiEvent` 2300 block). The Today and Trends pages log the usual foods read, the add and a failed Undo with food ids, meals, counts and statuses only.
 - `data-testid`: `add-sheet`, `add-sheet-scrim`, `add-sheet-meals`, `add-sheet-meal-<meal>`, `add-sheet-search`, `add-sheet-scan`, `add-sheet-usual`, `add-sheet-usual-<foodId>`, `add-sheet-usual-<foodId>-add` (also `-title` and `-detail`), `add-sheet-add-error`.
 
 Stories: [AddSheet](./?path=/docs/components-layout-addsheet--docs), one for each guessed meal, and with usual foods, without them, with a failed read and with a failed add.

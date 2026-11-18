@@ -30,7 +30,7 @@
             var height = Base - top;
             var width = Slot * 0.6;
             var name = Name(bar, status);
-            <g class="@BarClass(status, selectable)" role="@(selectable ? "button" : "img")" tabindex="@(selectable ? "0" : null)" aria-label="@name" data-testid="@Id($"bar-{Day(bar)}")"
+            <g class="@BarClass(status, selectable, bar.Note is not null)" role="@(selectable ? "button" : "img")" tabindex="@(selectable ? "0" : null)" aria-label="@name" data-testid="@Id($"bar-{Day(bar)}")"
                @onclick="() => Select(bar)" @onkeydown="e => OnKey(e, bar)">
                 <rect class="hit" x="@N(slotX)" y="@N(Top)" width="@N(Slot)" height="@N(Base - Top)" />
                 <path class="column" d="@Column(centre - width / 2, width, top, height)" data-height="@N(height)" data-testid="@Id($"column-{Day(bar)}")" />
@@ -147,12 +147,12 @@
     }
 
     private string Name(TrendBar bar, TargetStatus status) =>
-        $"{Tip(bar)}" + (status == TargetStatus.None ? "" : $", {TargetStatuses.Word(status)}");
+        $"{Tip(bar)}" + (status == TargetStatus.None ? "" : $", {TargetStatuses.Word(status)}") + (bar.Note is null ? "" : $", {bar.Note}");
 
     /// <summary>The date and value, which is all the tooltip shows; the status is in the colour and the marker.</summary>
     private string Tip(TrendBar bar) => $"{bar.Date.ToString(DateFormat, CultureInfo.InvariantCulture)}, {TargetStatuses.Kcal(bar.Value!.Value)} kcal";
 
-    private static string BarClass(TargetStatus status, bool selectable) => $"bar {TargetStatuses.Class(status)}" + (selectable ? " selectable" : "");
+    private static string BarClass(TargetStatus status, bool selectable, bool thin) => $"bar {TargetStatuses.Class(status)}" + (selectable ? " selectable" : "") + (thin ? " thin" : "");
 
     private static string Day(TrendBar bar) => bar.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 

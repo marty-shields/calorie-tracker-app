@@ -175,6 +175,45 @@ public class AppScreenTests : ComponentTestBase
     }
 
     [Test]
+    public async Task Trends_AndroidBackGoesToTheStartDestination_WithNoBackArrow()
+    {
+        var navigated = new List<NavDestination>();
+        var cut = Context.Render<AppScreen>(p => p
+            .Add(x => x.Title, "Trends")
+            .Add(x => x.Destination, NavDestination.Trends)
+            .Add(x => x.OnNavigate, navigated.Add));
+
+        await BackButton.HandleAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(navigated, Is.EqualTo(new[] { NavDestinations.Start }));
+            Assert.That(NavDestinations.Start, Is.EqualTo(NavDestination.Today));
+            Assert.That(cut.FindAll("[data-testid=back]"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task Trends_WithItsOwnOnBack_AndroidBackRaisesThatInstead()
+    {
+        var navigated = new List<NavDestination>();
+        var back = 0;
+        Context.Render<AppScreen>(p => p
+            .Add(x => x.Title, "Trends")
+            .Add(x => x.Destination, NavDestination.Trends)
+            .Add(x => x.OnBack, () => back++)
+            .Add(x => x.OnNavigate, navigated.Add));
+
+        await BackButton.HandleAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(back, Is.EqualTo(1));
+            Assert.That(navigated, Is.Empty);
+        });
+    }
+
+    [Test]
     public void Status_SitsInAPoliteLiveRegionAboveTheBottomBar()
     {
         var cut = Context.Render<AppScreen>(p => p

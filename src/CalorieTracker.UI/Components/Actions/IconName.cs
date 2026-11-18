@@ -53,4 +53,7 @@ public enum IconName
 
     /// <summary>Solid five-point star (<c>star</c>, filled).</summary>
     StarFilled,
+
+    /// <summary>Three bars of different heights (<c>bar_chart</c>).</summary>
+    BarChart,
 }

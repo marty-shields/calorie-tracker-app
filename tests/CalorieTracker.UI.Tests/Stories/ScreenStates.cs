@@ -2,6 +2,7 @@ using AngleSharp.Dom;
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Summary;
+using CalorieTracker.Core.Trends;
 using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Models.Scan;
 using CalorieTracker.UI.Models.Search;
@@ -113,6 +114,13 @@ public static class ScreenStates
         new("Screens/Dashboard", "Future day", c => Dashboard(c, DashboardSamples.Loaded, DashboardSamples.Today.AddDays(1))),
         new("Screens/Dashboard", "Branded foods", c => Dashboard(c, DashboardSamples.Branded)),
         new("Screens/Dashboard", "Entry removed", c => Dashboard(c, DashboardSamples.Loaded, snackbar: "Cheddar cheese removed")),
+        new("Screens/Trends", "Week", c => Trends(c, TrendsPeriod.Week, new(2026, 11, 9), TrendsSamples.Week)),
+        new("Screens/Trends", "Month", c => Trends(c, TrendsPeriod.Month, new(2026, 11, 1), TrendsSamples.Month)),
+        new("Screens/Trends", "Year", c => Trends(c, TrendsPeriod.Year, new(2026, 1, 1), TrendsSamples.Year)),
+        new("Screens/Trends", "Loading", c => Trends(c, TrendsPeriod.Week, new(2026, 11, 9), null, loading: true)),
+        new("Screens/Trends", "Failed", c => Trends(c, TrendsPeriod.Week, new(2026, 11, 9), null, loadFailed: true)),
+        new("Screens/Trends", "No data", c => Trends(c, TrendsPeriod.Week, new(2026, 11, 2), TrendsSamples.NoData)),
+        new("Screens/Trends", "Little data", c => Trends(c, TrendsPeriod.Week, new(2026, 11, 16), TrendsSamples.LittleData)),
 
         new("Screens/Settings", "Default", c => Settings(c, version: "1.0.0", target: 2100)),
         new("Screens/Settings", "Dark chosen", c => Settings(c, version: "1.0.0", theme: ThemePreference.Dark, target: 2100)),
@@ -298,6 +306,27 @@ public static class ScreenStates
             .Add(x => x.OnRetry, () => { })
             .Add(x => x.OnSettings, () => { })
             .Add(x => x.OnNavigate, (NavDestination _) => { })
+            .Add(x => x.OnScan, (MealAddRequest _) => { }))
+            .FindAll("*");
+
+    private static IReadOnlyList<IElement> Trends(BunitContext context, TrendsPeriod period, DateOnly start, TrendsReport? report, bool loading = false, bool loadFailed = false) =>
+        context.Render<TrendsView>(p => p
+            .Add(x => x.Period, period)
+            .Add(x => x.Start, start)
+            .Add(x => x.Today, TrendsSamples.Today)
+            .Add(x => x.Report, report)
+            .Add(x => x.Loading, loading)
+            .Add(x => x.LoadFailed, loadFailed)
+            .Add(x => x.OnPeriodChanged, (TrendsPeriod _) => { })
+            .Add(x => x.OnPrevious, () => { })
+            .Add(x => x.OnNext, () => { })
+            .Add(x => x.OnSelectDay, (DateOnly _) => { })
+            .Add(x => x.OnSelectWeek, (DateOnly _) => { })
+            .Add(x => x.OnSelectMonth, (DateOnly _) => { })
+            .Add(x => x.OnRetry, () => { })
+            .Add(x => x.OnSettings, () => { })
+            .Add(x => x.OnNavigate, (NavDestination _) => { })
+            .Add(x => x.OnAddSearch, (MealAddRequest _) => { })
             .Add(x => x.OnScan, (MealAddRequest _) => { }))
             .FindAll("*");
 

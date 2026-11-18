@@ -5,7 +5,7 @@ Feature: Launch
   Scenario: A fresh install opens on the empty Dashboard
     Then I am on the Dashboard titled "Calorie Tracker"
     And the Dashboard shows "Nothing logged today"
-    And the navigation bar shows Today and Add only
+    And the navigation bar shows Today, Add and Trends only
     And no startup error is shown
 
   Scenario: The title and the bar clear the system bars

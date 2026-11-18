@@ -25,3 +25,8 @@
     background-color: var(--color-chip);
     color: var(--color-on-chip);
 }
+
+.icon-btn:disabled {
+    opacity: var(--opacity-disabled);
+    cursor: default;
+}

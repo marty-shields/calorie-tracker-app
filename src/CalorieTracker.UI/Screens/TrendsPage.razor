@@ -1,0 +1,171 @@
+@using CalorieTracker.Core.Diary
+@using CalorieTracker.Core.Foods
+@using CalorieTracker.Core.History
+@using CalorieTracker.Core.Trends
+@using CalorieTracker.UI.Components.Feedback
+@using Microsoft.Extensions.Logging
+@implements IDisposable
+@inject TrendsService Trends
+@inject DiaryService Diary
+@inject FoodHistoryService History
+@inject FoodService Foods
+@inject SnackbarService Snackbar
+@inject ILogger<TrendsPage> Logger
+@inject TimeProvider Time
+
+<TrendsView Period="period" Start="start" Today="Today()" Report="report" Loading="loading" LoadFailed="loadFailed"
+            OnPeriodChanged="SwitchAsync" OnPrevious="@(() => ShowAsync(period, TrendsRoute.Step(period, start, -1)))" OnNext="NextAsync"
+            OnSelectDay="OpenDayAsync" OnSelectWeek="@(day => OpenAsync(TrendsPeriod.Week, day))" OnSelectMonth="@(day => OpenAsync(TrendsPeriod.Month, day))"
+            OnRetry="ReloadAsync" OnNavigate="OnNavigate" OnSettings="OnSettings"
+            UsualFoods="feed.Usual" UsualAddError="@feed.AddError" OnMealChanged="feed.LoadAsync" OnAddUsual="feed.AddAsync" OnAddSearch="OnAdd" OnScan="OnScan" />
+
+@code {
+    private TrendsPeriod period;
+    private DateOnly start;
+    private TrendsReport? report;
+    private bool loading = true;
+    private bool loadFailed;
+    private bool opened;
+    private bool disposed;
+    private int reads;
+    private (TrendsPeriod Period, DateOnly? From) openedWith;
+    private UsualFoodsFeed feed = null!;
+
+    /// <summary>The span to open on, from the route's <c>period</c>. Week when unset. A change opens that span.</summary>
+    [Parameter]
+    public TrendsPeriod Period { get; set; }
+
+    /// <summary>A day of the span to open on, from the route's <c>from</c>. Null opens the current span. A change opens that span.</summary>
+    [Parameter]
+    public DateOnly? From { get; set; }
+
+    /// <summary>Raised with the day when a day's bar or calendar cell is tapped.</summary>
+    [Parameter]
+    public EventCallback<DateOnly> OnOpenDay { get; set; }
+
+    /// <summary>Raised with the meal and today when the Add sheet's Search foods is tapped.</summary>
+    [Parameter]
+    public EventCallback<MealAddRequest> OnAdd { get; set; }
+
+    /// <summary>Raised with the meal and today when the Add sheet's Scan barcode is tapped.</summary>
+    [Parameter]
+    public EventCallback<MealAddRequest> OnScan { get; set; }
+
+    /// <summary>Raised with the destination tapped in the bottom navigation bar, and with the start destination on Android back.</summary>
+    [Parameter]
+    public EventCallback<NavDestination> OnNavigate { get; set; }
+
+    /// <summary>Raised by the Settings gear.</summary>
+    [Parameter]
+    public EventCallback OnSettings { get; set; }
+
+    protected override void OnInitialized()
+    {
+        feed = new UsualFoodsFeed(History, Foods, Diary, Snackbar, Logger, StateHasChanged);
+        Diary.Changed += OnDiaryChanged;
+    }
+
+    public void Dispose()
+    {
+        disposed = true;
+        feed.Dispose();
+        Diary.Changed -= OnDiaryChanged;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // No read yet means the first render; after that only a new route value reopens a span.
+        if (opened && openedWith == (Period, From))
+        {
+            return;
+        }
+
+        opened = true;
+        openedWith = (Period, From);
+        await ShowAsync(Period, TrendsRoute.Start(Period, From ?? Today()));
+    }
+
+    /// <summary>Today by the clock now, so the screen is right when it is used past midnight.</summary>
+    private DateOnly Today() => DateOnly.FromDateTime(Time.GetLocalNow().DateTime);
+
+    /// <summary>The span of the other kind that holds the day the shown one starts on, or today when the shown one is the current one.</summary>
+    private Task SwitchAsync(TrendsPeriod next)
+    {
+        var anchor = Today() >= start && Today() <= TrendsRoute.End(period, start) ? Today() : start;
+        return ShowAsync(next, TrendsRoute.Start(next, anchor));
+    }
+
+    /// <summary>The next span, unless the shown one is the current one: Next stops there.</summary>
+    private Task NextAsync()
+    {
+        var next = TrendsRoute.Step(period, start, 1);
+        return next > Today() ? Task.CompletedTask : ShowAsync(period, next);
+    }
+
+    private Task OpenAsync(TrendsPeriod next, DateOnly day)
+    {
+        Log.Opened(Logger, next.ToString().ToLowerInvariant(), period);
+        return ShowAsync(next, TrendsRoute.Start(next, day));
+    }
+
+    private Task OpenDayAsync(DateOnly day)
+    {
+        Log.Opened(Logger, "day", period);
+        return OnOpenDay.InvokeAsync(day);
+    }
+
+    private Task ShowAsync(TrendsPeriod next, DateOnly first)
+    {
+        period = next;
+        start = first;
+        return LoadAsync(blank: true);
+    }
+
+    private Task ReloadAsync() => LoadAsync(blank: true);
+
+    /// <param name="blank">Show the spinner while reading. False keeps the span on screen until the new read lands, for a change made elsewhere.</param>
+    private async Task LoadAsync(bool blank)
+    {
+        var (shown, first) = (period, start);
+        var read = ++reads;
+        if (blank)
+        {
+            loading = true;
+            loadFailed = false;
+            report = null;
+        }
+
+        var result = await Trends.GetAsync(first, TrendsRoute.End(shown, first), Today());
+        if (read != reads || disposed)
+        {
+            return;
+        }
+
+        loading = false;
+        loadFailed = result.Status != TrendsStatus.Ok;
+        report = result.Report;
+        if (result.Report is { } days)
+        {
+            Log.Loaded(Logger, shown, days.Days.Count);
+        }
+        else
+        {
+            Log.LoadFailed(Logger, shown);
+        }
+    }
+
+    /// <summary>An entry was added, changed, removed or restored: read the span again.</summary>
+    private void OnDiaryChanged() => _ = InvokeAsync(async () =>
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        await LoadAsync(blank: false);
+        if (!disposed)
+        {
+            StateHasChanged();
+        }
+    });
+}

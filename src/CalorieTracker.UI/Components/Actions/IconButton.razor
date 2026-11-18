@@ -2,6 +2,7 @@
         type="button"
         class="icon-btn @(Compact ? "compact" : null) @(Active && !filled ? "active" : null) @(filled ? "filled" : null)"
         aria-label="@AriaLabel"
+        disabled="@Disabled"
         aria-pressed="@(Pressed is { } on ? (on ? "true" : "false") : null)"
         data-testid="@TestId"
         @onclick="OnClick">
@@ -46,6 +47,10 @@
     /// <summary>Size of the icon.</summary>
     [Parameter]
     public IconSize Size { get; set; }
+
+    /// <summary>Disables the button, which dims it and takes it out of the tab order. It stays in the layout.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
 
     /// <summary>Raised when the button is tapped.</summary>
     [Parameter]

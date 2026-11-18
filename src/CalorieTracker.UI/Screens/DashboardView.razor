@@ -89,7 +89,7 @@
                 }
             }
         </div>
-        <AddSheet Open="sheetOpen" OnClose="CloseSheet" Usual="UsualFoods" AddError="@UsualAddError" OnMealChanged="OnMealChanged" OnAddUsual="AddUsualAsync" OnSearch="@(meal => ChooseAsync(meal, OnAdd))" OnScan="@(meal => ChooseAsync(meal, OnScan))" />
+        <AddSheetHost Open="sheetOpen" Date="Date" OnClose="CloseSheet" Usual="UsualFoods" AddError="@UsualAddError" OnMealChanged="OnMealChanged" OnAddUsual="AddUsualAsync" OnSearch="OnAdd" OnScan="OnScan" />
     </ChildContent>
 </AppScreen>
 
@@ -141,21 +141,16 @@
 
     private void CloseSheet() => sheetOpen = false;
 
-    /// <summary>Closes the sheet and raises the callback with the chosen meal and the day on the date strip.</summary>
-    private Task ChooseAsync(Meal meal, EventCallback<MealAddRequest> callback)
+    /// <summary>Adds the usual food to the day on the date strip and leaves its meal open unless it failed.</summary>
+    private async Task<bool> AddUsualAsync(UsualAddRequest request, DateOnly day)
     {
-        sheetOpen = false;
-        return callback.InvokeAsync(new MealAddRequest(meal, Date));
-    }
-
-    /// <summary>Adds the usual food to the day on the date strip, then closes the sheet and leaves its meal open unless it failed.</summary>
-    private async Task AddUsualAsync(UsualAddRequest request)
-    {
-        if (OnAddUsual is { } add && await add(request, Date))
+        if (OnAddUsual is not { } add || !await add(request, day))
         {
-            sheetOpen = false;
-            opened.Add(request.Meal);
+            return false;
         }
+
+        opened.Add(request.Meal);
+        return true;
     }
 
     /// <summary>The row's tap, or none when nothing handles <see cref="OnEdit"/>, so the row isn't tappable.</summary>

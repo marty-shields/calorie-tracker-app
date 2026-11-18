@@ -1,0 +1,54 @@
+using CalorieTracker.UI.Navigation;
+
+namespace CalorieTracker.UI.Tests.Navigation;
+
+public class TrendsRouteTests
+{
+    [TestCase(TrendsPeriod.Week, "2026-11-12", "/trends?period=week&from=2026-11-12")]
+    [TestCase(TrendsPeriod.Month, "2026-03-01", "/trends?period=month&from=2026-03-01")]
+    [TestCase(TrendsPeriod.Year, "2026-01-01", "/trends?period=year&from=2026-01-01")]
+    public void Url_NamesThePeriodAndTheDay(TrendsPeriod period, string day, string expected) =>
+        Assert.That(TrendsRoute.Url(period, DateOnly.Parse(day)), Is.EqualTo(expected));
+
+    [TestCase("week", TrendsPeriod.Week)]
+    [TestCase("MONTH", TrendsPeriod.Month)]
+    [TestCase("year", TrendsPeriod.Year)]
+    [TestCase(null, TrendsPeriod.Week)]
+    [TestCase("", TrendsPeriod.Week)]
+    [TestCase("decade", TrendsPeriod.Week)]
+    public void ParsePeriod_FallsBackToTheWeek(string? text, TrendsPeriod expected) =>
+        Assert.That(TrendsRoute.ParsePeriod(text), Is.EqualTo(expected));
+
+    [TestCase(TrendsPeriod.Week, "2026-11-15", "2026-11-09", "2026-11-15")]
+    [TestCase(TrendsPeriod.Week, "2026-11-16", "2026-11-16", "2026-11-22")]
+    [TestCase(TrendsPeriod.Week, "2027-01-01", "2026-12-28", "2027-01-03")]
+    [TestCase(TrendsPeriod.Month, "2026-02-17", "2026-02-01", "2026-02-28")]
+    [TestCase(TrendsPeriod.Month, "2028-02-17", "2028-02-01", "2028-02-29")]
+    [TestCase(TrendsPeriod.Year, "2026-11-18", "2026-01-01", "2026-12-31")]
+    public void StartAndEnd_AreTheMondayMonthOrYearBounds(TrendsPeriod period, string day, string start, string end)
+    {
+        var first = TrendsRoute.Start(period, DateOnly.Parse(day));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(first, Is.EqualTo(DateOnly.Parse(start)));
+            Assert.That(TrendsRoute.End(period, first), Is.EqualTo(DateOnly.Parse(end)));
+        });
+    }
+
+    [TestCase(TrendsPeriod.Week, "2026-11-09", 1, "2026-11-16")]
+    [TestCase(TrendsPeriod.Week, "2026-11-09", -1, "2026-11-02")]
+    [TestCase(TrendsPeriod.Month, "2026-01-01", -1, "2025-12-01")]
+    [TestCase(TrendsPeriod.Month, "2026-12-01", 1, "2027-01-01")]
+    [TestCase(TrendsPeriod.Year, "2026-01-01", -1, "2025-01-01")]
+    public void Step_MovesAWeekMonthOrYear(TrendsPeriod period, string start, int direction, string expected) =>
+        Assert.That(TrendsRoute.Step(period, DateOnly.Parse(start), direction), Is.EqualTo(DateOnly.Parse(expected)));
+
+    [TestCase(TrendsPeriod.Week, "2026-11-09", "9 – 15 Nov")]
+    [TestCase(TrendsPeriod.Week, "2026-11-30", "30 Nov – 6 Dec")]
+    [TestCase(TrendsPeriod.Week, "2026-12-28", "28 Dec 2026 – 3 Jan 2027")]
+    [TestCase(TrendsPeriod.Month, "2026-11-01", "November 2026")]
+    [TestCase(TrendsPeriod.Year, "2026-01-01", "2026")]
+    public void Label_ReadsAsTheDesignShowsIt(TrendsPeriod period, string start, string expected) =>
+        Assert.That(TrendsRoute.Label(period, DateOnly.Parse(start)), Is.EqualTo(expected));
+}
