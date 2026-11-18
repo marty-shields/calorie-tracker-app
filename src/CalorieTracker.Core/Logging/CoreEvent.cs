@@ -207,7 +207,7 @@ internal enum CoreEvent
     /// <summary><see cref="Targets.TargetService"/>: the targets of a range of days were read; the log holds the day count only.</summary>
     TargetRangeRead = 1606,
 
-    /// <summary><see cref="Targets.TargetService"/>: a range with its end before its start was rejected.</summary>
+    /// <summary><see cref="Targets.TargetService"/>: a range with its end before its start, or longer than the maximum, was rejected.</summary>
     TargetRangeRejected = 1607,
 
     /// <summary>Start of the block reserved for <see cref="Diary.DiaryService"/>.</summary>

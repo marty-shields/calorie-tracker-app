@@ -151,7 +151,7 @@ public sealed partial class TargetService
         [LoggerMessage((int)CoreEvent.TargetRangeRead, LogLevel.Debug, "Daily targets read for {Days} days")]
         public static partial void RangeRead(ILogger logger, int days);
 
-        [LoggerMessage((int)CoreEvent.TargetRangeRejected, LogLevel.Debug, "Daily target range rejected as ending before it starts")]
+        [LoggerMessage((int)CoreEvent.TargetRangeRejected, LogLevel.Debug, "Daily target range rejected as backwards or too long")]
         public static partial void RangeRejected(ILogger logger);
 
         [LoggerMessage((int)CoreEvent.TargetSaved, LogLevel.Debug, "Daily target saved")]
