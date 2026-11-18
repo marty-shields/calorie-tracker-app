@@ -98,6 +98,7 @@
         "--font-size-sm", "--font-size-md", "--font-size-lg", "--font-size-xl", "--font-size-xxl", "--font-size-input",
         "--font-weight-regular", "--font-weight-bold",
         "--line-height", "--line-height-tight",
+        "--letter-spacing-label",
     ];
 
     private static readonly string[] Spacing = ["--space-1", "--space-2", "--space-3", "--space-4", "--space-6", "--space-8"];
@@ -152,6 +153,7 @@
         "--font-family" => $"font-family: var({name})",
         _ when name.StartsWith("--font-size") => $"font-size: var({name})",
         _ when name.StartsWith("--font-weight") => $"font-weight: var({name})",
+        "--letter-spacing-label" => $"letter-spacing: var({name})",
         _ => $"line-height: var({name})",
     };
 }

@@ -57,3 +57,5 @@ Feature: Add sheet
     Then the Add sheet is closed
     And the snackbar says it was added to Lunch with the action "Undo"
     And Lunch lists 2 entries
+    When I tap Undo
+    Then Lunch lists 1 entry
