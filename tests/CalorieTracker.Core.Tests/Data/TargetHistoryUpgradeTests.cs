@@ -39,10 +39,7 @@ public class TargetHistoryUpgradeTests
         await connection.InsertAsync(new Food { Source = FoodSource.CoFID, SourceId = "x", Name = "Zebra pie", SearchText = "zebra pie" });
         await connection.InsertAsync(new DiaryEntry { Date = "2031-07-19", Meal = Meal.Lunch, FoodId = 1, Amount = 10 });
         await connection.InsertAsync(new Favourite { FoodId = 1, CreatedAt = DateTimeOffset.UnixEpoch });
-        if (target is not null)
-        {
-            await connection.InsertAsync(new AppSettings { DailyTargetKcal = target });
-        }
+        await connection.InsertAsync(new AppSettings { DailyTargetKcal = target });
 
         await connection.ExecuteAsync("PRAGMA user_version = 19");
         await connection.CloseAsync();

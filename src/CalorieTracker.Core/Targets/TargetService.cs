@@ -86,7 +86,7 @@ public sealed partial class TargetService
     {
         try
         {
-            var kcal = TargetOn(await store.UpToAsync(date), date);
+            var kcal = Round(await store.LatestOnAsync(date));
             Log.DateRead(logger);
             return TargetResult.Ok(kcal);
         }
@@ -97,13 +97,16 @@ public sealed partial class TargetService
         }
     }
 
+    /// <summary>The longest range <see cref="ForRangeAsync"/> accepts, about ten years.</summary>
+    public const int MaxRangeDays = 3_660;
+
     /// <summary>
     /// The target that applied on each day from <paramref name="from"/> to <paramref name="to"/> inclusive, oldest first, from one read.
-    /// A range that ends before it starts returns <see cref="TargetStatus.Invalid"/>.
+    /// A range that ends before it starts, or spans more than <see cref="MaxRangeDays"/> days, returns <see cref="TargetStatus.Invalid"/>.
     /// </summary>
     public async Task<TargetRangeResult> ForRangeAsync(DateOnly from, DateOnly to)
     {
-        if (to < from)
+        if (to < from || to.DayNumber - from.DayNumber >= MaxRangeDays)
         {
             Log.RangeRejected(logger);
             return TargetRangeResult.Invalid();
@@ -112,10 +115,20 @@ public sealed partial class TargetService
         try
         {
             var rows = await store.UpToAsync(to);
-            var days = new List<DayTarget>(to.DayNumber - from.DayNumber + 1);
-            for (var date = from; date <= to; date = date.AddDays(1))
+            var count = to.DayNumber - from.DayNumber + 1;
+            var days = new List<DayTarget>(count);
+            var next = 0;
+            TargetHistory? latest = null;
+            for (var offset = 0; offset < count; offset++)
             {
-                days.Add(new DayTarget(date, TargetOn(rows, date)));
+                var date = DateOnly.FromDayNumber(from.DayNumber + offset);
+                var key = DiaryEntry.FormatDate(date);
+                while (next < rows.Count && string.CompareOrdinal(rows[next].EffectiveFrom, key) <= 0)
+                {
+                    latest = rows[next++];
+                }
+
+                days.Add(new DayTarget(date, Round(latest)));
             }
 
             Log.RangeRead(logger, days.Count);
@@ -128,22 +141,7 @@ public sealed partial class TargetService
         }
     }
 
-    private static int? TargetOn(List<TargetHistory> rows, DateOnly date)
-    {
-        var key = TargetStore.Key(date);
-        TargetHistory? latest = null;
-        foreach (var row in rows)
-        {
-            if (string.CompareOrdinal(row.EffectiveFrom, key) > 0)
-            {
-                break;
-            }
-
-            latest = row;
-        }
-
-        return latest?.Kcal is { } kcal ? (int)Math.Round(kcal) : null;
-    }
+    private static int? Round(TargetHistory? row) => row?.Kcal is { } kcal ? (int)Math.Round(kcal) : null;
 
     private static partial class Log
     {

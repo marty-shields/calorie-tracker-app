@@ -144,21 +144,82 @@ public class TargetHistoryTests
     }
 
     [Test]
-    public async Task ForRangeAsync_ReadsOnceThroughTheGate()
+    public async Task ForRangeAsync_WaitsForTheGateAndReadsHistoryOnce()
     {
         await SaveOn(1, 2000);
-        var holding = new TaskCompletionSource();
-        var busy = gate.RunAsync(() => holding.Task);
+        var reads = new List<string>();
+        connection.Trace = true;
+        connection.Tracer = sql =>
+        {
+            if (sql.Contains("FROM TargetHistory", StringComparison.Ordinal))
+            {
+                reads.Add(sql);
+            }
+        };
 
-        var range = service.ForRangeAsync(Nov(1), Nov(30));
-        var date = service.ForDateAsync(Nov(2));
-        await Task.Delay(50);
-        Assert.That((range.IsCompleted, date.IsCompleted), Is.EqualTo((false, false)));
-        holding.SetResult();
-        await busy;
+        var (_, range) = await GateHolder.CallWhileHeld(gate, () => service.ForRangeAsync(Nov(1), Nov(30)), () => Task.FromResult(0));
 
-        Assert.That((await range).Days, Has.Count.EqualTo(30));
-        Assert.That((await date).Kcal, Is.EqualTo(2000));
+        Assert.That(range.Days, Has.Count.EqualTo(30));
+        Assert.That(reads, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public async Task ForDateAsync_WaitsForTheGate()
+    {
+        await SaveOn(1, 2000);
+
+        var (_, date) = await GateHolder.CallWhileHeld(gate, () => service.ForDateAsync(Nov(2)), () => Task.FromResult(0));
+
+        Assert.That(date.Kcal, Is.EqualTo(2000));
+    }
+
+    private void MoveClockBackTo(int day)
+    {
+        time = new FakeTimeProvider(Noon(day));
+        service = new TargetService(new TargetStore(connection, gate), time, logger);
+    }
+
+    [Test]
+    public async Task SaveAsync_OnAnEarlierDateAfterTheClockMovedBack_DropsLaterRows()
+    {
+        await SaveOn(18, 2000);
+        MoveClockBackTo(17);
+        await service.SaveAsync(1800);
+
+        Assert.That((await service.ForDateAsync(Nov(18))).Kcal, Is.EqualTo(1800));
+        Assert.That((await service.ForDateAsync(Nov(25))).Kcal, Is.EqualTo(1800));
+        Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM TargetHistory"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task ClearAsync_OnAnEarlierDateAfterTheClockMovedBack_DropsLaterRows()
+    {
+        await SaveOn(18, 2000);
+        MoveClockBackTo(17);
+        await service.ClearAsync();
+
+        Assert.That((await service.ForDateAsync(Nov(18))).Kcal, Is.Null);
+        Assert.That((await service.ForDateAsync(Nov(25))).Kcal, Is.Null);
+    }
+
+    [Test]
+    public async Task ForRangeAsync_AtTheLimitWorks_AboveItIsInvalid_AndMaxValueDoesNotThrow()
+    {
+        await SaveOn(1, 2000);
+        var start = Nov(1);
+
+        var atLimit = await service.ForRangeAsync(start, start.AddDays(TargetService.MaxRangeDays - 1));
+        var over = await service.ForRangeAsync(start, start.AddDays(TargetService.MaxRangeDays));
+        var huge = await service.ForRangeAsync(DateOnly.MinValue, DateOnly.MaxValue);
+        var atMax = await service.ForRangeAsync(DateOnly.MaxValue, DateOnly.MaxValue);
+
+        Assert.That(atLimit.Status, Is.EqualTo(TargetStatus.Ok));
+        Assert.That(atLimit.Days, Has.Count.EqualTo(TargetService.MaxRangeDays));
+        Assert.That((over.Status, over.Days), Is.EqualTo((TargetStatus.Invalid, Enumerable.Empty<DayTarget>())));
+        Assert.That(huge.Status, Is.EqualTo(TargetStatus.Invalid));
+        Assert.That(atMax.Status, Is.EqualTo(TargetStatus.Ok));
+        Assert.That(atMax.Days.Single().Kcal, Is.EqualTo(2000));
+        Assert.That(LoggedEvents.Of(logger).Count(l => l.Id == CoreEvent.TargetRangeRejected), Is.EqualTo(2));
     }
 
     [Test]
