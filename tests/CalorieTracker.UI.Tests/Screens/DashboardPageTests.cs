@@ -53,6 +53,8 @@ public class DashboardPageTests : ComponentTestBase
         sliceId = slice.Id;
         Context.Services.AddSingleton(core.GetRequiredService<DaySummaryService>());
         Context.Services.AddSingleton(core.GetRequiredService<DiaryService>());
+        Context.Services.AddSingleton(core.GetRequiredService<CalorieTracker.Core.History.FoodHistoryService>());
+        Context.Services.AddSingleton(core.GetRequiredService<CalorieTracker.Core.Foods.FoodService>());
         Context.Services.AddSingleton<TimeProvider>(new FakeTimeProvider(new DateTimeOffset(2031, 7, 19, 12, 40, 0, TimeSpan.Zero)));
     }
 

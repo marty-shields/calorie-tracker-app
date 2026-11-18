@@ -581,18 +581,8 @@
         }
         else
         {
-            Snackbar.Show(text, "Undo", () => UndoAsync(Diary, Snackbar, Logger, entry.Id));
-        }
-    }
-
-    /// <summary>Removes the entry just added. An entry already gone counts as undone. A failure is logged and said in a snackbar; it never throws.</summary>
-    private static async Task UndoAsync(DiaryService diary, SnackbarService snackbar, ILogger logger, int entryId)
-    {
-        var result = await diary.RemoveAsync(entryId);
-        if (result.Status is not (DiaryStatus.Ok or DiaryStatus.NotFound))
-        {
-            Log.UndoFailed(logger, result.Status);
-            snackbar.Show("Couldn't undo. Remove it from the day.");
+            var (diary, snackbar, logger) = (Diary, Snackbar, Logger);
+            Snackbar.Show(text, "Undo", () => AddUndo.RunAsync(diary, snackbar, status => Log.UndoFailed(logger, status), entry.Id));
         }
     }
 }

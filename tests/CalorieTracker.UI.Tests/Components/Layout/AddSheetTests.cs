@@ -285,4 +285,78 @@ public class AddSheetTests : ComponentTestBase
             (UiEvent.AddSheetChose, LogLevel.Information, "Add sheet Dismiss for Dinner"),
         }));
     }
+
+    private static readonly IReadOnlyList<UsualFoodRow> Rows =
+    [
+        new(7, "Pasta", "150 g · 222 kcal"),
+        new(9, "Pizza", "1 serving · ½ pizza (201.8 g) · 521 kcal"),
+    ];
+
+    [Test]
+    public void UsualFoods_ShowTitleAmountAndAPlusNamedForTheMeal()
+    {
+        At(19, 30);
+
+        var cut = Render(p => p.Add(x => x.Usual, Rows));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=add-sheet-usual-heading]").TextContent, Is.EqualTo("Usual for dinner"));
+            Assert.That(cut.Find("[data-testid=add-sheet-usual-9-title]").TextContent, Is.EqualTo("Pizza"));
+            Assert.That(cut.Find("[data-testid=add-sheet-usual-9-detail]").TextContent, Is.EqualTo("1 serving · ½ pizza (201.8 g) · 521 kcal"));
+            Assert.That(cut.Find("[data-testid=add-sheet-usual-7-add]").GetAttribute("aria-label"), Is.EqualTo("Add Pasta to Dinner"));
+        });
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void WithNoUsualFoods_TheSectionIsHidden(bool empty)
+    {
+        var cut = Render(p => p.Add(x => x.Usual, empty ? [] : null));
+
+        Assert.That(cut.FindAll("[data-testid=add-sheet-usual]"), Is.Empty);
+    }
+
+    [Test]
+    public void OnMealChanged_IsRaisedWhenTheSheetOpensAndWhenAChipIsChosen()
+    {
+        At(12);
+        var meals = new List<Meal>();
+
+        var cut = Render(p => p.Add(x => x.OnMealChanged, meals.Add));
+        cut.Find("[data-testid=add-sheet-meal-breakfast]").Change(true);
+        cut.Render(p => p.Add(x => x.Open, true).Add(x => x.OnMealChanged, meals.Add));
+
+        Assert.That(meals, Is.EqualTo(new[] { Meal.Lunch, Meal.Breakfast }));
+    }
+
+    [Test]
+    public void Plus_RaisesTheFoodAndTheChosenMeal()
+    {
+        At(19, 30);
+        var requests = new List<UsualAddRequest>();
+        var cut = Render(p => p.Add(x => x.Usual, Rows).Add(x => x.OnAddUsual, requests.Add));
+        cut.Find("[data-testid=add-sheet-meal-lunch]").Change(true);
+
+        cut.Find("[data-testid=add-sheet-usual-9-add]").Click();
+
+        Assert.That(requests, Is.EqualTo(new[] { new UsualAddRequest(Rows[1], Meal.Lunch) }));
+    }
+
+    [Test]
+    public void AddError_ShowsInTheSheet_AndSearchAndScanStay()
+    {
+        var cut = Render(p => p.Add(x => x.Usual, Rows).Add(x => x.AddError, "Couldn't add Pasta to Dinner. Try again."));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=add-sheet-add-error]").TextContent, Is.EqualTo("Couldn't add Pasta to Dinner. Try again."));
+            Assert.That(cut.Find("[data-testid=add-sheet-add-error]").GetAttribute("role"), Is.EqualTo("alert"));
+            Assert.That(cut.FindAll("[data-testid=add-sheet-search]"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public void NoError_ShowsNoMessage() =>
+        Assert.That(Render().FindAll("[data-testid=add-sheet-add-error]"), Is.Empty);
 }

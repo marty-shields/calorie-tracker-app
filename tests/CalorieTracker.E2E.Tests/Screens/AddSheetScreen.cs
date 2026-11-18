@@ -1,6 +1,6 @@
 namespace CalorieTracker.E2E.Tests.Screens;
 
-/// <summary>The Add sheet the bar's Add button opens: meal chips, Search foods and Scan barcode.</summary>
+/// <summary>The Add sheet the bar's Add button opens: meal chips, Search foods, Scan barcode and the usual foods.</summary>
 public sealed class AddSheetScreen(WebView web, NavigationBar navigation)
 {
     /// <summary>Taps Add and waits for the sheet.</summary>
@@ -26,6 +26,14 @@ public sealed class AddSheetScreen(WebView web, NavigationBar navigation)
     public IReadOnlyList<string> MealLabels() =>
         web.FindAll("[data-testid=\"add-sheet-meals\"] .text").Select(label => label.Text.Trim()).ToList();
 
+    /// <summary>The last amount and kcal of each usual food listed, such as "35 g · 130 kcal", in order. Empty while the section is hidden.</summary>
+    public IReadOnlyList<string> UsualDetails() =>
+        web.FindAll("[data-testid^=\"add-sheet-usual-\"][data-testid$=\"-detail\"]").Select(row => row.Text.Trim()).ToList();
+
+    /// <summary>Taps the + of the first usual food listed.</summary>
+    public void AddFirstUsual() =>
+        web.FindAll("[data-testid^=\"add-sheet-usual-\"][data-testid$=\"-add\"]").First().Click();
+
     public void Search() => web.Tap("add-sheet-search");
 
     public void Scan() => web.Tap("add-sheet-scan");
@@ -50,6 +58,15 @@ public sealed class AddSheetScreen(WebView web, NavigationBar navigation)
             web.Eventually(FocusIsInSheet, Is.True, $"focus in the Add sheet after {(shift ? "Shift+" : "")}Tab press {press}");
         }
     }
+
+    /// <summary>How many Tab stops the sheet has: the chosen meal, Search foods, Scan barcode and the + of each usual food.</summary>
+    public int TabStopCount() => 3 + UsualAddIds().Count;
+
+    /// <summary>The <c>data-testid</c> of the sheet's last Tab stop: the last usual food's + when any are listed, else Scan barcode.</summary>
+    public string LastControl() => UsualAddIds().LastOrDefault() ?? "add-sheet-scan";
+
+    private List<string> UsualAddIds() =>
+        web.FindAll("[data-testid^=\"add-sheet-usual-\"][data-testid$=\"-add\"]").Select(button => button.GetDomAttribute("data-testid") ?? "").ToList();
 
     private static string MealTestId(string meal) => $"add-sheet-meal-{meal.ToLowerInvariant()}";
 }

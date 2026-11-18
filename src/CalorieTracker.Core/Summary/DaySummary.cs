@@ -26,7 +26,7 @@ public sealed record Nutrition(int Kcal, double ProteinG, double CarbsG, double 
             : throw new OverflowException();
 
     /// <summary>The nutrition of <paramref name="amount"/> grams or millilitres of the food: its per-100 values scaled by amount over 100 and rounded as above.</summary>
-    internal static Nutrition ForAmount(Food food, double amount)
+    public static Nutrition ForAmount(Food food, double amount)
     {
         var scale = (decimal)amount / 100m;
         return new Nutrition(
