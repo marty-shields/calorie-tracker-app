@@ -217,6 +217,21 @@ public class TrendsPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task TappingMarchInYear_OpensMonthForMarch()
+    {
+        await Log(new DateOnly(2031, 3, 10), 1800);
+        var cut = Open(p => p.Add(x => x.Period, TrendsPeriod.Year));
+
+        await Tap(cut, "trends-months-chart-bar-2031-03-01");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "trends-label"), Is.EqualTo("March 2031"));
+            Assert.That(cut.Find("[data-testid=trends-period-month]").HasAttribute("checked"), Is.True);
+        });
+    }
+
+    [Test]
     public async Task AFailedRead_ShowsTryAgain_AndTryAgainReadsAgain()
     {
         await connection.ExecuteAsync("ALTER TABLE DiaryEntry RENAME TO DiaryEntryAway");
@@ -241,8 +256,6 @@ public class TrendsPageTests : ComponentTestBase
         await Log(new DateOnly(2031, 7, 14), 2000);
         await Log(new DateOnly(2031, 7, 15), 2000);
         await Log(new DateOnly(2031, 7, 16), 2000);
-
-        await cut.InvokeAsync(() => Task.Delay(300));
 
         cut.WaitForAssertion(() => Assert.That(Text(cut, "trends-average-figure"), Is.EqualTo("2,000")), TimeSpan.FromSeconds(5));
     }

@@ -74,24 +74,40 @@ public sealed class TrendsSteps(TrendsScreen trends, NavigationBar navigation, A
     [Then(@"^next is (available|not available) on Trends$")]
     public void ThenNextIs(string state) => web.Eventually(trends.NextIsEnabled, Is.EqualTo(state == "available"));
 
-    [When(@"^I tap the first day of last month on the Trends calendar$")]
-    public void TapTheFirstDayOfLastMonth() => trends.TapCalendarDay(FirstOfLastMonth());
-
-    [Then(@"^I am on the Dashboard on the first day of last month$")]
-    public void ThenIAmOnTheDashboardOnThatDay()
+    [Given(@"^I go back a day on the Dashboard$")]
+    public void GoBackADayOnTheDashboard()
     {
         journeys.WaitFor(Journeys.Screen.Dashboard);
-        var day = FirstOfLastMonth();
-        var format = day.Year == Today.Year ? "d MMM" : "d MMM yyyy";
-        web.Eventually(dashboard.DateLabel, Is.EqualTo($"{day.ToString("ddd", Invariant)}, {day.ToString(format, Invariant)}"));
+        dashboard.PreviousDay();
+        web.Eventually(dashboard.DateLabel, Is.EqualTo(DayLabel(Yesterday)));
+    }
+
+    [When(@"^I show the month of yesterday on Trends$")]
+    public void ShowTheMonthOfYesterday()
+    {
+        if (Yesterday.Month != Today.Month)
+        {
+            trends.Previous();
+        }
+
+        web.Eventually(trends.Label, Is.EqualTo(Yesterday.ToString("MMMM yyyy", Invariant)));
+    }
+
+    [When(@"^I tap yesterday on the Trends calendar$")]
+    public void TapYesterdayOnTheCalendar() => trends.TapCalendarDay(Yesterday);
+
+    [Then(@"^I am on the Dashboard on yesterday$")]
+    public void ThenIAmOnTheDashboardOnYesterday()
+    {
+        journeys.WaitFor(Journeys.Screen.Dashboard);
+        web.Eventually(dashboard.DateLabel, Is.EqualTo(DayLabel(Yesterday)));
     }
 
     [When(@"^I open the Add sheet on Trends$")]
     public void OpenTheAddSheetOnTrends() => sheet.Open();
 
-    private DateOnly FirstOfLastMonth()
-    {
-        var last = Today.AddMonths(-1);
-        return new DateOnly(last.Year, last.Month, 1);
-    }
+    private DateOnly Yesterday => Today.AddDays(-1);
+
+    private string DayLabel(DateOnly day) =>
+        $"{day.ToString("ddd", Invariant)}, {day.ToString(day.Year == Today.Year ? "d MMM" : "d MMM yyyy", Invariant)}";
 }

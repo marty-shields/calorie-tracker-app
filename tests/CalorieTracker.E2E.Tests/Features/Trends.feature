@@ -32,11 +32,13 @@ Feature: Trends
 
   Scenario: Tapping a day on the calendar opens that day on Today
     Given I am on the Dashboard
+    And I go back a day on the Dashboard
+    And I have added 100 g of the first food found by "oat" to Lunch
     And I have opened Trends
     When I choose Month on Trends
-    And I go back a month on Trends
-    And I tap the first day of last month on the Trends calendar
-    Then I am on the Dashboard on the first day of last month
+    And I show the month of yesterday on Trends
+    And I tap yesterday on the Trends calendar
+    Then I am on the Dashboard on yesterday
 
   Scenario: Android back from Trends goes to Today
     Given I am on the Dashboard
