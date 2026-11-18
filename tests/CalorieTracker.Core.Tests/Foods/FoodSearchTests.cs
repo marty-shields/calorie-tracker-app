@@ -15,6 +15,7 @@ public class FoodSearchTests
     private SQLiteAsyncConnection connection = null!;
     private DatabaseGate gate = null!;
     private FakeLogger<FoodSearch> logger = null!;
+    private FakeLogger<FoodHistoryService> historyLogger = null!;
     private FoodSearch search = null!;
     private FoodHistoryService history = null!;
     private FavouriteService favourites = null!;
@@ -34,7 +35,8 @@ public class FoodSearchTests
         gate = new DatabaseGate();
         logger = new FakeLogger<FoodSearch>();
         time = new FakeTimeProvider(new DateTimeOffset(2031, 7, 19, 12, 0, 0, TimeSpan.Zero));
-        history = new FoodHistoryService(new FoodHistoryStore(connection, gate), time, new FakeLogger<FoodHistoryService>());
+        historyLogger = new FakeLogger<FoodHistoryService>();
+        history = new FoodHistoryService(new FoodHistoryStore(connection, gate), time, historyLogger);
         diary = new DiaryService(new DiaryStore(connection, gate), new FakeLogger<DiaryService>());
         favourites = new FavouriteService(new FavouriteStore(connection, gate), time, new FakeLogger<FavouriteService>());
         search = new FoodSearch(new FoodStore(connection, gate, new FakeLogger<FoodStore>()), history, favourites, logger);
@@ -706,6 +708,33 @@ public class FoodSearchTests
             Assert.That(breakfast!.LastAmount, Is.EqualTo(150));
             Assert.That(never, Is.Null);
         });
+    }
+
+    [Test]
+    public async Task LastLogged_ReadsOnlyThatFoodsHistory_NotTheWholeHistory()
+    {
+        await Add("Zed milk", "zed milk");
+        await Add("Zed tea", "zed tea");
+        await Log("Zed milk", Meal.Dinner, 200);
+        await Log("Zed tea", Meal.Dinner, 90);
+        historyLogger.Collector.Clear();
+
+        await search.LastLoggedAsync(await IdOf("Zed milk"), Meal.Dinner);
+
+        var lines = LoggedEvents.Of(historyLogger);
+        Assert.That(lines.Select(e => e.Id), Is.EqualTo(new[] { CoreEvent.FoodHistoryByIds }));
+        Assert.That(lines[0].Message, Does.Contain("count 1"));
+    }
+
+    [Test]
+    public async Task LastLogged_HistoryReadFails_IsNull()
+    {
+        await Add("Zed milk", "zed milk");
+        var id = await IdOf("Zed milk");
+        await Log("Zed milk", Meal.Dinner, 200);
+        await connection.DropTableAsync<DiaryEntry>();
+
+        Assert.That(await search.LastLoggedAsync(id), Is.Null);
     }
 
     [Test]
