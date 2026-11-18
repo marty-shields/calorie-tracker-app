@@ -36,6 +36,18 @@ public sealed class FavouriteDatabase : IAsyncDisposable
         return new FavouriteDatabase(path, core, new SQLiteAsyncConnection(path));
     }
 
+    /// <summary>Holds the database gate so any service call queues behind it. Call the result to let the queue run.</summary>
+    public Func<Task> HoldGate()
+    {
+        var release = new TaskCompletionSource();
+        var holder = core.GetRequiredService<DatabaseGate>().RunAsync(() => release.Task);
+        return () =>
+        {
+            release.SetResult();
+            return holder;
+        };
+    }
+
     /// <summary>Stores the food and returns its id.</summary>
     public async Task<int> InsertAsync(Food food)
     {
