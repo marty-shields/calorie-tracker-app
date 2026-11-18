@@ -33,6 +33,21 @@ internal enum UiEvent
     /// <summary><see cref="Components.Layout.AddSheet"/>: keeping focus in the sheet or returning it to Add failed; the sheet still works.</summary>
     AddSheetFocusFailed = 2303,
 
+    /// <summary><see cref="Screens.DashboardPage"/>: the usual foods for the Add sheet were read; carries the meal and the count of rows.</summary>
+    UsualRead = 2304,
+
+    /// <summary><see cref="Screens.DashboardPage"/>: the usual foods could not be read, so the sheet hides them; carries the meal.</summary>
+    UsualReadFailed = 2305,
+
+    /// <summary><see cref="Screens.DashboardPage"/>: a usual food was added from the sheet; carries the food id and the meal.</summary>
+    UsualAdded = 2306,
+
+    /// <summary><see cref="Screens.DashboardPage"/>: adding a usual food failed, so the sheet stays open; carries the food id, the meal and the status.</summary>
+    UsualAddFailed = 2307,
+
+    /// <summary><see cref="Screens.DashboardPage"/>: Undo could not remove the usual food just added; carries the status.</summary>
+    UsualUndoFailed = 2308,
+
     /// <summary><see cref="Lifecycle.AppLifecycle"/>: an app start handler failed.</summary>
     AppStartHandlerFailed = 3201,
 

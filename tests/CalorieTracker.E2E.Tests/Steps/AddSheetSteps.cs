@@ -7,7 +7,7 @@ namespace CalorieTracker.E2E.Tests.Steps;
 
 /// <summary>The Add sheet and the navigation bar's Add button.</summary>
 [Binding]
-public sealed class AddSheetSteps(AddSheetScreen sheet, NavigationBar navigation, Journeys journeys, Native native, WebView web)
+public sealed class AddSheetSteps(AddSheetScreen sheet, NavigationBar navigation, DashboardScreen dashboard, Journeys journeys, Native native, WebView web)
 {
     private const string Meals = "(Breakfast|Lunch|Dinner|Snacks)";
 
@@ -66,6 +66,16 @@ public sealed class AddSheetSteps(AddSheetScreen sheet, NavigationBar navigation
 
     [Then(@"^" + Meals + @" is selected on the Add sheet$")]
     public void ThenMealIsSelected(string meal) => web.Eventually(() => sheet.IsMealChosen(meal), Is.True, $"{meal} selected");
+
+    [Then(@"^the Add sheet lists a usual food showing ""(\d+)"" g and its calories$")]
+    public void ThenTheAddSheetListsAUsualFood(string grams) =>
+        web.Eventually(() => sheet.UsualDetails().FirstOrDefault() ?? "", Does.Match($@"^{grams} g · \d+ kcal$"));
+
+    [When(@"^I tap the plus of the first usual food on the Add sheet$")]
+    public void TapThePlusOfTheFirstUsualFood() => sheet.AddFirstUsual();
+
+    [Then(@"^" + Meals + @" lists (\d+) entries$")]
+    public void ThenMealListsEntries(string meal, int count) => web.Eventually(() => dashboard.Entries(meal).Count, Is.EqualTo(count));
 
     [Then(@"^the Add sheet is (open|closed)$")]
     public void ThenTheAddSheetIs(string state) =>

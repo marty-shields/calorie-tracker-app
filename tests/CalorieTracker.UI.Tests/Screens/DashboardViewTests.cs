@@ -1,5 +1,6 @@
 using CalorieTracker.Core.Data;
 using CalorieTracker.UI.Components.Feedback;
+using CalorieTracker.UI.Components.Layout;
 using CalorieTracker.UI.Screens;
 using CalorieTracker.UI.Stories.Stories.Screens;
 using Microsoft.AspNetCore.Components.Web;
@@ -344,6 +345,49 @@ public class DashboardViewTests : ComponentTestBase
         {
             Assert.That(requests, Is.Empty);
             Assert.That(sheetModule!.Invocations["close"], Has.Count.EqualTo(3), "focus is released to Add each time");
+        });
+    }
+
+    private static readonly IReadOnlyList<UsualFoodRow> UsualRows = [new(7, "Pasta", "150 g · 222 kcal")];
+
+    [TestCase(true, false)]
+    [TestCase(false, true)]
+    public void UsualPlus_AsksForTheDayOnTheStrip_AndClosesTheSheetOnlyWhenAdded(bool added, bool stillOpen)
+    {
+        var asked = new List<(UsualAddRequest Request, DateOnly Day)>();
+        var cut = OpenSheetAt(19, Today.AddDays(-2), p => p
+            .Add(x => x.UsualFoods, UsualRows)
+            .Add(x => x.OnAddUsual, (request, day) =>
+            {
+                asked.Add((request, day));
+                return Task.FromResult(added);
+            }));
+
+        cut.Find("[data-testid=add-sheet-usual-7-add]").Click();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(asked, Is.EqualTo(new[] { (new UsualAddRequest(UsualRows[0], Meal.Dinner), Today.AddDays(-2)) }));
+            Assert.That(Exists(cut, "add-sheet"), Is.EqualTo(stillOpen));
+        });
+    }
+
+    [Test]
+    public void TheSheet_PassesTheUsualFoodsErrorAndMealChangesThrough()
+    {
+        var meals = new List<Meal>();
+        var cut = OpenSheetAt(8, null, p => p
+            .Add(x => x.UsualFoods, UsualRows)
+            .Add(x => x.UsualAddError, "Couldn't add Pasta to Breakfast. Try again.")
+            .Add(x => x.OnMealChanged, meals.Add));
+
+        cut.Find("[data-testid=add-sheet-meal-lunch]").Change(true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "add-sheet-usual-7-title"), Is.EqualTo("Pasta"));
+            Assert.That(Text(cut, "add-sheet-add-error"), Is.EqualTo("Couldn't add Pasta to Breakfast. Try again."));
+            Assert.That(meals, Is.EqualTo(new[] { Meal.Breakfast, Meal.Lunch }));
         });
     }
 

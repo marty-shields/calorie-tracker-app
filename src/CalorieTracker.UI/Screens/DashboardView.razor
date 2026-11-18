@@ -71,7 +71,7 @@
                 }
             }
         </div>
-        <AddSheet Open="sheetOpen" OnClose="CloseSheet" OnSearch="@(meal => ChooseAsync(meal, OnAdd))" OnScan="@(meal => ChooseAsync(meal, OnScan))" />
+        <AddSheet Open="sheetOpen" OnClose="CloseSheet" Usual="UsualFoods" AddError="@UsualAddError" OnMealChanged="OnMealChanged" OnAddUsual="AddUsualAsync" OnSearch="@(meal => ChooseAsync(meal, OnAdd))" OnScan="@(meal => ChooseAsync(meal, OnScan))" />
     </ChildContent>
 </AppScreen>
 
@@ -89,6 +89,15 @@
     {
         sheetOpen = false;
         return callback.InvokeAsync(new MealAddRequest(meal, Date));
+    }
+
+    /// <summary>Adds the usual food to the day on the date strip, then closes the sheet unless it failed.</summary>
+    private async Task AddUsualAsync(UsualAddRequest request)
+    {
+        if (OnAddUsual is { } add && await add(request, Date))
+        {
+            sheetOpen = false;
+        }
     }
 
     /// <summary>The row's tap, or none when nothing handles <see cref="OnEdit"/>, so the row isn't tappable.</summary>
@@ -134,6 +143,22 @@
     /// <summary>Raised by the Add sheet's Scan barcode, with the meal chosen there and the day on the date strip.</summary>
     [Parameter]
     public EventCallback<MealAddRequest> OnScan { get; set; }
+
+    /// <summary>The Add sheet's usual foods for the meal chosen there. None hides the section.</summary>
+    [Parameter]
+    public IReadOnlyList<UsualFoodRow>? UsualFoods { get; set; }
+
+    /// <summary>What failed when a usual food could not be added; shown in the open sheet.</summary>
+    [Parameter]
+    public string? UsualAddError { get; set; }
+
+    /// <summary>Raised with the meal when the Add sheet opens and when another meal is chosen there, so the usual foods can be read for it.</summary>
+    [Parameter]
+    public EventCallback<Meal> OnMealChanged { get; set; }
+
+    /// <summary>Adds a usual food (the request) to the day (the second value) and returns true when it was added, so the sheet closes. Plain delegate, since the sheet needs the result. The + does nothing when unset.</summary>
+    [Parameter]
+    public Func<UsualAddRequest, DateOnly, Task<bool>>? OnAddUsual { get; set; }
 
     /// <summary>Raised by a tapped entry, to change or remove it.</summary>
     [Parameter]

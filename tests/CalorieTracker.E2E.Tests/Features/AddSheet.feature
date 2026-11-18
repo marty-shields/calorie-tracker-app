@@ -1,5 +1,5 @@
 Feature: Add sheet
-  The bar's Add button opens a sheet that guesses the meal from the time and opens search or scan for it. Which meal the time gives is covered by bUnit and Core's unit tests, since the emulator's clock is not fixed; here the sheet always has exactly one meal selected and the chosen one travels on. That the chosen meal reaches Scan is proved by Journey 3 in Journeys.feature (Scan offers no Search by name once the camera is refused).
+  The bar's Add button opens a sheet that guesses the meal from the time and opens search or scan for it, or adds a usual food of that meal in one tap. Which meal the time gives is covered by bUnit and Core's unit tests, since the emulator's clock is not fixed; here the sheet always has exactly one meal selected and the chosen one travels on. That the chosen meal reaches Scan is proved by Journey 3 in Journeys.feature (Scan offers no Search by name once the camera is refused).
 
   @smoke
   Scenario: Add opens a sheet with one meal selected
@@ -47,3 +47,13 @@ Feature: Add sheet
     And focus is on the Add sheet's first control
     When I press Shift+Tab 1 times on the Add sheet
     Then focus is on the Add sheet's last control
+
+  Scenario: A usual food is added in one tap from the Add sheet
+    Given I have logged 35 g of the first food found by "oat" in Lunch
+    When I open the Add sheet
+    And I choose Lunch on the Add sheet
+    Then the Add sheet lists a usual food showing "35" g and its calories
+    When I tap the plus of the first usual food on the Add sheet
+    Then the Add sheet is closed
+    And the snackbar says it was added to Lunch with the action "Undo"
+    And Lunch lists 2 entries

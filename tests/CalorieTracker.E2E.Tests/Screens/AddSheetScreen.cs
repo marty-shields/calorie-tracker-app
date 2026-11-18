@@ -1,6 +1,6 @@
 namespace CalorieTracker.E2E.Tests.Screens;
 
-/// <summary>The Add sheet the bar's Add button opens: meal chips, Search foods and Scan barcode.</summary>
+/// <summary>The Add sheet the bar's Add button opens: meal chips, Search foods, Scan barcode and the usual foods.</summary>
 public sealed class AddSheetScreen(WebView web, NavigationBar navigation)
 {
     /// <summary>Taps Add and waits for the sheet.</summary>
@@ -25,6 +25,14 @@ public sealed class AddSheetScreen(WebView web, NavigationBar navigation)
     /// <summary>The meals with a chip, in order.</summary>
     public IReadOnlyList<string> MealLabels() =>
         web.FindAll("[data-testid=\"add-sheet-meals\"] .text").Select(label => label.Text.Trim()).ToList();
+
+    /// <summary>The last amount and kcal of each usual food listed, such as "35 g · 130 kcal", in order. Empty while the section is hidden.</summary>
+    public IReadOnlyList<string> UsualDetails() =>
+        web.FindAll("[data-testid^=\"add-sheet-usual-\"][data-testid$=\"-detail\"]").Select(row => row.Text.Trim()).ToList();
+
+    /// <summary>Taps the + of the first usual food listed.</summary>
+    public void AddFirstUsual() =>
+        web.FindAll("[data-testid^=\"add-sheet-usual-\"][data-testid$=\"-add\"]").First().Click();
 
     public void Search() => web.Tap("add-sheet-search");
 

@@ -26,6 +26,28 @@
                 <span class="text">Scan barcode</span>
             </button>
         </div>
+        @if (Usual is { Count: > 0 } usual)
+        {
+            <section class="usual" aria-labelledby="add-sheet-usual-heading" data-testid="add-sheet-usual">
+                <h3 id="add-sheet-usual-heading" class="usual-title" data-testid="add-sheet-usual-heading">Usual for @meal.ToString().ToLowerInvariant()</h3>
+                <ul class="usual-rows">
+                    @foreach (var row in usual)
+                    {
+                        <li class="usual-row" data-testid="@($"add-sheet-usual-{row.FoodId}")">
+                            <div class="usual-text">
+                                <span class="usual-name" data-testid="@($"add-sheet-usual-{row.FoodId}-title")" data-wrap-ok>@row.Title</span>
+                                <span class="usual-detail" data-testid="@($"add-sheet-usual-{row.FoodId}-detail")" data-wrap-ok>@row.Detail</span>
+                            </div>
+                            <IconButton Style="IconButtonStyle.Filled" Icon="IconName.Plus" AriaLabel="@($"Add {row.Title} to {meal}")" TestId="@($"add-sheet-usual-{row.FoodId}-add")" OnClick="() => AddUsualAsync(row)" />
+                        </li>
+                    }
+                </ul>
+            </section>
+        }
+        @if (AddError is not null)
+        {
+            <p class="add-error" role="alert" data-testid="add-sheet-add-error" data-wrap-ok>@AddError</p>
+        }
     </div>
 }
 
@@ -64,15 +86,32 @@
     [Parameter]
     public EventCallback OnClose { get; set; }
 
-    protected override void OnParametersSet()
+    /// <summary>The foods usual for the chosen meal, up to 3, set after <see cref="OnMealChanged"/>. The section is hidden when null or empty (nothing logged, or the read failed).</summary>
+    [Parameter]
+    public IReadOnlyList<UsualFoodRow>? Usual { get; set; }
+
+    /// <summary>What failed when a usual food could not be added, shown in the sheet. Nothing shows when null.</summary>
+    [Parameter]
+    public string? AddError { get; set; }
+
+    /// <summary>Raised with the meal when the sheet opens (the one it guessed) and when another meal chip is chosen, so the owner can set <see cref="Usual"/> for it.</summary>
+    [Parameter]
+    public EventCallback<Meal> OnMealChanged { get; set; }
+
+    /// <summary>Raised by a usual food's +. The owner adds it and clears <see cref="Open"/>.</summary>
+    [Parameter]
+    public EventCallback<UsualAddRequest> OnAddUsual { get; set; }
+
+    protected override async Task OnParametersSetAsync()
     {
-        if (Open && !wasOpen)
+        var opening = Open && !wasOpen;
+        wasOpen = Open;
+        if (opening)
         {
             meal = MealWindows.MealFor(TimeOnly.FromDateTime((Clock ?? Time).GetLocalNow().DateTime));
             Log.Opened(Logger, meal);
+            await OnMealChanged.InvokeAsync(meal);
         }
-
-        wasOpen = Open;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -104,7 +143,17 @@
         }
     }
 
-    private void PickMeal(Meal picked) => meal = picked;
+    private Task PickMeal(Meal picked)
+    {
+        meal = picked;
+        return OnMealChanged.InvokeAsync(picked);
+    }
+
+    private Task AddUsualAsync(UsualFoodRow row)
+    {
+        Log.Chose(Logger, AddSheetAction.AddUsual, meal);
+        return OnAddUsual.InvokeAsync(new UsualAddRequest(row, meal));
+    }
 
     private Task ChooseAsync(AddSheetAction action, EventCallback<Meal> callback)
     {
