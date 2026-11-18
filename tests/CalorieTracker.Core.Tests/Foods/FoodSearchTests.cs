@@ -734,7 +734,10 @@ public class FoodSearchTests
         await Log("Zed milk", Meal.Dinner, 200);
         await connection.DropTableAsync<DiaryEntry>();
 
+        historyLogger.Collector.Clear();
+
         Assert.That(await search.LastLoggedAsync(id), Is.Null);
+        Assert.That(LoggedEvents.Of(historyLogger).Select(e => e.Id), Does.Contain(CoreEvent.FoodHistoryFailed));
     }
 
     [Test]
