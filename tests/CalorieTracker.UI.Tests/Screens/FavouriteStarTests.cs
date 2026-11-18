@@ -36,9 +36,13 @@ public class FavouriteStarTests
     {
         await star.LoadAsync(foodId);
 
+        var release = favourites.HoldGate();
         var first = star.ToggleAsync();
         var second = star.ToggleAsync();
-        await Task.WhenAll(first, second);
+        Assert.That(first.IsCompleted, Is.False);
+        Assert.That(second.IsCompleted, Is.True);
+        await release();
+        await first;
 
         Assert.That(star.IsFavourite, Is.True);
         Assert.That((await favourites.Service.IsFavouriteAsync(foodId)).IsFavourite, Is.True);
@@ -78,8 +82,11 @@ public class FavouriteStarTests
         await star.ToggleAsync();
         var undo = snackbar.Current!;
 
+        var release = favourites.HoldGate();
         var toggle = star.ToggleAsync();
-        await snackbar.InvokeActionAsync(undo);
+        var undoing = snackbar.InvokeActionAsync(undo);
+        Assert.That(undoing.IsCompleted, Is.True);
+        await release();
         await toggle;
 
         Assert.That(changedCalls, Is.Zero);

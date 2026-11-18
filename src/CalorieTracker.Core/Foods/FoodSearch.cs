@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace CalorieTracker.Core.Foods;
 
 /// <summary>Splits the typed text into folded words and ranks the food table by <see cref="FoodRanker"/>. Each food comes back bounded like <see cref="FoodService.GetAsync"/> (serving and optional nutrients out of range are dropped). A failing store gives <see cref="FoodSearchStatus.Failed"/>, never an exception.</summary>
-internal sealed partial class FoodSearch(FoodStore store, FoodHistoryService history, ILogger<FoodSearch> logger) : IFoodSearch
+internal sealed partial class FoodSearch(FoodStore store, FoodHistoryService history, FavouriteService favourites, ILogger<FoodSearch> logger) : IFoodSearch
 {
     private const int MaxTerms = 10;
 
@@ -56,17 +56,22 @@ internal sealed partial class FoodSearch(FoodStore store, FoodHistoryService his
             // The foods ever logged are few next to the matches, so one read of them beats asking for every match.
             var logged = await history.AllAsync(meal);
             ct.ThrowIfCancellationRequested();
+            var favouriteIds = await FavouriteIdsAsync();
+            ct.ThrowIfCancellationRequested();
             var byFood = logged.Status == FoodHistoryStatus.Found ? logged.Foods.ToDictionary(h => h.FoodId) : [];
             var listings = matches.Select(f => new FoodListing(f, byFood.GetValueOrDefault(f.Id))).ToList();
-            var diary = listings.Where(l => l.History is not null).OrderByDescending(l => l.History!.TimesLogged).ToList();
-            var rest = listings.Where(l => l.History is null).ToList();
+            var favourite = listings.Where(l => favouriteIds.Contains(l.Food.Id)).ToList();
+            var others = listings.Where(l => !favouriteIds.Contains(l.Food.Id)).ToList();
+            var diary = others.Where(l => l.History is not null).OrderByDescending(l => l.History!.TimesLogged).ToList();
+            var rest = others.Where(l => l.History is null).ToList();
             var groups = new[]
             {
+                Group(FoodGroupKind.Favourites, favourite),
                 Group(FoodGroupKind.Diary, diary),
                 Group(FoodGroupKind.Common, rest.Where(l => l.Food.Source == FoodSource.CoFID)),
                 Group(FoodGroupKind.Branded, rest.Where(l => l.Food.Source == FoodSource.OpenFoodFacts)),
             };
-            Log.Grouped(logger, terms.Count, groups[0].Total, groups[1].Total, groups[2].Total);
+            Log.Grouped(logger, terms.Count, groups[0].Total, groups[1].Total, groups[2].Total, groups[3].Total);
             return FoodGroupsResult.Found(groups);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -84,22 +89,33 @@ internal sealed partial class FoodSearch(FoodStore store, FoodHistoryService his
     {
         try
         {
-            var usual = meal is { } m ? await history.UsualAsync(m, IFoodSearch.UsualLimit) : FoodHistoryResult.Found([]);
-            var recent = await history.RecentAsync(IFoodSearch.RecentLimit + IFoodSearch.UsualLimit, meal);
+            var favouriteIds = await FavouriteIdsAsync();
+            var spare = favouriteIds.Count;
+            var usual = meal is { } m ? await history.UsualAsync(m, IFoodSearch.UsualLimit + spare) : FoodHistoryResult.Found([]);
+            var recent = await history.RecentAsync(IFoodSearch.RecentLimit + IFoodSearch.UsualLimit + spare, meal);
             if (usual.Status != FoodHistoryStatus.Found || recent.Status != FoodHistoryStatus.Found)
             {
                 return FoodGroupsResult.Failed();
             }
 
-            var usualIds = usual.Foods.Select(h => h.FoodId).ToHashSet();
-            var recentRows = recent.Foods.Where(h => !usualIds.Contains(h.FoodId)).Take(IFoodSearch.RecentLimit).ToList();
-            var foods = (await store.GetManyAsync(usual.Foods.Concat(recentRows).Select(h => h.FoodId).ToList()).WaitAsync(ct)).ToDictionary(f => f.Id);
+            var usualRows = usual.Foods.Where(h => !favouriteIds.Contains(h.FoodId)).Take(IFoodSearch.UsualLimit).ToList();
+            var usualIds = usualRows.Select(h => h.FoodId).ToHashSet();
+            var recentRows = recent.Foods.Where(h => !usualIds.Contains(h.FoodId) && !favouriteIds.Contains(h.FoodId)).Take(IFoodSearch.RecentLimit).ToList();
+            var favouriteHistory = favouriteIds.Count > 0 && await history.AllAsync(meal) is { Status: FoodHistoryStatus.Found } all ? all.Foods.ToDictionary(h => h.FoodId) : [];
+            var foods = (await store.GetManyAsync(usualRows.Concat(recentRows).Select(h => h.FoodId).Concat(favouriteIds).ToList()).WaitAsync(ct)).ToDictionary(f => f.Id);
+            var favouriteListings = favouriteIds
+                .Where(foods.ContainsKey)
+                .Select(id => new FoodListing(foods[id], favouriteHistory.GetValueOrDefault(id)))
+                .OrderBy(l => SearchFolding.Fold(FoodDisplay.Of(l.Food).Title), StringComparer.Ordinal)
+                .ThenBy(l => l.Food.Id)
+                .ToList();
             var groups = new[]
             {
-                Group(FoodGroupKind.Usual, Listings(usual.Foods, foods)),
-                Group(FoodGroupKind.Recent, Listings(recentRows, foods)),
+                Group(FoodGroupKind.Favourites, favouriteListings, int.MaxValue),
+                Group(FoodGroupKind.Usual, Listings(usualRows, foods), int.MaxValue),
+                Group(FoodGroupKind.Recent, Listings(recentRows, foods), int.MaxValue),
             };
-            Log.Suggested(logger, groups[0].Foods.Count, groups[1].Foods.Count);
+            Log.Suggested(logger, groups[0].Foods.Count, groups[1].Foods.Count, groups[2].Foods.Count);
             return FoodGroupsResult.Found(groups);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -119,13 +135,20 @@ internal sealed partial class FoodSearch(FoodStore store, FoodHistoryService his
         return logged.Status == FoodHistoryStatus.Found ? logged.Foods.FirstOrDefault(h => h.FoodId == foodId) : null;
     }
 
+    /// <summary>The favourite food ids, or none when the read fails: a failing favourites read leaves out the group and nothing else.</summary>
+    private async Task<HashSet<int>> FavouriteIdsAsync()
+    {
+        var ids = await favourites.IdsAsync();
+        return ids.Status == FavouriteReadStatus.Found ? ids.FoodIds.ToHashSet() : [];
+    }
+
     private static IEnumerable<FoodListing> Listings(IEnumerable<FoodHistory> rows, Dictionary<int, Food> foods) =>
         rows.Where(h => foods.ContainsKey(h.FoodId)).Select(h => new FoodListing(foods[h.FoodId], h));
 
-    private static FoodGroup Group(FoodGroupKind kind, IEnumerable<FoodListing> listings)
+    private static FoodGroup Group(FoodGroupKind kind, IEnumerable<FoodListing> listings, int limit = IFoodSearch.GroupLimit)
     {
         var all = listings.ToList();
-        var kept = all.Take(kind is FoodGroupKind.Usual or FoodGroupKind.Recent ? int.MaxValue : IFoodSearch.GroupLimit).ToList();
+        var kept = all.Take(limit).ToList();
         foreach (var listing in kept)
         {
             FoodService.Bound(listing.Food);
@@ -142,11 +165,11 @@ internal sealed partial class FoodSearch(FoodStore store, FoodHistoryService his
 
     private static partial class Log
     {
-        [LoggerMessage((int)CoreEvent.FoodSearchGrouped, LogLevel.Debug, "Grouped food search with {TermCount} terms found {DiaryCount} diary, {CommonCount} common and {BrandedCount} branded foods")]
-        public static partial void Grouped(ILogger logger, int termCount, int diaryCount, int commonCount, int brandedCount);
+        [LoggerMessage((int)CoreEvent.FoodSearchGrouped, LogLevel.Debug, "Grouped food search with {TermCount} terms found {FavouriteCount} favourite, {DiaryCount} diary, {CommonCount} common and {BrandedCount} branded foods")]
+        public static partial void Grouped(ILogger logger, int termCount, int favouriteCount, int diaryCount, int commonCount, int brandedCount);
 
-        [LoggerMessage((int)CoreEvent.FoodSuggested, LogLevel.Debug, "Foods before typing: {UsualCount} usual and {RecentCount} recent")]
-        public static partial void Suggested(ILogger logger, int usualCount, int recentCount);
+        [LoggerMessage((int)CoreEvent.FoodSuggested, LogLevel.Debug, "Foods before typing: {FavouriteCount} favourite, {UsualCount} usual and {RecentCount} recent")]
+        public static partial void Suggested(ILogger logger, int favouriteCount, int usualCount, int recentCount);
 
         [LoggerMessage((int)CoreEvent.FoodSearched, LogLevel.Debug, "Food search with {TermCount} terms found {ResultCount} foods")]
         public static partial void Searched(ILogger logger, int termCount, int resultCount);
