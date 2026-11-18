@@ -21,7 +21,7 @@ Personal Android app (.NET 11 MAUI Blazor Hybrid). Setup: [docs/dev-setup-build.
 - Screens: a `*Page` calls services, a `*View` takes parameters. `StoryCoverageTests` requires a screen story for every `*View`.
 - Services return a status (such as `ReadResult<T>` or a result record), not exceptions.
 - Every database call goes through `DatabaseGate` (`DatabaseGateTests`).
-- Event ids: `CoreEvent` 1000–1999 (mostly a block of 100 per type; `ServingService` 1010, `FoodHistoryService` 1050, `FoodImportService` 1060 and `FavouriteService` 1070 sit in the 1000 block, and the online search 1520, online import 1540 and online notice 1550 are blocks of ten inside 1500), `UiEvent` 2000–4999 (a block of 100 per type), `AppEvent` 5000s. `CoreEventTests` and `EventIdTests` fix the values and ranges.
+- Event ids: `CoreEvent` 1000–1999 (mostly a block of 100 per type; `ServingService` 1010, `FoodHistoryService` 1050, `FoodImportService` 1060, `FavouriteService` 1070 and `TrendsService` 1080 sit in the 1000 block, and the online search 1520, online import 1540 and online notice 1550 are blocks of ten inside 1500), `UiEvent` 2000–4999 (a block of 100 per type), `AppEvent` 5000s. `CoreEventTests` and `EventIdTests` fix the values and ranges.
 - Styling: tokens only, no literal colours or sizes (`TokensOnlyCssTests`).
 - Logs hold no PII: ids, counts, events and non-personal data such as a scanned barcode are fine, personal data never is (obfuscate when needed; the food search is stricter and never logs its query or the barcodes it returns) (`Logging.feature`). Add a test that a new feature's log lines carry no PII.
 - Docs: `ReadmeDocsTests` checks the README's screenshot table and Project layout.
