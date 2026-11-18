@@ -31,6 +31,12 @@
         </Template>
     </Story>
 
+    <Story Name="Nothing typed with favourites and more to show">
+        <Template>
+            <FoodSearchView Groups="FoodSearchSamples.IdleWithManyFavourites" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnExpand="(FoodGroupKind _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />
+        </Template>
+    </Story>
+
     <Story Name="Add to a meal with favourites">
         <Template>
             <FoodSearchView Meal="Meal.Breakfast" Groups="FoodSearchSamples.IdleWithManyFavourites" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnExpand="(FoodGroupKind _) => { }" OnBack="() => { }" OnNavigate="(NavDestination _) => { }" />

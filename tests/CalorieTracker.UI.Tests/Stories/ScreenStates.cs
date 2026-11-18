@@ -107,6 +107,7 @@ public static class ScreenStates
         new("Screens/FoodSearch", "Nothing typed", c => FoodSearch(c)),
         new("Screens/FoodSearch", "Nothing typed with history", c => FoodSearch(c, groups: FoodSearchSamples.IdleRecent)),
         new("Screens/FoodSearch", "Nothing typed with favourites", c => FoodSearch(c, groups: FoodSearchSamples.IdleWithFavourites)),
+        new("Screens/FoodSearch", "Nothing typed with favourites and more to show", c => FoodSearch(c, groups: FoodSearchSamples.IdleWithManyFavourites)),
         new("Screens/FoodSearch", "Add to a meal with favourites", c => FoodSearch(c, groups: FoodSearchSamples.IdleWithManyFavourites, meal: Meal.Breakfast)),
         new("Screens/FoodSearch", "Favourites expanded", c => FoodSearch(c, groups: FoodSearchSamples.IdleWithManyFavourites, meal: Meal.Breakfast, expanded: [FoodGroupKind.Favourites])),
         new("Screens/FoodSearch", "Results with favourites", c => FoodSearch(c, query: "milk", groups: FoodSearchSamples.MilkWithFavourites)),
