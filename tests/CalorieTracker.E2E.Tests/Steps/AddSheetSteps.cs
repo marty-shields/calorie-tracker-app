@@ -75,6 +75,21 @@ public sealed class AddSheetSteps(AddSheetScreen sheet, NavigationBar navigation
     public void ThenFocusIsBackOnTheAddButton() =>
         web.Eventually(sheet.AddButtonHasFocus, Is.True, "focus on the Add button");
 
+    [Then(@"^focus is in the Add sheet$")]
+    public void ThenFocusIsInTheAddSheet() => web.Eventually(sheet.FocusIsInSheet, Is.True, "focus in the Add sheet");
+
+    [When(@"^I press Tab (\d+) times on the Add sheet$")]
+    public void PressTab(int times) => sheet.TabThroughSheet(times, shift: false);
+
+    [When(@"^I press Shift\+Tab (\d+) times on the Add sheet$")]
+    public void PressShiftTab(int times) => sheet.TabThroughSheet(times, shift: true);
+
+    [Then(@"^focus is on the Add sheet's (first|last) control$")]
+    public void ThenFocusIsOn(string which) =>
+        web.Eventually(sheet.Focused, Is.EqualTo(which == "first" ? "add-sheet-meal-" + FirstMeal() : "add-sheet-scan"), "focused control");
+
+    private string FirstMeal() => new[] { "Breakfast", "Lunch", "Dinner", "Snacks" }.First(sheet.IsMealChosen).ToLowerInvariant();
+
     [When(@"^I tap the dimmed screen above the Add sheet$")]
     public void TapTheScrim() => sheet.TapScrim();
 

@@ -129,6 +129,25 @@ public sealed class WebView
     public string Focused() =>
         App.ExecuteScript("return document.activeElement?.getAttribute('data-testid') ?? '';") as string ?? "";
 
+    /// <summary>Whether the focused element is the element with this <c>data-testid</c> or inside it.</summary>
+    public bool FocusIsWithin(string testId) =>
+        App.ExecuteScript($"return document.activeElement?.closest('[data-testid=\"{testId}\"]') != null;") is true;
+
+    /// <summary>Presses Tab (or Shift+Tab) on the keyboard, as a person with a hardware keyboard does.</summary>
+    public void PressTab(bool shift = false)
+    {
+        var actions = new OpenQA.Selenium.Interactions.Actions(App);
+        if (shift)
+        {
+            actions.KeyDown(Keys.Shift).SendKeys(Keys.Tab).KeyUp(Keys.Shift);
+        }
+        else
+        {
+            actions.SendKeys(Keys.Tab);
+        }
+        actions.Perform();
+    }
+
     /// <summary>Whether the focused element is inside the viewport and the topmost element at its centre.</summary>
     public bool FocusedInView() => App.ExecuteScript(FocusedUncovered) is true;
 

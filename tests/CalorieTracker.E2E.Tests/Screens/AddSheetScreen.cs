@@ -36,5 +36,20 @@ public sealed class AddSheetScreen(WebView web, NavigationBar navigation)
     /// <summary>Whether the Add button has focus, as it should after the sheet closes.</summary>
     public bool AddButtonHasFocus() => web.Focused() == "add-button";
 
+    public bool FocusIsInSheet() => web.FocusIsWithin("add-sheet");
+
+    /// <summary>The <c>data-testid</c> of the focused element.</summary>
+    public string Focused() => web.Focused();
+
+    /// <summary>Presses Tab <paramref name="times"/> times, checking after each press that focus is still in the sheet.</summary>
+    public void TabThroughSheet(int times, bool shift)
+    {
+        for (var press = 1; press <= times; press++)
+        {
+            web.PressTab(shift);
+            web.Eventually(FocusIsInSheet, Is.True, $"focus in the Add sheet after {(shift ? "Shift+" : "")}Tab press {press}");
+        }
+    }
+
     private static string MealTestId(string meal) => $"add-sheet-meal-{meal.ToLowerInvariant()}";
 }
