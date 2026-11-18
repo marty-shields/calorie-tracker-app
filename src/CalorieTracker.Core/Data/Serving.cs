@@ -2,22 +2,22 @@ using SQLite;
 
 namespace CalorieTracker.Core.Data;
 
-/// <summary>Where a serving came from. Stored as its number, so keep the values; the number is also the serving's <see cref="Serving.SortOrder"/> when it is written.</summary>
+/// <summary>Where a serving came from. Stored as its number, so keep the values; Only <see cref="User"/> is written now.</summary>
 public enum ServingSource
 {
-    /// <summary>The serving the product's source gives (Open Food Facts <c>serving_size</c>). A food has at most one.</summary>
+    /// <summary>No longer written; the value is kept because schema steps 13 and 15 use it.</summary>
     Product = 0,
 
-    /// <summary>The whole pack, from a package size. A food can have several, one for each pack size seen.</summary>
+    /// <summary>No longer written; the value is kept because schema steps 13 and 15 use it.</summary>
     Pack = 1,
 
-    /// <summary>Added by the person, and the only kind they can delete.</summary>
+    /// <summary>Added by the person; the only kind a food has.</summary>
     User = 2,
 }
 
 /// <summary>
-/// One way to measure a portion of a food, such as "1 slice (28 g)" or "Whole pack (330 ml)". A food has none, one or several; a diary entry added by servings points at the one it used.
-/// Unique by <see cref="FoodId"/>, <see cref="Source"/> and <see cref="Amount"/>. CoFID foods have none until the person adds their own.
+/// One way to measure a portion of a food, such as "1 slice (28 g)" or "Bowl (40 g)". A food has none, one or several; a diary entry added by servings points at the one it used.
+/// Unique by <see cref="FoodId"/>, <see cref="Source"/> and <see cref="Amount"/>. CoFID foods have none until the person adds their own; so do Open Food Facts foods.
 /// </summary>
 public class Serving
 {
@@ -37,8 +37,4 @@ public class Serving
 
     [NotNull, Indexed("UX_Serving_Food_Source_Amount", 2, Unique = true)]
     public ServingSource Source { get; set; }
-
-    /// <summary>Breaks a tie when servings of a food have the same amount: they are listed smallest amount first, then by this. Written as the number of <see cref="Source"/>, so product, then pack, then the person's own.</summary>
-    [NotNull]
-    public int SortOrder { get; set; }
 }

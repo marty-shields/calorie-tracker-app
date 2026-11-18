@@ -29,7 +29,7 @@ Feature: Search online
     Then Search online is offered as a button under the results
     And no first-use notice shows
 
-  Scenario: Tapping the can and then the 1 L bottle ends up as one food with two pack servings
+  Scenario: Tapping the can and then the 1 L bottle ends up as one food that offers no servings
     Given I have opened Foods
     And I have searched for "fizzy cola"
     And I have tapped Search online
@@ -38,7 +38,7 @@ Feature: Search online
     When I tap Back to results
     And I open the online product "Testco Fizzy Cola" of "1 L"
     And I tap Add to diary
-    Then the servings list reads "Can 330 ml, Bottle 1 L"
+    Then Serving opens in ml with no servings offered
 
   Scenario: The zero-sugar product never merges into the original
     Given I have opened Foods
@@ -48,18 +48,28 @@ Feature: Search online
     And I tap Back to results
     And I open the online product "Testco Fizzy Cola Zero" of "330 ml"
     And I tap Add to diary
-    Then Serving shows the serving "1 serving"
-    And This adds names "330 ml of Testco Fizzy Cola Zero"
+    Then Serving is headed "Testco Fizzy Cola Zero"
+    And Serving opens in ml with no servings offered
 
-  Scenario: A product found from a meal's plus opens Serving on its only serving
+  Scenario: A product found from a meal's plus opens Serving in ml
     Given I am on the Dashboard
     When I tap + on Dinner
     And I search for "fizzy cola"
     And I tap Search online
     And I open the online product "Testco Fizzy Cola" of "1 L"
     Then Serving has the Dinner meal chosen
-    And Serving shows the serving "1 serving"
-    And the weight reads "= 1000 ml"
+    And Serving opens in ml with no servings offered
+
+  Scenario: An own serving added to an online product is the only one offered
+    Given I have opened Foods
+    And I have searched for "fizzy cola"
+    And I have tapped Search online
+    When I open the online product "Testco Fizzy Cola" of "330 ml"
+    And I tap Add to diary
+    And I add my own serving "Glass" of "250"
+    Then Serving shows the serving "Glass"
+    And Serving has no list of servings
+    And the weight reads "= 250 ml"
 
   Scenario: The online search offline says so and the local results keep working
     Given I have opened Foods

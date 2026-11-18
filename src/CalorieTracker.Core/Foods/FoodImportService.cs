@@ -35,9 +35,9 @@ public enum NotImportableReason
 }
 
 /// <summary>
-/// The outcome of an import. <see cref="Food"/> is the food the barcode now belongs to and <see cref="Serving"/> the food's Product serving (null when it has none), all set for <see cref="FoodImportStatus.Created"/>, <see cref="FoodImportStatus.Attached"/> and <see cref="FoodImportStatus.Known"/>.
+/// The outcome of an import. <see cref="Food"/> is the food the barcode now belongs to, set for <see cref="FoodImportStatus.Created"/>, <see cref="FoodImportStatus.Attached"/> and <see cref="FoodImportStatus.Known"/>.
 /// </summary>
-public sealed record FoodImportResult(FoodImportStatus Status, Food? Food = null, NotImportableReason Reason = NotImportableReason.None, ProductServing? Serving = null);
+public sealed record FoodImportResult(FoodImportStatus Status, Food? Food = null, NotImportableReason Reason = NotImportableReason.None);
 
 /// <summary>
 /// Stores a looked-up Open Food Facts product under its barcode and says which food it ended up on. The product comes from anywhere that has looked one up (a barcode today, a search by name later):
@@ -62,11 +62,10 @@ public sealed partial class FoodImportService
     /// <summary>
     /// Imports <paramref name="product"/> under <paramref name="barcode"/>. The product is a <see cref="Food"/> as a lookup returns it, with no id: source Open Food Facts, a name, a unit, kcal, protein, carbs and fat (finite and not negative; optional nutrients are finite when set),
     /// and optionally brand, category and pack (<see cref="Food.PackageAmount"/> and <see cref="Food.PackageLabel"/>).
-    /// A blank source id is set to the barcode and blank search text is filled in. Each barcode's pack is stored as a Pack serving (a pack over <see cref="FoodService.MaxPackServingAmount"/> is kept on the barcode only), and the product's serving as the Product serving when the food has none.
+    /// A blank source id is set to the barcode and blank search text is filled in.
     /// </summary>
     /// <param name="barcode">Digits as <see cref="BarcodeNormaliser.TryNormalise"/> gives them.</param>
-    /// <param name="serving">The product's own serving, stored as the Product serving when usable; null when it has none.</param>
-    public async Task<FoodImportResult> ImportAsync(string barcode, Food product, ProductServing? serving = null)
+    public async Task<FoodImportResult> ImportAsync(string barcode, Food product)
     {
         var reason = Check(barcode, product);
         if (reason != NotImportableReason.None)
@@ -87,7 +86,7 @@ public sealed partial class FoodImportService
 
         try
         {
-            var stored = await store.ImportAsync(barcode, product, time.GetUtcNow(), serving);
+            var stored = await store.ImportAsync(barcode, product, time.GetUtcNow());
             var status = stored.Outcome switch
             {
                 ImportOutcome.Created => FoodImportStatus.Created,
@@ -107,7 +106,7 @@ public sealed partial class FoodImportService
                     break;
             }
 
-            return new FoodImportResult(status, stored.Food, Serving: stored.Serving);
+            return new FoodImportResult(status, stored.Food);
         }
         catch (Exception)
         {

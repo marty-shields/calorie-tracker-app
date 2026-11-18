@@ -512,21 +512,19 @@ public class DatabaseInitializerTests
     }
 
     [Test]
-    public void CurrentVersion_IsEighteen()
+    public void CurrentVersion_IsNineteen()
     {
-        Assert.That(DatabaseInitializer.CurrentVersion, Is.EqualTo(18));
+        Assert.That(DatabaseInitializer.CurrentVersion, Is.EqualTo(19));
     }
 
     private const string ServingCheckedColumn = "SELECT name || ':' || type || ':' || \"notnull\" || ':' || pk FROM pragma_table_info('Food') WHERE name = 'ServingChecked'";
 
     [Test]
-    public async Task InitializeAsync_NewDatabase_CreatesTheServingCheckedColumnEmpty()
+    public async Task InitializeAsync_NewDatabase_HasNoServingCheckedColumn()
     {
         await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
 
-        Assert.That(await connection.QueryScalarsAsync<string>(ServingCheckedColumn), Is.EqualTo(new[] { "ServingChecked:INTEGER:0:0" }));
-        await connection.InsertAsync(new Food { Source = FoodSource.OpenFoodFacts, SourceId = "a", Name = "A", SearchText = "a" });
-        Assert.That((await connection.Table<Food>().FirstAsync()).ServingChecked, Is.Null);
+        Assert.That(await connection.QueryScalarsAsync<string>(ServingCheckedColumn), Is.Empty);
     }
 
     [Test]
@@ -569,7 +567,7 @@ public class DatabaseInitializerTests
         await Initializer(DatabaseInitializer.CurrentVersion, SchemaSteps.All()).InitializeAsync();
 
         Assert.That(await FoodSchema(), Is.EqualTo(created));
-        Assert.That(created, Does.Contain("ServingChecked:INTEGER:0:0"));
+        Assert.That(created, Has.None.Contain("ServingChecked"), "step 18 dropped the column step 8 added");
     }
 
     [Test]

@@ -418,11 +418,12 @@ public class ScanPageTests : ComponentTestBase
     {
         var food = Product("Digestive biscuits", "Morning Mill", FoodUnit.Gram, 480, 7, 62, 22);
         food.Id = 42;
-        lookup.Result = BarcodeLookupResult.Found(food, new ProductServing("1 biscuit", 15));
+        lookup.Result = BarcodeLookupResult.Found(food);
         var added = new List<ScanAddRequest>();
         var cut = await ScannedAsync(p => p.Add(x => x.OnAddToDiary, added.Add));
 
-        cut.WaitForAssertion(() => Assert.That(cut.Find("[data-testid=scan-serving]").TextContent, Is.EqualTo("Serving: 1 biscuit (15 g)")));
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-add]"), Has.Count.EqualTo(1)));
+        Assert.That(cut.Markup, Does.Not.Contain("Serving:"));
         cut.Find("[data-testid=scan-add]").Click();
 
         Assert.That(added, Is.EqualTo(new[] { new ScanAddRequest(42) }));
@@ -433,7 +434,7 @@ public class ScanPageTests : ComponentTestBase
     {
         var food = Product("Digestive biscuits", "Morning Mill", FoodUnit.Gram, 480, 7, 62, 22);
         food.Id = 42;
-        lookup.Result = BarcodeLookupResult.Found(food, new ProductServing("1 biscuit", 15));
+        lookup.Result = BarcodeLookupResult.Found(food);
         search.Last[42] = new CalorieTracker.Core.History.FoodHistory(42, 3, 9, new DateOnly(2031, 7, 19), 45, 3, 77);
         var added = new List<ScanAddRequest>();
         var cut = await ScannedAsync(p => p.Add(x => x.OnAddToDiary, added.Add));
@@ -467,39 +468,13 @@ public class ScanPageTests : ComponentTestBase
         Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Foods }));
     }
 
-    [TestCase("", 15.0)]
-    [TestCase("  ", 15.0)]
-    [TestCase("x", 0.0)]
-    [TestCase("x", -1.0)]
-    [TestCase("x", double.NaN)]
-    [TestCase("x", FoodService.MaxServingAmount + 1)]
-    [TestCase("this label is far longer than sixty characters, so it is dropped altogether", 15.0)]
-    public void ToProduct_ServingOutOfRange_IsLeftOut(string label, double amount)
-    {
-        var food = Product("Biscuits", null, FoodUnit.Gram, 480, 7, 62, 22);
-
-        var product = ScanPage.ToProduct(food, serving: new ProductServing(label, amount))!;
-
-        Assert.That((product.ServingLabel, product.ServingAmount), Is.EqualTo(((string?)null, (decimal?)null)));
-    }
-
-    [Test]
-    public void ToProduct_ServingAtTheLimits_IsKeptTrimmed()
-    {
-        var food = Product("Biscuits", null, FoodUnit.Gram, 480, 7, 62, 22);
-
-        var product = ScanPage.ToProduct(food, serving: new ProductServing($" {new string('a', FoodService.MaxServingLabelLength)} ", FoodService.MaxServingAmount))!;
-
-        Assert.That((product.ServingLabel, product.ServingAmount), Is.EqualTo((new string('a', FoodService.MaxServingLabelLength), (decimal?)10_000)));
-    }
-
     [Test]
     public void ToProduct_NutrientAboveTheCapOrNegative_IsLeftOut()
     {
         var food = Product("Biscuits", null, FoodUnit.Gram, 480, 7, 62, 22);
         (food.FibreG, food.SugarsG, food.SaturatesG, food.SaltG) = (FoodService.MaxNutrientPer100 + 1, -1, FoodService.MaxNutrientPer100, 0);
 
-        var product = ScanPage.ToProduct(food, serving: null)!;
+        var product = ScanPage.ToProduct(food)!;
 
         Assert.That((product.Fibre, product.Sugars, product.Saturates, product.Salt), Is.EqualTo(((decimal?)null, (decimal?)null, (decimal?)100, (decimal?)0)));
     }
@@ -569,7 +544,7 @@ public class ScanPageTests : ComponentTestBase
     {
         var food = Product("Porridge oats", "Morning Mill", FoodUnit.Gram, 372, 11, 60, 8);
         food.Id = 42;
-        lookup.Result = BarcodeLookupResult.Found(food, new ProductServing("1 bowl", 40));
+        lookup.Result = BarcodeLookupResult.Found(food);
         var cut = await ScannedAsync();
         cut.WaitForAssertion(() => Assert.That(cut.FindAll("[data-testid=scan-add]"), Has.Count.EqualTo(1)));
         cut.Find("[data-testid=scan-add]").Click();
@@ -579,7 +554,6 @@ public class ScanPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(LoggedEvents.Of(logger).Select(e => e.Item1), Is.EqualTo(new[] { UiEvent.ScanLookupStarted, UiEvent.ScanLookupFinished }));
-            Assert.That(lines, Has.None.Contain("bowl"));
             Assert.That(lines, Has.Some.Contain(Barcode));
             Assert.That(lines, Has.None.Contain("Porridge").And.None.Contain("Morning Mill"));
         });

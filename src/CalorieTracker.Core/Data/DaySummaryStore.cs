@@ -26,13 +26,7 @@ internal sealed class DaySummaryStore(SQLiteAsyncConnection connection, Database
                     }
                 }
 
-                var byFood = new Dictionary<int, List<Serving>>();
-                foreach (var foodId in entries.Where(e => e.ServingId is not null).Select(e => e.FoodId).Distinct())
-                {
-                    byFood[foodId] = FoodStore.ServingsOf(db, foodId);
-                }
-
-                read = new DayRead(target, entries, foods, servings, byFood);
+                read = new DayRead(target, entries, foods, servings);
             });
 
             return read!;
@@ -41,5 +35,4 @@ internal sealed class DaySummaryStore(SQLiteAsyncConnection connection, Database
 
 /// <summary>What <see cref="DaySummaryStore.ReadDayAsync"/> read.</summary>
 /// <param name="Servings">The servings the entries point at, by serving id.</param>
-/// <param name="FoodServings">Every serving, in listing order, of each food that has an entry added by servings, by food id.</param>
-internal sealed record DayRead(int? TargetKcal, IReadOnlyList<DiaryEntry> Entries, IReadOnlyDictionary<int, Food> Foods, IReadOnlyDictionary<int, Serving> Servings, IReadOnlyDictionary<int, List<Serving>> FoodServings);
+internal sealed record DayRead(int? TargetKcal, IReadOnlyList<DiaryEntry> Entries, IReadOnlyDictionary<int, Food> Foods, IReadOnlyDictionary<int, Serving> Servings);

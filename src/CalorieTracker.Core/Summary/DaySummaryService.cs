@@ -1,5 +1,4 @@
 using CalorieTracker.Core.Data;
-using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Logging;
 using Microsoft.Extensions.Logging;
 
@@ -62,11 +61,7 @@ public sealed partial class DaySummaryService
                     Nutrition.Round(c),
                     Nutrition.Round(f));
                 var serving = entry.ServingId is { } servingId && read.Servings.TryGetValue(servingId, out var chosen) ? chosen : null;
-                // Worded as the Serving screen words it, so a lone pack reads the same on both.
-                var label = serving is null ? null
-                    : read.FoodServings.TryGetValue(food.Id, out var all) ? FoodService.Offered(food.Id, all).FirstOrDefault(o => o.Id == serving.Id)?.Label ?? serving.Label
-                    : serving.Label;
-                mealEntries.Add(new SummaryEntry(entry.Id, food.Id, food.Name, food.Brand, food.Unit, entry.Amount, entry.Servings, nutrition, label, food.Brands, entry.ServingId));
+                mealEntries.Add(new SummaryEntry(entry.Id, food.Id, food.Name, food.Brand, food.Unit, entry.Amount, entry.Servings, nutrition, serving?.Label, food.Brands, entry.ServingId));
             }
 
             var meals = byMeal

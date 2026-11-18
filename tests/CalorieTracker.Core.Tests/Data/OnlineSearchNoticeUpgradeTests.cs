@@ -45,11 +45,11 @@ public class OnlineSearchNoticeUpgradeTests
     {
         await connection.CloseAsync();
         connection = new SQLiteAsyncConnection(databasePath);
-        await new DatabaseInitializer(connection, SchemaSteps.All(), new FakeLogger<DatabaseInitializer>()).InitializeAsync();
+        await new DatabaseInitializer(connection, SchemaSteps.Through(17), new FakeLogger<DatabaseInitializer>(), 17).InitializeAsync();
     }
 
     [Test]
-    public async Task Upgrade_AddsTheEmptyColumn_KeepsTheTarget_AndReachesTheCurrentVersion()
+    public async Task Upgrade_AddsTheEmptyColumn_KeepsTheTarget_AndSetsVersion17()
     {
         await BuildVersion16(withColumn: false);
 
@@ -60,7 +60,7 @@ public class OnlineSearchNoticeUpgradeTests
             Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM pragma_table_info('AppSettings') WHERE name = 'OnlineSearchNoticeSeen'"), Is.EqualTo(1));
             Assert.That(await connection.ExecuteScalarAsync<int>("SELECT DailyTargetKcal FROM AppSettings WHERE Id = 1"), Is.EqualTo(2100));
             Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM AppSettings WHERE OnlineSearchNoticeSeen IS NOT NULL"), Is.Zero);
-            Assert.That(await connection.ExecuteScalarAsync<int>("PRAGMA user_version"), Is.EqualTo(DatabaseInitializer.CurrentVersion));
+            Assert.That(await connection.ExecuteScalarAsync<int>("PRAGMA user_version"), Is.EqualTo(17));
         });
     }
 
@@ -75,7 +75,7 @@ public class OnlineSearchNoticeUpgradeTests
         Assert.Multiple(async () =>
         {
             Assert.That(await connection.ExecuteScalarAsync<int>("SELECT OnlineSearchNoticeSeen FROM AppSettings WHERE Id = 1"), Is.EqualTo(1));
-            Assert.That(await connection.ExecuteScalarAsync<int>("PRAGMA user_version"), Is.EqualTo(DatabaseInitializer.CurrentVersion));
+            Assert.That(await connection.ExecuteScalarAsync<int>("PRAGMA user_version"), Is.EqualTo(17));
         });
     }
 

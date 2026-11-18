@@ -79,7 +79,7 @@ public class CoreServiceCollectionExtensionsTests
     {
         var path = TempDatabase.NewPath();
         var handler = new CapturingHandler(System.Net.HttpStatusCode.OK,
-            "{\"code\":\"1\",\"product\":{\"product_name\":\"Oats\",\"serving_size\":\"1 portion (50 g)\",\"serving_quantity\":50,\"nutriments\":{\"energy-kcal_100g\":100,\"proteins_100g\":1,\"carbohydrates_100g\":2,\"fat_100g\":3}},\"status\":1}");
+            "{\"code\":\"1\",\"product\":{\"product_name\":\"Oats\",\"nutriments\":{\"energy-kcal_100g\":100,\"proteins_100g\":1,\"carbohydrates_100g\":2,\"fat_100g\":3}},\"status\":1}");
         var services = new ServiceCollection()
             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
             .AddCore(path);

@@ -35,7 +35,7 @@ public class PackServingUpgradeTests
     }
 
     private Task AddServing(int foodId, string label, double amount, ServingSource source) =>
-        connection.InsertAsync(new Serving { FoodId = foodId, Label = label, Amount = amount, Source = source, SortOrder = (int)source });
+        connection.ExecuteAsync("INSERT INTO Serving (FoodId, Label, Amount, Source, SortOrder) VALUES (?, ?, ?, ?, ?)", foodId, label, amount, (int)source, (int)source);
 
     private Task AddBarcode(int foodId, string code, double? pack, string? label) =>
         connection.InsertAsync(new Barcode { FoodId = foodId, Code = code, PackageAmount = pack, PackageLabel = label, FirstSeen = DateTimeOffset.UnixEpoch });
@@ -44,7 +44,8 @@ public class PackServingUpgradeTests
     private async Task BuildVersion14()
     {
         await connection.CreateTableAsync<Food>();
-        await connection.CreateTableAsync<Serving>();
+        await connection.ExecuteAsync(SchemaSteps.ServingTableWithSortOrder);
+        await connection.ExecuteAsync("CREATE UNIQUE INDEX IF NOT EXISTS \"UX_Serving_Food_Source_Amount\" ON \"Serving\" (\"FoodId\", \"Source\", \"Amount\")");
         await connection.CreateTableAsync<Barcode>();
         await connection.CreateTableAsync<SeedVersion>();
         await connection.CreateTableAsync<AppSettings>();
@@ -216,7 +217,7 @@ public class PackServingUpgradeTests
         await Assert.MultipleAsync(async () =>
         {
             var rows = await connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ?", twin);
-            Assert.That(rows.Select(r => (r.Label, r.SortOrder)), Is.EqualTo(new[] { ("Can 330 ml", 1) }));
+            Assert.That(rows.Select(r => r.Label), Is.EqualTo(new[] { "Can 330 ml" }));
             Assert.That(await connection.ExecuteScalarAsync<int>("SELECT SortOrder FROM Serving WHERE FoodId = ? AND Source = 1", cordialId), Is.EqualTo(1));
         });
     }

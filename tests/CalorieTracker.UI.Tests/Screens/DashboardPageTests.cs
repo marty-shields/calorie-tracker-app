@@ -48,7 +48,7 @@ public class DashboardPageTests : ComponentTestBase
         };
         await connection.InsertAsync(cheddar);
         cheddarId = cheddar.Id;
-        var slice = new Serving { FoodId = cheddarId, Label = "1 slice (20 g)", Amount = 20, Source = ServingSource.Product, SortOrder = 0 };
+        var slice = new Serving { FoodId = cheddarId, Label = "1 slice (20 g)", Amount = 20, Source = ServingSource.User };
         await connection.InsertAsync(slice);
         sliceId = slice.Id;
         Context.Services.AddSingleton(core.GetRequiredService<DaySummaryService>());

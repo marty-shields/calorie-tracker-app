@@ -14,13 +14,11 @@ namespace CalorieTracker.UI.Models.Scan;
 /// <param name="Saturates">Saturated fat in grams. Null when the source has none.</param>
 /// <param name="Salt">Salt in grams. Null when the source has none.</param>
 /// <param name="FoodId">Id of the stored food the Serving screen reads. Null when the food could not be saved, and the screen offers no Add to diary.</param>
-/// <param name="ServingLabel">The product's own serving, such as "1 biscuit". Null with <paramref name="ServingAmount"/> when it has none or the values are out of range.</param>
-/// <param name="ServingAmount">Weight (g) or volume (ml) of one serving.</param>
 /// <param name="Brands">Every brand, joined with ", ". Null when the source lists none, which leaves <paramref name="Brand"/> as the only brand.</param>
 /// <param name="GenericName">The source's generic name. Null when it gives none.</param>
 /// <param name="PackageLabel">The pack size as the source words it, such as "430 gram". Null when it gives none.</param>
 public sealed record ScannedProduct(string Name, string? Brand, decimal Kcal, decimal Protein, decimal Carbs, decimal Fat, bool IsLiquid = false,
-    decimal? Fibre = null, decimal? Sugars = null, decimal? Saturates = null, decimal? Salt = null, int? FoodId = null, string? ServingLabel = null, decimal? ServingAmount = null,
+    decimal? Fibre = null, decimal? Sugars = null, decimal? Saturates = null, decimal? Salt = null, int? FoodId = null,
     string? Brands = null, string? GenericName = null, string? PackageLabel = null)
 {
     /// <summary>The title, brand line, pack and generic name the screen shows.</summary>

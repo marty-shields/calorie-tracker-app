@@ -19,21 +19,17 @@ public enum BarcodeLookupStatus
 /// <summary>The outcome of a barcode lookup. <see cref="Food"/> is set only when <see cref="Status"/> is <see cref="BarcodeLookupStatus.Found"/>.</summary>
 public sealed record BarcodeLookupResult
 {
-    private BarcodeLookupResult(BarcodeLookupStatus status, Food? food, ProductServing? serving = null)
+    private BarcodeLookupResult(BarcodeLookupStatus status, Food? food)
     {
         Status = status;
         Food = food;
-        Serving = serving;
     }
 
     public BarcodeLookupStatus Status { get; }
 
     public Food? Food { get; }
 
-    /// <summary>The product's own serving (Open Food Facts' wording and weight), for the store to write as the food's Product row; for a stored food, that row. Null when the product has none, or the source flags it as wrong.</summary>
-    public ProductServing? Serving { get; }
-
-    public static BarcodeLookupResult Found(Food food, ProductServing? serving = null) => new(BarcodeLookupStatus.Found, food ?? throw new ArgumentNullException(nameof(food)), serving);
+    public static BarcodeLookupResult Found(Food food) => new(BarcodeLookupStatus.Found, food ?? throw new ArgumentNullException(nameof(food)));
 
     public static BarcodeLookupResult NotFound() => new(BarcodeLookupStatus.NotFound, null);
 
@@ -41,6 +37,3 @@ public sealed record BarcodeLookupResult
 
     public static BarcodeLookupResult RateLimited() => new(BarcodeLookupStatus.RateLimited, null);
 }
-
-/// <summary>A product's own serving as a lookup returns it, such as "0.5 pizza (201.8 g)" and 201.8; the weight is in g, or ml to match the food's unit. Above zero; the label is not blank. The store writes it as the food's Product serving.</summary>
-public sealed record ProductServing(string Label, double Amount);

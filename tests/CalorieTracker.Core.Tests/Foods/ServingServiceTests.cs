@@ -105,7 +105,7 @@ public class ServingServiceTests
     public async Task RemoveAsync_OwnServing_IsDeleted_AndOthersAreNotFound()
     {
         var own = (await service.AddAsync(foodId, "1 slice", 28)).Serving!;
-        await connection.InsertAsync(new Serving { FoodId = foodId, Label = "Whole pack (51 g)", Amount = 51, Source = ServingSource.Pack, SortOrder = 1 });
+        await connection.InsertAsync(new Serving { FoodId = foodId, Label = "Whole pack (51 g)", Amount = 51, Source = ServingSource.Pack });
         var pack = (await connection.Table<Serving>().ToListAsync()).Single(r => r.Source == ServingSource.Pack);
 
         var removed = await service.RemoveAsync(own.Id);

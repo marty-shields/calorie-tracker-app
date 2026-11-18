@@ -43,7 +43,7 @@ public class BarcodeTableUpgradeTests
     {
         await connection.CreateTableAsync<Food>();
         await connection.ExecuteAsync(SchemaSteps.FoodBarcodeTable);
-        await connection.CreateTableAsync<Serving>();
+        await connection.ExecuteAsync(SchemaSteps.ServingTableWithSortOrder);
         await connection.CreateTableAsync<SeedVersion>();
         await connection.CreateTableAsync<AppSettings>();
         await connection.CreateTableAsync<DiaryEntry>();

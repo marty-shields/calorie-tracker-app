@@ -15,7 +15,3 @@
     border-radius: var(--radius-md);
     color: var(--color-error);
 }
-
-.serving {
-    margin: 0;
-}

@@ -6,7 +6,7 @@ namespace CalorieTracker.Core.Data;
 /// <summary>
 /// Step 13: gives servings their own table. Creates <c>Serving</c>, moves each food's stored serving (<c>ServingLabel</c> and <c>ServingAmount</c>) into a Product row, adds a Pack row from <c>PackageAmount</c> for a food with no serving of its own whose pack is at most 1000 g or ml
 /// (the rule of the release before this one, with its pack limit raised), and adds the empty <c>ServingId</c> column to DiaryEntry. A diary entry keeps its amount, servings count and so its calories.
-/// <c>ServingChecked</c> keeps its meaning and stays on Food. The old Food columns stay in place and are not read again; step 16 (<see cref="StorageCleanupUpgrade"/>) drops <c>ServingLabel</c> and <c>ServingAmount</c>.
+/// <c>ServingChecked</c> keeps its meaning and stays on Food (step 18 drops it). The old Food columns stay in place and are not read again; step 16 (<see cref="StorageCleanupUpgrade"/>) drops <c>ServingLabel</c> and <c>ServingAmount</c>.
 /// Safe on a database with no Food, DiaryEntry or Serving table, and when run again (rows are matched by food, source and amount).
 /// </summary>
 internal sealed class ServingTableUpgrade : ISchemaUpgrade

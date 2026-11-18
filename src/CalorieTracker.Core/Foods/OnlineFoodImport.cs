@@ -76,7 +76,7 @@ public sealed partial class OnlineFoodImport : IOnlineFoodImport
             return new OnlineImportResult(OnlineImportStatus.Imported, food);
         }
 
-        var imported = await importer.ImportAsync(normalised, food, result.Serving);
+        var imported = await importer.ImportAsync(normalised, food);
         if (imported is { Status: FoodImportStatus.Created or FoodImportStatus.Attached or FoodImportStatus.Known, Food: { } stored })
         {
             Log.Imported(logger, stored.Id, imported.Status);
