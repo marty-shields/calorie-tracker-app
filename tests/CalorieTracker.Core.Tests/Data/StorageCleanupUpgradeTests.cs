@@ -1,5 +1,4 @@
 using CalorieTracker.Core.Data;
-using CalorieTracker.Core.Foods;
 using Microsoft.Extensions.Logging.Testing;
 using SQLite;
 
@@ -57,7 +56,7 @@ public class StorageCleanupUpgradeTests
     {
         await connection.CloseAsync();
         connection = new SQLiteAsyncConnection(databasePath);
-        await new DatabaseInitializer(connection, SchemaSteps.All(), new FakeLogger<DatabaseInitializer>()).InitializeAsync();
+        await new DatabaseInitializer(connection, SchemaSteps.Through(16), new FakeLogger<DatabaseInitializer>(), 16).InitializeAsync();
     }
 
     private Task<List<string>> Rows(string sql) => connection.QueryScalarsAsync<string>(sql);
@@ -72,7 +71,7 @@ public class StorageCleanupUpgradeTests
             Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM sqlite_master WHERE name = 'FoodBarcode'"), Is.Zero);
             Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM sqlite_master WHERE name = 'FoodBarcode_FoodId'"), Is.Zero);
             Assert.That(await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM pragma_table_info('Food') WHERE name IN ('ServingLabel', 'ServingAmount')"), Is.Zero);
-            Assert.That(await connection.ExecuteScalarAsync<int>("PRAGMA user_version"), Is.EqualTo(17));
+            Assert.That(await connection.ExecuteScalarAsync<int>("PRAGMA user_version"), Is.EqualTo(16));
         });
     }
 
@@ -91,22 +90,6 @@ public class StorageCleanupUpgradeTests
             Assert.That(await Rows("SELECT Id || '|' || FoodId || '|' || Label || '|' || Amount || '|' || Source FROM Serving ORDER BY Id"), Is.EqualTo(servingsBefore));
             Assert.That(await Rows("SELECT Barcode || '|' || FoodId || '|' || IFNULL(PackageAmount, '-') FROM Barcode ORDER BY Id"), Is.EqualTo(barcodesBefore));
             Assert.That(await Rows("SELECT Name || '|' || Kcal FROM Food ORDER BY Id"), Is.EqualTo(new[] { "Bar|430.0", "Pizza|250.0", "Barley|360.0" }));
-        });
-    }
-
-    [Test]
-    public async Task Upgrade_AfterwardsTheStoreReadsTheProductServingFromTheServingRow()
-    {
-        await Upgrade();
-        var store = new FoodStore(connection, new DatabaseGate(), new FakeLogger<FoodStore>());
-
-        var bar = (await store.FindWithBarcodeAsync("5000000000017")).Serving;
-        var pizza = (await store.FindWithBarcodeAsync("5000000000024")).Serving;
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(bar, Is.EqualTo(new ProductServing("1 bar", 40)));
-            Assert.That(pizza, Is.Null);
         });
     }
 
@@ -142,7 +125,7 @@ public class StorageCleanupUpgradeTests
         File.Delete(databasePath);
         connection = new SQLiteAsyncConnection(databasePath);
 
-        await new DatabaseInitializer(connection, SchemaSteps.All(), new FakeLogger<DatabaseInitializer>()).InitializeAsync();
+        await new DatabaseInitializer(connection, SchemaSteps.Through(16), new FakeLogger<DatabaseInitializer>(), 16).InitializeAsync();
 
         Assert.Multiple(async () =>
         {

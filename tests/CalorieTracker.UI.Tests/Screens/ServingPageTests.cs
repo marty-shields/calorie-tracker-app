@@ -39,7 +39,7 @@ public class ServingPageTests : ComponentTestBase
         await core.GetRequiredService<IDatabaseInitializer>().InitializeAsync();
         connection = new SQLiteAsyncConnection(databasePath);
         var pizza = Stored(ScreenStates.Pizza, "pizza");
-        pizzaId = await Insert(pizza, new ProductServing("½ pizza (201.8 g)", 201.8));
+        pizzaId = await Insert(pizza, new OwnServing("½ pizza (201.8 g)", 201.8));
         cheddarId = await Insert(Stored(ScreenStates.Cheddar, "cheddar"));
         Context.Services.AddSingleton(core.GetRequiredService<FoodService>());
         Context.Services.AddSingleton(core.GetRequiredService<ServingService>());
@@ -71,23 +71,19 @@ public class ServingPageTests : ComponentTestBase
         SearchText = from.Name.ToLowerInvariant(),
     };
 
-    /// <summary>Stores the food and, as the lookup's write path does, its serving rows: a Product row for the serving set on it (as it is, unbounded) and a Pack row for a pack of 1000 g or ml at most.</summary>
-    private async Task<int> Insert(Food food, ProductServing? serving = null)
+    /// <summary>Stores the food and, when given, a serving of the person's own as it is, unbounded.</summary>
+    private async Task<int> Insert(Food food, OwnServing? serving = null)
     {
         await connection.InsertAsync(food);
         if (serving is not null)
         {
-            await connection.InsertAsync(new StoredServing { FoodId = food.Id, Label = serving.Label, Amount = serving.Amount, Source = ServingSource.Product, SortOrder = 0 });
-        }
-
-        if (food.PackageAmount is > 0 and <= 1000 && food.PackageAmount != serving?.Amount)
-        {
-            var unit = food.Unit == FoodUnit.Millilitre ? "ml" : "g";
-            await connection.InsertAsync(new StoredServing { FoodId = food.Id, Label = $"Whole pack ({food.PackageAmount:0.##} {unit})", Amount = food.PackageAmount.Value, Source = ServingSource.Pack, SortOrder = 1 });
+            await connection.InsertAsync(new StoredServing { FoodId = food.Id, Label = serving.Label, Amount = serving.Amount, Source = ServingSource.User, SortOrder = 2 });
         }
 
         return food.Id;
     }
+
+    private sealed record OwnServing(string Label, double Amount);
 
     private static FakeTimeProvider Clock(int hour, int minute) => new(new DateTimeOffset(2031, 7, 19, hour, minute, 0, TimeSpan.Zero));
 
@@ -139,11 +135,11 @@ public class ServingPageTests : ComponentTestBase
         mars.Brands = "Mars, Mars Wrigley";
         mars.PackageLabel = "51 g";
         mars.PackageAmount = packAmount;
-        return await Insert(mars, servingAmount is { } weight ? new ProductServing(servingLabel ?? "", weight) : null);
+        return await Insert(mars, servingAmount is { } weight ? new OwnServing(servingLabel ?? "", weight) : null);
     }
 
     [Test]
-    public async Task FoodWithOnlyAPack_OffersItAsOneServing_ShowsTheBrandLine_AndAddsItWithServingsOne()
+    public async Task FoodWithOnlyAPack_OffersNoServing_ShowsTheBrandLine_OpensInGramsAndAddsByWeight()
     {
         var id = await InsertMars();
         var added = 0;
@@ -153,9 +149,10 @@ public class ServingPageTests : ComponentTestBase
         {
             Assert.That(Text(cut, "screen-title"), Is.EqualTo("Mars"));
             Assert.That(Text(cut, "serving-brand"), Is.EqualTo("Mars Wrigley · 51 g"));
-            Assert.That(Text(cut, "serving-label"), Is.EqualTo("1 serving"));
-            Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 51 g"));
-            Assert.That(Text(cut, "serving-adds-detail"), Is.EqualTo("51 g of Mars"));
+            Assert.That(Exists(cut, "serving-label"), Is.False);
+            Assert.That(Exists(cut, "serving-mode-servings"), Is.False);
+            Assert.That(Text(cut, "serving-amount-unit"), Is.EqualTo("g"));
+            Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("100"));
         });
 
         await cut.Find("[data-testid=serving-add]").ClickAsync(new());
@@ -164,20 +161,38 @@ public class ServingPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(added, Is.EqualTo(1));
-            Assert.That(entries.Select(e => (e.Amount, e.Servings)), Is.EqualTo(new[] { (51d, (double?)1) }));
+            Assert.That(entries.Select(e => (e.Amount, e.Servings, e.ServingId)), Is.EqualTo(new[] { (100d, (double?)null, (int?)null) }));
         });
     }
 
     [Test]
-    public async Task FoodWithAPackAndARealServing_OffersBothWithTheRealServingFirstAndThePackClearlyLabelled()
+    public async Task FoodWithAPackAndAnOwnServing_OffersOnlyTheOwnServing()
     {
         var id = await InsertMars(51, "2 squares (20 g)", 20);
         var cut = Render(id, Meal.Snacks);
 
         Assert.Multiple(() =>
         {
-            Assert.That(OptionTexts(cut), Is.EqualTo(new[] { "2 squares (20 g)", "Whole pack (51 g)" }));
+            Assert.That(Text(cut, "serving-label"), Is.EqualTo("2 squares (20 g)"));
+            Assert.That(Exists(cut, "serving-select"), Is.False);
             Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 20 g"));
+        });
+    }
+
+    [Test]
+    public async Task FoodWithProductAndPackRowsLeftByAnOlderVersion_OpensInGrams_AndNeverOffersThem()
+    {
+        var id = await InsertMars();
+        await connection.InsertAsync(new StoredServing { FoodId = id, Label = "1 bar (30 g)", Amount = 30, Source = ServingSource.Product, SortOrder = 0 });
+        await connection.InsertAsync(new StoredServing { FoodId = id, Label = "Whole pack (51 g)", Amount = 51, Source = ServingSource.Pack, SortOrder = 1 });
+
+        var cut = Render(id, Meal.Snacks);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Exists(cut, "serving-label"), Is.False);
+            Assert.That(Exists(cut, "serving-mode-servings"), Is.False);
+            Assert.That(Text(cut, "serving-amount-unit"), Is.EqualTo("g"));
         });
     }
 
@@ -279,7 +294,7 @@ public class ServingPageTests : ComponentTestBase
             Kcal = 100,
             SearchText = "long label",
         };
-        var id = await Insert(long_, new ProductServing(new string('x', FoodService.MaxServingLabelLength + 1), 50));
+        var id = await Insert(long_, new OwnServing(new string('x', FoodService.MaxServingLabelLength + 1), 50));
 
         var cut = Render(id, Meal.Lunch);
 
@@ -1174,12 +1189,13 @@ public class ServingPageTests : ComponentTestBase
     private int glassId;
     private int canId;
 
-    /// <summary>A drink with two servings: its own glass (250 ml) and its can (330 ml, a Pack row).</summary>
+    /// <summary>A drink with two servings of the person's own: a glass (250 ml) and a can (330 ml).</summary>
     private async Task SeedCola()
     {
         var cola = Stored(ServingSamples.Cola, "cola");
-        colaId = await Insert(cola, new ProductServing("1 glass (250 ml)", 250));
-        var rows = await connection.QueryAsync<StoredServing>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY SortOrder", colaId);
+        colaId = await Insert(cola, new OwnServing("1 glass (250 ml)", 250));
+        await connection.InsertAsync(new StoredServing { FoodId = colaId, Label = "My can (330 ml)", Amount = 330, Source = ServingSource.User, SortOrder = 2 });
+        var rows = await connection.QueryAsync<StoredServing>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY Amount", colaId);
         (glassId, canId) = (rows[0].Id, rows[1].Id);
     }
 
@@ -1194,7 +1210,7 @@ public class ServingPageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(OptionTexts(cut), Is.EqualTo(new[] { "1 glass (250 ml)", "Whole pack (330 ml)" }));
+            Assert.That(OptionTexts(cut), Is.EqualTo(new[] { "1 glass (250 ml)", "My can (330 ml)" }));
             Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 250 ml"));
             Assert.That(Text(cut, "serving-amount-unit"), Is.EqualTo("serving"));
         });
@@ -1274,7 +1290,7 @@ public class ServingPageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(OptionTexts(cut), Is.EqualTo(new[] { "My sip", "1 glass (250 ml)", "Whole pack (330 ml)" }));
+            Assert.That(OptionTexts(cut), Is.EqualTo(new[] { "My sip", "1 glass (250 ml)", "My can (330 ml)" }));
             Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { true, false, false }));
             Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 100 ml"));
         });
@@ -1355,11 +1371,11 @@ public class ServingPageTests : ComponentTestBase
         await cut.Find("[data-testid=serving-own-amount]").InputAsync(new() { Value = "200" });
         await cut.Find("[data-testid=serving-own-save]").ClickAsync(new());
 
-        var rows = await connection.QueryAsync<StoredServing>("SELECT * FROM Serving WHERE FoodId = ? AND Source = ?", colaId, (int)ServingSource.User);
+        var rows = await connection.QueryAsync<StoredServing>("SELECT * FROM Serving WHERE FoodId = ? AND Label = ?", colaId, "My mug");
         Assert.Multiple(() =>
         {
             Assert.That(rows.Select(r => (r.Label, r.Amount)), Is.EqualTo(new[] { ("My mug", 200.0) }));
-            Assert.That(OptionTexts(cut), Is.EqualTo(new[] { "My mug", "1 glass (250 ml)", "Whole pack (330 ml)" }));
+            Assert.That(OptionTexts(cut), Is.EqualTo(new[] { "My mug", "1 glass (250 ml)", "My can (330 ml)" }));
             Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { true, false, false }));
             Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("value"), Is.EqualTo("1"));
             Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 200 ml"));
@@ -1450,9 +1466,9 @@ public class ServingPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(before, Is.EqualTo("Delete serving: My mug"));
-            Assert.That(OptionTexts(cut), Is.EqualTo(new[] { "1 glass (250 ml)", "Whole pack (330 ml)" }));
+            Assert.That(OptionTexts(cut), Is.EqualTo(new[] { "1 glass (250 ml)", "My can (330 ml)" }));
             Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { true, false }));
-            Assert.That(Exists(cut, "serving-own-delete"), Is.False);
+            Assert.That(cut.Find("[data-testid=serving-own-delete]").TextContent.Trim(), Is.EqualTo("Delete serving: 1 glass (250 ml)"), "every serving is the person's own, so the one it opened on can be deleted too");
             Assert.That((kept!.Amount, kept.Servings, kept.ServingId), Is.EqualTo((400.0, (double?)2, (int?)null)));
         });
     }

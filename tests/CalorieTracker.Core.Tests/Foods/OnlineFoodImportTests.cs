@@ -81,14 +81,9 @@ public class OnlineFoodImportTests
         product["product_name"] = name;
         product["quantity"] = quantity;
         product["product_quantity"] = packMl;
-        product.Remove("serving_size");
-        product.Remove("serving_quantity");
         product.Remove("serving_quantity_unit");
         return root.ToJsonString();
     }
-
-    private Task<List<Serving>> Servings(int foodId) =>
-        connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY SortOrder, Amount, Id", foodId);
 
     /// <summary>A search over a saved response; <paramref name="without"/> drops the hits with these barcodes first.</summary>
     private OnlineFoodSearch SearchOver(string fixture, out HttpClient client, params string[] without)
@@ -107,7 +102,7 @@ public class OnlineFoodImportTests
     }
 
     [Test]
-    public async Task Ac1_SearchingColaOffersTheCan_AndTheCanThenTheLitreBottleAreOneFoodWithTwoPackServings()
+    public async Task Ac1_SearchingColaOffersTheCan_AndTheCanThenTheLitreBottleAreOneFoodWithTwoBarcodesAndNoServing()
     {
         // The saved search lists Original 330 mL before the can, and the two have the same name, pack and values, so only Original would be offered: drop it to see the can.
         using var search = SearchOver("search-cola-variants.json", out var client, OriginalCode);
@@ -124,8 +119,8 @@ public class OnlineFoodImportTests
             Assert.That(found.Products.Single(p => p.Barcode == CanCode).Food.PackageLabel, Is.EqualTo("330 ml"));
             Assert.That((can.Status, bottle.Status), Is.EqualTo((OnlineImportStatus.Imported, OnlineImportStatus.Imported)));
             Assert.That(bottle.Food!.Id, Is.EqualTo(can.Food!.Id), "one food");
-            Assert.That((await Servings(food.Id)).Where(s => s.Source == ServingSource.Pack).Select(s => (s.Label, s.Amount)), Is.EqualTo(new[] { ("Can 330 ml", 330.0), ("Bottle 1 L", 1000.0) }));
-            Assert.That(await connection.Table<Barcode>().CountAsync(), Is.EqualTo(2));
+            Assert.That((await connection.Table<Barcode>().ToListAsync()).Select(b => (b.FoodId, b.PackageAmount)), Is.EqualTo(new[] { (food.Id, (double?)330), (food.Id, (double?)1000) }));
+            Assert.That(await connection.Table<Serving>().CountAsync(), Is.Zero);
             Assert.That((await search.SearchAsync("coca-cola")).Products.Where(p => p.Barcode is CanCode).Select(p => p.IsNew), Is.EqualTo(new[] { false }), "a stored product is no longer new");
         });
     }
@@ -176,7 +171,7 @@ public class OnlineFoodImportTests
     public async Task Import_AFoodTheLookupAlreadyStored_IsReturnedAsItIs_WithoutImportingAgain()
     {
         var looked = await realLookup.LookupAsync(CanCode);
-        var stored = (await importer.ImportAsync(CanCode, looked.Food!, looked.Serving)).Food!;
+        var stored = (await importer.ImportAsync(CanCode, looked.Food!)).Food!;
         var lookup = new FakeLookup(BarcodeLookupResult.Found(stored));
         var tap = new OnlineFoodImport(lookup, importer, logger);
         var servings = await connection.Table<Serving>().CountAsync();
@@ -217,18 +212,6 @@ public class OnlineFoodImportTests
             Assert.That(lookup.Asked, Is.EqualTo(new[] { "0123456789012" }));
             Assert.That((await connection.Table<Barcode>().ToListAsync()).Select(b => b.Code), Is.EqualTo(new[] { "0123456789012" }));
         });
-    }
-
-    [Test]
-    public async Task Import_AnUnsavedProductWithAServing_StoresItAsTheProductRow()
-    {
-        var food = new Food { Source = FoodSource.OpenFoodFacts, SourceId = "0123456789012", Name = "Serving food", Unit = FoodUnit.Gram, Kcal = 100, ProteinG = 1, CarbsG = 2, FatG = 3 };
-        var tap = new OnlineFoodImport(new FakeLookup(BarcodeLookupResult.Found(food, serving: new ProductServing("1 bar (40 g)", 40))), importer, logger);
-
-        var result = await tap.ImportAsync("123456789012");
-
-        var rows = await connection.Table<Serving>().ToListAsync();
-        Assert.That(rows.Select(r => (r.FoodId, r.Label, r.Amount, r.Source)), Is.EqualTo(new[] { (result.Food!.Id, "1 bar (40 g)", 40.0, ServingSource.Product) }));
     }
 
     [TestCase(BarcodeLookupStatus.NotFound, OnlineImportStatus.NotFound)]

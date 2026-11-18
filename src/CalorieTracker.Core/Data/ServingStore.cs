@@ -10,7 +10,7 @@ internal enum AddUserServingOutcome
     Duplicate,
 }
 
-/// <summary>Adds and deletes the servings a person made, each call through the <see cref="DatabaseGate"/>. Product and Pack rows are written by <see cref="FoodStore"/>.</summary>
+/// <summary>Adds and deletes the servings a person made, each call through the <see cref="DatabaseGate"/>.</summary>
 internal sealed class ServingStore(SQLiteAsyncConnection connection, DatabaseGate gate)
 {
     /// <summary>Adds a User serving to the food. <see cref="AddUserServingOutcome.Duplicate"/> when the food already has a User serving of that amount; <see cref="AddUserServingOutcome.FoodNotFound"/> when no food has the id.</summary>
@@ -41,14 +41,17 @@ internal sealed class ServingStore(SQLiteAsyncConnection connection, DatabaseGat
         });
 
     /// <summary>
-    /// Deletes the User serving with this id and clears the serving link of the diary entries that used it, so they keep their amount, count and calories. False when no User serving has the id (a Product or Pack row is never deleted here).
+    /// Deletes the User serving with this id and clears the serving link of the diary entries that used it, so they keep their amount, count and calories. False when no User serving has the id.
     /// </summary>
     public Task<bool> RemoveUserAsync(int id) =>
         gate.RunAsync(async () =>
         {
             var removed = false;
             await connection.RunInTransactionAsync(db =>
-                removed = FoodStore.DeleteServings(db, "Id = ? AND Source = ?", id, (int)ServingSource.User) > 0);
+            {
+                db.Execute("UPDATE DiaryEntry SET ServingId = NULL WHERE ServingId IN (SELECT Id FROM Serving WHERE Id = ? AND Source = ?)", id, (int)ServingSource.User);
+                removed = db.Execute("DELETE FROM Serving WHERE Id = ? AND Source = ?", id, (int)ServingSource.User) > 0;
+            });
             return removed;
         });
 }

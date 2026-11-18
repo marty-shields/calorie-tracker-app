@@ -39,12 +39,6 @@
         </Template>
     </Story>
 
-    <Story Name="Found with a serving">
-        <Template>
-            <ScanView State="ScanState.Found" Product="@(new("Digestive biscuits", "Morning Mill", 480, 7, 62, 22, FoodId: 3, ServingLabel: "1 biscuit", ServingAmount: 15))" OnNavigate="_ => { }" OnScanAgain="() => { }" />
-        </Template>
-    </Story>
-
     <Story Name="Found with brand and pack">
         <Template>
             <ScanView State="ScanState.Found" Product="@(new("Nutella", "Ferrero", 539, 6.3m, 57.5m, 30.9m, FoodId: 5, Brands: "Ferrero, Nutella", GenericName: "Hazelnut spread with cocoa", PackageLabel: "400 g e"))" OnNavigate="_ => { }" OnScanAgain="() => { }" />

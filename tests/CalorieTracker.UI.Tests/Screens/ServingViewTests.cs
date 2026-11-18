@@ -23,7 +23,6 @@ public class ServingViewTests : ComponentTestBase
     {
         null => [],
         { Id: 11 } => ServingSamples.PizzaServings,
-        { Id: 15 } => ServingSamples.MarsServings,
         _ => [],
     };
 
@@ -66,8 +65,8 @@ public class ServingViewTests : ComponentTestBase
     [Test]
     public void MillilitreFood_WithAServing_ShowsMlOnTheAmountTheServingAndThePer100Labels()
     {
-        var drink = new Food { Id = 15, Name = "Oat drink", Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 1, CarbsG = 6.7, FatG = 1.5, ServingChecked = true };
-        IReadOnlyList<StoredServing> glass = [new StoredServing { Id = 1, FoodId = drink.Id, Label = "1 glass", Amount = 200, Source = ServingSource.Product }];
+        var drink = new Food { Id = 15, Name = "Oat drink", Unit = FoodUnit.Millilitre, Kcal = 46, ProteinG = 1, CarbsG = 6.7, FatG = 1.5 };
+        IReadOnlyList<StoredServing> glass = [new StoredServing { Id = 1, FoodId = drink.Id, Label = "1 glass", Amount = 200, Source = ServingSource.User }];
         var inMl = Render(drink, EntryMode.Grams, 250, 250, servings: glass);
         var inServings = Render(drink, EntryMode.Servings, 2, 400, servings: glass);
 
@@ -413,15 +412,15 @@ public class ServingViewTests : ComponentTestBase
     [Test]
     public void TwoServings_ShowTheListInOrder_WithTheChosenOneSelected_AndNoLabelCard()
     {
-        var cut = RenderCola(ServingSamples.ColaServings, 162);
+        var cut = RenderCola(ServingSamples.ColaServings, 161, grams: 250);
 
         var options = cut.FindAll("[data-testid=serving-select] option");
         Assert.Multiple(() =>
         {
-            Assert.That(options.Select(o => o.TextContent.Trim()), Is.EqualTo(new[] { "1 glass (250 ml)", "Whole pack (330 ml)" }));
+            Assert.That(options.Select(o => o.TextContent.Trim()), Is.EqualTo(new[] { "My mug", "1 glass (250 ml)" }));
             Assert.That(options.Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { false, true }));
             Assert.That(Exists(cut, "serving-label"), Is.False);
-            Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 330 ml"));
+            Assert.That(Text(cut, "serving-weight"), Is.EqualTo("= 250 ml"));
             Assert.That(Text(cut, "serving-amount-unit"), Is.EqualTo("serving"));
         });
     }
@@ -429,7 +428,7 @@ public class ServingViewTests : ComponentTestBase
     [Test]
     public void TwoServings_WithNoChosenId_SelectTheFirst()
     {
-        var cut = RenderCola(ServingSamples.ColaServings, null, grams: 250);
+        var cut = RenderCola(ServingSamples.ColaServings, null, grams: 200);
 
         Assert.That(cut.FindAll("[data-testid=serving-select] option").Select(o => o.HasAttribute("selected")), Is.EqualTo(new[] { true, false }));
     }
@@ -452,19 +451,19 @@ public class ServingViewTests : ComponentTestBase
         var picked = new List<int>();
         var cut = RenderCola(ServingSamples.ColaServings, 161, grams: 250, more: p => p.Add(x => x.OnServingChanged, picked.Add));
 
-        cut.Find("[data-testid=serving-select]").Change("1");
+        cut.Find("[data-testid=serving-select]").Change("0");
 
-        Assert.That(picked, Is.EqualTo(new[] { 162 }));
+        Assert.That(picked, Is.EqualTo(new[] { 163 }));
     }
 
     [Test]
     public void GramsMode_UseServingNamesTheChosenServing()
     {
-        var cut = RenderCola(ServingSamples.ColaServings, 162, EntryMode.Grams, 100, 100);
+        var cut = RenderCola(ServingSamples.ColaServings, 161, EntryMode.Grams, 100, 100);
 
         Assert.Multiple(() =>
         {
-            Assert.That(Text(cut, "serving-use-serving"), Is.EqualTo("Use serving: Whole pack (330 ml)"));
+            Assert.That(Text(cut, "serving-use-serving"), Is.EqualTo("Use serving: 1 glass (250 ml)"));
             Assert.That(Exists(cut, "serving-select"), Is.False);
         });
     }
@@ -582,18 +581,18 @@ public class ServingViewTests : ComponentTestBase
     }
 
     [Test]
-    public void DeleteServing_ShowsOnlyWhileAServingThePersonMadeIsChosen_AndRaisesItsCallback()
+    public void DeleteServing_ShowsWhileAServingIsChosen_NotForAFoodWithNone_AndRaisesItsCallback()
     {
         var deleted = 0;
-        var own = RenderCola(ServingSamples.ColaServingsWithOwn, 163, grams: 200, more: p => p.Add(x => x.OnDeleteOwn, () => deleted++));
-        var pack = RenderCola(ServingSamples.ColaServingsWithOwn, 162);
+        var chosen = RenderCola(ServingSamples.ColaServings, 163, grams: 200, more: p => p.Add(x => x.OnDeleteOwn, () => deleted++));
+        var none = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30);
 
-        own.Find("[data-testid=serving-own-delete]").Click();
+        chosen.Find("[data-testid=serving-own-delete]").Click();
 
         Assert.Multiple(() =>
         {
-            Assert.That(Text(own, "serving-own-delete"), Is.EqualTo("Delete serving: My mug"));
-            Assert.That(Exists(pack, "serving-own-delete"), Is.False);
+            Assert.That(Text(chosen, "serving-own-delete"), Is.EqualTo("Delete serving: My mug"));
+            Assert.That(Exists(none, "serving-own-delete"), Is.False);
             Assert.That(deleted, Is.EqualTo(1));
         });
     }
@@ -601,7 +600,7 @@ public class ServingViewTests : ComponentTestBase
     [Test]
     public void OwnServings_AreAlsoOfferedInEditMode()
     {
-        var cut = RenderCola(ServingSamples.ColaServingsWithOwn, 163, grams: 200, more: p => p.Add(x => x.Editing, true));
+        var cut = RenderCola(ServingSamples.ColaServings, 163, grams: 200, more: p => p.Add(x => x.Editing, true));
 
         Assert.Multiple(() =>
         {

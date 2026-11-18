@@ -8,7 +8,7 @@ namespace CalorieTracker.Core.Foods;
 /// <summary>
 /// Serves barcodes from the barcode table (a food can have several barcodes), and otherwise from the inner lookup, importing what it finds with <see cref="FoodImportService"/>: a product that is the same food in another size gets the barcode on its stored food. The result carries the pack of the barcode asked for.
 /// Concurrent calls for one barcode share a single store read, inner call and save, which ignore the callers' cancellation.
-/// A stored food with no serving, or an Open Food Facts food with no fetch time (stored before its details were), is returned at once and looked up again in the background, one at a time for each barcode (a lookup that was offline or rate limited is tried again on a later scan); the serving, the nutrients and the source details are stored when the lookup is for the same product and unit and gives a serving or the food has no fetch time, and show on the next scan; the serving is written as the food's Product and Pack rows in the Serving table, and the rows the person added stay. The food's id and diary entries are untouched. A source that has no usable serving for the same product and unit marks a food with no serving checked in the database, so it is not asked again, even after a restart. A food with a serving, or checked, and a fetch time is never looked up again.
+/// An Open Food Facts food with no fetch time (stored before its details were) is returned at once and looked up again in the background, one at a time for each barcode (a lookup that was offline or rate limited is tried again on a later scan); the nutrients and the source details are stored when the lookup is for the same product and unit, and show on the next scan. The food's id, servings and diary entries are untouched. A food with a fetch time is never looked up again.
 /// A failing store never reaches the callers: a failed read falls through to the inner lookup, a failed save returns the unsaved food.
 /// </summary>
 internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStore store, FoodImportService importer, ILogger<StoredBarcodeLookup> logger) : IBarcodeLookup
@@ -46,10 +46,9 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
             }
 
             Food? stored = null;
-            ProductServing? storedServing = null;
             try
             {
-                (stored, _, storedServing) = await store.FindWithBarcodeAsync(barcode);
+                (stored, _) = await store.FindWithBarcodeAsync(barcode);
             }
             catch (Exception)
             {
@@ -59,12 +58,12 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
             if (stored is not null)
             {
                 Log.StoreHit(logger, stored.Id);
-                if (WantsServing(stored, storedServing) || WantsDetails(stored))
+                if (WantsDetails(stored))
                 {
-                    StartRefresh(barcode, stored, storedServing);
+                    StartRefresh(barcode, stored);
                 }
 
-                return BarcodeLookupResult.Found(stored, storedServing);
+                return BarcodeLookupResult.Found(stored);
             }
 
             var result = await inner.LookupAsync(barcode, CancellationToken.None);
@@ -72,12 +71,12 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
             {
                 case BarcodeLookupStatus.Found:
                     var food = result.Food!;
-                    var imported = await importer.ImportAsync(barcode, food, result.Serving);
+                    var imported = await importer.ImportAsync(barcode, food);
                     switch (imported.Status)
                     {
                         case FoodImportStatus.Created or FoodImportStatus.Attached or FoodImportStatus.Known:
                             Log.Fetched(logger, result.Status, imported.Food!.Id);
-                            return BarcodeLookupResult.Found(imported.Food, imported.Serving);
+                            return BarcodeLookupResult.Found(imported.Food);
                         case FoodImportStatus.NotImportable:
                             // Same as a product the lookup could not use: not found, and not asked for again.
                             notFound.TryAdd(barcode, 0);
@@ -85,7 +84,7 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
                             return BarcodeLookupResult.NotFound();
                         default:
                             Log.SaveFailed(logger);
-                            return BarcodeLookupResult.Found(food, serving: result.Serving);
+                            return BarcodeLookupResult.Found(food);
                     }
                 case BarcodeLookupStatus.NotFound:
                     notFound.TryAdd(barcode, 0);
@@ -103,10 +102,10 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
         }
     }
 
-    /// <summary>Completes when the serving refreshes running now have finished. Never faults.</summary>
+    /// <summary>Completes when the refreshes running now have finished. Never faults.</summary>
     internal Task RefreshesIdle() => Task.WhenAll(refreshing.Values);
 
-    private void StartRefresh(string barcode, Food stored, ProductServing? storedServing)
+    private void StartRefresh(string barcode, Food stored)
     {
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         if (!refreshing.TryAdd(barcode, started.Task))
@@ -118,7 +117,7 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
         {
             try
             {
-                await RefreshStoredAsync(barcode, stored, storedServing);
+                await RefreshStoredAsync(barcode, stored);
             }
             finally
             {
@@ -128,72 +127,36 @@ internal sealed partial class StoredBarcodeLookup(IBarcodeLookup inner, FoodStor
         });
     }
 
-    private static bool WantsServing(Food stored, ProductServing? serving) => serving is null && stored.ServingChecked is not true;
-
     private static bool WantsDetails(Food stored) => stored.Source == FoodSource.OpenFoodFacts && stored.FetchedAt is null;
 
     /// <summary>
-    /// Asks the inner lookup again for <paramref name="stored"/>. A Found answer with the same source id and unit refreshes the row (serving, nutrients and source details) when it has a serving or the food was stored before its details were (see <see cref="Food.FetchedAt"/>).
-    /// A food with no serving is marked checked in the store, so it is not asked again, when the answer is NotFound or a Found one for the same source id and unit without a usable serving. A Found answer of the scanned barcode's own product (a barcode merged into the food) with the same unit marks a food with no serving checked and changes nothing else. An offline or rate-limited answer, or a Found one for another unit or product, leaves it unmarked for a later scan. Never throws.
+    /// Asks the inner lookup again for <paramref name="stored"/>. A Found answer with the same source id and unit refreshes the row's nutrients and source details and logs it; any other answer (not found, offline, rate limited, another product or unit) leaves the food alone for a later scan. Never throws.
     /// </summary>
-    private async Task RefreshStoredAsync(string barcode, Food stored, ProductServing? storedServing)
+    private async Task RefreshStoredAsync(string barcode, Food stored)
     {
         try
         {
             var result = await inner.LookupAsync(barcode, CancellationToken.None);
             var fresh = result.Food;
-            var sameUnit = fresh is not null && fresh.Unit == stored.Unit;
-            var sameProduct = sameUnit && fresh!.SourceId == stored.SourceId;
-            // A barcode merged into this food answers with its own product: the food's values stay, but the barcode is not asked about for a serving again.
-            var mergedBarcode = sameUnit && !sameProduct && fresh!.SourceId == barcode;
-            var wantsServing = WantsServing(stored, storedServing);
-            if (result.Status == BarcodeLookupStatus.Found && sameProduct)
+            if (result.Status == BarcodeLookupStatus.Found && fresh!.Unit == stored.Unit && fresh.SourceId == stored.SourceId
+                && await store.RefreshAsync(stored.Id, fresh, barcode))
             {
-                var hasServing = result.Serving is not null;
-                var refreshed = (hasServing || WantsDetails(stored)) && await store.RefreshAsync(stored.Id, fresh!, barcode, result.Serving);
-                if (refreshed)
-                {
-                    Log.Refreshed(logger, stored.Id, hasServing);
-                }
-
-                // A flagged serving was marked checked by the refresh itself.
-                if (!hasServing && wantsServing && !(refreshed && fresh!.ServingChecked is true))
-                {
-                    await store.MarkServingCheckedAsync(stored.Id);
-                }
-
-                if (refreshed)
-                {
-                    return;
-                }
+                Log.Refreshed(logger, stored.Id);
             }
-            else if (result.Status == BarcodeLookupStatus.Found && mergedBarcode && wantsServing)
-            {
-                await store.MarkServingCheckedAsync(stored.Id);
-            }
-            else if (result.Status == BarcodeLookupStatus.NotFound && wantsServing)
-            {
-                await store.MarkServingCheckedAsync(stored.Id);
-            }
-
-            Log.ServingMissing(logger, stored.Id, result.Status);
         }
         catch (Exception)
         {
-            Log.ServingFailed(logger, stored.Id);
+            Log.RefreshFailed(logger, stored.Id);
         }
     }
 
     private static partial class Log
     {
-        [LoggerMessage((int)CoreEvent.StoredLookupRefreshed, LogLevel.Debug, "Food {FoodId} refreshed, serving {HasServing}")]
-        public static partial void Refreshed(ILogger logger, int foodId, bool hasServing);
+        [LoggerMessage((int)CoreEvent.StoredLookupRefreshed, LogLevel.Debug, "Food {FoodId} refreshed")]
+        public static partial void Refreshed(ILogger logger, int foodId);
 
-        [LoggerMessage((int)CoreEvent.StoredLookupServingMissing, LogLevel.Debug, "Serving lookup for food {FoodId} gave none, status {Status}")]
-        public static partial void ServingMissing(ILogger logger, int foodId, BarcodeLookupStatus status);
-
-        [LoggerMessage((int)CoreEvent.StoredLookupServingFailed, LogLevel.Warning, "Refresh of food {FoodId} failed")]
-        public static partial void ServingFailed(ILogger logger, int foodId);
+        [LoggerMessage((int)CoreEvent.StoredLookupRefreshFailed, LogLevel.Warning, "Refresh of food {FoodId} failed")]
+        public static partial void RefreshFailed(ILogger logger, int foodId);
 
         [LoggerMessage((int)CoreEvent.StoredLookupStoreHit, LogLevel.Debug, "Barcode served from food {FoodId}")]
         public static partial void StoreHit(ILogger logger, int foodId);

@@ -20,12 +20,6 @@ public sealed partial class FoodService
     /// <summary>Largest value kept for each optional nutrient (fibre, sugars, saturates, salt), in g per 100 g or 100 ml. A nutrient cannot exceed its own food.</summary>
     public const double MaxNutrientPer100 = 100;
 
-    /// <summary>Label a food's pack serving shows when the pack is the food's only serving. With other servings it keeps its stored label, such as "Whole pack (330 ml)", so it is not confused with the product's own serving.</summary>
-    public const string PackServingLabel = "1 serving";
-
-    /// <summary>Largest pack, in g or ml, taken as one serving. A can, bar or bottle is; a multipack or a big cereal box is not.</summary>
-    public const double MaxPackServingAmount = 1000;
-
     private readonly FoodStore store;
     private readonly ILogger<FoodService> logger;
 
@@ -37,7 +31,7 @@ public sealed partial class FoodService
 
     /// <summary>
     /// The food with this id and its servings. A serving needs both a label (not blank, at most <see cref="MaxServingLabelLength"/> characters) and a weight that is finite, above zero and at most <see cref="MaxServingAmount"/>; one that does not is left out.
-    /// Servings come smallest amount first; servings of one amount go product, pack, then the person's own. A pack of the same amount as the product serving, or as another pack, is left out as a repeat, and a pack that is the food's only serving is labelled <see cref="PackServingLabel"/>.
+    /// Only the person's own servings are offered, smallest amount first; a stored Product or Pack row (written before schema step 18) is never offered.
     /// Each optional nutrient that is not finite or outside 0 to <see cref="MaxNutrientPer100"/> comes back null.
     /// </summary>
     public async Task<FoodResult> GetAsync(int id)
@@ -65,21 +59,21 @@ public sealed partial class FoodService
         return FoodResult.Found(food, offered);
     }
 
-    /// <summary>The servings to offer from the stored rows: bounded, repeats left out, a lone pack worded as one serving. New objects; the stored rows are not changed. Null <paramref name="logger"/> drops silently.</summary>
+    /// <summary>The servings to offer from the stored rows: the person's own, bounded. New objects; the stored rows are not changed. Null <paramref name="logger"/> drops silently.</summary>
     internal static List<Serving> Offered(int foodId, IReadOnlyList<Serving> stored, ILogger? logger = null)
     {
         var offered = new List<Serving>();
         var dropped = 0;
         foreach (var row in stored)
         {
-            if (!TryBoundServing(row.Label, row.Amount, out var label, out var amount))
+            if (row.Source != ServingSource.User)
             {
-                dropped++;
                 continue;
             }
 
-            if (row.Source == ServingSource.Pack && offered.Any(o => o.Source != ServingSource.User && o.Amount == amount))
+            if (!TryBoundServing(row.Label, row.Amount, out var label, out var amount))
             {
+                dropped++;
                 continue;
             }
 
@@ -89,11 +83,6 @@ public sealed partial class FoodService
         if (dropped > 0 && logger is not null)
         {
             Log.ServingOutOfRange(logger, foodId);
-        }
-
-        if (offered is [{ Source: ServingSource.Pack } only])
-        {
-            only.Label = PackServingLabel;
         }
 
         return offered;

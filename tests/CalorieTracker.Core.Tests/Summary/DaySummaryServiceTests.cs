@@ -365,22 +365,22 @@ public class DaySummaryServiceTests
         Assert.That((s.Totals.Kcal, s.TargetKcal, s.Meals.Sum(m => m.Entries.Count)), Is.EqualTo((125, (int?)2000, 1)));
     }
 
-    private async Task<(int FoodId, int ProductId, int PackId, int OwnId)> AddDrink()
+    private async Task<(int FoodId, int GlassId, int CanId, int OwnId)> AddDrink()
     {
         var drink = new Food { Source = FoodSource.OpenFoodFacts, SourceId = "drink", Name = "Cola", Unit = FoodUnit.Millilitre, Kcal = 42, SearchText = "cola" };
         await connection.InsertAsync(drink);
-        var product = new Serving { FoodId = drink.Id, Label = "1 glass (250 ml)", Amount = 250, Source = ServingSource.Product, SortOrder = 0 };
-        var pack = new Serving { FoodId = drink.Id, Label = "Whole pack (330 ml)", Amount = 330, Source = ServingSource.Pack, SortOrder = 1 };
+        var glass = new Serving { FoodId = drink.Id, Label = "1 glass (250 ml)", Amount = 250, Source = ServingSource.User, SortOrder = 2 };
+        var can = new Serving { FoodId = drink.Id, Label = "My can (330 ml)", Amount = 330, Source = ServingSource.User, SortOrder = 2 };
         var own = new Serving { FoodId = drink.Id, Label = "My mug", Amount = 200, Source = ServingSource.User, SortOrder = 2 };
-        await connection.InsertAllAsync(new List<Serving> { product, pack, own });
-        return (drink.Id, product.Id, pack.Id, own.Id);
+        await connection.InsertAllAsync(new List<Serving> { glass, can, own });
+        return (drink.Id, glass.Id, can.Id, own.Id);
     }
 
     [Test]
     public async Task DaySummary_EntryCarriesTheLabelOfTheServingItWasAddedBy_AndNullWhenByWeight()
     {
-        var (drink, product, pack, own) = await AddDrink();
-        await diary.AddAsync(Day, Meal.Lunch, drink, 330, 1, pack);
+        var (drink, glass, can, own) = await AddDrink();
+        await diary.AddAsync(Day, Meal.Lunch, drink, 330, 1, can);
         await diary.AddAsync(Day, Meal.Lunch, drink, 400, 2, own);
         await diary.AddAsync(Day, Meal.Lunch, drink, 100);
         await diary.AddAsync(Day, Meal.Lunch, cheddar, 30);
@@ -389,25 +389,11 @@ public class DaySummaryServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(entries.Select(e => e.ServingLabel), Is.EqualTo(new[] { "Whole pack (330 ml)", "My mug", null, null }));
-            Assert.That(entries.Select(e => e.ServingId), Is.EqualTo(new int?[] { pack, own, null, null }));
+            Assert.That(entries.Select(e => e.ServingLabel), Is.EqualTo(new[] { "My can (330 ml)", "My mug", null, null }));
+            Assert.That(entries.Select(e => e.ServingId), Is.EqualTo(new int?[] { can, own, null, null }));
             Assert.That(entries[0].Servings, Is.EqualTo(1));
-            Assert.That(product, Is.Not.EqualTo(pack));
+            Assert.That(glass, Is.Not.EqualTo(can));
         });
-    }
-
-    [Test]
-    public async Task DaySummary_EntryAddedByALonePackServing_ReadsAsOneServing_AsOnTheServingScreen()
-    {
-        var food = new Food { Source = FoodSource.OpenFoodFacts, SourceId = "bar", Name = "Bar", Unit = FoodUnit.Gram, Kcal = 400, SearchText = "bar" };
-        await connection.InsertAsync(food);
-        var pack = new Serving { FoodId = food.Id, Label = "Whole pack (51 g)", Amount = 51, Source = ServingSource.Pack, SortOrder = 1 };
-        await connection.InsertAsync(pack);
-        await diary.AddAsync(Day, Meal.Lunch, food.Id, 51, 1, pack.Id);
-
-        var entries = (await service.GetAsync(Day)).Summary!.Meals.Single(m => m.Meal == Meal.Lunch).Entries;
-
-        Assert.That(entries.Single().ServingLabel, Is.EqualTo(FoodService.PackServingLabel));
     }
 
     [Test]

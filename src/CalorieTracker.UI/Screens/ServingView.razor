@@ -94,9 +94,9 @@
                     else
                     {
                         <AppButton Variant="ButtonVariant.Secondary" FullWidth TestId="serving-own-add" OnClick="OnOwnOpen">Add your own serving</AppButton>
-                        @if (HasServing && Chosen!.Source == ServingSource.User)
+                        @if (HasServing)
                         {
-                            <AppButton Variant="ButtonVariant.Secondary" FullWidth TestId="serving-own-delete" OnClick="OnDeleteOwn"><span data-wrap-ok>Delete serving: @Chosen.Label</span></AppButton>
+                            <AppButton Variant="ButtonVariant.Secondary" FullWidth TestId="serving-own-delete" OnClick="OnDeleteOwn"><span data-wrap-ok>Delete serving: @Chosen!.Label</span></AppButton>
                         }
                     }
                 </section>

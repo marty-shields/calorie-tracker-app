@@ -12,7 +12,7 @@ namespace CalorieTracker.Core.Tests.Foods;
 
 /// <summary>
 /// Calls the import service directly, as a search import would, with products read from the saved Open Food Facts responses in <c>Fixtures</c> (see the README there).
-/// The 1 L and 2 L sizes of Coca-Cola Original are not saved responses: they are the Original fixture with the pack, the name and the serving changed (see <see cref="Resized"/>).
+/// The 1 L and 2 L sizes of Coca-Cola Original are not saved responses: they are the Original fixture with the pack and the name changed (see <see cref="Resized"/>).
 /// </summary>
 public class FoodImportServiceTests
 {
@@ -58,37 +58,33 @@ public class FoodImportServiceTests
     private static string FixtureText(string file) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Foods", "Fixtures", file));
 
     /// <summary>The product a lookup of the fixture gives (the same mapping a scan uses).</summary>
-    private static async Task<LookedProduct> Looked(string json, string barcode)
+    private static async Task<Food> Looked(string json, string barcode)
     {
         using var http = new HttpClient(new JsonHandler(json)) { BaseAddress = new Uri("https://world.openfoodfacts.org/") };
         var lookup = new OpenFoodFactsLookup(http, new FakeLogger<OpenFoodFactsLookup>(), TimeProvider.System);
         var result = await lookup.LookupAsync(barcode);
         Assert.That(result.Status, Is.EqualTo(BarcodeLookupStatus.Found));
-        return new LookedProduct(result.Food!, result.Serving);
+        return result.Food!;
     }
 
-    /// <summary>Imports the way the lookup does: the product with the serving its fixture carries.</summary>
-    private Task<FoodImportResult> Import(string barcode, LookedProduct product) => importer.ImportAsync(barcode, product.Food, product.Serving);
+    private Task<FoodImportResult> Import(string barcode, Food product) => importer.ImportAsync(barcode, product);
 
-    /// <summary>A looked-up product and the serving its lookup returned beside it.</summary>
-    private sealed record LookedProduct(Food Food, ProductServing? Serving);
+    private static Task<Food> Fixture(string file, string barcode) => Looked(FixtureText(file), barcode);
 
-    private static Task<LookedProduct> Fixture(string file, string barcode) => Looked(FixtureText(file), barcode);
+    private static Task<Food> Can() => Fixture("details-cola-can-5000112637922.json", CanCode);
 
-    private static Task<LookedProduct> Can() => Fixture("details-cola-can-5000112637922.json", CanCode);
+    private static Task<Food> Original() => Fixture("details-cola-original-5449000214911.json", OriginalCode);
 
-    private static Task<LookedProduct> Original() => Fixture("details-cola-original-5449000214911.json", OriginalCode);
+    private static Task<Food> Zero() => Fixture("details-cola-zero-5449000131805.json", ZeroCode);
 
-    private static Task<LookedProduct> Zero() => Fixture("details-cola-zero-5449000131805.json", ZeroCode);
+    private static Task<Food> Light() => Fixture("details-cola-light-5449000050205.json", LightCode);
 
-    private static Task<LookedProduct> Light() => Fixture("details-cola-light-5449000050205.json", LightCode);
+    private static Task<Food> OriginalTaste() => Fixture("details-cola-original-taste-1-5l-5449000000439.json", OriginalTasteCode);
 
-    private static Task<LookedProduct> OriginalTaste() => Fixture("details-cola-original-taste-1-5l-5449000000439.json", OriginalTasteCode);
+    private static Task<Food> Oreo() => Fixture("details-oreo-7622300336738.json", OreoCode);
 
-    private static Task<LookedProduct> Oreo() => Fixture("details-oreo-7622300336738.json", OreoCode);
-
-    /// <summary>Coca-Cola Original's saved response with another pack: the quantity, the pack amount, the name and a serving of 250 ml.</summary>
-    private static Task<LookedProduct> Resized(string barcode, string name, string quantity, double packMl, Action<JsonObject>? change = null)
+    /// <summary>Coca-Cola Original's saved response with another pack: the quantity, the pack amount and the name.</summary>
+    private static Task<Food> Resized(string barcode, string name, string quantity, double packMl, Action<JsonObject>? change = null)
     {
         var root = JsonNode.Parse(FixtureText("details-cola-original-5449000214911.json"))!.AsObject();
         root["code"] = barcode;
@@ -96,15 +92,13 @@ public class FoodImportServiceTests
         product["product_name"] = name;
         product["quantity"] = quantity;
         product["product_quantity"] = packMl;
-        product["serving_size"] = "250 ml";
-        product["serving_quantity"] = 250;
         change?.Invoke(product);
         return Looked(root.ToJsonString(), barcode);
     }
 
     private async Task<Food> OnlyFood() => (await connection.Table<Food>().ToListAsync()).Single();
 
-    /// <summary>The can response's own values (its brand, its nutrients with no salt or saturates, and no serving) on a resized product.</summary>
+    /// <summary>The can response's own values (its brand and its nutrients with no salt or saturates) on a resized product.</summary>
     private static void LikeTheCan(JsonObject product)
     {
         product["brands"] = "Coca-Cola";
@@ -114,17 +108,14 @@ public class FoodImportServiceTests
         nutriments["sugars_100g"] = 10.6;
         nutriments.Remove("salt_100g");
         nutriments.Remove("saturated-fat_100g");
-        product.Remove("serving_size");
-        product.Remove("serving_quantity");
     }
 
     private Task<List<Barcode>> BarcodeRows() => connection.QueryAsync<Barcode>("SELECT * FROM Barcode ORDER BY Id");
 
-    private Task<List<Serving>> ServingRows(int foodId) =>
-        connection.QueryAsync<Serving>("SELECT * FROM Serving WHERE FoodId = ? ORDER BY SortOrder, Amount, Id", foodId);
+    private Task<int> ServingCount() => connection.Table<Serving>().CountAsync();
 
     [Test]
-    public async Task Import_AnUnknownProduct_CreatesTheFoodItsBarcodeRowAndItsPackServing()
+    public async Task Import_AnUnknownProduct_CreatesTheFoodAndItsBarcodeRowWithNoServing()
     {
         var result = await Import(CanCode, await Can());
 
@@ -135,48 +126,8 @@ public class FoodImportServiceTests
             Assert.That((result.Status, result.Food!.Id), Is.EqualTo((FoodImportStatus.Created, food.Id)));
             Assert.That((food.Name, food.Brand, food.Unit, food.SourceId), Is.EqualTo(("Coca Cola", "Coca-Cola", FoodUnit.Millilitre, CanCode)));
             Assert.That((barcode.FoodId, barcode.Code, barcode.PackageAmount, barcode.PackageLabel, barcode.FirstSeen), Is.EqualTo((food.Id, CanCode, (double?)330, "330 ml", Now)));
-            Assert.That((await ServingRows(food.Id)).Select(s => (s.Label, s.Amount, s.Source)), Is.EqualTo(new[] { ("Can 330 ml", 330.0, ServingSource.Pack) }));
+            Assert.That(await ServingCount(), Is.Zero);
         });
-    }
-
-    [Test]
-    public async Task Import_AnUnknownProductWithAServing_ReturnsTheServingItStored()
-    {
-        var product = await Original();
-
-        var result = await Import(OriginalCode, product);
-
-        Assert.That(product.Serving, Is.Not.Null);
-        Assert.That(result.Status, Is.EqualTo(FoodImportStatus.Created));
-        Assert.That(result.Serving, Is.EqualTo(product.Serving));
-        Assert.That((await ServingRows(result.Food!.Id)).Where(s => s.Source == ServingSource.Product).Select(s => new ProductServing(s.Label, s.Amount)), Is.EqualTo(new[] { product.Serving }));
-    }
-
-    [Test]
-    public async Task Import_ANewBarcodeOfAProductAlreadyStoredBySourceId_ReturnsTheServingOfThatFood()
-    {
-        var product = await Original();
-        var first = await Import(OriginalCode, product);
-
-        var second = await Import(OneLitreCode, await Original());
-
-        Assert.That((second.Status, second.Food!.Id), Is.EqualTo((FoodImportStatus.Known, first.Food!.Id)));
-        Assert.That(second.Serving, Is.EqualTo(product.Serving));
-        Assert.That(second.Serving, Is.Not.Null);
-    }
-
-    [Test]
-    public async Task Import_AttachedToAFoodWithAServing_ReturnsTheStoredServingNotThePassedOne()
-    {
-        var can = await Import(OriginalCode, await Original());
-        var oneLitre = await Resized(OneLitreCode, "Coca-Cola Original 1L", "1L", 1000);
-        var passed = new ProductServing("1 big glass (400 ml)", 400);
-
-        var result = await Import(OneLitreCode, oneLitre with { Serving = passed });
-
-        Assert.That(result.Status, Is.EqualTo(FoodImportStatus.Attached));
-        Assert.That(can.Serving, Is.Not.Null.And.Not.EqualTo(passed));
-        Assert.That(result.Serving, Is.EqualTo(can.Serving));
     }
 
     [Test]
@@ -184,8 +135,8 @@ public class FoodImportServiceTests
     {
         var first = await Import(CanCode, await Can());
         var changed = await Can();
-        changed.Food.Kcal = 999;
-        changed.Food.Name = "Something else";
+        changed.Kcal = 999;
+        changed.Name = "Something else";
 
         var second = await Import(CanCode, changed);
 
@@ -195,7 +146,6 @@ public class FoodImportServiceTests
             Assert.That((second.Status, second.Food!.Id), Is.EqualTo((FoodImportStatus.Known, first.Food!.Id)));
             Assert.That((food.Name, food.Kcal), Is.EqualTo(("Coca Cola", first.Food.Kcal)));
             Assert.That(await BarcodeRows(), Has.Count.EqualTo(1));
-            Assert.That(await ServingRows(food.Id), Has.Count.EqualTo(1));
         });
     }
 
@@ -277,24 +227,18 @@ public class FoodImportServiceTests
     }
 
     [Test]
-    public async Task Import_CokeOriginalSizes_GetPackServingsByAmount_ProductServingStaysTheStoredFoods()
+    public async Task Import_CokeOriginalSizes_StoreNoServing_EachBarcodeKeepsItsOwnPack()
     {
         await Import(OriginalCode, await Original());
         await Import(OneLitreCode, await Resized(OneLitreCode, "Coca-Cola Original 1L", "1L", 1000));
         await Import(TwoLitreCode, await Resized(TwoLitreCode, "Coca-Cola Original 2 litres", "2 litres", 2000));
 
-        var food = await OnlyFood();
-
-        // 330 ml is the product serving already ("330ml"), so no pack row repeats it; 2 L is over the pack limit and stays on its barcode only.
-        Assert.That((await ServingRows(food.Id)).Select(s => (s.Label, s.Amount, s.Source)), Is.EqualTo(new[]
-        {
-            ("330ml", 330.0, ServingSource.Product),
-            ("Bottle 1 L", 1000.0, ServingSource.Pack),
-        }));
+        Assert.That(await ServingCount(), Is.Zero);
+        Assert.That((await BarcodeRows()).Select(b => b.PackageAmount), Is.EqualTo(new double?[] { 330, 1000, 2000 }));
     }
 
     [Test]
-    public async Task Import_ACanThenALitreOfTheSameProduct_GivesCanAndBottlePackServings_AndTheSameAmountCollapses()
+    public async Task Import_ACanThenALitreOfTheSameProduct_AddNoServings_AndBothBarcodesStayLinkedWithTheirPacks()
     {
         await Import(CanCode, await Can());
         var litre = await Resized("5000112637939", "Coca Cola 1 L", "1 L", 1000, LikeTheCan);
@@ -307,28 +251,20 @@ public class FoodImportServiceTests
         Assert.Multiple(async () =>
         {
             Assert.That((one.Status, same.Status), Is.EqualTo((FoodImportStatus.Attached, FoodImportStatus.Attached)));
-            Assert.That(await BarcodeRows(), Has.Count.EqualTo(3));
-            Assert.That((await ServingRows(food.Id)).Select(s => (s.Label, s.Amount, s.Source)), Is.EqualTo(new[]
-            {
-                ("Can 330 ml", 330.0, ServingSource.Pack),
-                ("Bottle 1 L", 1000.0, ServingSource.Pack),
-            }));
+            Assert.That((await BarcodeRows()).Select(b => (b.FoodId, b.PackageAmount)), Is.EqualTo(new[] { (food.Id, (double?)330), (food.Id, (double?)1000), (food.Id, (double?)330) }));
+            Assert.That(await ServingCount(), Is.Zero);
         });
     }
 
     [Test]
-    public async Task Import_APackServingNamedByTheLabelOrByShape_OtherwiseJustPack()
+    public async Task Import_ProductsWhoseRecordHasAServingOrNone_StoreNoServing()
     {
-        var weetabix = await Import("5010029000023", await Fixture("details-weetabix-5010029000023.json", "5010029000023"));
-        var mars = await Import("5000159407236", await Fixture("details-mars-5000159407236.json", "5000159407236"));
-        var nutella = await Import("3017620422003", await Fixture("details-nutella-3017620422003.json", "3017620422003"));
+        await Import("5010029000023", await Fixture("details-weetabix-5010029000023.json", "5010029000023"));
+        await Import("5000159407236", await Fixture("details-mars-5000159407236.json", "5000159407236"));
+        await Import("3017620422003", await Fixture("details-nutella-3017620422003.json", "3017620422003"));
 
-        Assert.Multiple(async () =>
-        {
-            Assert.That((await ServingRows(weetabix.Food!.Id)).Select(s => (s.Label, s.Source)), Is.EqualTo(new[] { ("37.5 gram", ServingSource.Product), ("Pack 430 g", ServingSource.Pack) }));
-            Assert.That((await ServingRows(mars.Food!.Id)).Select(s => (s.Label, s.Source)), Is.EqualTo(new[] { ("Pack 51 g", ServingSource.Pack) }), "its serving is flagged wrong, so only the pack");
-            Assert.That((await ServingRows(nutella.Food!.Id)).Select(s => (s.Label, s.Source)), Is.EqualTo(new[] { ("Pack 400 g", ServingSource.Pack) }));
-        });
+        Assert.That(await connection.Table<Food>().CountAsync(), Is.EqualTo(3));
+        Assert.That(await ServingCount(), Is.Zero);
     }
 
     [Test]
@@ -414,7 +350,7 @@ public class FoodImportServiceTests
     [Test]
     public async Task Import_ASourceIdAlreadyStoredWithoutABarcodeRow_IsThatFoodRefreshedAndLinked()
     {
-        var stored = await store.UpsertAsync((await Can()).Food);
+        var stored = await store.UpsertAsync((await Can()));
         await connection.ExecuteAsync("DELETE FROM Barcode");
 
         var result = await Import(CanCode, await Can());
@@ -439,7 +375,7 @@ public class FoodImportServiceTests
         Assert.Multiple(async () =>
         {
             Assert.That((await connection.Table<DiaryEntry>().ToListAsync()).Select(e => (e.FoodId, e.Amount)), Is.EqualTo(new[] { (can.Food.Id, 330.0) }));
-            Assert.That((await ServingRows(can.Food.Id)).Select(s => s.Label), Is.EqualTo(new[] { "330ml", "Bottle 1 L", "My glass" }));
+            Assert.That((await connection.Table<Serving>().ToListAsync()).Select(s => s.Label), Is.EqualTo(new[] { "My glass" }));
         });
     }
 
@@ -458,8 +394,8 @@ public class FoodImportServiceTests
     public async Task Import_FillsInSearchTextAndSourceIdWhenBlank()
     {
         var product = await Original();
-        product.Food.SearchText = "";
-        product.Food.SourceId = " ";
+        product.SearchText = "";
+        product.SourceId = " ";
 
         var result = await Import(OriginalCode, product);
 
@@ -482,21 +418,21 @@ public class FoodImportServiceTests
         switch (problem)
         {
             case "noname":
-                product.Food.Name = "  ";
+                product.Name = "  ";
                 expected = NotImportableReason.NoName;
                 break;
             case "nokcal":
-                product.Food.Kcal = double.NaN;
+                product.Kcal = double.NaN;
                 break;
             case "negativefat":
-                product.Food.FatG = -1;
+                product.FatG = -1;
                 break;
             case "nounit":
-                product.Food.Unit = (FoodUnit)7;
+                product.Unit = (FoodUnit)7;
                 expected = NotImportableReason.NoUnit;
                 break;
             case "cofid":
-                product.Food.Source = FoodSource.CoFID;
+                product.Source = FoodSource.CoFID;
                 expected = NotImportableReason.NotOpenFoodFacts;
                 break;
             case "badbarcode":
@@ -508,7 +444,7 @@ public class FoodImportServiceTests
                 expected = NotImportableReason.NoBarcode;
                 break;
             case "badoptional":
-                product.Food.SugarsG = double.PositiveInfinity;
+                product.SugarsG = double.PositiveInfinity;
                 break;
         }
 
@@ -528,7 +464,7 @@ public class FoodImportServiceTests
     {
         await Import(OriginalCode, await Original());
         var broken = await Original();
-        broken.Food.Name = "";
+        broken.Name = "";
 
         var result = await Import(OriginalCode, broken);
 
@@ -552,7 +488,7 @@ public class FoodImportServiceTests
     {
         var oneLitre = await Resized(OneLitreCode, "Coca-Cola Original 1L", "1L", 1000);
         var incomplete = await Original();
-        incomplete.Food.Name = "";
+        incomplete.Name = "";
         await Import(OriginalCode, await Original());
         await Import(OriginalCode, await Original());
         await Import(OneLitreCode, oneLitre);
@@ -588,13 +524,13 @@ public class FoodImportServiceTests
     [Test]
     public async Task DuplicateGroups_OverTheSavedProducts_AreNoneUnderTheStrictRule_AndOneOverTheResizedColas()
     {
-        var saved = new[] { (await Can()).Food, (await Original()).Food, (await Zero()).Food, (await Light()).Food, (await OriginalTaste()).Food, (await Oreo()).Food,
-            (await Fixture("details-mars-5000159407236.json", "5000159407236")).Food, (await Fixture("details-weetabix-5010029000023.json", "5010029000023")).Food, (await Fixture("details-nutella-3017620422003.json", "3017620422003")).Food };
+        var saved = new[] { (await Can()), (await Original()), (await Zero()), (await Light()), (await OriginalTaste()), (await Oreo()),
+            (await Fixture("details-mars-5000159407236.json", "5000159407236")), (await Fixture("details-weetabix-5010029000023.json", "5010029000023")), (await Fixture("details-nutella-3017620422003.json", "3017620422003")) };
         var constructed = new List<Food>
         {
-            (await Original()).Food,
-            (await Resized(OneLitreCode, "Coca-Cola Original 1L", "1L", 1000)).Food,
-            (await Resized(TwoLitreCode, "Coca-Cola Original 2 litres", "2 litres", 2000)).Food,
+            (await Original()),
+            (await Resized(OneLitreCode, "Coca-Cola Original 1L", "1L", 1000)),
+            (await Resized(TwoLitreCode, "Coca-Cola Original 2 litres", "2 litres", 2000)),
         };
 
         Assert.Multiple(() =>
@@ -629,7 +565,7 @@ public class FoodImportServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(method.GetParameters().Select(p => (p.Name, p.ParameterType)), Is.EqualTo(new[] { ("barcode", typeof(string)), ("product", typeof(Food)), ("serving", typeof(ProductServing)) }));
+            Assert.That(method.GetParameters().Select(p => (p.Name, p.ParameterType)), Is.EqualTo(new[] { ("barcode", typeof(string)), ("product", typeof(Food)) }));
             Assert.That(typeof(FoodImportService).Assembly.GetTypes().Where(t => t.Namespace == typeof(FoodImportService).Namespace && t.Name.StartsWith("FoodImport", StringComparison.Ordinal)).Select(t => t.Name), Has.None.Contain("Scan"));
         });
     }

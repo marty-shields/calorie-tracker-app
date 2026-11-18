@@ -41,6 +41,7 @@ public class ServingTableUpgradeTests
         await connection.CreateTableAsync<Food>();
         await connection.ExecuteAsync("ALTER TABLE Food ADD COLUMN ServingLabel varchar");
         await connection.ExecuteAsync("ALTER TABLE Food ADD COLUMN ServingAmount float");
+        await connection.ExecuteAsync("ALTER TABLE Food ADD COLUMN ServingChecked integer");
         await connection.ExecuteAsync(SchemaSteps.FoodBarcodeTable);
         await connection.CreateTableAsync<SeedVersion>();
         await connection.CreateTableAsync<AppSettings>();
@@ -59,7 +60,7 @@ public class ServingTableUpgradeTests
             // 6: a CoFID food with no serving or pack.
             Food("11-001", "Oats", FoodUnit.Gram, 375, null, null, pack: null, source: FoodSource.CoFID),
             // 7: asked for a serving and the source had none.
-            Food("none", "Plain", FoodUnit.Gram, 100, null, null, pack: null, servingChecked: true),
+            Food("none", "Plain", FoodUnit.Gram, 100, null, null, pack: null),
             // 8: a serving that was out of range (the reader drops it) moves as it is.
             Food("huge", "Huge", FoodUnit.Gram, 100, "1 huge", 99_999, pack: null),
         };
@@ -69,6 +70,8 @@ public class ServingTableUpgradeTests
             // The serving columns were dropped from the model, so schema 12's values are written by hand.
             await connection.ExecuteAsync("UPDATE Food SET ServingLabel = ?, ServingAmount = ? WHERE SourceId = ?", food.Label, food.Amount, food.Food.SourceId);
         }
+
+        await connection.ExecuteAsync("UPDATE Food SET ServingChecked = 1 WHERE SourceId = 'none'");
         sliceId = (await connection.Table<Food>().FirstAsync(f => f.SourceId == "slice")).Id;
         canId = (await connection.Table<Food>().FirstAsync(f => f.SourceId == "can")).Id;
         await connection.ExecuteAsync(
@@ -77,7 +80,7 @@ public class ServingTableUpgradeTests
         await connection.ExecuteAsync("PRAGMA user_version = 12");
     }
 
-    private static (Food Food, string? Label, double? Amount) Food(string sourceId, string name, FoodUnit unit, double kcal, string? label, double? amount, double? pack, FoodSource source = FoodSource.OpenFoodFacts, bool? servingChecked = null) => (new()
+    private static (Food Food, string? Label, double? Amount) Food(string sourceId, string name, FoodUnit unit, double kcal, string? label, double? amount, double? pack, FoodSource source = FoodSource.OpenFoodFacts) => (new()
     {
         Source = source,
         SourceId = sourceId,
@@ -85,7 +88,6 @@ public class ServingTableUpgradeTests
         Unit = unit,
         Kcal = kcal,
         PackageAmount = pack,
-        ServingChecked = servingChecked,
         SearchText = name.ToLowerInvariant(),
     }, label, amount);
 
@@ -167,12 +169,11 @@ public class ServingTableUpgradeTests
     {
         await Upgrade();
 
-        var foods = (await connection.Table<Food>().ToListAsync()).ToDictionary(f => f.SourceId);
+        var checkedByFood = (await connection.QueryScalarsAsync<string>("SELECT SourceId || ':' || IFNULL(ServingChecked, '-') FROM Food WHERE SourceId IN ('none', 'slice') ORDER BY SourceId")).ToList();
         var sliceColumns = (await connection.QueryAsync<SliceColumns>("SELECT ServingLabel, ServingAmount FROM Food WHERE SourceId = 'slice'")).Single();
         Assert.Multiple(() =>
         {
-            Assert.That(foods["none"].ServingChecked, Is.EqualTo(true));
-            Assert.That(foods["slice"].ServingChecked, Is.Null);
+            Assert.That(checkedByFood, Is.EqualTo(new[] { "none:1", "slice:-" }));
             Assert.That((sliceColumns.ServingLabel, sliceColumns.ServingAmount), Is.EqualTo(("1 slice (20 g)", (double?)20)));
         });
     }

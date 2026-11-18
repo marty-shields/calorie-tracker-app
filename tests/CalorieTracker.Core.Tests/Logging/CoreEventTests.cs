@@ -8,6 +8,10 @@ public class CoreEventTests
     public void Values_AreUnique() =>
         Assert.That(Enum.GetValues<CoreEvent>().Select(e => (int)e), Is.Unique);
 
+    [TestCase(1308)]
+    public void RetiredNumbers_AreNotUsed(int retired) =>
+        Assert.That(Enum.GetValues<CoreEvent>().Select(e => (int)e), Does.Not.Contain(retired));
+
     [Test]
     public void Values_AreInCoresRange() =>
         Assert.That(Enum.GetValues<CoreEvent>().Select(e => (int)e), Is.All.InRange(1000, 1999));
@@ -47,8 +51,7 @@ public class CoreEventTests
             [CoreEvent.StoredLookupReadFailed] = 1305,
             [CoreEvent.StoredLookupSaveFailed] = 1306,
             [CoreEvent.StoredLookupRefreshed] = 1307,
-            [CoreEvent.StoredLookupServingMissing] = 1308,
-            [CoreEvent.StoredLookupServingFailed] = 1309,
+            [CoreEvent.StoredLookupRefreshFailed] = 1309,
             [CoreEvent.SeedLoaderBlock] = 1400,
             [CoreEvent.SeedLoaded] = 1401,
             [CoreEvent.SeedUpToDate] = 1402,

@@ -40,14 +40,14 @@ public class DiaryServiceTests
         File.Delete(databasePath);
     }
 
-    private async Task<(int Product, int Pack, int Other)> AddServings()
+    private async Task<(int Slice, int Bowl, int Other)> AddServings()
     {
         var other = new Food { Source = FoodSource.CoFID, SourceId = "y", Name = "Other", SearchText = "other" };
         await connection.InsertAsync(other);
         var rows = new List<Serving>
         {
-            new() { FoodId = foodId, Label = "1 slice", Amount = 30, Source = ServingSource.Product, SortOrder = 0 },
-            new() { FoodId = foodId, Label = "Whole pack (90 g)", Amount = 90, Source = ServingSource.Pack, SortOrder = 1 },
+            new() { FoodId = foodId, Label = "1 slice", Amount = 30, Source = ServingSource.User, SortOrder = 2 },
+            new() { FoodId = foodId, Label = "My bowl", Amount = 90, Source = ServingSource.User, SortOrder = 2 },
             new() { FoodId = other.Id, Label = "1 cup", Amount = 240, Source = ServingSource.User, SortOrder = 2 },
         };
         await connection.InsertAllAsync(rows);
@@ -57,12 +57,12 @@ public class DiaryServiceTests
     [Test]
     public async Task AddAsync_WithAServingOfTheFood_StoresTheLinkAlongsideTheCountAndAmount()
     {
-        var (_, pack, _) = await AddServings();
+        var (_, bowl, _) = await AddServings();
 
-        var added = await service.AddAsync(Day, Meal.Lunch, foodId, 180, 2, pack);
+        var added = await service.AddAsync(Day, Meal.Lunch, foodId, 180, 2, bowl);
 
         var listed = (await service.ListAsync(Day)).Entries!.Single();
-        Assert.That((added.Entry!.ServingId, listed.ServingId, listed.Amount, listed.Servings), Is.EqualTo(((int?)pack, (int?)pack, 180.0, (double?)2)));
+        Assert.That((added.Entry!.ServingId, listed.ServingId, listed.Amount, listed.Servings), Is.EqualTo(((int?)bowl, (int?)bowl, 180.0, (double?)2)));
     }
 
     [Test]
@@ -80,27 +80,27 @@ public class DiaryServiceTests
     [Test]
     public async Task UpdateAsync_ChangesTheServingLinkWithTheAmount_AndClearsItForAWeight()
     {
-        var (product, pack, other) = await AddServings();
-        var added = await service.AddAsync(Day, Meal.Lunch, foodId, 30, 1, product);
+        var (slice, bowl, other) = await AddServings();
+        var added = await service.AddAsync(Day, Meal.Lunch, foodId, 30, 1, slice);
 
-        await service.UpdateAsync(added.Entry!.Id, Day, Meal.Lunch, 180, 2, pack);
-        var toPack = (await service.ListAsync(Day)).Entries!.Single().ServingId;
+        await service.UpdateAsync(added.Entry!.Id, Day, Meal.Lunch, 180, 2, bowl);
+        var toBowl = (await service.ListAsync(Day)).Entries!.Single().ServingId;
         await service.UpdateAsync(added.Entry.Id, Day, Meal.Lunch, 100);
         var toWeight = (await service.ListAsync(Day)).Entries!.Single().ServingId;
         await service.UpdateAsync(added.Entry.Id, Day, Meal.Lunch, 240, 1, other);
         var foreign = (await service.ListAsync(Day)).Entries!.Single().ServingId;
 
-        Assert.That((toPack, toWeight, foreign), Is.EqualTo(((int?)pack, (int?)null, (int?)null)));
+        Assert.That((toBowl, toWeight, foreign), Is.EqualTo(((int?)bowl, (int?)null, (int?)null)));
     }
 
     [Test]
     public async Task Logs_NeverCarryAServingId_OrLabel()
     {
-        var (_, pack, _) = await AddServings();
+        var (_, bowl, _) = await AddServings();
 
-        await service.AddAsync(Day, Meal.Lunch, foodId, 180, 2, pack);
+        await service.AddAsync(Day, Meal.Lunch, foodId, 180, 2, bowl);
 
-        Assert.That(LoggedEvents.Of(logger).Select(e => e.Message), Has.None.Contain("pack").And.None.Contain("180"));
+        Assert.That(LoggedEvents.Of(logger).Select(e => e.Message), Has.None.Contain("bowl").And.None.Contain("180"));
     }
 
     [Test]

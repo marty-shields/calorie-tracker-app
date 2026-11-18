@@ -33,8 +33,8 @@ public class FoodServiceTests
         File.Delete(databasePath);
     }
 
-    /// <summary>Stores a food. Its product serving (label and weight set on the <see cref="ProductRow"/>) is stored as a Product row as it is, unbounded, the way an older app version could have left it; <paramref name="extra"/> rows are stored for the food too.</summary>
-    private async Task<int> Store(Action<Food>? change = null, Action<ProductRow>? product = null, params Serving[] extra)
+    /// <summary>Stores a food. A serving of the person's own (label and weight set on the <see cref="OwnRow"/>) is stored as it is, unbounded, the way an older app version could have left it; <paramref name="extra"/> rows are stored for the food too.</summary>
+    private async Task<int> Store(Action<Food>? change = null, Action<OwnRow>? own = null, params Serving[] extra)
     {
         var food = new Food
         {
@@ -52,13 +52,13 @@ public class FoodServiceTests
             SaltG = 0.5,
             SearchText = "zebra pie",
         };
-        var productRow = new ProductRow();
+        var ownRow = new OwnRow();
         change?.Invoke(food);
-        product?.Invoke(productRow);
+        own?.Invoke(ownRow);
         await connection.InsertAsync(food);
-        if (productRow.ServingAmount is { } amount)
+        if (ownRow.ServingAmount is { } amount)
         {
-            await connection.InsertAsync(new Serving { FoodId = food.Id, Label = productRow.ServingLabel ?? "", Amount = amount, Source = ServingSource.Product, SortOrder = 0 });
+            await connection.InsertAsync(new Serving { FoodId = food.Id, Label = ownRow.ServingLabel ?? "", Amount = amount, Source = ServingSource.User, SortOrder = 2 });
         }
 
         foreach (var row in extra)
@@ -70,14 +70,18 @@ public class FoodServiceTests
         return food.Id;
     }
 
-    private sealed class ProductRow
+    private sealed class OwnRow
     {
         public string? ServingLabel { get; set; } = "1/2 pie (201.8 g)";
 
         public double? ServingAmount { get; set; } = 201.8;
     }
 
+    /// <summary>A Pack row, as schema step 13 and 15 stored them before step 18 deleted them.</summary>
     private static Serving Pack(double amount, string label = "Whole pack") => new() { Label = label, Amount = amount, Source = ServingSource.Pack, SortOrder = 1 };
+
+    /// <summary>A Product row, as older versions stored one before step 18 deleted them.</summary>
+    private static Serving Product(double amount, string label) => new() { Label = label, Amount = amount, Source = ServingSource.Product, SortOrder = 0 };
 
     private static Serving Own(string label, double amount) => new() { Label = label, Amount = amount, Source = ServingSource.User, SortOrder = 2 };
 
@@ -102,9 +106,9 @@ public class FoodServiceTests
     }
 
     [Test]
-    public async Task GetAsync_Servings_AreListedSmallestFirstWhateverTheSource()
+    public async Task GetAsync_Servings_AreListedSmallestFirst()
     {
-        var id = await Store(f => f.Unit = FoodUnit.Millilitre, p => (p.ServingLabel, p.ServingAmount) = ("1 glass (250 ml)", 250), Pack(330, "Whole pack (330 ml)"), Own("My mug", 200));
+        var id = await Store(f => f.Unit = FoodUnit.Millilitre, p => (p.ServingLabel, p.ServingAmount) = ("1 glass (250 ml)", 250), Own("My can", 330), Own("My mug", 200));
 
         var result = await service.GetAsync(id);
 
@@ -112,104 +116,21 @@ public class FoodServiceTests
     }
 
     [Test]
-    public async Task GetAsync_OwnServingOfTheProductsAmount_ListsProductFirstEvenWithALowerId()
+    public async Task GetAsync_ProductAndPackRows_AreNeverOffered_OnlyTheOwnOnesAre()
     {
-        var id = await Store(f => f.Unit = FoodUnit.Millilitre, p => p.ServingAmount = null, Own("My glass", 250));
-        await connection.ExecuteAsync("INSERT INTO Serving (FoodId, Label, Amount, Source, SortOrder) VALUES (?, '1 glass (250 ml)', 250, 0, 0)", id);
+        var id = await Store(null, p => p.ServingAmount = null, Product(30, "1 bar (30 g)"), Pack(51, "Whole pack (51 g)"), Pack(30, "Pack 30 g"), Own("My bar", 40));
 
         var result = await service.GetAsync(id);
 
-        Assert.That(result.Servings.Select(s => s.Source), Is.EqualTo(new[] { ServingSource.Product, ServingSource.User }));
+        Assert.That(result.Servings.Select(s => (s.Label, s.Amount, s.Source)), Is.EqualTo(new[] { ("My bar", 40.0, ServingSource.User) }));
     }
 
     [Test]
-    public async Task GetAsync_PackAndOwnOfOneAmount_ListsPackFirst()
+    public async Task GetAsync_OnlyAPackRow_OffersNoServing_NotTheWholePackAsOneServing()
     {
-        var id = await Store(null, p => { p.ServingLabel = null; p.ServingAmount = null; }, Own("My bar", 51), Pack(51, "Whole pack (51 g)"), Own("My small bar", 20));
+        var id = await Store(f => f.PackageAmount = 625, p => p.ServingAmount = null, Pack(625, "Whole pack (625 g)"));
 
-        var result = await service.GetAsync(id);
-
-        Assert.That(result.Servings.Select(s => (s.Amount, s.Source)), Is.EqualTo(new[] { (20.0, ServingSource.User), (51.0, ServingSource.Pack), (51.0, ServingSource.User) }));
-    }
-
-    [Test]
-    public async Task GetAsync_OnlyAPackServing_IsWordedAsOneServing()
-    {
-        var id = await Store(null, p => { p.ServingLabel = null; p.ServingAmount = null; }, Pack(51, "Whole pack (51 g)"));
-
-        var result = await service.GetAsync(id);
-
-        Assert.That(result.Servings.Select(s => (s.Label, s.Amount, s.Source)), Is.EqualTo(new[] { ("1 serving", 51.0, ServingSource.Pack) }));
-    }
-
-    [Test]
-    public async Task GetAsync_TiesAcrossSizes_GoProductBeforeOwnEvenWithALowerId()
-    {
-        var id = await Store(f => f.Unit = FoodUnit.Millilitre, p => p.ServingAmount = null, Pack(330, "Whole pack (330 ml)"), Own("My can", 330), Own("My sip", 100));
-        await connection.ExecuteAsync("INSERT INTO Serving (FoodId, Label, Amount, Source, SortOrder) VALUES (?, '1 can (330 ml)', 330, 0, 0)", id);
-        await connection.ExecuteAsync("INSERT INTO Serving (FoodId, Label, Amount, Source, SortOrder) VALUES (?, 'Bottle 500 ml', 500, 1, 1)", id);
-
-        var result = await service.GetAsync(id);
-
-        Assert.That(result.Servings.Select(s => (s.Amount, s.Source)), Is.EqualTo(new[]
-        {
-            (100.0, ServingSource.User),
-            (330.0, ServingSource.Product),
-            (330.0, ServingSource.User),
-            (500.0, ServingSource.Pack),
-        }));
-    }
-
-    [Test]
-    public async Task GetAsync_PackNextToAProductServing_KeepsItsClearLabel()
-    {
-        var id = await Store(f => f.Unit = FoodUnit.Millilitre, p => (p.ServingLabel, p.ServingAmount) = ("1 glass (250 ml)", 250), Pack(330, "Whole pack (330 ml)"));
-
-        var result = await service.GetAsync(id);
-
-        Assert.That(result.Servings.Select(s => (s.Label, s.Amount, s.Source)), Is.EqualTo(new[]
-        {
-            ("1 glass (250 ml)", 250.0, ServingSource.Product),
-            ("Whole pack (330 ml)", 330.0, ServingSource.Pack),
-        }));
-    }
-
-    [Test]
-    public async Task GetAsync_PackOfTheProductServingsAmount_IsLeftOutAsARepeat()
-    {
-        var id = await Store(null, p => (p.ServingLabel, p.ServingAmount) = ("1 bar", 51), Pack(51, "Whole pack (51 g)"));
-
-        var result = await service.GetAsync(id);
-
-        Assert.That(result.Servings.Select(s => (s.Label, s.Source)), Is.EqualTo(new[] { ("1 bar", ServingSource.Product) }));
-    }
-
-    [Test]
-    public async Task GetAsync_ABadProductServing_IsLeftOutAndThePackStays()
-    {
-        var id = await Store(null, p => p.ServingAmount = 99_999, Pack(51, "Whole pack (51 g)"));
-
-        var result = await service.GetAsync(id);
-
-        Assert.That(result.Servings.Select(s => (s.Label, s.Amount)), Is.EqualTo(new[] { ("1 serving", 51.0) }));
-    }
-
-    [Test]
-    public async Task GetAsync_Servings_ComeSmallestFirstWhateverTheirSource()
-    {
-        var id = await Store(null, null, Own("Big", 300), Own("Small", 100), Pack(500, "Whole pack (500 g)"), Pack(400, "Whole pack (400 g)"));
-
-        var result = await service.GetAsync(id);
-
-        Assert.That(result.Servings.Select(s => s.Amount), Is.EqualTo(new[] { 100.0, 201.8, 300.0, 400.0, 500.0 }));
-    }
-
-    [Test]
-    public async Task GetAsync_ARowThePersonMadeWithAProductsAmount_IsKept()
-    {
-        var id = await Store(null, p => (p.ServingLabel, p.ServingAmount) = ("1 bar", 50), Own("My bar", 50));
-
-        Assert.That((await service.GetAsync(id)).Servings.Select(s => s.Label), Is.EqualTo(new[] { "1 bar", "My bar" }));
+        Assert.That((await service.GetAsync(id)).Servings, Is.Empty);
     }
 
     [Test]
@@ -219,10 +140,6 @@ public class FoodServiceTests
 
         Assert.That((await service.GetAsync(id)).Servings, Is.Empty);
     }
-
-    [Test]
-    public void MaxPackServingAmount_IsAThousand() =>
-        Assert.That(FoodService.MaxPackServingAmount, Is.EqualTo(1000));
 
     [Test]
     public async Task GetAsync_NoSuchFood_ReturnsNotFound()
