@@ -2,7 +2,7 @@ namespace CalorieTracker.Core.Logging;
 
 /// <summary>
 /// Event ids of Core's log messages: 1000–1999, a block of 100 per type.
-/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch (the online ones sit inside it: 1520 OnlineSearch, 1540 OnlineImport, 1550 OnlineNotice), 1600 TargetService, 1700 DiaryService, 1800 DaySummaryService, 1900 FoodService; the <c>*Block</c> members hold them. FoodHistoryService has ten ids from 1050, FoodImportService ten from 1060, FavouriteService ten from 1070 and ServingService ten from 1010 because every block of 100 is taken.
+/// Reserved blocks: 1100 FoodStore, 1200 OpenFoodFactsAdapter, 1300 StoredLookup, 1400 SeedLoader, 1500 FoodSearch (the online ones sit inside it: 1520 OnlineSearch, 1540 OnlineImport, 1550 OnlineNotice), 1600 TargetService, 1700 DiaryService, 1800 DaySummaryService, 1900 FoodService; the <c>*Block</c> members hold them. FoodHistoryService has ten ids from 1050, FoodImportService ten from 1060, FavouriteService ten from 1070, TrendsService ten from 1080 and ServingService ten from 1010 because every block of 100 is taken.
 /// Ids never change and are never reused; list a retired id here and in <c>CoreEventTests</c>.
 /// </summary>
 internal enum CoreEvent
@@ -317,6 +317,27 @@ internal enum CoreEvent
 
     /// <summary><see cref="Foods.FavouriteService"/>: the database failed, so the call returned a failed status.</summary>
     FavouriteFailed = 1077,
+
+    /// <summary>Start of the ten ids reserved for <see cref="Trends.TrendsService"/>.</summary>
+    TrendsServiceBlock = 1080,
+
+    /// <summary><see cref="Trends.TrendsService"/>: the trends were built; carries the number of days and entries.</summary>
+    TrendsBuilt = 1081,
+
+    /// <summary><see cref="Trends.TrendsService"/>: the range was backwards or too long, so nothing was read.</summary>
+    TrendsRejected = 1082,
+
+    /// <summary><see cref="Trends.TrendsService"/>: an entry points at a food that no longer exists; carries the entry and food ids.</summary>
+    TrendsFoodMissing = 1083,
+
+    /// <summary><see cref="Trends.TrendsService"/>: an entry has a meal that does not exist; carries the entry id.</summary>
+    TrendsMealUnknown = 1084,
+
+    /// <summary><see cref="Trends.TrendsService"/>: a figure was too large for a whole number.</summary>
+    TrendsOverflow = 1085,
+
+    /// <summary><see cref="Trends.TrendsService"/>: the database failed, so the call returned a failed status.</summary>
+    TrendsFailed = 1086,
 
     /// <summary>Start of the block reserved for <see cref="Foods.FoodService"/>.</summary>
     FoodServiceBlock = 1900,
