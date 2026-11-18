@@ -61,9 +61,6 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
     [When(@"^I tap Set a target$")]
     public void WhenITapSetATarget() => dashboard.SetTarget();
 
-    [When(@"^I tap the previous day$")]
-    public void WhenITapThePreviousDay() => dashboard.PreviousDay();
-
     [When(@"^I tap the next day$")]
     public void WhenITapTheNextDay() => dashboard.NextDay();
 

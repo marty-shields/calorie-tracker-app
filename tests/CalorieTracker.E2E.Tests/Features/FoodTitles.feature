@@ -22,5 +22,6 @@ Feature: Food titles
     And I have noted the title of the first result
     And I go back to the Dashboard
     And a barcode is held in front of the camera
-    When I open Scan from the Add sheet
+    When I open the Add sheet
+    And I tap Scan barcode on the Add sheet
     Then Serving is headed with the noted title
