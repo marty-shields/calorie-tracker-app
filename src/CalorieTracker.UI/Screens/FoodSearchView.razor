@@ -1,4 +1,5 @@
 @using System.Globalization
+@using Microsoft.JSInterop
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Foods
 @using CalorieTracker.Core.History
@@ -175,7 +176,7 @@
             {
                 <p class="online-notice" data-testid="food-search-online-notice">@OnlineSearchNotice.Text</p>
             }
-            <AppButton Variant="@(Groups.Count == 0 ? ButtonVariant.Primary : ButtonVariant.Secondary)" FullWidth TestId="food-search-online" OnClick="OnSearchOnline">Search online</AppButton>
+            <AppButton Variant="@(Groups.Count == 0 ? ButtonVariant.Primary : ButtonVariant.Secondary)" FullWidth TestId="food-search-online" OnClick="SearchOnline">Search online</AppButton>
         </div>;
 
     /// <summary>The online part under the local results, once the search has run for the typed text; nothing before.</summary>
@@ -183,7 +184,7 @@
         @<text>
             @if (OnlineState != OnlineSearchState.Idle)
             {
-            <div class="online" data-testid="food-search-online-section">
+            <div @ref="onlineSection" class="online" tabindex="-1" data-testid="food-search-online-section">
                 @switch (OnlineState)
                 {
                     case OnlineSearchState.Searching:
@@ -266,7 +267,37 @@
 
     /// <summary>The search key of the keyboard is a tap on "Search online" once something is typed.</summary>
     private Task OnKeyDown(KeyboardEventArgs args) =>
-        args.Key == "Enter" && !Loading && !string.IsNullOrWhiteSpace(Query) ? OnSearchOnline.InvokeAsync() : Task.CompletedTask;
+        args.Key == "Enter" && !Loading && !string.IsNullOrWhiteSpace(Query) ? SearchOnline() : Task.CompletedTask;
+
+    private ElementReference onlineSection;
+
+    private bool focusOnline;
+
+    /// <summary>Raises <see cref="OnSearchOnline"/>. The tapped button leaves with the bar, so focus moves to the online section once it shows.</summary>
+    private Task SearchOnline()
+    {
+        focusOnline = true;
+        return OnSearchOnline.InvokeAsync();
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!focusOnline || OnlineState == OnlineSearchState.Idle)
+        {
+            return;
+        }
+
+        focusOnline = false;
+        try
+        {
+            await onlineSection.FocusAsync();
+        }
+        catch (Exception exception) when (exception is JSException or InvalidOperationException)
+        {
+            // Focus is a courtesy; the results show either way.
+        }
+    }
 
     private Task OnInput(ChangeEventArgs args) => OnQueryChanged.InvokeAsync(args.Value?.ToString() ?? "");
 

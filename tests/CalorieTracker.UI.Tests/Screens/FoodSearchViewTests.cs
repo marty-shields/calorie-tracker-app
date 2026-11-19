@@ -33,6 +33,9 @@ public class FoodSearchViewTests : ComponentTestBase
             Assert.That(cut.Find("footer [data-testid=food-search-online]").ClassList, Does.Contain("secondary"));
             Assert.That(cut.FindAll("main [data-testid=food-search-online]"), Is.Empty);
             Assert.That(cut.FindAll("[data-testid=food-search-online-notice]"), Is.Empty);
+            Assert.That(cut.FindAll("main [data-testid=food-search-online-section]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=food-search-online-error]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=food-search-online-retry]"), Is.Empty);
         });
     }
 
@@ -45,6 +48,9 @@ public class FoodSearchViewTests : ComponentTestBase
         {
             Assert.That(cut.Find("footer [data-testid=food-search-online]").ClassList, Does.Contain("primary"));
             Assert.That(cut.Find("main [data-testid=food-search-none]"), Is.Not.Null);
+            Assert.That(cut.FindAll("main [data-testid=food-search-online-section]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=food-search-online-error]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=food-search-online-retry]"), Is.Empty);
         });
     }
 
@@ -127,5 +133,21 @@ public class FoodSearchViewTests : ComponentTestBase
         cut.Render(p => p.Add(x => x.Query, "cola z").Add(x => x.OnlineState, OnlineSearchState.Idle));
 
         Assert.That(cut.FindAll("footer [data-testid=food-search-online]"), Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public void TappingTheButton_MovesFocusToTheOnlineSectionOnceItShows()
+    {
+        Context.JSInterop.Mode = JSRuntimeMode.Loose;
+        var cut = Render();
+
+        cut.Find("footer [data-testid=food-search-online]").Click();
+        cut.Render(p => p.Add(x => x.OnlineState, OnlineSearchState.Searching));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("main [data-testid=food-search-online-section]").GetAttribute("tabindex"), Is.EqualTo("-1"));
+            Assert.That(Context.JSInterop.Invocations.Select(i => i.Identifier), Has.Some.EqualTo("Blazor._internal.domWrapper.focus"));
+        });
     }
 }

@@ -13,7 +13,7 @@ public sealed class FoodSearchOnlineSteps(FoodSearchScreen foods, ServingScreen 
     /// <summary>The file <c>E2EOnlineSearchSeam</c> looks for; <c>ScanSeamValuesTests</c> checks it matches.</summary>
     private const string SeamFileName = "e2e-online-search.txt";
 
-    [Then(@"^Search online is offered as a button under the results$")]
+    [Then(@"^Search online is offered as a button pinned in the bottom bar$")]
     public void ThenTheButtonIsOffered() =>
         web.Eventually(foods.OnlineEntry, Is.EqualTo("secondary"), "Search online as a secondary button");
 

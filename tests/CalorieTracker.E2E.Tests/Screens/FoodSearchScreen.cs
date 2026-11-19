@@ -100,10 +100,10 @@ public sealed class FoodSearchScreen(WebView web)
 
     public void ShowMore(string group) => web.Tap($"food-group-{group}-more");
 
-    /// <summary>How the "Search online" button shows: "primary" when no stored food matches, "secondary" under the results, or null when it is not offered.</summary>
+    /// <summary>How the "Search online" button shows: "primary" when no stored food matches, "secondary" otherwise, always inside the pinned bottom bar, or null when it is not offered.</summary>
     public string? OnlineEntry()
     {
-        var entry = web.FindAll("[data-testid=\"food-search-online\"]").FirstOrDefault();
+        var entry = web.FindAll("[data-testid=\"food-search-online-bar\"] [data-testid=\"food-search-online\"]").FirstOrDefault();
         return entry is null ? null : entry.TagName != "button" ? "not a button" : entry.GetDomAttribute("class")!.Contains("primary", StringComparison.Ordinal) ? "primary" : "secondary";
     }
 

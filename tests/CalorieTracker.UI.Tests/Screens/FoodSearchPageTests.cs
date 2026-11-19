@@ -137,6 +137,7 @@ public class FoodSearchPageTests : ComponentTestBase
             Assert.That(requests.Select(r => r.Food.Id), Is.EqualTo(new[] { 1 }));
             Assert.That(cut.FindAll("[data-testid=food-detail]"), Is.Empty);
             Assert.That(cut.FindAll("[data-testid=food-detail-add]"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=bottom-bar]").SelectMany(bar => bar.Children).Select(c => c.GetAttribute("data-testid")).Distinct(), Is.SubsetOf(new[] { "food-search-online-bar" }));
         });
     }
 
