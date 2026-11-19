@@ -49,6 +49,7 @@
         0 3px 10px light-dark(transparent, rgb(0 0 0 / 0.45));
 
     --font-family: system-ui, Roboto, sans-serif;
+    --font-size-xs: 0.75rem;
     --font-size-sm: 0.875rem;
     --font-size-md: 1rem;
     --font-size-lg: 1.25rem;
