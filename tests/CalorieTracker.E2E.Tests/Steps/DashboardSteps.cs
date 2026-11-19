@@ -74,6 +74,8 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
     [Given(@"^I go back to the Dashboard$")]
     public void WhenIGoBackToTheDashboard() => journeys.GoToDashboard();
 
+    private bool backDated;
+
     private const string Meals = "(Breakfast|Lunch|Dinner|Snacks)";
 
     /// <summary>The file <c>E2EClockSeam</c> reads; <c>ScanSeamValuesTests</c> checks it matches.</summary>
@@ -84,10 +86,59 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
     /// then goes to tomorrow and back to today so the Dashboard reads the clock again.
     /// </summary>
     [Given(@"^the app clock reads (\d\d:\d\d)$")]
-    public void GivenTheAppClockReads(string time)
+    public void GivenTheAppClockReads(string time) => PinClock(time);
+
+    /// <summary>
+    /// Pins the Debug app's clock to a time of day some whole days before the device's date, for a scenario that saves something dated in the past.
+    /// The Release app has no clock seam, so there it does nothing and everything saved is dated today.
+    /// </summary>
+    [Given(@"^the app clock reads (\d+) days? ago at (\d\d:\d\d)$")]
+    public void GivenTheAppClockReadsDaysAgo(int days, string time)
+    {
+        if (AppiumSetup.App.IsDebug)
+        {
+            backDated = true;
+            PinClock($"-{days}d {time}");
+        }
+    }
+
+    /// <summary>A failed scenario must not leave a back-dated clock for the next one.</summary>
+    [AfterScenario]
+    public void RemoveBackDatedClock()
+    {
+        if (backDated)
+        {
+            RemoveClockFile();
+        }
+    }
+
+    /// <summary>Removes the pinned clock, so the app reads the device's again; does nothing on the Release app.</summary>
+    [Given(@"^the app clock is the device's$")]
+    public void GivenTheAppClockIsTheDevices()
+    {
+        if (!AppiumSetup.App.IsDebug)
+        {
+            return;
+        }
+
+        RemoveClockFile();
+        backDated = false;
+        MakeTheDashboardReadTheClock();
+    }
+
+    private static void RemoveClockFile() => AppiumSetup.Adb.Shell("rm", "-f", $"{AppiumSetup.App.ExternalFilesFolder}/{ClockSeamFileName}");
+
+    private void PinClock(string pin)
     {
         journeys.WaitFor(Journeys.Screen.Dashboard);
-        AppiumSetup.Adb.WriteText($"{AppiumSetup.App.ExternalFilesFolder}/{ClockSeamFileName}", time);
+        AppiumSetup.Adb.WriteText($"{AppiumSetup.App.ExternalFilesFolder}/{ClockSeamFileName}", pin);
+        MakeTheDashboardReadTheClock();
+    }
+
+    /// <summary>Goes to tomorrow and back to today, so the Dashboard reads the clock again.</summary>
+    private void MakeTheDashboardReadTheClock()
+    {
+        journeys.WaitFor(Journeys.Screen.Dashboard);
         dashboard.NextDay();
         web.Eventually(dashboard.DateLabel, Does.StartWith("Tomorrow"));
         dashboard.ToToday();

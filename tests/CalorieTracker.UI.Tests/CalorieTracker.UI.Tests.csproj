@@ -11,6 +11,10 @@
     <ProjectReference Include="..\..\src\CalorieTracker.UI.Stories\CalorieTracker.UI.Stories.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <Compile Include="..\..\src\CalorieTracker.App\Diagnostics\E2EClockPin.cs" Link="Scanning\E2EClockPin.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <Using Include="Bunit" />
   </ItemGroup>

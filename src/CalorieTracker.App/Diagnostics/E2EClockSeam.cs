@@ -1,6 +1,4 @@
 #if DEBUG
-using System.Globalization;
-
 namespace CalorieTracker.App.Diagnostics;
 
 /// <summary>
@@ -66,13 +64,13 @@ internal static class E2EClockSeam
 
         private TimeSpan? Pin(DateTimeOffset now, string text)
         {
-            if (!TimeOnly.TryParseExact(text.Trim(), "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
+            if (!E2EClockPin.TryParse(text, out var days, out var time))
             {
                 return null;
             }
 
             var local = TimeZoneInfo.ConvertTime(now, LocalTimeZone);
-            var pinned = local.Date + time.ToTimeSpan();
+            var pinned = local.Date.AddDays(days) + time.ToTimeSpan();
             return new DateTimeOffset(pinned, LocalTimeZone.GetUtcOffset(pinned)) - now;
         }
     }
