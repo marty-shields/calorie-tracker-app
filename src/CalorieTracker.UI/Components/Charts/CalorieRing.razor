@@ -34,8 +34,8 @@
 
     private int Shown => TargetKcal is { } target ? Math.Abs(target - EatenKcal) : EatenKcal;
 
-    /// <summary>Steps the number's size down as it gets wider, counting its commas: 5 characters ("1,234"), 6 ("12,345"), 7 ("123,456").</summary>
-    private string? Width => Number(Shown).Length switch { >= 7 => "widest", 6 => "wider", 5 => "wide", _ => null };
+    /// <summary>Steps the number's size down as it gets wider, counting its commas: 6 characters ("12,345") is wider, 7 or more ("123,456") is widest; shorter numbers keep the base size.</summary>
+    private string? Width => Number(Shown).Length switch { >= 7 => "widest", 6 => "wider", _ => null };
 
     private string Word => State switch { RingState.Left => "left", RingState.Over => "over", _ => "eaten" };
 

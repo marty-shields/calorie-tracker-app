@@ -103,8 +103,13 @@ function ringFit() {
     const centre = ring.querySelector('.centre');
     const ringBox = ring.getBoundingClientRect();
     if (!centre || ringBox.width === 0) continue;
-    const centreBox = centre.getBoundingClientRect();
-    const radius = ringBox.width / 2 - (centreBox.left - ringBox.left);
+    // --stroke is a length (rem), so let the browser resolve it to px.
+    const probe = document.createElement('span');
+    probe.style.cssText = 'position:absolute;visibility:hidden;width:var(--stroke)';
+    ring.append(probe);
+    const stroke = probe.getBoundingClientRect().width;
+    probe.remove();
+    const radius = ringBox.width / 2 - stroke;
     const rects = [...centre.children].flatMap((child) => {
       const range = document.createRange();
       range.selectNodeContents(child);
@@ -205,7 +210,7 @@ async function check(story) {
     // Android's font size scales rem, so the ring is measured at 100%, 115% and 130% as well.
     const rings = [];
     for (const scale of RING_SCALES) {
-      await run('Runtime.evaluate', { expression: `document.documentElement.style.fontSize = '${scale * 100}%'` });
+      await run('Runtime.evaluate', { expression: `document.documentElement.style.fontSize = '${scale * FONT_SCALE * 100}%'` });
       const measured = await run('Runtime.evaluate', { expression: `(${ringFit})()`, returnByValue: true });
       if (measured.exceptionDetails) return { findings: [`ring checker failed: ${measured.exceptionDetails.text}`] };
       for (const ring of measured.result.value) {
@@ -215,6 +220,7 @@ async function check(story) {
         }
       }
     }
+    await run('Runtime.evaluate', { expression: `document.documentElement.style.fontSize = '${FONT_SCALE * 100}%'` });
     const cardWidth = (await run('Runtime.evaluate', { expression: `(() => {
       const card = document.querySelector('[data-testid=preview]');
       if (!card) return undefined;

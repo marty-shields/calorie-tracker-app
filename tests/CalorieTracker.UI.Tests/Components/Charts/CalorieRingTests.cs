@@ -97,4 +97,16 @@ public class CalorieRingTests : ComponentTestBase
             Assert.That(tokens, Does.Contain("--ring-size-compact: 6rem;").And.Contain("--ring-width-compact:"));
         });
     }
+
+    [TestCase(999, "")]
+    [TestCase(1234, "")]
+    [TestCase(12345, "wider")]
+    [TestCase(123456, "widest")]
+    public void Render_StepsTheNumberDownByWidth(int eaten, string expected)
+    {
+        var cut = Context.Render<CalorieRing>(p => p.Add(x => x.Eaten, eaten).Add(x => x.TestId, "ring"));
+        var classes = cut.Find("[data-testid=ring-value]").ClassList.Where(c => c != "value" && !c.StartsWith("b-", StringComparison.Ordinal));
+
+        Assert.That(string.Join(" ", classes), Is.EqualTo(expected));
+    }
 }

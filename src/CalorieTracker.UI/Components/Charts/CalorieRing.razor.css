@@ -66,7 +66,8 @@
 }
 
 /* The text sits inside the inner circle, --space-1 clear of the band (check-story-layout.mjs measures it at 100%, 115% and 130% text size).
-   A wider number steps down a size; short numbers keep their size. */
+   A number of 6 characters ("12,345") steps down a size and one of 7 or more ("123,456") a second step, in both sizes; shorter ones keep the base size
+   (full: xl, compact: md, which also fits "1,234" and a four-digit value). */
 .value.wider {
     font-size: var(--font-size-lg);
 }
