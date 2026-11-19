@@ -47,6 +47,10 @@
     color: var(--color-error);
 }
 
+.error.status-error {
+    margin: 0 var(--space-4) var(--space-2);
+}
+
 .centre {
     display: grid;
     place-items: center;

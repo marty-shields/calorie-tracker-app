@@ -265,6 +265,21 @@ public class ServingViewTests : ComponentTestBase
     }
 
     [Test]
+    public void StatusMessages_CarryTheStatusErrorClass()
+    {
+        var save = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, saveFailed: true);
+        var remove = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, more: p => p.Add(x => x.Editing, true).Add(x => x.RemoveFailed, true));
+        var gone = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, more: p => p.Add(x => x.Editing, true).Add(x => x.EntryGone, true));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(save.Find("[data-testid=serving-error]").ClassList, Does.Contain("status-error"));
+            Assert.That(remove.Find("[data-testid=serving-error]").ClassList, Does.Contain("status-error"));
+            Assert.That(gone.Find("[data-testid=serving-gone]").ClassList, Does.Contain("status-error"));
+        });
+    }
+
+    [Test]
     public void NoSaveError_ShowsNoMessage() =>
         Assert.That(Exists(Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30), "serving-error"), Is.False);
 

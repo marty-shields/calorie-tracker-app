@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace CalorieTracker.UI.Tests;
 
 /// <summary>Source files in the repo, found from the test output folder.</summary>
@@ -16,6 +18,14 @@ internal static class RepoFiles
     public static IEnumerable<string> Find(string pattern, params string[] folder) =>
         Directory.EnumerateFiles(PathOf(folder), pattern, SearchOption.AllDirectories)
             .Where(f => !f.Split(Path.DirectorySeparatorChar).Any(part => part is "bin" or "obj"));
+
+    /// <summary>Body of the first rule whose selector is exactly <c>.className</c> (alone or after another rule, a comma or space), without the braces; fails the test when there is none.</summary>
+    public static string Rule(string css, string className)
+    {
+        var match = Regex.Match(css, @"(?:^|[},\s])\." + Regex.Escape(className) + @"\s*\{(?<body>[^}]*)\}");
+        Assert.That(match.Success, Is.True, $"no .{className} rule");
+        return match.Groups["body"].Value;
+    }
 
     private static string FindRoot()
     {
