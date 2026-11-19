@@ -15,11 +15,17 @@
 }
 
 .compact .value {
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-md);
+}
+
+/* The label is the widest line and sits lowest, so the block rides a little high to keep its lower corners off the band. */
+.compact .centre {
+    padding-bottom: var(--space-2);
 }
 
 .compact .unit {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
+    line-height: var(--line-height-tight);
 }
 
 .arc {
@@ -57,4 +63,22 @@
 .unit {
     color: var(--color-text-muted);
     font-size: var(--font-size-sm);
+}
+
+/* The text sits inside the inner circle, --space-1 clear of the band (check-story-layout.mjs measures it at 100%, 115% and 130% text size).
+   A wider number steps down a size; short numbers keep their size. */
+.value.wider {
+    font-size: var(--font-size-lg);
+}
+
+.value.widest {
+    font-size: var(--font-size-md);
+}
+
+.compact .value.wider {
+    font-size: var(--font-size-sm);
+}
+
+.compact .value.widest {
+    font-size: var(--font-size-xs);
 }

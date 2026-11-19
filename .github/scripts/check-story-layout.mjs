@@ -20,6 +20,7 @@ const CARD_WIDTH = 328;
 // Exploration knob (Android font size scales rem); not run in CI.
 const FONT_SCALE = Number(process.env.STORY_FONT_SCALE ?? 1);
 const CONCURRENCY = 8;
+const RING_SCALES = [1, 1.15, 1.3];
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../src/CalorieTracker.UI.Stories/Stories');
 const scopes = prefixes.length ? prefixes : ['Components/'];
 
@@ -91,6 +92,42 @@ function inspect() {
     }
   }
   return findings;
+}
+
+// Runs in the page. A CalorieRing's text block (number and label) must keep `--space-1` between its corners and the inner
+// edge of the band, so it sits in the inner circle (radius = size / 2 - stroke) and not just in its square.
+function ringFit() {
+  const gapNeeded = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--space-1'));
+  const rings = [];
+  for (const ring of document.querySelectorAll('#app .ring')) {
+    const centre = ring.querySelector('.centre');
+    const ringBox = ring.getBoundingClientRect();
+    if (!centre || ringBox.width === 0) continue;
+    const centreBox = centre.getBoundingClientRect();
+    const radius = ringBox.width / 2 - (centreBox.left - ringBox.left);
+    const rects = [...centre.children].flatMap((child) => {
+      const range = document.createRange();
+      range.selectNodeContents(child);
+      return [...range.getClientRects()];
+    });
+    const left = Math.min(...rects.map((r) => r.left));
+    const right = Math.max(...rects.map((r) => r.right));
+    const top = Math.min(...rects.map((r) => r.top));
+    const bottom = Math.max(...rects.map((r) => r.bottom));
+    const cx = ringBox.left + ringBox.width / 2;
+    const cy = ringBox.top + ringBox.height / 2;
+    // Each line is a box of its own, so test the corners of every line, not only those of the whole block.
+    const far = Math.max(...rects.flatMap((r) => [r.left, r.right].flatMap((x) => [r.top, r.bottom].map((y) => Math.hypot(x - cx, y - cy)))));
+    rings.push({
+      id: ring.getAttribute('data-testid') ?? 'ring',
+      size: Math.round(ringBox.width),
+      gap: radius - far,
+      needed: gapNeeded,
+      text: centre.textContent.trim().replace(/\s+/g, ' '),
+      block: `${Math.round(right - left)}x${Math.round(bottom - top)}`,
+    });
+  }
+  return rings;
 }
 
 const reachable = await fetch(`${baseUrl}/iframe.html`).then((r) => r.ok, () => false);
@@ -165,13 +202,26 @@ async function check(story) {
     }
     const { result, exceptionDetails } = await run('Runtime.evaluate', { expression: `(${inspect})()`, returnByValue: true });
     if (exceptionDetails) return { findings: [`checker failed: ${exceptionDetails.text}`] };
+    // Android's font size scales rem, so the ring is measured at 100%, 115% and 130% as well.
+    const rings = [];
+    for (const scale of RING_SCALES) {
+      await run('Runtime.evaluate', { expression: `document.documentElement.style.fontSize = '${scale * 100}%'` });
+      const measured = await run('Runtime.evaluate', { expression: `(${ringFit})()`, returnByValue: true });
+      if (measured.exceptionDetails) return { findings: [`ring checker failed: ${measured.exceptionDetails.text}`] };
+      for (const ring of measured.result.value) {
+        rings.push({ ...ring, scale });
+        if (ring.gap < ring.needed - 0.01) {
+          result.value.push(`${ring.id} text "${ring.text}" (${ring.block}px) is ${ring.gap.toFixed(1)}px inside the ${ring.size}px ring's inner circle at ${Math.round(scale * 100)}% text, needs ${ring.needed}px`);
+        }
+      }
+    }
     const cardWidth = (await run('Runtime.evaluate', { expression: `(() => {
       const card = document.querySelector('[data-testid=preview]');
       if (!card) return undefined;
       const style = getComputedStyle(card);
       return card.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
     })()`, returnByValue: true })).result.value;
-    return { findings: result.value, cardWidth };
+    return { findings: result.value, cardWidth, rings };
   } finally {
     await send('Target.closeTarget', { targetId }).catch(() => {});
   }
@@ -184,18 +234,26 @@ let exitCode = 0;
 try {
   const failures = [];
   const cardWidths = [];
+  const ringGaps = new Map();
   const started = Date.now();
   let cursor = 0;
   await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
     while (cursor < jobs.length) {
       const story = jobs[cursor++];
       const result = await check(story);
+      for (const ring of result.rings ?? []) {
+        const key = `${ring.size}px ring at ${Math.round(ring.scale * 100)}% text`;
+        if (!ringGaps.has(key) || ringGaps.get(key).gap > ring.gap) ringGaps.set(key, { gap: ring.gap, story: `${story.title} / ${story.name}`, text: ring.text });
+      }
       if (result.cardWidth !== undefined) cardWidths.push(result.cardWidth);
       if (result.findings.length) failures.push({ story, findings: [...new Set(result.findings)] });
     }
   }));
 
   console.log(`Checked ${jobs.length} stories at ${WIDTH}px in ${((Date.now() - started) / 1000).toFixed(1)}s. Card width: ${[...new Set(cardWidths)].join(', ') || 'none found'}px.`);
+  for (const [key, { gap, story, text }] of [...ringGaps].sort()) {
+    console.log(`Smallest gap, ${key}: ${gap.toFixed(1)}px ("${text}" in ${story}).`);
+  }
   if (cardWidths.length === 0 || cardWidths.some((width) => width !== CARD_WIDTH)) {
     console.log(`::error title=Story layout::Card is not ${CARD_WIDTH}px wide at ${WIDTH}px; the story preview offset changed, update WIDTH.`);
     exitCode = 1;

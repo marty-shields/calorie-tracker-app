@@ -7,7 +7,7 @@ public partial class ChartStoriesTests
     [Test]
     public void CalorieRingStories_CoverEveryState() =>
         Assert.That(StoryNames("CalorieRing"),
-            Is.EquivalentTo(new[] { "Empty", "Partial", "Exactly at target", "Over target", "No target" }));
+            Is.EquivalentTo(new[] { "Empty", "Partial", "Exactly at target", "Over target", "No target", "Short values", "Four digits", "Widest four digits", "Long left", "Long over", "Long eaten", "Longest left", "Longest over", "Longest eaten" }));
 
     [Test]
     public void EnergyShareBarStories_CoverEveryState() =>
