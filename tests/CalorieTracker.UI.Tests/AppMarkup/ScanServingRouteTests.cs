@@ -75,7 +75,7 @@ public partial class ScanServingRouteTests
     }
 
     [Test]
-    public void SettingsOpenedFromTodayAndTrends_ComesBackToThemWithTheirDayPeriodAndOpenMeal()
+    public void SettingsOpenedFromTodayAndTrends_ComesBackToThemWithTheirDayAndPeriod()
     {
         var home = AppPage("Home.razor");
         var trends = AppPage("Trends.razor");
@@ -83,7 +83,7 @@ public partial class ScanServingRouteTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(home, Does.Contain("SettingsRoute.Url(DashboardRoute.Url(day, openMeal))"));
+            Assert.That(home, Does.Contain("SettingsRoute.Url(DashboardRoute.Url(day))"));
             Assert.That(trends, Does.Contain("SettingsRoute.Url(\"/\" + Navigation.ToBaseRelativePath(Navigation.Uri))"));
             Assert.That(settings, Does.Match(BackQueryParameter()));
             Assert.That(settings, Does.Contain("SettingsRoute.BackTarget(BackTo)"));
