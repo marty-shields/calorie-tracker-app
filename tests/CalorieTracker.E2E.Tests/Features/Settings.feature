@@ -1,5 +1,5 @@
 Feature: Settings
-  The gear on Today opens Settings; back returns to Today. The status bar keeps light icons over the top bar in every theme.
+  The gear on Today opens Settings; back returns to the screen that opened Settings, Today or Trends. The status bar keeps light icons over the top bar in every theme.
 
   @smoke @release
   Scenario: The gear on Today opens Settings

@@ -128,12 +128,6 @@
     border-bottom: var(--border-width) solid var(--color-border);
 }
 
-/* The usual food's +: a lighter circle than the filled chip, at the same size and touch target. */
-.usual-row ::deep .icon-btn.filled {
-    background-color: var(--color-chip-soft);
-    color: var(--color-on-chip-soft);
-}
-
 .usual-text {
     display: flex;
     flex: 1;

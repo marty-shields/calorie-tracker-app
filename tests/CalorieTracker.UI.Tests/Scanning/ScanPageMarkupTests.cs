@@ -62,11 +62,11 @@ public class ScanPageMarkupTests
         var pill = Regex.Match(xaml, @"<Border\s[^>]*AutomationId=""scan-native-caption-pill""[^>]*>").Value;
         Assert.Multiple(() =>
         {
-            Assert.That(pill, Does.Contain("BackgroundColor=\"{StaticResource PillBackground}\"").And.Contain("StrokeShape=\"RoundRectangle"));
-            Assert.That(xaml, Does.Match(@"<Label x:Name=""Caption""[^>]*TextColor=""\{StaticResource PillText\}"""));
+            Assert.That(pill, Does.Contain("BackgroundColor=\"{StaticResource OverlayText}\"").And.Contain("StrokeShape=\"RoundRectangle"));
+            Assert.That(xaml, Does.Match(@"<Label x:Name=""Caption""[^>]*TextColor=""\{StaticResource TextLight\}"""));
             Assert.That(xaml, Does.Not.Match(@"<Label x:Name=""Caption""[^>]*BackgroundColor"), "the label has no scrim of its own");
-            Assert.That(AppColour("PillBackground"), Is.EqualTo("#ffffff"));
-            Assert.That(AppColour("PillText"), Is.EqualTo("#373e40"), "the light theme's --color-text");
+            Assert.That(AppColour("OverlayText"), Is.EqualTo("#ffffff"));
+            Assert.That(AppColour("TextLight"), Is.EqualTo("#373e40"), "the light theme's --color-text");
         });
         Assert.That(TokensCss(), Does.Contain("--color-text: light-dark(#373e40,"));
     }

@@ -39,7 +39,7 @@
                                 <span class="usual-name" data-testid="@($"add-sheet-usual-{row.FoodId}-title")" data-wrap-ok>@row.Title</span>
                                 <span class="usual-detail" data-testid="@($"add-sheet-usual-{row.FoodId}-detail")" data-wrap-ok>@row.Detail</span>
                             </div>
-                            <IconButton Style="IconButtonStyle.Filled" Icon="IconName.Plus" AriaLabel="@($"Add {row.Title} to {meal}")" TestId="@($"add-sheet-usual-{row.FoodId}-add")" OnClick="() => AddUsualAsync(row)" />
+                            <IconButton Style="IconButtonStyle.Soft" Icon="IconName.Plus" AriaLabel="@($"Add {row.Title} to {meal}")" TestId="@($"add-sheet-usual-{row.FoodId}-add")" OnClick="() => AddUsualAsync(row)" />
                         </li>
                     }
                 </ul>

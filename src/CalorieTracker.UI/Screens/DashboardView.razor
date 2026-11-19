@@ -111,15 +111,21 @@
             shownDate = Date;
             opened.Clear();
             closed.Clear();
+            shownFoldedMeal = null;
         }
 
         if (FoldedMeal != shownFoldedMeal)
         {
+            if (shownFoldedMeal is { } previous)
+            {
+                closed.Remove(previous);
+            }
+
             shownFoldedMeal = FoldedMeal;
-            closed.Clear();
             if (FoldedMeal is { } folded)
             {
                 closed.Add(folded);
+                opened.Remove(folded);
             }
         }
 
@@ -149,10 +155,16 @@
 
     private void Toggle(Meal meal)
     {
-        var set = StateOf(meal) == MealWindowState.During ? closed : opened;
-        if (!set.Remove(meal))
+        // Both sets change together, so the person's choice still holds once the meal's window ends.
+        if (IsFolded(meal, StateOf(meal)))
         {
-            set.Add(meal);
+            opened.Add(meal);
+            closed.Remove(meal);
+        }
+        else
+        {
+            closed.Add(meal);
+            opened.Remove(meal);
         }
     }
 

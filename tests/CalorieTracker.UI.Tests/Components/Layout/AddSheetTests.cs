@@ -87,7 +87,7 @@ public class AddSheetTests : ComponentTestBase
     }
 
     [Test]
-    public void Css_SizesTheHandleAndTilesFromTokens_AndSoftensTheUsualPlus()
+    public void Css_SizesTheHandleAndTilesFromTokens()
     {
         var css = RepoFiles.Read("src", "CalorieTracker.UI", "Components", "Layout", "AddSheet.razor.css");
         var tokens = RepoFiles.Read("src", "CalorieTracker.UI", "wwwroot", "css", "tokens.css");
@@ -96,7 +96,7 @@ public class AddSheetTests : ComponentTestBase
         {
             Assert.That(css, Does.Contain("width: var(--sheet-handle-width);").And.Contain("height: var(--sheet-handle-height);"));
             Assert.That(css, Does.Contain("grid-auto-rows: minmax(var(--sheet-tile-min-height), auto);").And.Contain("--icon-size: var(--sheet-tile-icon-size);"));
-            Assert.That(css, Does.Contain("background-color: var(--color-chip-soft);").And.Contain("color: var(--color-on-chip-soft);"));
+            Assert.That(css, Does.Not.Contain("chip-soft"), "the usual + is an IconButton Soft, not restyled here");
             foreach (var token in new[] { "--sheet-handle-width", "--sheet-handle-height", "--sheet-tile-min-height", "--sheet-tile-icon-size", "--color-chip-soft", "--color-on-chip-soft" })
             {
                 Assert.That(tokens, Does.Contain(token + ":"), token);
@@ -344,6 +344,7 @@ public class AddSheetTests : ComponentTestBase
             Assert.That(cut.Find("[data-testid=add-sheet-usual-9-title]").TextContent, Is.EqualTo("Pizza"));
             Assert.That(cut.Find("[data-testid=add-sheet-usual-9-detail]").TextContent, Is.EqualTo("1 serving · ½ pizza (201.8 g) · 521 kcal"));
             Assert.That(cut.Find("[data-testid=add-sheet-usual-7-add]").GetAttribute("aria-label"), Is.EqualTo("Add Pasta to Dinner"));
+            Assert.That(cut.Find("[data-testid=add-sheet-usual-7-add]").ClassList, Does.Contain("soft"));
         });
     }
 

@@ -28,7 +28,7 @@
                 Padding="16,8"
                 StrokeThickness="0"
                 StrokeShape="RoundRectangle 12"
-                BackgroundColor="{StaticResource PillBackground}">
+                BackgroundColor="{StaticResource OverlayText}">
             <Label x:Name="Caption"
                    AutomationId="scan-native-caption"
                    InputTransparent="True"
@@ -36,7 +36,7 @@
                    VerticalOptions="Start"
                    FontSize="14"
                    FontAttributes="Bold"
-                   TextColor="{StaticResource PillText}" />
+                   TextColor="{StaticResource TextLight}" />
         </Border>
         <Label AutomationId="scan-native-hint"
                Text="Point the camera at a barcode"
