@@ -48,7 +48,7 @@ public partial class PageParameterTests
     {
         var foods = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Foods.razor");
 
-        Assert.That(Regex.Matches(foods, @"amount: request\.LastAmount, servings: request\.LastServings, servingId: request\.LastServingId"), Has.Count.EqualTo(2));
+        Assert.That(Regex.Matches(foods, @"amount: request\.LastAmount, servings: request\.LastServings, servingId: request\.LastServingId"), Has.Count.EqualTo(1));
     }
 
     [GeneratedRegex(@"public\s+string\??\s+(\w+)\s*\{")]

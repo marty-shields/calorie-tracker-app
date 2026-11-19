@@ -35,7 +35,7 @@
     <main @ref="content" class="content">
         @ChildContent
     </main>
-    @if (BottomBar is not null || Destination is not null)
+    @if (BottomBar is not null || Destination is not null || Status is not null)
     {
         <footer class="bottom">
             @if (Status is not null)
@@ -52,7 +52,7 @@
             }
             @if (Destination is { } current)
             {
-                <BottomNav Current="current" OnNavigate="OnNavigate" />
+                <BottomNav Current="current" OnNavigate="OnNavigate" OnAdd="OnAdd" />
             }
         </footer>
     }
@@ -73,7 +73,7 @@
     [Parameter]
     public string? Subtitle { get; set; }
 
-    /// <summary>Raised by the back arrow and the Android back button. No arrow shows when unset, and Android back leaves the app. Unset on a top-level screen, unless a view layered over it needs its own back; set, it takes Android back instead of <see cref="OnNavigate"/>.</summary>
+    /// <summary>Raised by the back arrow and the Android back button. No arrow shows when unset, and Android back leaves the app (on a top-level screen other than <see cref="NavDestinations.Start"/>, it goes to the start destination). Unset on a top-level screen, unless a view layered over it needs its own back; set, it takes Android back instead of <see cref="OnNavigate"/>.</summary>
     [Parameter]
     public EventCallback OnBack { get; set; }
 
@@ -85,9 +85,13 @@
     [Parameter]
     public NavDestination? Destination { get; set; }
 
-    /// <summary>Raised with the destination tapped in the bottom navigation bar, or with <see cref="NavDestinations.Start"/> on Android back.</summary>
+    /// <summary>Raised with the destination tapped in the bottom navigation bar, or with <see cref="NavDestinations.Start"/> on Android back from another top-level screen.</summary>
     [Parameter]
     public EventCallback<NavDestination> OnNavigate { get; set; }
+
+    /// <summary>Raised by the bar's Add button. The screen shows its own <see cref="AddSheet"/>; nothing happens when unset.</summary>
+    [Parameter]
+    public EventCallback OnAdd { get; set; }
 
     /// <summary>Actions at the right of the top bar.</summary>
     [Parameter]
@@ -110,7 +114,7 @@
 
     /// <summary>
     /// A message just above the bottom bar, over the content. Its slot is a polite live region, there whenever this is set,
-    /// so a message shown later is read out. Needs <see cref="BottomBar"/> or <see cref="Destination"/>.
+    /// so a message shown later is read out. Without <see cref="BottomBar"/> or <see cref="Destination"/> it floats over the foot of the content on its own.
     /// </summary>
     [Parameter]
     public RenderFragment? Status { get; set; }

@@ -4,7 +4,7 @@ $attribute: CustomPage("Screens/Settings/Overview")
 
 # Settings
 
-Opened from the Dashboard gear. View: `SettingsView`; page: `SettingsPage`.
+Opened from the gear on Today or Trends; Back (the arrow and Android back) returns to the screen that opened it: Trends with the same period and day, or Today on the day it showed (`SettingsRoute`: the `back` query, an in-app path only; any other or missing value goes to Today). View: `SettingsView`; page: `SettingsPage`.
 
 | Part | Content |
 |---|---|
@@ -14,7 +14,7 @@ Opened from the Dashboard gear. View: `SettingsView`; page: `SettingsPage`.
 | Version | "Version 1.0.0": muted, centred and pinned to the bottom of the screen. Nothing shows when there is no version. CI and local E2E builds show "Version 1.0.0-e2e.<run id>" or "1.0.0-e2e.<epoch>". |
 | Theme | Tapping a segment applies it at once and saves it on the phone. **System** follows the phone's light or dark setting and is the default. **Light** and **Dark** override it, and are kept across app starts. The saved choice is applied before the first screen shows, so the app never flashes the wrong theme. If the saved choice can't be read, System shows; if the phone fails to apply a tapped choice, the previous one stays selected; if it applies but can't be saved, the new one stays selected until the app closes, then System or the earlier saved choice returns. |
 
-Back: Dashboard.
+Back: the opener (Trends on the same period and day, or Today on its day), else Today.
 
 States: [Default](./?path=/story/screens-settings--default) · [Dark chosen](./?path=/story/screens-settings--dark-chosen) · [No version](./?path=/story/screens-settings--no-version) · [Target set](./?path=/story/screens-settings--target-set) · [Target not set](./?path=/story/screens-settings--target-not-set) · [Invalid target](./?path=/story/screens-settings--invalid-target)
 

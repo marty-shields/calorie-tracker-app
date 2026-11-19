@@ -25,6 +25,17 @@ public sealed record Nutrition(int Kcal, double ProteinG, double CarbsG, double 
             ? decimal.Parse(value.ToString("R", CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture)
             : throw new OverflowException();
 
+    /// <summary>The nutrition of <paramref name="amount"/> grams or millilitres of the food: its per-100 values scaled by amount over 100 and rounded as above.</summary>
+    public static Nutrition ForAmount(Food food, double amount)
+    {
+        var scale = (decimal)amount / 100m;
+        return new Nutrition(
+            (int)Math.Round(ToDecimal(food.Kcal) * scale, MidpointRounding.AwayFromZero),
+            Round(ToDecimal(food.ProteinG) * scale),
+            Round(ToDecimal(food.CarbsG) * scale),
+            Round(ToDecimal(food.FatG) * scale));
+    }
+
     internal static double Round(decimal grams) => (double)Math.Round(grams, 1, MidpointRounding.AwayFromZero);
 }
 

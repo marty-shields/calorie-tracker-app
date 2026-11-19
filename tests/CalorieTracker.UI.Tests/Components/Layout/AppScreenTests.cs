@@ -125,14 +125,42 @@ public class AppScreenTests : ComponentTestBase
     {
         var cut = Context.Render<AppScreen>(p => p
             .Add(x => x.Title, "Calorie Tracker")
-            .Add(x => x.Destination, NavDestination.Dashboard)
+            .Add(x => x.Destination, NavDestination.Today)
             .Add(x => x.BottomBar, (RenderFragment)(b => b.AddContent(0, "Main action"))));
 
         Assert.Multiple(() =>
         {
             Assert.That(cut.FindAll("footer > *").Select(e => e.GetAttribute("data-testid")), Is.EqualTo(new[] { "bottom-bar", "bottom-nav" }));
-            Assert.That(cut.Find("[aria-current=page]").GetAttribute("data-testid"), Is.EqualTo("dashboard-link"));
+            Assert.That(cut.Find("[aria-current=page]").GetAttribute("data-testid"), Is.EqualTo("today-link"));
         });
+    }
+
+    [Test]
+    public void TheAddButton_RaisesOnAdd()
+    {
+        var added = 0;
+        var cut = Context.Render<AppScreen>(p => p
+            .Add(x => x.Title, "Calorie Tracker")
+            .Add(x => x.Destination, NavDestination.Today)
+            .Add(x => x.OnAdd, () => added++));
+
+        cut.Find("[data-testid=add-button]").Click();
+
+        Assert.That(added, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task TopLevelScreenWithOnBack_AndroidBackRaisesOnBack()
+    {
+        var back = 0;
+        Context.Render<AppScreen>(p => p
+            .Add(x => x.Title, "Calorie Tracker")
+            .Add(x => x.Destination, NavDestination.Today)
+            .Add(x => x.OnBack, () => back++));
+
+        await BackButton.HandleAsync();
+
+        Assert.That(back, Is.EqualTo(1));
     }
 
     [Test]
@@ -140,36 +168,41 @@ public class AppScreenTests : ComponentTestBase
     {
         Context.Render<AppScreen>(p => p
             .Add(x => x.Title, "Calorie Tracker")
-            .Add(x => x.Destination, NavDestination.Dashboard)
+            .Add(x => x.Destination, NavDestination.Today)
             .Add(x => x.OnNavigate, (NavDestination _) => { }));
 
         Assert.That(BackButton.HasHandler, Is.False);
     }
 
     [Test]
-    public async Task Foods_AndroidBack_GoesToTheStart()
+    public async Task Trends_AndroidBackGoesToTheStartDestination_WithNoBackArrow()
     {
         var navigated = new List<NavDestination>();
-        Context.Render<AppScreen>(p => p
-            .Add(x => x.Title, "Search foods")
-            .Add(x => x.Destination, NavDestination.Foods)
+        var cut = Context.Render<AppScreen>(p => p
+            .Add(x => x.Title, "Trends")
+            .Add(x => x.Destination, NavDestination.Trends)
             .Add(x => x.OnNavigate, navigated.Add));
 
         await BackButton.HandleAsync();
 
-        Assert.That(navigated, Is.EqualTo(new[] { NavDestinations.Start }));
+        Assert.Multiple(() =>
+        {
+            Assert.That(navigated, Is.EqualTo(new[] { NavDestinations.Start }));
+            Assert.That(NavDestinations.Start, Is.EqualTo(NavDestination.Today));
+            Assert.That(cut.FindAll("[data-testid=back]"), Is.Empty);
+        });
     }
 
     [Test]
-    public async Task TopLevelScreenWithOnBack_AndroidBackRaisesOnBackNotNavigate()
+    public async Task Trends_WithItsOwnOnBack_AndroidBackRaisesThatInstead()
     {
         var navigated = new List<NavDestination>();
         var back = 0;
         Context.Render<AppScreen>(p => p
-            .Add(x => x.Title, "Search foods")
-            .Add(x => x.Destination, NavDestination.Foods)
-            .Add(x => x.OnNavigate, navigated.Add)
-            .Add(x => x.OnBack, () => back++));
+            .Add(x => x.Title, "Trends")
+            .Add(x => x.Destination, NavDestination.Trends)
+            .Add(x => x.OnBack, () => back++)
+            .Add(x => x.OnNavigate, navigated.Add));
 
         await BackButton.HandleAsync();
 
@@ -194,6 +227,20 @@ public class AppScreenTests : ComponentTestBase
             Assert.That(slot.GetAttribute("aria-live"), Is.EqualTo("polite"));
             Assert.That(slot.QuerySelector("[data-testid=shown]"), Is.Not.Null);
             Assert.That(slot.NextElementSibling!.GetAttribute("data-testid"), Is.EqualTo("bottom-bar"));
+        });
+    }
+
+    [Test]
+    public void Status_WithNeitherBottomBarNorNavigation_StillShows()
+    {
+        var cut = Context.Render<AppScreen>(p => p
+            .Add(x => x.Title, "Screen title")
+            .Add(x => x.Status, "<p data-testid=\"shown\">Oats added to Lunch</p>"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("footer > [role=status] [data-testid=shown]"), Is.Not.Null);
+            Assert.That(cut.FindAll("[data-testid=bottom-bar]"), Is.Empty);
         });
     }
 

@@ -37,7 +37,7 @@ public class DateStripTests : ComponentTestBase
     {
         var iconButton = CssWithoutComments("IconButton.razor.css");
         var tokens = CssWithoutComments("tokens.css");
-        var label = Rule(CssWithoutComments("DateStrip.razor.css"), "label");
+        var label = RepoFiles.Rule(CssWithoutComments("DateStrip.razor.css"), "label");
         var cut = Render(Today);
 
         Assert.Multiple(() =>
@@ -56,7 +56,7 @@ public class DateStripTests : ComponentTestBase
     public void Label_WrapsInsteadOfTruncating()
     {
         var strip = CssWithoutComments("DateStrip.razor.css");
-        var label = Rule(strip, "label");
+        var label = RepoFiles.Rule(strip, "label");
         var cut = Render(Today);
 
         Assert.Multiple(() =>
@@ -147,13 +147,6 @@ public class DateStripTests : ComponentTestBase
 
     private static string CssWithoutComments(string file) =>
         Regex.Replace(File.ReadAllText(RepoFiles.Find(file, "src", "CalorieTracker.UI").Single()), @"/\*.*?\*/", "", RegexOptions.Singleline);
-
-    private static string Rule(string css, string className)
-    {
-        var match = Regex.Match(css, @"(?:^|[},\s])\." + Regex.Escape(className) + @"\s*\{(?<body>[^}]*)\}");
-        Assert.That(match.Success, Is.True, $"no .{className} rule");
-        return match.Groups["body"].Value;
-    }
 
     private IRenderedComponent<DateStrip> Render(DateOnly date, Action? onPrevious = null, Action? onNext = null, Action? onToday = null) =>
         Context.Render<DateStrip>(p => p

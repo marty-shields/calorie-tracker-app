@@ -14,6 +14,8 @@ public sealed record ScanResult(ScanStatus Status, string? Digits = null)
 
     public static ScanResult Cancelled { get; } = new(ScanStatus.Cancelled);
 
+    public static ScanResult SearchByName { get; } = new(ScanStatus.SearchByName);
+
     public static ScanResult PermissionDenied { get; } = new(ScanStatus.PermissionDenied);
 
     public static ScanResult Unavailable { get; } = new(ScanStatus.Unavailable);
@@ -24,6 +26,9 @@ public enum ScanStatus
     Scanned,
     Cancelled,
     PermissionDenied,
+
+    /// <summary>The person tapped Search by name instead on the camera screen.</summary>
+    SearchByName,
 
     /// <summary>The scanner could not open: no window, or an error opening it.</summary>
     Unavailable,

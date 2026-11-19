@@ -42,7 +42,7 @@ public class FavouriteTableUpgradeTests
     }
 
     private Task Initialize() =>
-        new DatabaseInitializer(connection, SchemaSteps.All(), new FakeLogger<DatabaseInitializer>()).InitializeAsync();
+        new DatabaseInitializer(connection, SchemaSteps.Through(19), new FakeLogger<DatabaseInitializer>(), 19).InitializeAsync();
 
     [Test]
     public async Task Upgrade_CreatesTheEmptyTable_KeepsFoodsAndDiary_AndSetsVersion19()

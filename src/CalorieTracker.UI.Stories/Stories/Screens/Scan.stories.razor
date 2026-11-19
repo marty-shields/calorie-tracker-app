@@ -1,3 +1,4 @@
+@using CalorieTracker.Core.Data
 @using CalorieTracker.UI.Models.Scan
 @attribute [Stories("Screens/Scan")]
 
@@ -5,61 +6,37 @@
 
     <Story Name="Opening camera">
         <Template>
-            <ScanView State="ScanState.OpeningCamera" OnNavigate="_ => { }" OnScanAgain="() => { }" />
+            <ScanView State="ScanState.OpeningCamera" Meal="Meal.Lunch" Date="DashboardSamples.Today" OnScanAgain="() => { }" OnBack="() => { }" />
         </Template>
     </Story>
 
     <Story Name="Closing camera">
         <Template>
-            <ScanView State="ScanState.Closing" OnNavigate="_ => { }" OnScanAgain="() => { }" />
+            <ScanView State="ScanState.Closing" Meal="Meal.Lunch" Date="DashboardSamples.Today" OnScanAgain="() => { }" OnBack="() => { }" />
         </Template>
     </Story>
 
     <Story Name="Looking up">
         <Template>
-            <ScanView State="ScanState.LookingUp" OnNavigate="_ => { }" OnScanAgain="() => { }" />
+            <ScanView State="ScanState.LookingUp" Meal="Meal.Lunch" Date="DashboardSamples.Today" OnScanAgain="() => { }" OnBack="() => { }" />
         </Template>
     </Story>
 
-    <Story Name="Found">
+    <Story Name="Adding to another day">
         <Template>
-            <ScanView State="ScanState.Found" Product="@(new("Porridge oats", "Morning Mill", 372, 11, 60, 8, FoodId: 1))" OnNavigate="_ => { }" OnScanAgain="() => { }" />
-        </Template>
-    </Story>
-
-    <Story Name="Found liquid">
-        <Template>
-            <ScanView State="ScanState.Found" Product="@(new("Semi-skimmed milk", null, 47, 3.5m, 4.8m, 1.7m, IsLiquid: true, FoodId: 2))" OnNavigate="_ => { }" OnScanAgain="() => { }" />
-        </Template>
-    </Story>
-
-    <Story Name="Found with extra nutrients">
-        <Template>
-            <ScanView State="ScanState.Found" Product="@(new("Porridge oats", "Morning Mill", 372, 11, 60, 8, Fibre: 9, Sugars: 1.1m, Saturates: 1.4m, Salt: 0.01m, FoodId: 1))" OnNavigate="_ => { }" OnScanAgain="() => { }" />
-        </Template>
-    </Story>
-
-    <Story Name="Found with brand and pack">
-        <Template>
-            <ScanView State="ScanState.Found" Product="@(new("Nutella", "Ferrero", 539, 6.3m, 57.5m, 30.9m, FoodId: 5, Brands: "Ferrero, Nutella", GenericName: "Hazelnut spread with cocoa", PackageLabel: "400 g e"))" OnNavigate="_ => { }" OnScanAgain="() => { }" />
-        </Template>
-    </Story>
-
-    <Story Name="Found with warning">
-        <Template>
-            <ScanView State="ScanState.Found" Product="@(new("Chocolate spread", "Nutty Co", 250, 6, 55, 31, FoodId: 4))" OnNavigate="_ => { }" OnScanAgain="() => { }" />
+            <ScanView State="ScanState.LookingUp" Meal="Meal.Dinner" Date="DashboardSamples.Today.AddDays(-6)" OnScanAgain="() => { }" OnBack="() => { }" />
         </Template>
     </Story>
 
     <Story Name="Not found">
         <Template>
-            <ScanView State="ScanState.NotFound" OnNavigate="_ => { }" OnScanAgain="() => { }" />
+            <ScanView State="ScanState.NotFound" Meal="Meal.Lunch" Date="DashboardSamples.Today" OnSearchByName="() => { }" OnScanAgain="() => { }" OnBack="() => { }" />
         </Template>
     </Story>
 
     <Story Name="Camera unavailable">
         <Template>
-            <ScanView State="ScanState.CameraUnavailable" OnNavigate="_ => { }" OnScanAgain="() => { }" />
+            <ScanView State="ScanState.CameraUnavailable" Meal="Meal.Lunch" Date="DashboardSamples.Today" OnSearchByName="() => { }" OnScanAgain="() => { }" OnBack="() => { }" />
         </Template>
     </Story>
 

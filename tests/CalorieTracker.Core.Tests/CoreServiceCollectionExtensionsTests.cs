@@ -5,6 +5,7 @@ using CalorieTracker.Core.History;
 using CalorieTracker.Core.Seed;
 using CalorieTracker.Core.Summary;
 using CalorieTracker.Core.Targets;
+using CalorieTracker.Core.Trends;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -45,6 +46,8 @@ public class CoreServiceCollectionExtensionsTests
                 (typeof(FavouriteService), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(FavouriteStore), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(DaySummaryService), (Type?)null, ServiceLifetime.Singleton),
+                (typeof(TrendsService), (Type?)null, ServiceLifetime.Singleton),
+                (typeof(TrendsStore), (Type?)null, ServiceLifetime.Singleton),
                 (typeof(SeedProgress), typeof(SeedProgress), ServiceLifetime.Singleton),
             }));
     }

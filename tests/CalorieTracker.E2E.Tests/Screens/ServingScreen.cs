@@ -3,7 +3,7 @@ namespace CalorieTracker.E2E.Tests.Screens;
 /// <summary>The Serving screen: the amount, the meal and Add.</summary>
 public sealed class ServingScreen(WebView web)
 {
-    /// <summary>Waits for the screen to show with its food loaded, after a tap on Add to diary.</summary>
+    /// <summary>Waits for the screen to show with its food loaded, after a tap on a food or a scan.</summary>
     public void WaitUntilOpen() => web.WaitUntil(() => web.Exists("serving-add"), "the Serving screen didn't show");
 
     /// <summary>Opens the route of a food that does not exist and waits for the message.</summary>

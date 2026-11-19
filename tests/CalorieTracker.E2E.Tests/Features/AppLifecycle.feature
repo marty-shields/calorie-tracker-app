@@ -1,5 +1,5 @@
 Feature: App lifecycle
-  Settings stay when the app closes; the Dashboard reloads when the app comes back.
+  Settings stay when the app closes; Today reloads when the app comes back.
 
   @smoke @release
   Scenario: A chosen theme survives closing and reopening the app

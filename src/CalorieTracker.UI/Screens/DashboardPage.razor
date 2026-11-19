@@ -1,13 +1,26 @@
+@using Microsoft.Extensions.Logging
+@using CalorieTracker.Core.Data
+@using CalorieTracker.Core.Foods
+@using CalorieTracker.Core.History
 @using CalorieTracker.Core.Summary
+@using CalorieTracker.UI.Components.Feedback
+@using CalorieTracker.UI.Components.Layout
+@using CalorieTracker.UI.Lifecycle
 @inject DaySummaryService Summaries
 @using CalorieTracker.Core.Diary
 @implements IDisposable
 @inject DiaryService Diary
+@inject FoodHistoryService History
+@inject FoodService Foods
+@inject SnackbarService Snackbar
+@inject ILogger<DashboardPage> Logger
 @inject TimeProvider Time
+@inject IAppStart AppStart
 
-<DashboardView Date="date" Today="Today()" Summary="summary" Loading="loading" LoadFailed="loadFailed"
+<DashboardView Date="date" Today="Today()" Now="now" OpenMeal="OpenMeal" Summary="summary" Loading="loading" LoadFailed="loadFailed"
                OnPrevious="@(() => ShowAsync(date.AddDays(-1)))" OnNext="@(() => ShowAsync(date.AddDays(1)))" OnToday="@(() => ShowAsync(Today()))"
-               OnAdd="OnAdd" OnEdit="OnEdit" OnRetry="LoadAsync" OnNavigate="OnNavigate" OnSettings="OnSettings" />
+               UsualFoods="feed.Usual" UsualAddError="@feed.AddError" OnMealChanged="feed.LoadAsync" OnAddUsual="feed.AddAsync"
+               OnAdd="OnAdd" OnScan="OnScan" OnEdit="OnEdit" OnRetry="LoadAsync" OnNavigate="OnNavigate" OnSettings="OpenSettingsAsync" />
 
 @code {
     private DateOnly date;
@@ -17,14 +30,25 @@
     private DateOnly? openedWith;
     private bool opened;
     private bool disposed;
+    private UsualFoodsFeed feed = null!;
+    private TimeOnly now;
+    private IDisposable? resumed;
 
     /// <summary>The day to open on the date strip, from the route's <c>date</c>. Null opens today. A change opens that day.</summary>
     [Parameter]
     public DateOnly? Date { get; set; }
 
-    /// <summary>Raised with the meal and day when a meal's + is tapped.</summary>
+    /// <summary>A meal to show open on Today even after its window, from the route's <c>open</c>, such as the one a food was just added to.</summary>
+    [Parameter]
+    public Meal? OpenMeal { get; set; }
+
+    /// <summary>Raised with the meal and day when a meal's + or the Add sheet's Search foods is tapped.</summary>
     [Parameter]
     public EventCallback<MealAddRequest> OnAdd { get; set; }
+
+    /// <summary>Raised with the meal and day when the Add sheet's Scan barcode is tapped.</summary>
+    [Parameter]
+    public EventCallback<MealAddRequest> OnScan { get; set; }
 
     /// <summary>Raised with the entry, its meal and the day when an entry is tapped.</summary>
     [Parameter]
@@ -34,15 +58,22 @@
     [Parameter]
     public EventCallback<NavDestination> OnNavigate { get; set; }
 
-    /// <summary>Raised by the Settings gear and by Set a target.</summary>
+    /// <summary>Raised by the Settings gear and by Set a target, with the day on screen (null when it is today) so Settings can come back to it.</summary>
     [Parameter]
-    public EventCallback OnSettings { get; set; }
+    public EventCallback<DateOnly?> OnSettings { get; set; }
 
-    protected override void OnInitialized() => Diary.Changed += OnDiaryChanged;
+    protected override void OnInitialized()
+    {
+        feed = new UsualFoodsFeed(History, Foods, Diary, Snackbar, Logger, StateHasChanged);
+        Diary.Changed += OnDiaryChanged;
+        resumed = AppStart.Register(OnResumed);
+    }
 
     public void Dispose()
     {
         disposed = true;
+        resumed?.Dispose();
+        feed.Dispose();
         Diary.Changed -= OnDiaryChanged;
     }
 
@@ -62,6 +93,20 @@
     /// <summary>Today by the clock now, so the screen is right when it is used past midnight.</summary>
     private DateOnly Today() => DateOnly.FromDateTime(Time.GetLocalNow().DateTime);
 
+    private Task OpenSettingsAsync() => OnSettings.InvokeAsync(date == Today() ? null : date);
+
+    private TimeOnly TimeNow() => TimeOnly.FromDateTime(Time.GetLocalNow().DateTime);
+
+    /// <summary>The app came back on screen: read the clock again so the meals fold or open for the new time. The day on screen stays.</summary>
+    private Task OnResumed() => InvokeAsync(() =>
+    {
+        if (!disposed)
+        {
+            now = TimeNow();
+            StateHasChanged();
+        }
+    });
+
     private Task ShowAsync(DateOnly day)
     {
         date = day;
@@ -75,6 +120,7 @@
     private async Task LoadAsync(bool blank)
     {
         var day = date;
+        now = TimeNow();
         if (blank)
         {
             loading = true;

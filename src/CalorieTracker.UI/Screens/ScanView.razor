@@ -1,8 +1,11 @@
+@using CalorieTracker.Core.Data
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Components.Lists
 @using CalorieTracker.UI.Models.Scan
-<AppScreen Title="Scan barcode" Destination="NavDestination.Scan" OnNavigate="OnNavigate">
-    <ChildContent>
+@using CalorieTracker.UI.Scanning
+<AppScreen Title="Scan barcode" OnBack="OnBack">
+    <div class="scan">
+        <p class="adding" data-testid="scan-adding">@ScanCaption.For(Meal, Date)</p>
         @switch (State)
         {
             case ScanState.OpeningCamera:
@@ -20,57 +23,39 @@
                     <Spinner Label="Looking up product…" TestId="scan-looking-up" />
                 </div>
                 break;
-            case ScanState.Found when Product is { } product:
-                <div data-testid="scan-product">
-                    <FoodValues Name="@product.Display.Title" Brand="@product.Display.BrandLine" Pack="@product.Display.Pack" GenericName="@product.Display.GenericName" IsLiquid="product.IsLiquid" Kcal="(double)product.Kcal" Protein="(double)product.Protein"
-                                Carbs="(double)product.Carbs" Fat="(double)product.Fat" Fibre="(double?)product.Fibre" Sugars="(double?)product.Sugars"
-                                Saturates="(double?)product.Saturates" Salt="(double?)product.Salt" TestId="scan">
-                        @if (product.KcalMismatch)
-                        {
-                            <p class="warning" role="alert" data-testid="scan-warning" data-wrap-ok>These values don't add up. Check the label before relying on them.</p>
-                        }
-                    </FoodValues>
+            case ScanState.CameraUnavailable:
+                <div class="centre">
+                    <LoadFailed Message="Couldn't open the camera" TestId="scan-camera-unavailable" OnRetry="OnScanAgain" />
+                    <AppButton Variant="ButtonVariant.Secondary" FullWidth TestId="scan-search" OnClick="OnSearchByName">Search by name instead</AppButton>
                 </div>
                 break;
-            case ScanState.CameraUnavailable:
-                <LoadFailed Message="Couldn't open the camera" TestId="scan-camera-unavailable" OnRetry="OnScanAgain" />
-                break;
             default:
-                <EmptyState Message="Unable to find this product" Hint="Try another barcode, or search by name." TestId="scan-not-found" />
+                <div class="centre">
+                    <EmptyState Message="Unable to find this product" Hint="Try another barcode, or search by name." TestId="scan-not-found" />
+                    <div class="actions">
+                        <AppButton FullWidth TestId="scan-search" OnClick="OnSearchByName">Search by name instead</AppButton>
+                        <AppButton FullWidth Variant="ButtonVariant.Secondary" TestId="scan-again" OnClick="OnScanAgain">Scan again</AppButton>
+                    </div>
+                </div>
                 break;
         }
-    </ChildContent>
-    <BottomBar>
-        @if (State is ScanState.Found or ScanState.NotFound)
-        {
-            @if (State == ScanState.Found && Product?.FoodId is not null)
-            {
-                <AppButton FullWidth TestId="scan-add" OnClick="OnAddToDiary">Add to diary</AppButton>
-            }
-            else
-            {
-                <AppButton FullWidth TestId="scan-search" OnClick="OnSearchByName">Search by name</AppButton>
-            }
-
-            <AppButton FullWidth Variant="ButtonVariant.Secondary" TestId="scan-again" OnClick="OnScanAgain">Scan again</AppButton>
-        }
-    </BottomBar>
+    </div>
 </AppScreen>
 
 @code {
-    /// <summary>Which state to show.</summary>
+    /// <summary>Which state to show. A found product has no state: the page hands it on to Serving at once.</summary>
     [Parameter]
     public ScanState State { get; set; }
 
-    /// <summary>The product to show when <see cref="State"/> is Found. Found with null shows the not-found message and Search by name.</summary>
+    /// <summary>The meal being added to, shown in the chip.</summary>
     [Parameter]
-    public ScannedProduct? Product { get; set; }
+    public Meal Meal { get; set; }
 
-    /// <summary>Raised by Add to diary, shown when the found product has a <see cref="ScannedProduct.FoodId"/>.</summary>
+    /// <summary>The day being added to, shown in the chip as day and month.</summary>
     [Parameter]
-    public EventCallback OnAddToDiary { get; set; }
+    public DateOnly Date { get; set; }
 
-    /// <summary>Raised by Search by name, shown when the product has no food id to add (nothing found, or not saved).</summary>
+    /// <summary>Raised by Search by name instead, shown when nothing was found or the camera could not open.</summary>
     [Parameter]
     public EventCallback OnSearchByName { get; set; }
 
@@ -78,7 +63,7 @@
     [Parameter]
     public EventCallback OnScanAgain { get; set; }
 
-    /// <summary>Raised with the destination tapped in the bottom navigation bar, or with the start screen on Android back.</summary>
+    /// <summary>Raised by the back arrow and Android back.</summary>
     [Parameter]
-    public EventCallback<NavDestination> OnNavigate { get; set; }
+    public EventCallback OnBack { get; set; }
 }

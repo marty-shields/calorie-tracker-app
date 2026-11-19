@@ -74,7 +74,7 @@ public sealed class AppSteps(WebView web, Native native, AppLog log, Journeys jo
     public void ThenTheSoftKeyboardIs(string shown) =>
         web.Eventually(native.IsKeyboardShown, Is.EqualTo(shown == "shown"), "soft keyboard shown");
 
-    [Then(@"^the screen title is below the status bar and the tabs are above the navigation bar$")]
+    [Then(@"^the screen title is below the status bar and the bar is above the navigation bar$")]
     public void ThenTheTitleAndTabsClearTheSystemBars()
     {
         var bars = Native.SystemBars();

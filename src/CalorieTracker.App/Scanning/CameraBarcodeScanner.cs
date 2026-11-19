@@ -11,16 +11,16 @@ internal sealed partial class CameraBarcodeScanner(ILogger<CameraBarcodeScanner>
     // Only touched on the main thread, so a second tap while a scan is open joins it instead of pushing another page.
     private Task<ScanResult>? pending;
 
-    public Task<ScanResult> ScanAsync(Func<string, bool> accept, ThemePreference theme) => MainThread.InvokeOnMainThreadAsync(() => JoinOrOpenAsync(accept, theme));
+    public Task<ScanResult> ScanAsync(Func<string, bool> accept, ThemePreference theme, string caption) => MainThread.InvokeOnMainThreadAsync(() => JoinOrOpenAsync(accept, theme, caption));
 
-    private async Task<ScanResult> JoinOrOpenAsync(Func<string, bool> accept, ThemePreference theme)
+    private async Task<ScanResult> JoinOrOpenAsync(Func<string, bool> accept, ThemePreference theme, string caption)
     {
         if (pending is not null)
         {
             return await pending;
         }
 
-        pending = OpenAsync(accept, theme);
+        pending = OpenAsync(accept, theme, caption);
         try
         {
             return await pending;
@@ -31,7 +31,7 @@ internal sealed partial class CameraBarcodeScanner(ILogger<CameraBarcodeScanner>
         }
     }
 
-    private async Task<ScanResult> OpenAsync(Func<string, bool> accept, ThemePreference theme)
+    private async Task<ScanResult> OpenAsync(Func<string, bool> accept, ThemePreference theme, string caption)
     {
         var result = ScanResult.Unavailable;
         var app = Application.Current;
@@ -52,7 +52,7 @@ internal sealed partial class CameraBarcodeScanner(ILogger<CameraBarcodeScanner>
                     ThemePreference.Dark => AppTheme.Dark,
                     _ => AppTheme.Unspecified,
                 };
-                var page = new ScanPage(accept);
+                var page = new ScanPage(accept, caption);
                 await navigation.PushModalAsync(page);
                 result = await page.Result;
             }

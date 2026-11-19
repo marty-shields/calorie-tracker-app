@@ -147,6 +147,34 @@ public class IconButtonTests : ComponentTestBase
     }
 
     [Test]
+    public void Soft_SetsClassAndIgnoresMutedAndActive()
+    {
+        var cut = Context.Render<IconButton>(p => p
+            .Add(x => x.Icon, IconName.Plus)
+            .Add(x => x.AriaLabel, "Add")
+            .Add(x => x.Muted, true)
+            .Add(x => x.Active, true)
+            .Add(x => x.Style, IconButtonStyle.Soft));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("button").ClassList, Is.EquivalentTo(new[] { "icon-btn", "soft" }));
+            Assert.That(cut.Find("svg").ClassList, Does.Not.Contain("muted"));
+        });
+    }
+
+    [Test]
+    public void SoftChip_FillsFromTheSoftTokens()
+    {
+        var root = RepoFiles.Find("*.razor", "src", "CalorieTracker.UI").Single(f => f.EndsWith("IconButton.razor"));
+        var css = File.ReadAllText(root + ".css");
+        var start = css.IndexOf(".soft {", StringComparison.Ordinal);
+
+        Assert.That(start, Is.GreaterThanOrEqualTo(0));
+        Assert.That(css[start..css.IndexOf('}', start)], Does.Contain("background-color: var(--color-chip-soft);").And.Contain("color: var(--color-on-chip-soft);"));
+    }
+
+    [Test]
     public void Plain_IsTheDefaultAndHasNoFilledClass()
     {
         var cut = Context.Render<IconButton>(p => p.Add(x => x.Icon, IconName.Plus).Add(x => x.AriaLabel, "Add"));
@@ -197,7 +225,7 @@ public class IconButtonTests : ComponentTestBase
     {
         var stories = RepoFiles.Read("src", "CalorieTracker.UI.Stories", "Stories", "Components", "Actions", "IconButton.stories.razor");
         var names = Regex.Matches(stories, "<Story Name=\"([^\"]+)\"").Select(m => m.Groups[1].Value).ToList();
-        var plain = names.Where(n => !n.StartsWith("Filled ", StringComparison.Ordinal) && !StoriesWithoutFilledTwin.Contains(n));
+        var plain = names.Where(n => !n.StartsWith("Filled ", StringComparison.Ordinal) && !n.StartsWith("Soft ", StringComparison.Ordinal) && !StoriesWithoutFilledTwin.Contains(n));
         var missing = plain.Where(n => !names.Contains("Filled " + n)).ToList();
         var filledStories = Regex.Matches(stories, "<Story Name=\"Filled [^\"]+\">(.*?)</Story>", RegexOptions.Singleline);
 
@@ -208,4 +236,12 @@ public class IconButtonTests : ComponentTestBase
             Assert.That(filledStories.Select(m => m.Groups[1].Value), Has.All.Contain("IconButtonStyle.Filled"));
         });
     }
+
+    [Test]
+    public void Disabled_DisablesTheButton() =>
+        Assert.That(Context.Render<IconButton>(p => p.Add(x => x.Icon, IconName.Chevron).Add(x => x.AriaLabel, "Next").Add(x => x.Disabled, true)).Find("button").HasAttribute("disabled"), Is.True);
+
+    [Test]
+    public void NotDisabled_ByDefault() =>
+        Assert.That(Context.Render<IconButton>(p => p.Add(x => x.Icon, IconName.Chevron).Add(x => x.AriaLabel, "Next")).Find("button").HasAttribute("disabled"), Is.False);
 }

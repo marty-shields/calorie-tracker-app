@@ -1,6 +1,6 @@
 namespace CalorieTracker.E2E.Tests.Screens;
 
-/// <summary>Scan: the camera, or the message when it can't open. Found and Not found need a barcode: bUnit covers them, and the Diary journeys feature reaches Found through the Debug-build scan seam.</summary>
+/// <summary>Scan: the chip, and the camera or the message when it can't open. Not found needs a barcode: bUnit covers it, and the Diary journeys feature reaches a found product (which opens Serving) through the Debug-build scan seam.</summary>
 public sealed class ScanScreen(WebView web)
 {
     public const string Title = "Scan barcode";
@@ -18,14 +18,15 @@ public sealed class ScanScreen(WebView web)
     /// <summary>Whether Try again shows on the camera-unavailable error.</summary>
     public bool HasTryAgain() => web.Exists("scan-camera-unavailable-retry");
 
-    /// <summary>Whether a found product shows.</summary>
-    public bool ShowsProduct() => web.Exists("scan-product");
+    /// <summary>The chip under the top bar, such as "Adding to Dinner · 18 Nov".</summary>
+    public string Chip()
+    {
+        web.WaitUntil(() => web.Exists("scan-adding"), "Scan didn't show what it adds to");
+        return web.Text("scan-adding");
+    }
 
-    /// <summary>Whether Add to diary shows under a found product.</summary>
-    public bool HasAddToDiary() => web.Exists("scan-add");
+    /// <summary>Whether a bottom bar shows. Scan has none.</summary>
+    public bool HasBottomBar() => web.Exists("bottom-bar") || web.Exists("bottom-nav");
 
-    /// <summary>The found product's heading.</summary>
-    public string ProductTitle() => web.Text("scan-name");
-
-    public void AddToDiary() => web.Tap("scan-add");
+    public void SearchByName() => web.Tap("scan-search");
 }

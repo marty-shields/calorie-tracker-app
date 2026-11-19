@@ -33,6 +33,45 @@ public class ScanPageMarkupTests
         Assert.That(ScanXaml(), Does.Match(@"<Grid Grid\.Row=""1""[\s\S]*<Button AutomationId=""scan-native-cancel""[^>]*Text=""Cancel""[^>]*Clicked=""OnCancelClicked"""));
 
     [Test]
+    public void ScanPage_OffersSearchByNameAboveCancel_WiredToItsOwnHandlerAndClosingWithTheSearchStatus()
+    {
+        var xaml = ScanXaml();
+        var code = RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "ScanPage.xaml.cs");
+        Assert.Multiple(() =>
+        {
+            Assert.That(xaml, Does.Match(@"<Button AutomationId=""scan-native-search""[^>]*Text=""Search by name instead""[^>]*Clicked=""OnSearchByNameClicked"""));
+            Assert.That(xaml.IndexOf("scan-native-search", StringComparison.Ordinal), Is.LessThan(xaml.IndexOf("scan-native-cancel", StringComparison.Ordinal)));
+            Assert.That(code, Does.Contain("OnSearchByNameClicked(object? sender, EventArgs e) => await CloseAsync(ScanResult.SearchByName)"));
+        });
+    }
+
+    [Test]
+    public void ScanPage_ShowsTheCaptionPillCentredAtTheTop_AndFillsItFromTheScannerCaption()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(ScanXaml(), Does.Match(@"<Label x:Name=""Caption""[^>]*AutomationId=""scan-native-caption""[^>]*HorizontalOptions=""Center""[^>]*VerticalOptions=""Start"""));
+            Assert.That(RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "ScanPage.xaml.cs"), Does.Contain("Caption.Text = caption;"));
+        });
+    }
+
+    [Test]
+    public void ScanPage_DrawsTheCaptionOnAWhitePillWithDarkText_FromThePageResourcesNotLiterals()
+    {
+        var xaml = ScanXaml();
+        var pill = Regex.Match(xaml, @"<Border\s[^>]*AutomationId=""scan-native-caption-pill""[^>]*>").Value;
+        Assert.Multiple(() =>
+        {
+            Assert.That(pill, Does.Contain("BackgroundColor=\"{StaticResource OverlayText}\"").And.Contain("StrokeShape=\"RoundRectangle"));
+            Assert.That(xaml, Does.Match(@"<Label x:Name=""Caption""[^>]*TextColor=""\{StaticResource TextLight\}"""));
+            Assert.That(xaml, Does.Not.Match(@"<Label x:Name=""Caption""[^>]*BackgroundColor"), "the label has no scrim of its own");
+            Assert.That(AppColour("OverlayText"), Is.EqualTo("#ffffff"));
+            Assert.That(AppColour("TextLight"), Is.EqualTo("#373e40"), "the light theme's --color-text");
+        });
+        Assert.That(TokensCss(), Does.Contain("--color-text: light-dark(#373e40,"));
+    }
+
+    [Test]
     public void ScanPage_HidesTheDecorativeFrameFromScreenReaders() =>
         Assert.That(ScanXaml(), Does.Match(@"<Border AutomationId=""scan-native-frame""\s+AutomationProperties\.IsInAccessibleTree=""False"""));
 
@@ -110,7 +149,7 @@ public class ScanPageMarkupTests
         {
             Assert.That(source, Does.Contain("app.UserAppTheme = theme switch"));
             Assert.That(source, Does.Contain(arm + " => " + appTheme + ","));
-            Assert.That(source.IndexOf("UserAppTheme", StringComparison.Ordinal), Is.LessThan(source.IndexOf("new ScanPage(accept)", StringComparison.Ordinal)), "set before the page is built");
+            Assert.That(source.IndexOf("UserAppTheme", StringComparison.Ordinal), Is.LessThan(source.IndexOf("new ScanPage(accept, caption)", StringComparison.Ordinal)), "set before the page is built");
         });
     }
 
@@ -141,7 +180,7 @@ public class ScanPageMarkupTests
 
     [Test]
     public void Scanner_PassesTheCallerAcceptToTheModal() =>
-        Assert.That(RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "CameraBarcodeScanner.cs"), Does.Contain("new ScanPage(accept)"));
+        Assert.That(RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "CameraBarcodeScanner.cs"), Does.Contain("new ScanPage(accept, caption)"));
 
     [Test]
     public void Manifest_DeclaresTheCameraPermission() =>

@@ -3,15 +3,9 @@
 
 <Stories TComponent="BottomNav" Layout="typeof(ThemeLayout)">
 
-    <Story Name="Dashboard">
+    <Story Name="Today">
         <Template>
-            <BottomNav Current="NavDestination.Dashboard" OnNavigate="(NavDestination _) => { }" />
-        </Template>
-    </Story>
-
-    <Story Name="Foods">
-        <Template>
-            <BottomNav Current="NavDestination.Foods" OnNavigate="(NavDestination _) => { }" />
+            <BottomNav Current="NavDestination.Today" OnNavigate="(NavDestination _) => { }" OnAdd="() => { }" />
         </Template>
     </Story>
 

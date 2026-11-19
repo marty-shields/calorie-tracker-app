@@ -33,6 +33,7 @@ public static class MauiProgram
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
         builder.Services.AddE2EScanSeam();
+        builder.Services.AddE2EClockSeam();
 #endif
 
         AddLogging(builder);

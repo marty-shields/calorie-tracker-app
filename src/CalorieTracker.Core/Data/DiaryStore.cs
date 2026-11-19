@@ -57,4 +57,8 @@ internal sealed class DiaryStore(SQLiteAsyncConnection connection, DatabaseGate 
 
     /// <summary>The kept entries of the day in the order added, on the caller's connection, inside the gate.</summary>
     internal static List<DiaryEntry> ListDay(SQLiteConnection db, string date) => db.Query<DiaryEntry>(ListDaySql, date);
+
+    /// <summary>The kept entries from <paramref name="from"/> to <paramref name="to"/> inclusive (both <see cref="DiaryEntry.Date"/> text) in the order added, on the caller's connection, inside the gate.</summary>
+    internal static List<DiaryEntry> ListRange(SQLiteConnection db, string from, string to) =>
+        db.Query<DiaryEntry>("SELECT * FROM DiaryEntry WHERE Date BETWEEN ? AND ? AND IsRemoved = 0 ORDER BY Id", from, to);
 }

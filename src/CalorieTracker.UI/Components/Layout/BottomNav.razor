@@ -1,19 +1,38 @@
 <nav class="bottom-nav" aria-label="Main" data-testid="bottom-nav">
-    @foreach (var item in NavDestinations.All)
-    {
-        var current = item.Destination == Current;
-        <button type="button"
-                class="item @(current ? "current" : null)"
-                aria-current="@(current ? "page" : null)"
+    <div class="side">
+        @foreach (var item in Before)
+        {
+            @Item(item)
+        }
+    </div>
+    <button type="button" class="add" data-testid="add-button" data-sheet-opener aria-haspopup="dialog" @onclick="OnAdd">
+        <span class="fab"><Icon Name="IconName.Plus" /></span>
+        <span class="label">Add</span>
+    </button>
+    <div class="side">
+        @foreach (var item in After)
+        {
+            @Item(item)
+        }
+    </div>
+</nav>
+
+@code {
+    private RenderFragment Item(NavItem item) => @<button type="button"
+                class="item @(item.Destination == Current ? "current" : null)"
+                aria-current="@(item.Destination == Current ? "page" : null)"
                 data-testid="@item.TestId"
                 @onclick="() => Navigate(item.Destination)">
             <span class="indicator"><Icon Name="item.Icon" /></span>
             <span class="label">@item.Label</span>
-        </button>
-    }
-</nav>
+        </button>;
 
-@code {
+    /// <summary>The items left of Add: the first half of the bar.</summary>
+    private static IEnumerable<NavItem> Before => NavDestinations.All.Take((NavDestinations.All.Count + 1) / 2);
+
+    /// <summary>The items right of Add.</summary>
+    private static IEnumerable<NavItem> After => NavDestinations.All.Skip((NavDestinations.All.Count + 1) / 2);
+
     /// <summary>The screen showing; its item is marked as the current page.</summary>
     [Parameter, EditorRequired]
     public NavDestination Current { get; set; }
@@ -21,6 +40,10 @@
     /// <summary>Raised with the tapped item's destination. Not raised for the current one.</summary>
     [Parameter]
     public EventCallback<NavDestination> OnNavigate { get; set; }
+
+    /// <summary>Raised by Add, which is an action and never shows as the current item.</summary>
+    [Parameter]
+    public EventCallback OnAdd { get; set; }
 
     private Task Navigate(NavDestination destination) =>
         destination == Current ? Task.CompletedTask : OnNavigate.InvokeAsync(destination);

@@ -15,22 +15,7 @@
 @code {
     private string Id => TestId ?? "date-strip";
 
-    // The year is shown only for a date outside today's year.
-    private string LabelText
-    {
-        get
-        {
-            var format = Date.Year == Today.Year ? "d MMM" : "d MMM yyyy";
-            var date = Date.ToString(format, CultureInfo.InvariantCulture);
-            return (Date.DayNumber - Today.DayNumber) switch
-            {
-                0 => $"Today, {date}",
-                -1 => $"Yesterday, {date}",
-                1 => $"Tomorrow, {date}",
-                _ => $"{Date.ToString("ddd", CultureInfo.InvariantCulture)}, {date}",
-            };
-        }
-    }
+    private string LabelText => DayLabel.For(Date, Today);
 
     /// <summary>Day shown. Any date is allowed; there is no limit either way.</summary>
     [Parameter, EditorRequired]

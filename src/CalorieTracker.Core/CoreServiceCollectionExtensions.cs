@@ -5,6 +5,7 @@ using CalorieTracker.Core.History;
 using CalorieTracker.Core.Seed;
 using CalorieTracker.Core.Summary;
 using CalorieTracker.Core.Targets;
+using CalorieTracker.Core.Trends;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SQLite;
@@ -34,6 +35,7 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<TargetStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<DiaryStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<DaySummaryStore>(provider, connection))
+            .AddSingleton(provider => ActivatorUtilities.CreateInstance<TrendsStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<FoodHistoryStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<FoodStore>(provider, connection))
             .AddSingleton(provider => ActivatorUtilities.CreateInstance<ServingStore>(provider, connection))
@@ -64,7 +66,8 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<ISchemaUpgrade, StorageCleanupUpgrade>()
             .AddSingleton<ISchemaUpgrade, OnlineSearchNoticeUpgrade>()
             .AddSingleton<ISchemaUpgrade, DropImportedServingsUpgrade>()
-            .AddSingleton<ISchemaUpgrade, FavouriteTableUpgrade>();
+            .AddSingleton<ISchemaUpgrade, FavouriteTableUpgrade>()
+            .AddSingleton<ISchemaUpgrade, TargetHistoryUpgrade>();
 
     private static IServiceCollection AddServices(this IServiceCollection services)
     {
@@ -77,10 +80,11 @@ public static class CoreServiceCollectionExtensions
             .AddSingleton<IOnlineSearchNotice>(provider => new OnlineSearchNotice(provider.GetRequiredService<NoticeStore>(), provider.GetRequiredService<ILogger<OnlineSearchNotice>>()))
             .AddSingleton(provider => new FavouriteService(provider.GetRequiredService<FavouriteStore>(), provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<FavouriteService>>()))
             .AddSingleton(provider => new ServingService(provider.GetRequiredService<ServingStore>(), provider.GetRequiredService<ILogger<ServingService>>()))
-            .AddSingleton(provider => new TargetService(provider.GetRequiredService<TargetStore>(), provider.GetRequiredService<ILogger<TargetService>>()))
+            .AddSingleton(provider => new TargetService(provider.GetRequiredService<TargetStore>(), provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<TargetService>>()))
             .AddSingleton(provider => new DiaryService(provider.GetRequiredService<DiaryStore>(), provider.GetRequiredService<ILogger<DiaryService>>()))
             .AddSingleton(provider => new FoodHistoryService(provider.GetRequiredService<FoodHistoryStore>(), provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<ILogger<FoodHistoryService>>()))
             .AddSingleton(provider => new DaySummaryService(provider.GetRequiredService<DaySummaryStore>(), provider.GetRequiredService<ILogger<DaySummaryService>>()))
+            .AddSingleton(provider => new TrendsService(provider.GetRequiredService<TrendsStore>(), provider.GetRequiredService<TargetService>(), provider.GetRequiredService<ILogger<TrendsService>>()))
             .AddSingleton<ISeedLoader>(provider =>
                 ActivatorUtilities.CreateInstance<SeedLoader>(provider, (Func<Stream>)SeedLoader.OpenBundledSeed))
             .AddSingleton<SeedProgress>()

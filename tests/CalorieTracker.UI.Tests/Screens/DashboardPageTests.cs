@@ -3,6 +3,7 @@ using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Summary;
 using CalorieTracker.Core.Targets;
+using CalorieTracker.UI.Lifecycle;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Screens;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,6 +54,8 @@ public class DashboardPageTests : ComponentTestBase
         sliceId = slice.Id;
         Context.Services.AddSingleton(core.GetRequiredService<DaySummaryService>());
         Context.Services.AddSingleton(core.GetRequiredService<DiaryService>());
+        Context.Services.AddSingleton(core.GetRequiredService<CalorieTracker.Core.History.FoodHistoryService>());
+        Context.Services.AddSingleton(core.GetRequiredService<CalorieTracker.Core.Foods.FoodService>());
         Context.Services.AddSingleton<TimeProvider>(new FakeTimeProvider(new DateTimeOffset(2031, 7, 19, 12, 40, 0, TimeSpan.Zero)));
     }
 
@@ -211,7 +214,7 @@ public class DashboardPageTests : ComponentTestBase
 
         await cut.Find("[data-testid=date-strip-next]").ClickAsync();
         cut.WaitForAssertion(() => Assert.That(Text(cut, "date-strip-label"), Does.StartWith("Tomorrow")));
-        cut.Render(p => p.Add(x => x.OnSettings, () => { }));
+        cut.Render(p => p.Add(x => x.OnSettings, (DateOnly? _) => { }));
 
         Assert.That(Text(cut, "date-strip-label"), Does.StartWith("Tomorrow"));
     }
@@ -260,20 +263,32 @@ public class DashboardPageTests : ComponentTestBase
     public async Task Buttons_RaiseTheirCallbacks()
     {
         var navigated = new List<NavDestination>();
-        var settings = 0;
+        var settings = new List<DateOnly?>();
         var cut = Render(more: p => p
             .Add(x => x.OnNavigate, navigated.Add)
-            .Add(x => x.OnSettings, () => settings++));
+            .Add(x => x.OnSettings, (DateOnly? day) => settings.Add(day)));
 
-        await cut.Find("[data-testid=dashboard-link]").ClickAsync();
+        await cut.Find("[data-testid=today-link]").ClickAsync();
         await cut.Find("[data-testid=settings]").ClickAsync();
-        await cut.Find("[data-testid=scan-link]").ClickAsync();
 
         cut.WaitForAssertion(() =>
         {
-            Assert.That(navigated, Is.EqualTo(new[] { NavDestination.Scan }));
-            Assert.That(settings, Is.EqualTo(1));
+            Assert.That(navigated, Is.Empty, "Today is the screen showing");
+            Assert.That(settings, Is.EqualTo(new DateOnly?[] { null }), "on today the opener carries no day");
         });
+    }
+
+    [Test]
+    public async Task Settings_CarriesTheDayOnScreenSoBackComesToIt()
+    {
+        var settings = new List<DateOnly?>();
+        var cut = Render(more: p => p.Add(x => x.OnSettings, (DateOnly? day) => settings.Add(day)));
+
+        await cut.Find("[data-testid=date-strip-previous]").ClickAsync();
+        cut.WaitForAssertion(() => Assert.That(Text(cut, "date-strip-label"), Does.StartWith("Yesterday")));
+        await cut.Find("[data-testid=settings]").ClickAsync();
+
+        Assert.That(settings, Is.EqualTo(new DateOnly?[] { Today.AddDays(-1) }));
     }
 
     [Test]
@@ -282,5 +297,143 @@ public class DashboardPageTests : ComponentTestBase
         Render();
 
         Assert.That(BackButton.HasHandler, Is.False);
+    }
+
+    private FakeTimeProvider Clock => (FakeTimeProvider)Context.Services.GetRequiredService<TimeProvider>();
+
+    [Test]
+    public async Task OnToday_AMealPastItsWindowIsFoldedAndOpensOnTap()
+    {
+        await Log(Today, Meal.Breakfast, 30);
+
+        var cut = Render();
+
+        Assert.That(Text(cut, "meal-breakfast-summary"), Is.EqualTo("1 item · 125 kcal"));
+        Assert.That(Text(cut, "meal-lunch-now"), Is.EqualTo("Now"));
+        Assert.That(Text(cut, "meal-dinner-hint"), Is.EqualTo("from 17:00"));
+
+        await cut.Find("[data-testid=meal-breakfast-toggle]").ClickAsync();
+
+        Assert.That(cut.FindAll("[data-testid=meal-breakfast] ~ ul .row"), Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public async Task TheTimeDecidesWhichMealsAreOpen_ReadWhenTheDayLoads()
+    {
+        Clock.SetUtcNow(new DateTimeOffset(2031, 7, 19, 19, 30, 0, TimeSpan.Zero));
+        await Log(Today, Meal.Lunch, 30);
+
+        var cut = Render();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "meal-lunch-summary"), Is.EqualTo("1 item · 125 kcal"));
+            Assert.That(Text(cut, "meal-dinner-now"), Is.EqualTo("Now"));
+        });
+    }
+
+    [Test]
+    public async Task WhenTheAppResumes_TheMealsReadTheClockAgain_AndTheDayStays()
+    {
+        await Log(Today, Meal.Lunch, 30);
+        var cut = Render();
+        Assert.That(Text(cut, "meal-lunch-now"), Is.EqualTo("Now"));
+
+        Clock.SetUtcNow(new DateTimeOffset(2031, 7, 19, 19, 30, 0, TimeSpan.Zero));
+        await Context.Services.GetRequiredService<IAppLifecycle>().NotifyStartedAsync();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.That(Text(cut, "meal-lunch-summary"), Is.EqualTo("1 item · 125 kcal"));
+            Assert.That(Text(cut, "meal-dinner-now"), Is.EqualTo("Now"));
+            Assert.That(Text(cut, "date-strip-label"), Does.StartWith("Today, 19 Jul"));
+        });
+    }
+
+    [Test]
+    public async Task APageThatIsGone_NoLongerListensForResume()
+    {
+        var appStart = new CountingAppStart();
+        Context.Services.AddSingleton<IAppStart>(appStart);
+        var cut = Render();
+        Assert.That(appStart.Live, Is.EqualTo(1));
+
+        await Context.DisposeComponentsAsync();
+
+        Assert.That(appStart.Live, Is.Zero);
+    }
+
+    private sealed class CountingAppStart : IAppStart
+    {
+        public int Live { get; private set; }
+
+        public IDisposable Register(Func<Task> handler)
+        {
+            Live++;
+            return new Registration(this);
+        }
+
+        private sealed class Registration(CountingAppStart owner) : IDisposable
+        {
+            private bool disposed;
+
+            public void Dispose()
+            {
+                if (!disposed)
+                {
+                    disposed = true;
+                    owner.Live--;
+                }
+            }
+        }
+    }
+
+    [Test]
+    public async Task TheClockIsReadAgainWhenADayLoads_NotOnlyWhenThePageStarts()
+    {
+        await Log(Today, Meal.Lunch, 30);
+        var cut = Render();
+        Assert.That(Text(cut, "meal-lunch-now"), Is.EqualTo("Now"));
+
+        Clock.SetUtcNow(new DateTimeOffset(2031, 7, 19, 19, 30, 0, TimeSpan.Zero));
+        await cut.Find("[data-testid=date-strip-next]").ClickAsync();
+        cut.WaitForState(() => cut.FindAll("[data-testid=dashboard-loading]").Count == 0);
+        await cut.Find("[data-testid=date-strip-label]").ClickAsync();
+        cut.WaitForAssertion(() =>
+        {
+            Assert.That(Text(cut, "meal-lunch-summary"), Is.EqualTo("1 item · 125 kcal"));
+            Assert.That(Text(cut, "meal-dinner-now"), Is.EqualTo("Now"));
+        });
+    }
+
+    [Test]
+    public async Task TheOpenMealParameter_ShowsThatMealOpenAfterItsWindow()
+    {
+        Clock.SetUtcNow(new DateTimeOffset(2031, 7, 19, 19, 30, 0, TimeSpan.Zero));
+        await Log(Today, Meal.Lunch, 30);
+
+        var cut = Render(more: p => p.Add(x => x.OpenMeal, Meal.Lunch));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=meal-lunch-toggle]").GetAttribute("aria-expanded"), Is.EqualTo("true"));
+            Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul .row"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task AnotherDay_ShowsEveryMealOpen_WhateverTheTime()
+    {
+        Clock.SetUtcNow(new DateTimeOffset(2031, 7, 19, 19, 30, 0, TimeSpan.Zero));
+        await Log(Today.AddDays(-1), Meal.Breakfast, 30);
+
+        var cut = Render(Today.AddDays(-1));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Exists(cut, "meal-breakfast-toggle"), Is.False);
+            Assert.That(Exists(cut, "meal-dinner-now"), Is.False);
+            Assert.That(cut.FindAll("[data-testid=meal-breakfast] ~ ul .row"), Has.Count.EqualTo(1));
+        });
     }
 }

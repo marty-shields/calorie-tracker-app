@@ -16,15 +16,3 @@ Feature: Food search favourites
     Then the star on Serving is outlined and named "Add to favourites"
     When I go back with the back arrow
     Then search lists only the Common group
-
-  Scenario: A food starred from its values on the Foods tab is under Favourites before typing
-    Given I have opened Foods
-    And I have searched for "oat"
-    When I open the first result
-    And I tap the star on the food's values
-    Then the star on the food's values is filled and named "Remove from favourites"
-    When I tap Back to results
-    And I search for ""
-    Then search lists only the Favourites group
-    When I open the first food in the Favourites group
-    Then the star on the food's values is filled and named "Remove from favourites"

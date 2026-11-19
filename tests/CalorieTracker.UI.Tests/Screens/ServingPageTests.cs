@@ -88,7 +88,7 @@ public class ServingPageTests : ComponentTestBase
 
     private static FakeTimeProvider Clock(int hour, int minute) => new(new DateTimeOffset(2031, 7, 19, hour, minute, 0, TimeSpan.Zero));
 
-    private IRenderedComponent<ServingPage> Render(int foodId, Meal? meal = null, Action? onAdded = null, Action<ComponentParameterCollectionBuilder<ServingPage>>? more = null, bool expectStar = true) =>
+    private IRenderedComponent<ServingPage> Render(int foodId, Meal? meal = null, Action<Meal>? onAdded = null, Action<ComponentParameterCollectionBuilder<ServingPage>>? more = null, bool expectStar = true) =>
         Loaded(Context.Render<ServingPage>(p =>
         {
             p.Add(x => x.FoodId, foodId).Add(x => x.Meal, meal).Add(x => x.Date, Day);
@@ -149,7 +149,7 @@ public class ServingPageTests : ComponentTestBase
     {
         var id = await InsertMars();
         var added = 0;
-        var cut = Render(id, Meal.Snacks, () => added++);
+        var cut = Render(id, Meal.Snacks, _ => added++);
 
         Assert.Multiple(() =>
         {
@@ -433,7 +433,7 @@ public class ServingPageTests : ComponentTestBase
     public async Task InvalidAmount_Add_SavesNothing_AndShowsNoSaveError(string typed)
     {
         var added = false;
-        var cut = Render(cheddarId, Meal.Lunch, () => added = true);
+        var cut = Render(cheddarId, Meal.Lunch, _ => added = true);
         await cut.Find("[data-testid=serving-amount]").InputAsync(typed);
 
         await cut.Find("[data-testid=serving-add]").ClickAsync(new());
@@ -531,11 +531,15 @@ public class ServingPageTests : ComponentTestBase
     [TestCase(10, 59, "breakfast")]
     [TestCase(11, 0, "lunch")]
     [TestCase(14, 59, "lunch")]
-    [TestCase(15, 0, "dinner")]
+    [TestCase(15, 0, "snacks")]
+    [TestCase(16, 59, "snacks")]
+    [TestCase(17, 0, "dinner")]
     [TestCase(20, 59, "dinner")]
     [TestCase(21, 0, "snacks")]
-    [TestCase(0, 0, "breakfast")]
-    public void SuggestedMeal_UsesTheRegisteredTimeProvider(int hour, int minute, string meal)
+    [TestCase(4, 59, "snacks")]
+    [TestCase(5, 0, "breakfast")]
+    [TestCase(0, 0, "snacks")]
+    public void SuggestedMeal_FollowsTheMealWindowsAtTheRegisteredTime(int hour, int minute, string meal)
     {
         Context.Services.AddSingleton<TimeProvider>(Clock(hour, minute));
 
@@ -558,7 +562,7 @@ public class ServingPageTests : ComponentTestBase
     public async Task Add_InGramsMode_SavesTheGramsForTheDayAndMeal_WithNoServings()
     {
         var added = 0;
-        var cut = Render(cheddarId, Meal.Dinner, () => added++);
+        var cut = Render(cheddarId, Meal.Dinner, _ => added++);
         await cut.Find("[data-testid=serving-amount]").InputAsync("30");
 
         await cut.Find("[data-testid=serving-add]").ClickAsync(new());
@@ -615,7 +619,7 @@ public class ServingPageTests : ComponentTestBase
     public async Task Add_WhenSavingFails_ShowsTheErrorKeepsTheScreenAndDoesNotLeave()
     {
         var added = false;
-        var cut = Render(cheddarId, Meal.Lunch, () => added = true);
+        var cut = Render(cheddarId, Meal.Lunch, _ => added = true);
         await cut.Find("[data-testid=serving-amount]").InputAsync("30");
         await connection.ExecuteAsync("DROP TABLE DiaryEntry");
 
@@ -703,43 +707,6 @@ public class ServingPageTests : ComponentTestBase
         food.Brand = "Weetabix";
         food.Brands = "Weetabix";
         return await Insert(food);
-    }
-
-    [Test]
-    public async Task Add_WithAReturnRoute_PostsViewDay_AndItOpensTheDayAfterThePageIsGone()
-    {
-        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
-        var opened = new List<DateOnly>();
-        var cut = Render(cheddarId, Meal.Lunch, more: p => p
-            .Add(x => x.AfterAdd, AddedFollowUp.ViewDay)
-            .Add(x => x.ViewDay, day =>
-            {
-                opened.Add(day);
-                return Task.CompletedTask;
-            }));
-
-        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
-        var message = snackbar.Current!;
-        await Context.DisposeComponentsAsync();
-        await snackbar.InvokeActionAsync(message);
-
-        Assert.Multiple(async () =>
-        {
-            Assert.That((message.Text, message.ActionLabel), Is.EqualTo(("Cheddar cheese added to Lunch", "View day")));
-            Assert.That(opened, Is.EqualTo(new[] { Day }));
-            Assert.That(await Entries(), Has.Count.EqualTo(1));
-        });
-    }
-
-    [Test]
-    public async Task Add_AskingForViewDayWithNoWayToOpenIt_PostsUndoInstead()
-    {
-        var snackbar = Context.Services.GetRequiredService<SnackbarService>();
-        var cut = Render(cheddarId, Meal.Lunch, more: p => p.Add(x => x.AfterAdd, AddedFollowUp.ViewDay));
-
-        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
-
-        Assert.That(snackbar.Current!.ActionLabel, Is.EqualTo("Undo"));
     }
 
     [Test]
@@ -1772,11 +1739,23 @@ public class ServingPageTests : ComponentTestBase
     }
 
     [Test]
+    public async Task Add_RaisesOnAddedWithTheMealTheEntryWasAddedTo()
+    {
+        Meal? addedTo = null;
+        var cut = Render(cheddarId, Meal.Lunch, onAdded: meal => addedTo = meal);
+
+        await cut.Find("[data-testid=serving-meal-dinner]").ChangeAsync(true);
+        await cut.Find("[data-testid=serving-add]").ClickAsync(new());
+
+        Assert.That(addedTo, Is.EqualTo(Meal.Dinner));
+    }
+
+    [Test]
     public async Task AFailedRead_ShowsNoStar_AndTheRestOfTheScreenWorks()
     {
         await connection.ExecuteAsync("DROP TABLE Favourite");
         var added = false;
-        var cut = Render(cheddarId, Meal.Lunch, onAdded: () => added = true, expectStar: false);
+        var cut = Render(cheddarId, Meal.Lunch, onAdded: _ => added = true, expectStar: false);
 
         await cut.Find("[data-testid=serving-add]").ClickAsync(new());
 

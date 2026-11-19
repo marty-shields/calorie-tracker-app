@@ -1,8 +1,8 @@
 @using System.Globalization
-<div class="ring @(State == RingState.Over ? "over" : null)" role="img" aria-label="@Description" data-testid="@TestId" style="--fill: @Fill">
+<div class="ring @(State == RingState.Over ? "over" : null) @(Compact ? "compact" : null)" role="img" aria-label="@Description" data-testid="@TestId" style="--fill: @Fill">
     <span class="arc" aria-hidden="true"></span>
     <span class="centre" aria-hidden="true">
-        <span class="value" data-testid="@Id("value")">@Number(Shown)</span>
+        <span class="value @Width" data-testid="@Id("value")">@Number(Shown)</span>
         <span class="unit" data-testid="@Id("label")">kcal @Word</span>
     </span>
 </div>
@@ -18,6 +18,10 @@
     [Parameter]
     public int? Target { get; set; }
 
+    /// <summary>The smaller ring (<c>--ring-size-compact</c>) that sits beside the figures in a summary card.</summary>
+    [Parameter]
+    public bool Compact { get; set; }
+
     /// <summary>Value of the data-testid attribute, and the prefix of <c>{TestId}-value</c> and <c>-label</c>.</summary>
     [Parameter]
     public string? TestId { get; set; }
@@ -29,6 +33,9 @@
     private RingState State => TargetKcal is not { } target ? RingState.NoTarget : EatenKcal > target ? RingState.Over : RingState.Left;
 
     private int Shown => TargetKcal is { } target ? Math.Abs(target - EatenKcal) : EatenKcal;
+
+    /// <summary>Steps the number's size down as it gets wider, counting its commas: 6 characters ("12,345") is wider, 7 or more ("123,456") is widest; shorter numbers keep the base size.</summary>
+    private string? Width => Number(Shown).Length switch { >= 7 => "widest", 6 => "wider", _ => null };
 
     private string Word => State switch { RingState.Left => "left", RingState.Over => "over", _ => "eaten" };
 

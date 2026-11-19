@@ -1,0 +1,49 @@
+@using CalorieTracker.UI.Components.Charts
+@using CalorieTracker.UI.Stories.Stories.Components.Charts
+@attribute [Stories("Components/Charts/TrendBarChart")]
+
+<Stories TComponent="TrendBarChart" Layout="typeof(ThemeLayout)">
+
+    <Story Name="Week against target">
+        <Template>
+            <TrendBarChart Bars="ChartSamples.MixedWeek" Target="ChartSamples.Target" OnSelect="_ => { }" TestId="chart" />
+        </Template>
+    </Story>
+
+    <Story Name="Year by month">
+        <Template>
+            <TrendBarChart Bars="ChartSamples.Year" Target="ChartSamples.Target" DateFormat="MMMM yyyy" Label="Average calories by month" OnSelect="_ => { }" TestId="chart" />
+        </Template>
+    </Story>
+
+    <Story Name="All over">
+        <Template>
+            <TrendBarChart Bars="ChartSamples.AllOverWeek" Target="ChartSamples.Target" OnSelect="_ => { }" TestId="chart" />
+        </Template>
+    </Story>
+
+    <Story Name="Single bar">
+        <Template>
+            <TrendBarChart Bars="ChartSamples.SingleBar" Target="ChartSamples.Target" OnSelect="_ => { }" TestId="chart" />
+        </Template>
+    </Story>
+
+    <Story Name="Empty">
+        <Template>
+            <TrendBarChart Bars="ChartSamples.EmptyWeek" Target="ChartSamples.Target" TestId="chart" />
+        </Template>
+    </Story>
+
+    <Story Name="Long labels">
+        <Template>
+            <TrendBarChart Bars="ChartSamples.LongLabels" Target="ChartSamples.Target" OnSelect="_ => { }" TestId="chart" />
+        </Template>
+    </Story>
+
+    <Story Name="No target">
+        <Template>
+            <TrendBarChart Bars="ChartSamples.MixedWeek" OnSelect="_ => { }" TestId="chart" />
+        </Template>
+    </Story>
+
+</Stories>

@@ -1,5 +1,5 @@
 Feature: Serving
-  The Serving screen adds a food to a meal. Without a preset the scenarios tap through Foods (open a food, Add to diary); a preset meal comes from a meal's + on the Dashboard, then search and a result; a food with a serving needs a scanned product, so the Grams and Servings switch is covered by bUnit, not here.
+  The Serving screen adds a food to a meal. A preset meal comes from a meal's + on Today, then search and a result; a food with a serving needs a scanned product, so the Grams and Servings switch is covered by bUnit, not here.
 
   Scenario: A food from the CoFID seed is added by grams with no switch
     Given I have opened Serving for the first food found by "oat" with Lunch preset
@@ -12,11 +12,6 @@ Feature: Serving
     And the Dinner meal is chosen
     And Add reads "Add to Dinner"
     And Serving does not say a meal was suggested
-
-  Scenario: Without a preset the meal is suggested from the time
-    Given I have opened Serving for the first food found by "oat"
-    Then Serving says the meal was suggested from the time
-    And Add names the chosen meal
 
   Scenario: An amount of zero shows the error and turns Add off
     Given I have opened Serving for the first food found by "oat" with Lunch preset
@@ -31,7 +26,7 @@ Feature: Serving
     Then This adds shows the energy for the amount
     And Add is enabled
 
-  Scenario: Add saves the entry and returns to the Dashboard
+  Scenario: Add saves the entry and returns to Today
     Given I have opened Serving for the first food found by "oat" with Lunch preset
     And I enter an amount of "30"
     When I tap Add

@@ -8,6 +8,15 @@ public static class DashboardSamples
 {
     public static DateOnly Today { get; } = new(2031, 7, 19);
 
+    /// <summary>09:00: breakfast is open.</summary>
+    public static TimeOnly Morning { get; } = new(9, 0);
+
+    /// <summary>13:00: lunch is open, breakfast is folded and dinner has not started.</summary>
+    public static TimeOnly Midday { get; } = new(13, 0);
+
+    /// <summary>19:30: dinner is open, breakfast and lunch are folded.</summary>
+    public static TimeOnly Evening { get; } = new(19, 30);
+
     private static SummaryEntry Oats { get; } = Entry(1, 21, "Porridge oats", "Quaker", FoodUnit.Gram, 40, null, new(149, 4.4, 24, 3.4));
 
     private static SummaryEntry Pizza { get; } = Entry(2, 22, "Margherita pizza", "Casa Roma", FoodUnit.Gram, 201.8, 1, new(521, 22.6, 63.6, 20), "½ pizza (201.8 g)");
@@ -31,6 +40,12 @@ public static class DashboardSamples
 
     /// <summary>Breakfast, lunch and a snack, with a target of 2,100.</summary>
     public static DaySummary Loaded { get; } = Day(2100, [Oats], [Pizza], [], [OatDrink]);
+
+    /// <summary>Only breakfast logged, as at 09:00, with a target of 2,100.</summary>
+    public static DaySummary EarlyDay { get; } = Day(2100, [Oats]);
+
+    /// <summary>All four meals logged, as at 19:30, with a target of 2,100.</summary>
+    public static DaySummary FullDay { get; } = Day(2100, [Oats], [Pizza], [Cheese], [OatDrink]);
 
     /// <summary>The same day with no target set.</summary>
     public static DaySummary NoTarget { get; } = Day(null, [Oats], [Pizza], [], [OatDrink]);

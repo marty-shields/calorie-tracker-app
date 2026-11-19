@@ -1,13 +1,13 @@
 Feature: Search online
-  Under the search results, "Search online" sends what was typed to the online food database, only when tapped. No scenario reaches the network: a Debug-build seam answers the search call by the text typed (src/CalorieTracker.App/Scanning/E2EOnlineSearchSeam.cs): "fizzy cola" finds three products of the United Kingdom, "oat" is offline, "milk" is busy and anything else finds nothing. App data is cleared before each scenario, so the first-use notice shows in each.
+  Pinned in the bottom bar once something is typed, "Search online" sends what was typed to the online food database, only when tapped. No scenario reaches the network: a Debug-build seam answers the search call by the text typed (src/CalorieTracker.App/Scanning/E2EOnlineSearchSeam.cs): "fizzy cola" finds three products of the United Kingdom, "oat" is offline, "milk" is busy and anything else finds nothing. App data is cleared before each scenario, so the first-use notice shows in each.
 
   Background:
     Given the online search is answered by the test seam
 
-  Scenario: Typing offers the Search online button under the local results, with the first-use notice
+  Scenario: Typing pins the Search online button in the bottom bar, with the first-use notice
     Given I have opened Foods
     When I search for "oat"
-    Then Search online is offered as a button under the results
+    Then Search online is offered as a button pinned in the bottom bar
     And the first-use notice reads "This sends what you typed to an online database."
     And no online group shows
 
@@ -26,7 +26,7 @@ Feature: Search online
     And I have searched for "oat"
     When I tap Search online
     And I search for "cheddar"
-    Then Search online is offered as a button under the results
+    Then Search online is offered as a button pinned in the bottom bar
     And no first-use notice shows
 
   Scenario: Tapping the can and then the 1 L bottle ends up as one food that offers no servings
@@ -34,10 +34,10 @@ Feature: Search online
     And I have searched for "fizzy cola"
     And I have tapped Search online
     When I open the online product "Testco Fizzy Cola" of "330 ml"
-    Then the food's name and its energy are shown
-    When I tap Back to results
+    Then Serving opens in ml with no servings offered
+    When I go back with the back arrow
+    And I tap Search online
     And I open the online product "Testco Fizzy Cola" of "1 L"
-    And I tap Add to diary
     Then Serving opens in ml with no servings offered
 
   Scenario: The zero-sugar product never merges into the original
@@ -45,9 +45,9 @@ Feature: Search online
     And I have searched for "fizzy cola"
     And I have tapped Search online
     When I open the online product "Testco Fizzy Cola" of "330 ml"
-    And I tap Back to results
+    And I go back with the back arrow
+    And I tap Search online
     And I open the online product "Testco Fizzy Cola Zero" of "330 ml"
-    And I tap Add to diary
     Then Serving is headed "Testco Fizzy Cola Zero"
     And Serving opens in ml with no servings offered
 
@@ -65,7 +65,6 @@ Feature: Search online
     And I have searched for "fizzy cola"
     And I have tapped Search online
     When I open the online product "Testco Fizzy Cola" of "330 ml"
-    And I tap Add to diary
     And I add my own serving "Glass" of "250"
     Then Serving shows the serving "Glass"
     And Serving has no list of servings
@@ -78,7 +77,7 @@ Feature: Search online
     Then the online search says "You are offline" and offers Try again
     And the local results still show
     When I open the first result
-    Then the food's name and its energy are shown
+    Then Serving shows the food's name and an amount in grams
 
   Scenario: The online search busy says to try again in a minute
     Given I have opened Foods

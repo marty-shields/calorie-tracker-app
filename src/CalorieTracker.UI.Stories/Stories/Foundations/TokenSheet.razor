@@ -88,16 +88,17 @@
         "--color-bar", "--color-on-bar", "--color-on-bar-muted",
         "--color-primary", "--color-on-primary", "--color-secondary", "--color-on-secondary",
         "--color-selected", "--color-accent", "--color-focus",
-        "--color-danger", "--color-on-danger", "--color-error", "--color-success", "--color-protein", "--color-carbs", "--color-fat", "--color-ring-track", "--color-chip", "--color-on-chip", "--color-inverse-surface", "--color-on-inverse-surface", "--color-inverse-primary", "--color-scrim",
+        "--color-danger", "--color-on-danger", "--color-error", "--color-success", "--color-protein", "--color-carbs", "--color-fat", "--color-ring-track", "--color-target-band", "--color-chip", "--color-on-chip", "--color-chip-soft", "--color-on-chip-soft", "--color-inverse-surface", "--color-on-inverse-surface", "--color-inverse-primary", "--color-scrim",
         "--state-pressed",
     ];
 
     private static readonly string[] Type =
     [
         "--font-family",
-        "--font-size-sm", "--font-size-md", "--font-size-lg", "--font-size-xl", "--font-size-xxl", "--font-size-input",
+        "--font-size-xs", "--font-size-sm", "--font-size-md", "--font-size-lg", "--font-size-xl", "--font-size-xxl", "--font-size-input",
         "--font-weight-regular", "--font-weight-bold",
         "--line-height", "--line-height-tight",
+        "--letter-spacing-label",
     ];
 
     private static readonly string[] Spacing = ["--space-1", "--space-2", "--space-3", "--space-4", "--space-6", "--space-8"];
@@ -107,9 +108,10 @@
     private static readonly string[] Sizes =
     [
         "--touch-target", "--touch-target-compact", "--border-width", "--border-width-error", "--focus-width", "--focus-offset",
-        "--opacity-disabled", "--spinner-size", "--spinner-width", "--spinner-size-small", "--spinner-width-small", "--spinner-duration", "--snackbar-enter-duration",
+        "--opacity-disabled", "--opacity-thin", "--spinner-size", "--spinner-width", "--spinner-size-small", "--spinner-width-small", "--spinner-duration", "--snackbar-enter-duration",
         "--pull-refresh-threshold", "--pull-refresh-return-duration", "--shadow-raised",
-        "--ring-size", "--ring-width", "--share-bar-height", "--radio-size", "--radio-dot-size", "--nav-indicator-width", "--nav-indicator-height",
+        "--ring-size", "--ring-width", "--ring-size-compact", "--ring-width-compact", "--share-bar-height", "--chart-dash", "--radio-size", "--radio-dot-size", "--nav-indicator-width", "--nav-indicator-height",
+        "--add-button-size", "--add-button-lift", "--sheet-enter-duration", "--sheet-max-width", "--sheet-handle-width", "--sheet-handle-height", "--sheet-tile-min-height", "--sheet-tile-icon-size",
     ];
 
     private ElementReference sheet;
@@ -151,6 +153,7 @@
         "--font-family" => $"font-family: var({name})",
         _ when name.StartsWith("--font-size") => $"font-size: var({name})",
         _ when name.StartsWith("--font-weight") => $"font-weight: var({name})",
+        "--letter-spacing-label" => $"letter-spacing: var({name})",
         _ => $"line-height: var({name})",
     };
 }

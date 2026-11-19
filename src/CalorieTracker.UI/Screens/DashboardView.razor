@@ -1,10 +1,11 @@
 @using System.Globalization
 @using CalorieTracker.Core.Data
+@using CalorieTracker.Core.Diary
 @using CalorieTracker.Core.Summary
 @using CalorieTracker.UI.Components.Charts
 @using CalorieTracker.UI.Components.Feedback
 @using CalorieTracker.UI.Components.Inputs
-<AppScreen Title="Calorie Tracker" Destination="NavDestination.Dashboard" OnNavigate="OnNavigate" Status="Notice">
+<AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="OnNavigate" OnAdd="OpenSheet" Status="Notice">
     <Actions>
         <IconButton Icon="IconName.Settings" AriaLabel="Settings" TestId="settings" OnClick="OnSettings" />
     </Actions>
@@ -25,57 +26,168 @@
             {
                 var logged = summary.Meals.Any(m => m.Entries.Count > 0);
                 <SummaryCard TestId="dashboard-card">
-                    <div class="card">
-                        <CalorieRing Eaten="summary.Totals.Kcal" Target="summary.TargetKcal" TestId="dashboard-ring" />
-                        <div class="figures">
-                            <p class="figure">Eaten <strong data-testid="dashboard-eaten">@Number(summary.Totals.Kcal)</strong></p>
-                            @if (summary.TargetKcal is { } target)
-                            {
-                                <p class="figure">Target <strong data-testid="dashboard-target">@Number(target)</strong></p>
-                            }
-                            else
-                            {
-                                <p class="figure" data-testid="dashboard-no-target" data-wrap-ok>No target set</p>
-                                <AppButton Variant="ButtonVariant.Secondary" TestId="dashboard-set-target" OnClick="OnSettings">Set a target</AppButton>
-                            }
+                    <div class="summary">
+                        <div class="card">
+                            <CalorieRing Compact Eaten="summary.Totals.Kcal" Target="summary.TargetKcal" TestId="dashboard-ring" />
+                            <div class="figures">
+                                <p class="figure">Eaten <strong data-testid="dashboard-eaten">@Number(summary.Totals.Kcal)</strong></p>
+                                @if (summary.TargetKcal is { } target)
+                                {
+                                    <p class="figure">Target <strong data-testid="dashboard-target">@Number(target)</strong></p>
+                                }
+                                else
+                                {
+                                    <p class="figure" data-testid="dashboard-no-target" data-wrap-ok>No target set</p>
+                                    <AppButton Variant="ButtonVariant.Secondary" TestId="dashboard-set-target" OnClick="OnSettings">Set a target</AppButton>
+                                }
+                            </div>
                         </div>
+                        @if (logged)
+                        {
+                            <EnergyShareBar Protein="summary.Totals.ProteinG" Carbs="summary.Totals.CarbsG" Fat="summary.Totals.FatG" TestId="dashboard-share" />
+                        }
                     </div>
                 </SummaryCard>
-                @if (logged)
-                {
-                    <EnergyShareBar Protein="summary.Totals.ProteinG" Carbs="summary.Totals.CarbsG" Fat="summary.Totals.FatG" TestId="dashboard-share" />
-                }
-                else
+                @if (!logged)
                 {
                     <EmptyState Message="@(Date == Today ? "Nothing logged today" : "Nothing logged this day")" Hint="Tap + on a meal to add your first food." TestId="dashboard-empty" />
                 }
                 @foreach (var meal in summary.Meals)
                 {
                     var id = $"meal-{meal.Meal.ToString().ToLowerInvariant()}";
+                    var state = StateOf(meal.Meal);
+                    var folded = IsFolded(meal.Meal, state);
+                    var foldable = state is MealWindowState.After or MealWindowState.During;
+                    var count = meal.Entries.Count;
                     <section class="meal">
-                        <MealHeader Name="@meal.Meal.ToString()" Calories="@(meal.Entries.Count > 0 ? meal.Totals.Kcal : null)" TestId="@id" OnAdd="@(() => OnAdd.InvokeAsync(new MealAddRequest(meal.Meal, Date)))" />
-                        @if (meal.Entries.Count > 0)
+                        <MealHeader Name="@meal.Meal.ToString()"
+                                    Calories="@(count > 0 ? meal.Totals.Kcal : null)"
+                                    Now="@(state == MealWindowState.During)"
+                                    Hint="@(state == MealWindowState.Before ? $"from {MealWindows.StartOf(meal.Meal).ToString("HH:mm", CultureInfo.InvariantCulture)}" : null)"
+                                    Summary="@(folded ? FoldedSummary(meal) : null)"
+                                    Expanded="!folded"
+                                    OnToggle="@(foldable ? EventCallback.Factory.Create(this, () => Toggle(meal.Meal)) : default)"
+                                    TestId="@id"
+                                    OnAdd="@(() => OnAdd.InvokeAsync(new MealAddRequest(meal.Meal, Date)))" />
+                        @if (!folded)
                         {
-                            <ul class="entries">
-                                @foreach (var entry in meal.Entries)
-                                {
-                                    <li><ListRow Text="@entry.Display.Title" Detail="@EntryDetail(entry)" Aside="@Number(entry.Nutrition.Kcal)" TestId="@($"entry-{entry.EntryId}")" OnClick="@EditTap(entry, meal.Meal)" /></li>
-                                }
-                            </ul>
-                        }
-                        else if (logged)
-                        {
-                            <p class="none" data-testid="@($"{id}-none")">Nothing logged</p>
+                            if (count > 0)
+                            {
+                                <ul class="entries">
+                                    @foreach (var entry in meal.Entries)
+                                    {
+                                        <li><ListRow Text="@entry.Display.Title" Detail="@EntryDetail(entry)" Aside="@Number(entry.Nutrition.Kcal)" TestId="@($"entry-{entry.EntryId}")" OnClick="@EditTap(entry, meal.Meal)" /></li>
+                                    }
+                                </ul>
+                            }
+                            else if (state != MealWindowState.Before && (logged || state == MealWindowState.After))
+                            {
+                                <p class="none" data-testid="@($"{id}-none")">Nothing logged</p>
+                            }
                         }
                     </section>
                 }
             }
         </div>
+        <AddSheetHost Open="sheetOpen" Date="Date" OnClose="CloseSheet" Usual="UsualFoods" AddError="@UsualAddError" OnMealChanged="OnMealChanged" OnAddUsual="AddUsualAsync" OnSearch="OnAdd" OnScan="OnScan" />
     </ChildContent>
 </AppScreen>
 
 @code {
     private RenderFragment Notice => @<Snackbar />;
+
+    private bool sheetOpen;
+    private readonly HashSet<Meal> opened = [];
+    private readonly HashSet<Meal> closed = [];
+    private DateOnly? shownDate;
+    private Meal? shownOpenMeal;
+    private Meal? shownFoldedMeal;
+
+    protected override void OnParametersSet()
+    {
+        // Another day, or a new route, forgets what was opened or folded: only meals on today can be, and they return to their window's state on leaving Today.
+        if (shownDate != Date)
+        {
+            shownDate = Date;
+            opened.Clear();
+            closed.Clear();
+            shownFoldedMeal = null;
+        }
+
+        if (FoldedMeal != shownFoldedMeal)
+        {
+            if (shownFoldedMeal is { } previous)
+            {
+                closed.Remove(previous);
+            }
+
+            shownFoldedMeal = FoldedMeal;
+            if (FoldedMeal is { } folded)
+            {
+                closed.Add(folded);
+                opened.Remove(folded);
+            }
+        }
+
+        if (OpenMeal != shownOpenMeal)
+        {
+            shownOpenMeal = OpenMeal;
+            opened.Clear();
+            if (OpenMeal is { } meal)
+            {
+                opened.Add(meal);
+                closed.Remove(meal);
+            }
+        }
+    }
+
+    /// <summary>The meal's window against <see cref="Now"/>. Only today has windows, so any other day, and a screen with no time, reads every meal as open.</summary>
+    private MealWindowState StateOf(Meal meal) =>
+        Date == Today && Now is { } now ? MealWindows.StateFor(meal, now) : MealWindowState.AnyTime;
+
+    /// <summary>A meal past its window starts folded and the one in its window starts open; the person's taps flip that. Snacks and other days never fold.</summary>
+    private bool IsFolded(Meal meal, MealWindowState state) => state switch
+    {
+        MealWindowState.After => !opened.Contains(meal),
+        MealWindowState.During => closed.Contains(meal),
+        _ => false,
+    };
+
+    private void Toggle(Meal meal)
+    {
+        // Both sets change together, so the person's choice still holds once the meal's window ends.
+        if (IsFolded(meal, StateOf(meal)))
+        {
+            opened.Add(meal);
+            closed.Remove(meal);
+        }
+        else
+        {
+            closed.Add(meal);
+            opened.Remove(meal);
+        }
+    }
+
+    /// <summary>"3 items · 348 kcal", or "Nothing logged" for an empty meal.</summary>
+    private static string FoldedSummary(MealSummary meal) =>
+        meal.Entries.Count == 0 ? "Nothing logged" : $"{meal.Entries.Count} {(meal.Entries.Count == 1 ? "item" : "items")} · {Number(meal.Totals.Kcal)} kcal";
+
+    private void OpenSheet() => sheetOpen = true;
+
+    private void CloseSheet() => sheetOpen = false;
+
+    /// <summary>Adds the usual food to the day on the date strip and leaves its meal open unless it failed.</summary>
+    private async Task<bool> AddUsualAsync(UsualAddRequest request, DateOnly day)
+    {
+        if (OnAddUsual is not { } add || !await add(request, day))
+        {
+            return false;
+        }
+
+        opened.Add(request.Meal);
+        closed.Remove(request.Meal);
+        return true;
+    }
 
     /// <summary>The row's tap, or none when nothing handles <see cref="OnEdit"/>, so the row isn't tappable.</summary>
     private EventCallback EditTap(SummaryEntry entry, Meal meal) =>
@@ -88,6 +200,18 @@
     /// <summary>Today, for the date strip's labels.</summary>
     [Parameter]
     public DateOnly Today { get; set; }
+
+    /// <summary>The time of day the meal windows are read against, on <see cref="Today"/> only. Null reads every meal as open.</summary>
+    [Parameter]
+    public TimeOnly? Now { get; set; }
+
+    /// <summary>A meal to show open even though its window has passed, such as the one a food was just added to. Applied when its value changes, and forgotten when <see cref="Date"/> changes.</summary>
+    [Parameter]
+    public Meal? OpenMeal { get; set; }
+
+    /// <summary>A meal in its window to show folded, as if the person had tapped its header; the stories use it. Applied when its value changes, and forgotten when <see cref="Date"/> changes.</summary>
+    [Parameter]
+    public Meal? FoldedMeal { get; set; }
 
     /// <summary>The day's summary. The day is not shown until it is set, or <see cref="LoadFailed"/> is.</summary>
     [Parameter]
@@ -113,9 +237,29 @@
     [Parameter]
     public EventCallback OnToday { get; set; }
 
-    /// <summary>Raised by a meal's +.</summary>
+    /// <summary>Raised by a meal's + and by the Add sheet's Search foods (with the meal chosen there), each with the day on the date strip.</summary>
     [Parameter]
     public EventCallback<MealAddRequest> OnAdd { get; set; }
+
+    /// <summary>Raised by the Add sheet's Scan barcode, with the meal chosen there and the day on the date strip.</summary>
+    [Parameter]
+    public EventCallback<MealAddRequest> OnScan { get; set; }
+
+    /// <summary>The Add sheet's usual foods for the meal chosen there. None hides the section.</summary>
+    [Parameter]
+    public IReadOnlyList<UsualFoodRow>? UsualFoods { get; set; }
+
+    /// <summary>What failed when a usual food could not be added; shown in the open sheet.</summary>
+    [Parameter]
+    public string? UsualAddError { get; set; }
+
+    /// <summary>Raised with the meal when the Add sheet opens and when another meal is chosen there, so the usual foods can be read for it.</summary>
+    [Parameter]
+    public EventCallback<Meal> OnMealChanged { get; set; }
+
+    /// <summary>Adds a usual food (the request) to the day (the second value) and returns true when it was added, so the sheet closes. Plain delegate, since the sheet needs the result. The + does nothing when unset.</summary>
+    [Parameter]
+    public Func<UsualAddRequest, DateOnly, Task<bool>>? OnAddUsual { get; set; }
 
     /// <summary>Raised by a tapped entry, to change or remove it.</summary>
     [Parameter]
@@ -135,21 +279,9 @@
 
     private static string Number(int value) => value.ToString("N0", CultureInfo.InvariantCulture);
 
-    private static string Count(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
-
-    /// <summary>The amount, or for an entry added by servings "1 serving · the serving's label" (the amount when the entry has no serving), after the brand line when the food has one.</summary>
-    private static string EntryDetail(SummaryEntry entry)
-    {
-        var amount = $"{Count(entry.Amount)} {(entry.Unit == FoodUnit.Millilitre ? "ml" : "g")}";
-        var brand = entry.Display.BrandLine;
-        if (entry.Servings is not { } servings)
-        {
-            return Prefixed(brand, amount);
-        }
-
-        var servingText = $"{Count(servings)} {(Math.Abs(servings - 1) < 0.005 ? "serving" : "servings")}";
-        return Prefixed(brand, $"{servingText} · {(string.IsNullOrWhiteSpace(entry.ServingLabel) ? amount : entry.ServingLabel)}");
-    }
+    /// <summary>The amount text after the brand line when the food has one.</summary>
+    private static string EntryDetail(SummaryEntry entry) =>
+        Prefixed(entry.Display.BrandLine, AmountText.Of(entry.Amount, entry.Unit, entry.Servings, entry.ServingLabel));
 
     private static string Prefixed(string? brand, string text) => brand is null ? text : $"{brand} · {text}";
 }

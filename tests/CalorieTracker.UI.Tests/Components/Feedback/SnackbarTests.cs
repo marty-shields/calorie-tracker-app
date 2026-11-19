@@ -193,7 +193,7 @@ public class SnackbarTests : ComponentTestBase
 
         var next = Context.Render<AppScreen>(p => p
             .Add(x => x.Title, "Foods")
-            .Add(x => x.Destination, NavDestination.Dashboard)
+            .Add(x => x.Destination, NavDestination.Today)
             .Add(x => x.Status, (RenderFragment)(b =>
             {
                 b.OpenComponent<Snackbar>(0);
@@ -209,7 +209,7 @@ public class SnackbarTests : ComponentTestBase
     {
         var cut = Context.Render<AppScreen>(p => p
             .Add(x => x.Title, "Foods")
-            .Add(x => x.Destination, NavDestination.Dashboard)
+            .Add(x => x.Destination, NavDestination.Today)
             .Add(x => x.Status, (RenderFragment)(b =>
             {
                 b.OpenComponent<Snackbar>(0);

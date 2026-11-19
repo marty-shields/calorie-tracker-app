@@ -12,9 +12,6 @@ public enum ScanState
     /// <summary>A barcode was detected and is being looked up.</summary>
     LookingUp,
 
-    /// <summary>The product was found.</summary>
-    Found,
-
     /// <summary>Any other lookup outcome. The screen never says which.</summary>
     NotFound,
 

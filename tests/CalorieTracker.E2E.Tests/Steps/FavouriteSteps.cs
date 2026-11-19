@@ -4,7 +4,7 @@ using Reqnroll;
 
 namespace CalorieTracker.E2E.Tests.Steps;
 
-/// <summary>The star that makes a food a favourite, on Serving (add and edit mode) and on a food's values on the Foods tab.</summary>
+/// <summary>The star that makes a food a favourite, on Serving (add and edit mode).</summary>
 [Binding]
 public sealed class FavouriteSteps(ServingScreen serving, FoodSearchScreen foods, SnackbarScreen snackbar, Journeys journeys, WebView web)
 {
@@ -47,19 +47,5 @@ public sealed class FavouriteSteps(ServingScreen serving, FoodSearchScreen foods
         Assert.That(snackbar.ActionLabel(), Is.Empty);
     }
 
-    [When(@"^I tap the star on the food's values$")]
-    public void WhenITapTheStarOnTheFoodsValues() => foods.TapDetailStar();
-
-    [Then(@"^the star on the food's values is outlined and named ""(.*)""$")]
-    public void ThenTheStarOnTheValuesIsOutlined(string name) => ValuesStarIs("false", name);
-
-    [Then(@"^the star on the food's values is filled and named ""(.*)""$")]
-    public void ThenTheStarOnTheValuesIsFilled(string name) => ValuesStarIs("true", name);
-
-    [Then(@"^no result row shows a star$")]
-    public void ThenNoResultRowShowsAStar() => Assert.That(foods.RowsShowAStar(), Is.False);
-
     private void ServingStarIs(string pressed, string name) => web.Eventually(() => (serving.StarPressed(), serving.StarLabel()), Is.EqualTo((pressed, name)));
-
-    private void ValuesStarIs(string pressed, string name) => web.Eventually(() => (foods.DetailStarPressed(), foods.DetailStarLabel()), Is.EqualTo((pressed, name)));
 }

@@ -32,7 +32,7 @@ public static class FoodSearchSamples
         ]),
     ];
 
-    /// <summary>Before typing on the Foods tab: recent foods only.</summary>
+    /// <summary>Before typing without a meal (old link): recent foods only.</summary>
     public static IReadOnlyList<FoodGroup> IdleRecent { get; } = [Idle[1]];
 
     /// <summary>Typing "oat": a logged food, common foods and a branded food.</summary>
@@ -57,7 +57,7 @@ public static class FoodSearchSamples
         new(new Food { Id = 209, Name = "Wholemeal pasta", Unit = FoodUnit.Gram, Kcal = 324, ProteinG = 13, CarbsG = 62, FatG = 2.5 }, null),
     ];
 
-    /// <summary>Before typing on the Foods tab: three favourites, then recent foods.</summary>
+    /// <summary>Before typing without a meal (old link): three favourites, then recent foods.</summary>
     public static IReadOnlyList<FoodGroup> IdleWithFavourites { get; } =
     [
         new(FoodGroupKind.Favourites, [FavouriteFoods[1], FavouriteFoods[2], FavouriteFoods[5]]),

@@ -11,7 +11,7 @@ Feature: Back navigation
       | Foods         | I am on the Dashboard        |
       | the Dashboard | the app is in the background |
 
-  Scenario: Leaving with back and coming back shows the Dashboard
+  Scenario: Leaving with back and coming back shows Today
     Given I have pressed Android back on the Dashboard
     When I open the app again
     Then I am on the Dashboard

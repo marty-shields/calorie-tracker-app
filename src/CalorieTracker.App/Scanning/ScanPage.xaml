@@ -20,6 +20,24 @@
                 StrokeThickness="3"
                 StrokeShape="RoundRectangle 12"
                 BackgroundColor="Transparent" />
+        <Border AutomationId="scan-native-caption-pill"
+                InputTransparent="True"
+                HorizontalOptions="Center"
+                VerticalOptions="Start"
+                Margin="16"
+                Padding="16,8"
+                StrokeThickness="0"
+                StrokeShape="RoundRectangle 12"
+                BackgroundColor="{StaticResource OverlayText}">
+            <Label x:Name="Caption"
+                   AutomationId="scan-native-caption"
+                   InputTransparent="True"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Start"
+                   FontSize="14"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource TextLight}" />
+        </Border>
         <Label AutomationId="scan-native-hint"
                Text="Point the camera at a barcode"
                InputTransparent="True"
@@ -30,9 +48,20 @@
                FontSize="16"
                TextColor="{StaticResource OverlayText}"
                BackgroundColor="{AppThemeBinding Light={StaticResource ScrimLight}, Dark={StaticResource ScrimDark}}" />
-        <Grid Grid.Row="1" Padding="16"
+        <Grid Grid.Row="1" Padding="16" RowDefinitions="Auto,Auto" RowSpacing="8"
               BackgroundColor="{AppThemeBinding Light={StaticResource BackgroundLight}, Dark={StaticResource BackgroundDark}}">
+            <Button AutomationId="scan-native-search"
+                    Text="Search by name instead"
+                    Clicked="OnSearchByNameClicked"
+                    HeightRequest="48"
+                    CornerRadius="12"
+                    FontAttributes="Bold"
+                    BackgroundColor="Transparent"
+                    BorderWidth="1"
+                    BorderColor="{AppThemeBinding Light={StaticResource BorderStrongLight}, Dark={StaticResource BorderStrongDark}}"
+                    TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}" />
             <Button AutomationId="scan-native-cancel"
+                    Grid.Row="1"
                     Text="Cancel"
                     Clicked="OnCancelClicked"
                     HeightRequest="48"

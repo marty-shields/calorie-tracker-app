@@ -5,32 +5,18 @@ using Reqnroll;
 namespace CalorieTracker.E2E.Tests.Steps;
 
 /// <summary>
-/// The Serving screen. Without a preset meal the steps tap through Foods (open a food, Add to diary). A preset meal comes from a meal's + on the Dashboard,
-/// then search and a result. Only a food that does not exist is opened through the router, since no tap reaches it.
+/// The Serving screen. A preset meal comes from a meal's + on the Dashboard, then search and a result. Only a food that does not exist is opened through the router, since no tap reaches it.
 /// </summary>
 [Binding]
 public sealed class ServingSteps(ServingScreen serving, FoodSearchScreen foods, DashboardScreen dashboard, Journeys journeys, WebView web)
 {
     private const string Meals = "(Breakfast|Lunch|Dinner|Snacks)";
 
-    [Given(@"^I have opened Serving for the first food found by ""([^""]*)""$")]
-    public void GivenIHaveOpenedServingForTheFirstFoodFoundBy(string text) => OpenFirstFound(text, null);
-
     [Given(@"^I have opened Serving for the first food found by ""([^""]*)"" with " + Meals + " preset$")]
     public void GivenIHaveOpenedServingForTheFirstFoodFoundByWithPreset(string text, string meal) => OpenFirstFound(text, meal);
 
-    private void OpenFirstFound(string text, string? meal)
+    private void OpenFirstFound(string text, string meal)
     {
-        if (meal is null)
-        {
-            journeys.OpenFoods();
-            foods.Search(text);
-            foods.OpenFirstResult();
-            foods.AddToDiary();
-            serving.WaitUntilOpen();
-            return;
-        }
-
         journeys.WaitFor(Journeys.Screen.Dashboard);
         dashboard.AddTo(meal);
         foods.Search(text);
@@ -66,7 +52,7 @@ public sealed class ServingSteps(ServingScreen serving, FoodSearchScreen foods, 
 
     [Then(@"^the " + Meals + @" entry reads ""(.*)""$")]
     public void ThenTheEntryReads(string meal, string text) =>
-        web.Eventually(() => dashboard.Entries(meal).FirstOrDefault() ?? "", Does.Contain(text));
+        web.Eventually(() => dashboard.OpenAndReadEntries(meal).FirstOrDefault() ?? "", Does.Contain(text));
 
     [When(@"^I tap Add$")]
     public void WhenITapAdd() => serving.Add();
@@ -95,13 +81,6 @@ public sealed class ServingSteps(ServingScreen serving, FoodSearchScreen foods, 
 
     [Then(@"^Add reads ""(.*)""$")]
     public void ThenAddReads(string text) => web.Eventually(serving.AddText, Is.EqualTo(text));
-
-    [Then(@"^Add names the chosen meal$")]
-    public void ThenAddNamesTheChosenMeal() => web.Eventually(serving.AddText, Does.Match(@"^Add to (Breakfast|Lunch|Dinner|Snacks)$"));
-
-    [Then(@"^Serving says the meal was suggested from the time$")]
-    public void ThenServingSaysTheMealWasSuggestedFromTheTime() =>
-        web.Eventually(serving.Suggestion, Does.Match(@"^Suggested from the time: \d\d:\d\d$"));
 
     [Then(@"^Serving does not say a meal was suggested$")]
     public void ThenServingDoesNotSayAMealWasSuggested()
