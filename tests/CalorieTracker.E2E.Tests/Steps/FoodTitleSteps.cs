@@ -36,6 +36,10 @@ public sealed class FoodTitleSteps(FoodSearchScreen foods, ServingScreen serving
     public void ThenTheResultsIncludeAFoodTitledWithTheNotedTitle() =>
         web.Eventually(() => foods.ResultRows().Select(FirstLine).ToList(), Does.Contain(noted), "a result row headed with the noted title");
 
+    [Then(@"^the Favourites group lists a food titled with the noted title$")]
+    public void ThenTheFavouritesGroupListsTheNotedTitle() =>
+        web.Eventually(() => foods.RowTexts("favourites").Select(FirstLine).ToList(), Does.Contain(noted), "a Favourites row headed with the noted title");
+
     [Then(@"^Serving is headed with a title containing ""(.*)""$")]
     public void ThenServingIsHeadedWithATitleContaining(string word)
     {

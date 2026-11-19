@@ -75,6 +75,10 @@ public sealed class FoodSearchScreen(WebView web)
     public IReadOnlyList<string> RowIds(string group) =>
         web.FindAll($"[data-testid=\"food-group-{group}\"] ~ ul [data-testid^=\"food-result-\"]").Select(row => row.GetDomAttribute("data-testid")!).ToList();
 
+    /// <summary>The text of each food row of one group, in order.</summary>
+    public IReadOnlyList<string> RowTexts(string group) =>
+        web.FindAll($"[data-testid=\"food-group-{group}\"] ~ ul [data-testid^=\"food-result-\"]").Select(row => row.Text.Trim()).ToList();
+
     public string FirstRowText(string group)
     {
         web.WaitUntil(() => RowIds(group).Count > 0, $"the {group} group has no rows");

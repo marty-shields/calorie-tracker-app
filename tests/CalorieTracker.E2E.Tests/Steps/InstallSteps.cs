@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Security.Cryptography;
+using CalorieTracker.Core.Data;
 using CalorieTracker.E2E.Tests.Device;
 using CalorieTracker.E2E.Tests.Support;
 using Reqnroll;
@@ -10,7 +12,7 @@ namespace CalorieTracker.E2E.Tests.Steps;
 /// (<c>@backup</c>). A scenario that stops with another build installed, or none, gets the tested build back.
 /// </summary>
 [Binding]
-public sealed class InstallSteps(Native native, AppLog log, ScenarioState state)
+public sealed class InstallSteps(Native native, AppLog log, ScenarioState state, DeviceClock clock)
 {
     private const string LocalTransport = "com.android.localtransport/.LocalTransport";
 
@@ -75,6 +77,50 @@ public sealed class InstallSteps(Native native, AppLog log, ScenarioState state)
         var before = Lines(state.LogBeforeBackup).ToHashSet();
         Assert.That(before, Is.Not.Empty, "log lines before the backup");
         Assert.That(Lines(log.Read()).Where(before.Contains), Is.Empty, "log lines from before the backup");
+    }
+
+    /// <summary>
+    /// The seed set 1900 two days ago and 2100 today. Only the Debug app has the clock seam that back-dates the 1900, so on the
+    /// Release app both land today and one row is left. Reads the <c>TargetHistory</c> rows from a copy of the database, since
+    /// no screen shows a past day's target directly. Each day before today's row keeps the 1900, as <c>TargetService.ForRangeAsync</c> gives it.
+    /// </summary>
+    [Then(@"^the stored target history is 1900 from 2 days ago and 2100 from today$")]
+    public void ThenTheStoredTargetHistoryIs()
+    {
+        var today = DateOnly.FromDateTime(clock.LocalNow());
+        string Day(DateOnly date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var expected = App.IsDebug
+            ? new[] { $"{Day(today.AddDays(-2))}=1900", $"{Day(today)}=2100" }
+            : [$"{Day(today)}=2100"];
+        Assert.That(TargetHistoryRows(), Is.EqualTo(expected), "the TargetHistory rows after the upgrade");
+    }
+
+    /// <summary>The <c>TargetHistory</c> rows as <c>yyyy-MM-dd=kcal</c>, oldest first, read from a copy of the app's database and its write-ahead log.</summary>
+    private static List<string> TargetHistoryRows()
+    {
+        string Find(string name) => Adb.AppShell(App, "find", App.DataFolder, "-name", name).Split('\n')[0].Trim();
+        var database = Find("calorietracker.db3");
+        Assert.That(database, Is.Not.Empty, "the app's database");
+        var log = Find("calorietracker.db3-wal");
+        var folder = Directory.CreateTempSubdirectory("calorietracker-db-");
+        try
+        {
+            var copy = Path.Combine(folder.FullName, "calorietracker.db3");
+            File.WriteAllBytes(copy, Convert.FromBase64String(Adb.AppShell(App, "base64", database)));
+            if (log.Length > 0)
+            {
+                File.WriteAllBytes(copy + "-wal", Convert.FromBase64String(Adb.AppShell(App, "base64", log)));
+            }
+
+            using var db = new SQLite.SQLiteConnection(copy);
+            return db.Query<TargetHistory>("SELECT EffectiveFrom, Kcal FROM TargetHistory ORDER BY EffectiveFrom")
+                .Select(row => $"{row.EffectiveFrom}={row.Kcal?.ToString(CultureInfo.InvariantCulture) ?? "none"}")
+                .ToList();
+        }
+        finally
+        {
+            folder.Delete(recursive: true);
+        }
     }
 
     /// <summary>Runs after <see cref="Hooks.AppHooks.SaveFailure"/>, so a failure's files show the build the scenario stopped on.</summary>
