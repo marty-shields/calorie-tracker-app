@@ -28,5 +28,13 @@ internal static class E2EClockPin
 
         return TimeOnly.TryParseExact(parts[^1], "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out time);
     }
+
+    /// <summary>The pinned time minus <paramref name="now"/>: <paramref name="days"/> whole days from <paramref name="zone"/>'s date at <paramref name="time"/>, with the zone's UTC offset at that moment.</summary>
+    public static TimeSpan OffsetFrom(DateTimeOffset now, TimeZoneInfo zone, int days, TimeOnly time)
+    {
+        var local = TimeZoneInfo.ConvertTime(now, zone);
+        var pinned = local.Date.AddDays(days) + time.ToTimeSpan();
+        return new DateTimeOffset(pinned, zone.GetUtcOffset(pinned)) - now;
+    }
 }
 #endif

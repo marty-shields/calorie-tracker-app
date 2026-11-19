@@ -3,8 +3,9 @@ namespace CalorieTracker.App.Diagnostics;
 
 /// <summary>
 /// Debug builds only, for the E2E scenarios that depend on the time of day (which meals are open on Today): an emulator's clock is not fixed.
-/// While <see cref="FileName"/> exists in the app's external files folder and holds a time such as <c>19:30</c>, the app's <see cref="TimeProvider"/>
-/// reads that time of day on the device's current date when the file is read, and then keeps moving from it. Without the file, or when it holds anything else, the clock is the device's.
+/// While <see cref="FileName"/> exists in the app's external files folder and holds a time such as <c>19:30</c>, optionally after a whole-day offset such as <c>-2d 12:00</c>
+/// (the format and the date maths are in <see cref="E2EClockPin"/>), the app's <see cref="TimeProvider"/> reads that time on the device's current date, moved by the offset,
+/// when the file is read, and then keeps moving from it. Without the file, or when it holds anything else, the clock is the device's.
 /// </summary>
 internal static class E2EClockSeam
 {
@@ -69,9 +70,7 @@ internal static class E2EClockSeam
                 return null;
             }
 
-            var local = TimeZoneInfo.ConvertTime(now, LocalTimeZone);
-            var pinned = local.Date.AddDays(days) + time.ToTimeSpan();
-            return new DateTimeOffset(pinned, LocalTimeZone.GetUtcOffset(pinned)) - now;
+            return E2EClockPin.OffsetFrom(now, LocalTimeZone, days, time);
         }
     }
 }
