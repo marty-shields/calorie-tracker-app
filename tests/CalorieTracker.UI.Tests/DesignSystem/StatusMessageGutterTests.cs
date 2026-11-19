@@ -2,23 +2,40 @@ using System.Text.RegularExpressions;
 
 namespace CalorieTracker.UI.Tests.DesignSystem;
 
-public class StatusMessageGutterTests
+public partial class StatusMessageGutterTests
 {
-    private static string Margin(string file, string selector)
+    private static string Body(string file, string className)
     {
-        var css = RepoFiles.Read("src", "CalorieTracker.UI", file);
-        var rule = Regex.Match(css, @"(?:^|\})\s*" + Regex.Escape(selector) + @"\s*\{(?<body>[^}]*)\}");
-        Assert.That(rule.Success, $"{selector} not found in {file}");
-        var margin = Regex.Match(rule.Groups["body"].Value, @"margin:\s*(?<value>[^;]+);");
-        Assert.That(margin.Success, $"{selector} has no margin in {file}");
-        return margin.Groups["value"].Value.Trim();
+        var css = CommentRegex().Replace(RepoFiles.Read("src", "CalorieTracker.UI", file), "");
+        return RepoFiles.Rule(css, className);
+    }
+
+    private static string Margin(string file, string className)
+    {
+        var body = Body(file, className);
+        var margins = MarginRegex().Matches(body);
+        Assert.That(margins, Has.Count.EqualTo(1), $".{className} in {file} needs exactly one margin declaration");
+        Assert.That(body, Does.Not.Match(@"margin-(left|right|inline|block)"), $".{className} in {file} uses a margin longhand");
+        return margins[0].Groups["value"].Value.Trim();
     }
 
     [Test]
-    public void ServingError_HasTheSnackbarMargins()
+    public void ServingStatusError_HasTheSnackbarMargins()
     {
-        var snackbar = Margin("Components/Feedback/Snackbar.razor.css", ".snackbar");
+        var snackbar = Margin("Components/Feedback/Snackbar.razor.css", "snackbar");
 
-        Assert.That(Margin("Screens/ServingView.razor.css", ".error"), Is.EqualTo(snackbar));
+        Assert.That(Margin("Screens/ServingView.razor.css", "status-error"), Is.EqualTo(snackbar));
     }
+
+    [Test]
+    public void ServingInFormError_KeepsNoMargin()
+    {
+        Assert.That(Margin("Screens/ServingView.razor.css", "error"), Is.EqualTo("0"));
+    }
+
+    [GeneratedRegex(@"(?:^|[;{\s])margin:\s*(?<value>[^;]+);")]
+    private static partial Regex MarginRegex();
+
+    [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline)]
+    private static partial Regex CommentRegex();
 }

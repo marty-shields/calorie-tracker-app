@@ -139,15 +139,15 @@
     <Status>
         @if (EntryGone)
         {
-            <p class="error" role="alert" data-testid="serving-gone" data-wrap-ok>This entry was already removed.</p>
+            <p class="error status-error" role="alert" data-testid="serving-gone" data-wrap-ok>This entry was already removed.</p>
         }
         else if (RemoveFailed)
         {
-            <p class="error" role="alert" data-testid="serving-error" data-wrap-ok>Couldn't remove this entry. Try again.</p>
+            <p class="error status-error" role="alert" data-testid="serving-error" data-wrap-ok>Couldn't remove this entry. Try again.</p>
         }
         else if (SaveFailed)
         {
-            <p class="error" role="alert" data-testid="serving-error" data-wrap-ok>@(Editing ? "Couldn't save this entry. Try again." : "Couldn't add this food. Try again.")</p>
+            <p class="error status-error" role="alert" data-testid="serving-error" data-wrap-ok>@(Editing ? "Couldn't save this entry. Try again." : "Couldn't add this food. Try again.")</p>
         }
         <Snackbar />
     </Status>

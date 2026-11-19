@@ -39,12 +39,16 @@
 }
 
 .error {
-    margin: 0 var(--space-4) var(--space-2);
+    margin: 0;
     padding: var(--space-3) var(--space-4);
     border: var(--border-width-error) solid var(--color-error);
     border-radius: var(--radius-md);
     background-color: var(--color-surface);
     color: var(--color-error);
+}
+
+.status-error {
+    margin: 0 var(--space-4) var(--space-2);
 }
 
 .centre {
