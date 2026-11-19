@@ -68,6 +68,45 @@ public class AddSheetTests : ComponentTestBase
         });
     }
 
+    [Test]
+    public void Open_HasADecorativeHandleAboveTheTitle()
+    {
+        At(8);
+        var cut = Render();
+
+        var handle = cut.Find("[data-testid=add-sheet-handle]");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(handle.GetAttribute("aria-hidden"), Is.EqualTo("true"));
+            Assert.That(handle.TextContent, Is.Empty);
+            Assert.That(handle.TagName, Is.EqualTo("DIV"), "not a button: it has no behaviour");
+            Assert.That(handle.ParentElement!.FirstElementChild!.GetAttribute("data-testid"), Is.EqualTo("add-sheet-handle"), "first in the dialog");
+            Assert.That(cut.Find("[data-testid=add-sheet]").GetAttribute("aria-labelledby"), Is.EqualTo("add-sheet-title"));
+        });
+    }
+
+    [Test]
+    public void Css_SizesTheHandleAndTilesFromTokens_AndSoftensTheUsualPlus()
+    {
+        var css = RepoFiles.Read("src", "CalorieTracker.UI", "Components", "Layout", "AddSheet.razor.css");
+        var tokens = RepoFiles.Read("src", "CalorieTracker.UI", "wwwroot", "css", "tokens.css");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(css, Does.Contain("width: var(--sheet-handle-width);").And.Contain("height: var(--sheet-handle-height);"));
+            Assert.That(css, Does.Contain("grid-auto-rows: minmax(var(--sheet-tile-min-height), auto);").And.Contain("--icon-size: var(--sheet-tile-icon-size);"));
+            Assert.That(css, Does.Contain("background-color: var(--color-chip-soft);").And.Contain("color: var(--color-on-chip-soft);"));
+            foreach (var token in new[] { "--sheet-handle-width", "--sheet-handle-height", "--sheet-tile-min-height", "--sheet-tile-icon-size", "--color-chip-soft", "--color-on-chip-soft" })
+            {
+                Assert.That(tokens, Does.Contain(token + ":"), token);
+            }
+
+            Assert.That(tokens, Does.Match(@"--color-chip-soft: light-dark\(#[0-9a-f]{6}, #[0-9a-f]{6}\);"));
+            Assert.That(tokens, Does.Match(@"--color-on-chip-soft: light-dark\(#[0-9a-f]{6}, #[0-9a-f]{6}\);"));
+        });
+    }
+
     [TestCase(8, 0, "breakfast")]
     [TestCase(12, 0, "lunch")]
     [TestCase(18, 0, "dinner")]

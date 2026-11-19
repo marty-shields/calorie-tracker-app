@@ -23,7 +23,7 @@ Today (the **Today** item; `DashboardPage` in the code) and [Trends](./?path=/cu
 | Add sheet | Scan barcode | Scan for the chosen meal and day |
 | Food search | Back | Today |
 | Scan | Back, or the camera cancelled | Its `back` route (such as the search that opened it), else Today on that day |
-| Settings | Back | Today |
+| Settings | Back | The screen that opened it (Today on its day, or Trends on its period and day); Today when unknown |
 | Error | Restart | Today |
 
 ## Back

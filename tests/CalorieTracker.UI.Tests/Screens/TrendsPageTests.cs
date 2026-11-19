@@ -141,6 +141,22 @@ public class TrendsPageTests : ComponentTestBase
     }
 
     [Test]
+    public void AFarFutureFrom_OpensTheCurrentWeek()
+    {
+        var cut = Open(p => p.Add(x => x.From, DateOnly.MaxValue));
+
+        Assert.That(Text(cut, "trends-label"), Is.EqualTo("14 – 20 Jul"));
+    }
+
+    [Test]
+    public void AFarPastFrom_OpensTheWeekOfTheEarliestDay()
+    {
+        var cut = Open(p => p.Add(x => x.From, DateOnly.MinValue));
+
+        Assert.That(Text(cut, "trends-label"), Is.EqualTo("27 Dec 1999 – 2 Jan 2000"));
+    }
+
+    [Test]
     public void Next_StopsAtTheCurrentWeek()
     {
         var cut = Open();

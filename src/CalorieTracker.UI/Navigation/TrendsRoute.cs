@@ -19,6 +19,13 @@ public static class TrendsRoute
     public static string Url(TrendsPeriod period, DateOnly from) =>
         $"{Template}?period={Name(period)}&from={RouteDate.ToText(from)}";
 
+    /// <summary>The earliest day a <c>from</c> value may name; anything before it opens the span of this day.</summary>
+    public static readonly DateOnly Earliest = new(2000, 1, 1);
+
+    /// <summary>The day <paramref name="from"/> names, held between <see cref="Earliest"/> and <paramref name="today"/> so the period maths never leaves the calendar; null (missing or malformed) stays null.</summary>
+    public static DateOnly? ClampFrom(DateOnly? from, DateOnly today) =>
+        from is { } day ? (day < Earliest ? Earliest : day > today ? today : day) : null;
+
     /// <summary>The period named by a query value; Week when it is missing or unknown.</summary>
     public static TrendsPeriod ParsePeriod(string? text) => text?.ToLowerInvariant() switch
     {

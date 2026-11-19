@@ -214,7 +214,7 @@ public class DashboardPageTests : ComponentTestBase
 
         await cut.Find("[data-testid=date-strip-next]").ClickAsync();
         cut.WaitForAssertion(() => Assert.That(Text(cut, "date-strip-label"), Does.StartWith("Tomorrow")));
-        cut.Render(p => p.Add(x => x.OnSettings, () => { }));
+        cut.Render(p => p.Add(x => x.OnSettings, (DateOnly? _) => { }));
 
         Assert.That(Text(cut, "date-strip-label"), Does.StartWith("Tomorrow"));
     }
@@ -263,10 +263,10 @@ public class DashboardPageTests : ComponentTestBase
     public async Task Buttons_RaiseTheirCallbacks()
     {
         var navigated = new List<NavDestination>();
-        var settings = 0;
+        var settings = new List<DateOnly?>();
         var cut = Render(more: p => p
             .Add(x => x.OnNavigate, navigated.Add)
-            .Add(x => x.OnSettings, () => settings++));
+            .Add(x => x.OnSettings, (DateOnly? day) => settings.Add(day)));
 
         await cut.Find("[data-testid=today-link]").ClickAsync();
         await cut.Find("[data-testid=settings]").ClickAsync();
@@ -274,8 +274,21 @@ public class DashboardPageTests : ComponentTestBase
         cut.WaitForAssertion(() =>
         {
             Assert.That(navigated, Is.Empty, "Today is the screen showing");
-            Assert.That(settings, Is.EqualTo(1));
+            Assert.That(settings, Is.EqualTo(new DateOnly?[] { null }), "on today the opener carries no day");
         });
+    }
+
+    [Test]
+    public async Task Settings_CarriesTheDayOnScreenSoBackComesToIt()
+    {
+        var settings = new List<DateOnly?>();
+        var cut = Render(more: p => p.Add(x => x.OnSettings, (DateOnly? day) => settings.Add(day)));
+
+        await cut.Find("[data-testid=date-strip-previous]").ClickAsync();
+        cut.WaitForAssertion(() => Assert.That(Text(cut, "date-strip-label"), Does.StartWith("Yesterday")));
+        await cut.Find("[data-testid=settings]").ClickAsync();
+
+        Assert.That(settings, Is.EqualTo(new DateOnly?[] { Today.AddDays(-1) }));
     }
 
     [Test]

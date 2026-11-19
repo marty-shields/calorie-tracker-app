@@ -20,7 +20,7 @@
 <DashboardView Date="date" Today="Today()" Now="now" OpenMeal="OpenMeal" Summary="summary" Loading="loading" LoadFailed="loadFailed"
                OnPrevious="@(() => ShowAsync(date.AddDays(-1)))" OnNext="@(() => ShowAsync(date.AddDays(1)))" OnToday="@(() => ShowAsync(Today()))"
                UsualFoods="feed.Usual" UsualAddError="@feed.AddError" OnMealChanged="feed.LoadAsync" OnAddUsual="feed.AddAsync"
-               OnAdd="OnAdd" OnScan="OnScan" OnEdit="OnEdit" OnRetry="LoadAsync" OnNavigate="OnNavigate" OnSettings="OnSettings" />
+               OnAdd="OnAdd" OnScan="OnScan" OnEdit="OnEdit" OnRetry="LoadAsync" OnNavigate="OnNavigate" OnSettings="OpenSettingsAsync" />
 
 @code {
     private DateOnly date;
@@ -58,9 +58,9 @@
     [Parameter]
     public EventCallback<NavDestination> OnNavigate { get; set; }
 
-    /// <summary>Raised by the Settings gear and by Set a target.</summary>
+    /// <summary>Raised by the Settings gear and by Set a target, with the day on screen (null when it is today) so Settings can come back to it.</summary>
     [Parameter]
-    public EventCallback OnSettings { get; set; }
+    public EventCallback<DateOnly?> OnSettings { get; set; }
 
     protected override void OnInitialized()
     {
@@ -92,6 +92,8 @@
 
     /// <summary>Today by the clock now, so the screen is right when it is used past midnight.</summary>
     private DateOnly Today() => DateOnly.FromDateTime(Time.GetLocalNow().DateTime);
+
+    private Task OpenSettingsAsync() => OnSettings.InvokeAsync(date == Today() ? null : date);
 
     private TimeOnly TimeNow() => TimeOnly.FromDateTime(Time.GetLocalNow().DateTime);
 

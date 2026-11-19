@@ -60,4 +60,36 @@ public class TrendsRouteTests
     [TestCase(TrendsPeriod.Year, "2026-01-01", "2026")]
     public void Label_ReadsAsTheDesignShowsIt(TrendsPeriod period, string start, string expected) =>
         Assert.That(TrendsRoute.Label(period, DateOnly.Parse(start)), Is.EqualTo(expected));
+
+    [TestCase("0001-01-01", "2000-01-01")]
+    [TestCase("1999-12-31", "2000-01-01")]
+    [TestCase("2026-11-12", "2026-11-12")]
+    [TestCase("2026-11-19", "2026-11-19")]
+    [TestCase("2026-11-20", "2026-11-19")]
+    [TestCase("9999-12-31", "2026-11-19")]
+    public void ClampFrom_HoldsTheDayBetweenTheEarliestAndToday(string day, string expected) =>
+        Assert.That(TrendsRoute.ClampFrom(DateOnly.Parse(day), new DateOnly(2026, 11, 19)), Is.EqualTo(DateOnly.Parse(expected)));
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("not-a-date")]
+    [TestCase("2026-13-45")]
+    public void ClampFrom_KeepsAMalformedValueNull(string? text) =>
+        Assert.That(TrendsRoute.ClampFrom(RouteDate.Parse(text), new DateOnly(2026, 11, 19)), Is.Null);
+
+    [Test]
+    public void ClampedFarValues_GiveSpansThePeriodMathsCanHandle()
+    {
+        foreach (var from in new[] { new DateOnly(1, 1, 1), DateOnly.MaxValue })
+        {
+            var day = TrendsRoute.ClampFrom(from, new DateOnly(2026, 11, 19))!.Value;
+            foreach (var period in Enum.GetValues<TrendsPeriod>())
+            {
+                var start = TrendsRoute.Start(period, day);
+                Assert.DoesNotThrow(() => TrendsRoute.Label(period, start));
+                Assert.DoesNotThrow(() => TrendsRoute.Step(period, start, 1));
+                Assert.DoesNotThrow(() => TrendsRoute.End(period, start));
+            }
+        }
+    }
 }

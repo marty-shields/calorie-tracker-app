@@ -83,7 +83,7 @@
 
         opened = true;
         openedWith = (Period, From);
-        await ShowAsync(Period, TrendsRoute.Start(Period, From ?? Today()), rewriteRoute: false);
+        await ShowAsync(Period, TrendsRoute.Start(Period, TrendsRoute.ClampFrom(From, Today()) ?? Today()), rewriteRoute: false);
     }
 
     /// <summary>Today by the clock now, so the screen is right when it is used past midnight.</summary>

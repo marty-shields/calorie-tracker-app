@@ -18,6 +18,9 @@ public sealed class TrendsScreen(WebView web)
         web.Eventually(() => web.Find(radio).Selected, Is.True, $"{period} chosen on Trends");
     }
 
+    /// <summary>Taps the gear in the top bar.</summary>
+    public void OpenSettings() => web.Tap("settings");
+
     public string Label() => web.Text("trends-label");
 
     public void Previous() => web.Tap("trends-previous");

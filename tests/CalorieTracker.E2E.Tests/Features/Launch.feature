@@ -2,7 +2,7 @@ Feature: Launch
   The app opens on Today, with its content clear of the status bar and the navigation bar.
 
   @smoke @release
-  Scenario: A fresh install opens on the empty Dashboard
+  Scenario: A fresh install opens on the empty Today
     Then I am on the Dashboard titled "Calorie Tracker"
     And the Dashboard shows "Nothing logged today"
     And the navigation bar shows Today, Add and Trends only

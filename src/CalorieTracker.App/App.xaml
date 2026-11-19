@@ -15,5 +15,8 @@
         <Color x:Key="ScrimDark">#99000000</Color>
         <!-- Drawn over the live camera image, not over a theme surface, so the same white in both themes: the scrim sits behind it. -->
         <Color x:Key="OverlayText">#ffffff</Color>
+        <!-- The "Adding to <meal> · <day>" pill over the camera image: white with the light theme's text colour in both themes, as in the design. -->
+        <Color x:Key="PillBackground">#ffffff</Color>
+        <Color x:Key="PillText">#373e40</Color>
     </Application.Resources>
 </Application>

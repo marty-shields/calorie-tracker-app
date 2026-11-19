@@ -56,8 +56,8 @@
                 {
                     var id = $"meal-{meal.Meal.ToString().ToLowerInvariant()}";
                     var state = StateOf(meal.Meal);
-                    var folded = state == MealWindowState.After && !opened.Contains(meal.Meal);
-                    var foldable = state == MealWindowState.After;
+                    var folded = IsFolded(meal.Meal, state);
+                    var foldable = state is MealWindowState.After or MealWindowState.During;
                     var count = meal.Entries.Count;
                     <section class="meal">
                         <MealHeader Name="@meal.Meal.ToString()"
@@ -80,7 +80,7 @@
                                     }
                                 </ul>
                             }
-                            else if (state != MealWindowState.Before && (logged || foldable))
+                            else if (state != MealWindowState.Before && (logged || state == MealWindowState.After))
                             {
                                 <p class="none" data-testid="@($"{id}-none")">Nothing logged</p>
                             }
@@ -98,16 +98,29 @@
 
     private bool sheetOpen;
     private readonly HashSet<Meal> opened = [];
+    private readonly HashSet<Meal> closed = [];
     private DateOnly? shownDate;
     private Meal? shownOpenMeal;
+    private Meal? shownFoldedMeal;
 
     protected override void OnParametersSet()
     {
-        // Another day, or a new route, forgets what was opened: only a folded meal on today can be, and it folds again on leaving Today.
+        // Another day, or a new route, forgets what was opened or folded: only meals on today can be, and they return to their window's state on leaving Today.
         if (shownDate != Date)
         {
             shownDate = Date;
             opened.Clear();
+            closed.Clear();
+        }
+
+        if (FoldedMeal != shownFoldedMeal)
+        {
+            shownFoldedMeal = FoldedMeal;
+            closed.Clear();
+            if (FoldedMeal is { } folded)
+            {
+                closed.Add(folded);
+            }
         }
 
         if (OpenMeal != shownOpenMeal)
@@ -117,6 +130,7 @@
             if (OpenMeal is { } meal)
             {
                 opened.Add(meal);
+                closed.Remove(meal);
             }
         }
     }
@@ -125,11 +139,20 @@
     private MealWindowState StateOf(Meal meal) =>
         Date == Today && Now is { } now ? MealWindows.StateFor(meal, now) : MealWindowState.AnyTime;
 
+    /// <summary>A meal past its window starts folded and the one in its window starts open; the person's taps flip that. Snacks and other days never fold.</summary>
+    private bool IsFolded(Meal meal, MealWindowState state) => state switch
+    {
+        MealWindowState.After => !opened.Contains(meal),
+        MealWindowState.During => closed.Contains(meal),
+        _ => false,
+    };
+
     private void Toggle(Meal meal)
     {
-        if (!opened.Remove(meal))
+        var set = StateOf(meal) == MealWindowState.During ? closed : opened;
+        if (!set.Remove(meal))
         {
-            opened.Add(meal);
+            set.Add(meal);
         }
     }
 
@@ -150,6 +173,7 @@
         }
 
         opened.Add(request.Meal);
+        closed.Remove(request.Meal);
         return true;
     }
 
@@ -172,6 +196,10 @@
     /// <summary>A meal to show open even though its window has passed, such as the one a food was just added to. Applied when its value changes, and forgotten when <see cref="Date"/> changes.</summary>
     [Parameter]
     public Meal? OpenMeal { get; set; }
+
+    /// <summary>A meal in its window to show folded, as if the person had tapped its header; the stories use it. Applied when its value changes, and forgotten when <see cref="Date"/> changes.</summary>
+    [Parameter]
+    public Meal? FoldedMeal { get; set; }
 
     /// <summary>The day's summary. The day is not shown until it is set, or <see cref="LoadFailed"/> is.</summary>
     [Parameter]

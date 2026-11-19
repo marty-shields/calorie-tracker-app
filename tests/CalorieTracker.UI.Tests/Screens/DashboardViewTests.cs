@@ -429,7 +429,7 @@ public class DashboardViewTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(Text(cut, "meal-breakfast-now"), Is.EqualTo("Now"));
-            Assert.That(Exists(cut, "meal-breakfast-toggle"), Is.False, "an open meal has no fold button");
+            Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("true"), "the Now meal starts open with a fold button");
             Assert.That(cut.FindAll("[data-testid=meal-breakfast] ~ ul .row"), Has.Count.EqualTo(1));
             Assert.That(Text(cut, "meal-lunch-hint"), Is.EqualTo("from 11:00"));
             Assert.That(Text(cut, "meal-dinner-hint"), Is.EqualTo("from 17:00"));
@@ -463,6 +463,7 @@ public class DashboardViewTests : ComponentTestBase
             Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul"), Is.Empty);
             Assert.That(Exists(cut, "meal-breakfast-add"), Is.True, "the + stays");
             Assert.That(Text(cut, "meal-dinner-now"), Is.EqualTo("Now"));
+            Assert.That(ExpandedOf(cut, "dinner"), Is.EqualTo("true"));
             Assert.That(cut.FindAll("[data-testid=meal-dinner] ~ ul .row"), Has.Count.EqualTo(1));
             Assert.That(cut.FindAll("[data-testid=meal-snacks] ~ ul .row"), Has.Count.EqualTo(1));
             Assert.That(Exists(cut, "meal-snacks-toggle"), Is.False);
@@ -511,6 +512,80 @@ public class DashboardViewTests : ComponentTestBase
         cut.Find("[data-testid=meal-lunch-toggle]").Click();
 
         Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("false"));
+    }
+
+    [Test]
+    public void TheNowMeal_FoldsToItsSummaryWhenTapped_AndOpensAgain()
+    {
+        var cut = RenderAt(DashboardSamples.FullDay, DashboardSamples.Evening);
+
+        cut.Find("[data-testid=meal-dinner-toggle]").Click();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ExpandedOf(cut, "dinner"), Is.EqualTo("false"));
+            Assert.That(Text(cut, "meal-dinner-now"), Is.EqualTo("Now"), "the chip stays");
+            Assert.That(Text(cut, "meal-dinner-summary"), Does.EndWith(" kcal").And.Contain("item"));
+            Assert.That(cut.FindAll("[data-testid=meal-dinner] ~ ul"), Is.Empty);
+            Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("false"), "other meals are unchanged");
+        });
+
+        cut.Find("[data-testid=meal-dinner-toggle]").Click();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ExpandedOf(cut, "dinner"), Is.EqualTo("true"));
+            Assert.That(cut.FindAll("[data-testid=meal-dinner] ~ ul .row"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public void AnEmptyNowMeal_FoldsToNothingLogged()
+    {
+        var cut = RenderAt(DashboardSamples.FirstRun, DashboardSamples.Morning);
+
+        cut.Find("[data-testid=meal-breakfast-toggle]").Click();
+
+        Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("false"));
+        Assert.That(Text(cut, "meal-breakfast-summary"), Is.EqualTo("Nothing logged"));
+        cut.Find("[data-testid=meal-breakfast-toggle]").Click();
+        Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("true"));
+    }
+
+    [Test]
+    public void TheNowMealHeader_HasAnArrowDownWhenFoldedAndTheOtherWayWhenOpen()
+    {
+        var cut = RenderAt(DashboardSamples.FullDay, DashboardSamples.Evening);
+        var open = cut.Find("[data-testid=meal-dinner-toggle]").InnerHtml;
+
+        cut.Find("[data-testid=meal-dinner-toggle]").Click();
+
+        Assert.That(cut.Find("[data-testid=meal-dinner-toggle]").InnerHtml, Is.Not.EqualTo(open), "the chevron flips");
+    }
+
+    [Test]
+    public void FoldingTheNowMeal_IsForgottenWhenTheDayChanges_AndComesBack()
+    {
+        var cut = RenderAt(DashboardSamples.FullDay, DashboardSamples.Evening);
+        cut.Find("[data-testid=meal-dinner-toggle]").Click();
+        Assert.That(ExpandedOf(cut, "dinner"), Is.EqualTo("false"));
+
+        cut.Render(p => p.Add(x => x.Date, Today.AddDays(-1)));
+        cut.Render(p => p.Add(x => x.Date, Today));
+
+        Assert.That(ExpandedOf(cut, "dinner"), Is.EqualTo("true"));
+    }
+
+    [Test]
+    public void FoldedMeal_ShowsTheNowMealFolded()
+    {
+        var cut = Render(DashboardSamples.Loaded, p => p.Add(x => x.Now, DashboardSamples.Midday).Add(x => x.FoldedMeal, Meal.Lunch));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("false"));
+            Assert.That(Exists(cut, "meal-lunch-summary"), Is.True);
+        });
     }
 
     [Test]

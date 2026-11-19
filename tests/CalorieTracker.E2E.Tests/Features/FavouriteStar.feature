@@ -28,7 +28,7 @@ Feature: Favourite star
     And I open Serving again for the first food found by "oat"
     Then the star on Serving is outlined and named "Add to favourites"
 
-  Scenario: A food is starred from a Dashboard entry
+  Scenario: A food is starred from a Today entry
     Given I have added 100 g of the first food found by "oat" to Lunch
     When I tap the Lunch entry
     Then Serving is in edit mode with a Save button and no Add button
