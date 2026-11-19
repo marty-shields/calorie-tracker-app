@@ -1742,7 +1742,7 @@ public class ServingPageTests : ComponentTestBase
     public async Task Add_RaisesOnAddedWithTheMealTheEntryWasAddedTo()
     {
         Meal? addedTo = null;
-        var cut = Render(cheddarId, Meal.Lunch, onAdded: meal => addedTo = meal, expectStar: false);
+        var cut = Render(cheddarId, Meal.Lunch, onAdded: meal => addedTo = meal);
 
         await cut.Find("[data-testid=serving-meal-dinner]").ChangeAsync(true);
         await cut.Find("[data-testid=serving-add]").ClickAsync(new());
