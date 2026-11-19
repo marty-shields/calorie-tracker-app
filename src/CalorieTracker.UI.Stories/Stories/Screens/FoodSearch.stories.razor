@@ -95,19 +95,25 @@
         </Template>
     </Story>
 
-    <Story Name="Online search button">
+    <Story Name="Pinned search online with the notice">
         <Template>
             <FoodSearchView Date="DashboardSamples.Today" Today="DashboardSamples.Today" OnBack="() => { }" Meal="Meal.Lunch" Query="cola" Groups="FoodSearchSamples.ColaStored" OnlineNoticeVisible OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnSearchOnline="() => { }" />
         </Template>
     </Story>
 
-    <Story Name="Online search button after the notice">
+    <Story Name="Pinned search online">
         <Template>
             <FoodSearchView Date="DashboardSamples.Today" Today="DashboardSamples.Today" OnBack="() => { }" Meal="Meal.Lunch" Query="cola" Groups="FoodSearchSamples.ColaStored" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnSearchOnline="() => { }" />
         </Template>
     </Story>
 
-    <Story Name="No results with online search">
+    <Story Name="Pinned search online over many results">
+        <Template>
+            <FoodSearchView Date="DashboardSamples.Today" Today="DashboardSamples.Today" OnBack="() => { }" Meal="Meal.Lunch" Query="oat" Groups="FoodSearchSamples.LongGroup" Expanded="@(new HashSet<FoodGroupKind> { FoodGroupKind.Common })" OnQueryChanged="(string _) => { }" OnSelect="(Food _) => { }" OnSearchOnline="() => { }" />
+        </Template>
+    </Story>
+
+    <Story Name="No results with pinned search online">
         <Template>
             <FoodSearchView Date="DashboardSamples.Today" Today="DashboardSamples.Today" OnBack="() => { }" Meal="Meal.Lunch" Query="zzz" OnlineNoticeVisible OnQueryChanged="(string _) => { }" OnSearchOnline="() => { }" />
         </Template>

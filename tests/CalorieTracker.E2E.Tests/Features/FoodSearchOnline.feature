@@ -1,13 +1,13 @@
 Feature: Search online
-  Under the search results, "Search online" sends what was typed to the online food database, only when tapped. No scenario reaches the network: a Debug-build seam answers the search call by the text typed (src/CalorieTracker.App/Scanning/E2EOnlineSearchSeam.cs): "fizzy cola" finds three products of the United Kingdom, "oat" is offline, "milk" is busy and anything else finds nothing. App data is cleared before each scenario, so the first-use notice shows in each.
+  Pinned in the bottom bar once something is typed, "Search online" sends what was typed to the online food database, only when tapped. No scenario reaches the network: a Debug-build seam answers the search call by the text typed (src/CalorieTracker.App/Scanning/E2EOnlineSearchSeam.cs): "fizzy cola" finds three products of the United Kingdom, "oat" is offline, "milk" is busy and anything else finds nothing. App data is cleared before each scenario, so the first-use notice shows in each.
 
   Background:
     Given the online search is answered by the test seam
 
-  Scenario: Typing offers the Search online button under the local results, with the first-use notice
+  Scenario: Typing pins the Search online button in the bottom bar, with the first-use notice
     Given I have opened Foods
     When I search for "oat"
-    Then Search online is offered as a button under the results
+    Then Search online is offered as a button pinned in the bottom bar
     And the first-use notice reads "This sends what you typed to an online database."
     And no online group shows
 
@@ -26,7 +26,7 @@ Feature: Search online
     And I have searched for "oat"
     When I tap Search online
     And I search for "cheddar"
-    Then Search online is offered as a button under the results
+    Then Search online is offered as a button pinned in the bottom bar
     And no first-use notice shows
 
   Scenario: Tapping the can and then the 1 L bottle ends up as one food that offers no servings
