@@ -27,6 +27,9 @@ public sealed partial class Native(WebView web)
     private static readonly TimeSpan KeyboardTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan LaunchTimeout = TimeSpan.FromSeconds(30);
 
+    /// <summary>How long a tap on the permission prompt's deny button gets to close it before <see cref="DenyPermission"/> taps again.</summary>
+    private static readonly TimeSpan DenyRetapTimeout = TimeSpan.FromSeconds(3);
+
     /// <summary>Why the app's WebView isn't debuggable, once a launch in this run has found it.</summary>
     private static string? notDebuggable;
 
@@ -123,7 +126,8 @@ public sealed partial class Native(WebView web)
 
     /// <summary>
     /// Waits until Android's runtime permission prompt is in front, taps its deny button and switches back to the app's WebView.
-    /// Fails if the prompt doesn't show.
+    /// Fails if the prompt doesn't show. A tap that lands while the prompt is still settling can be dropped and leave it up, so it
+    /// taps again while the prompt stays.
     /// </summary>
     public void DenyPermission()
     {
@@ -132,8 +136,19 @@ public sealed partial class Native(WebView web)
         {
             var deny = By.XPath("//*[contains(@resource-id,'permission_deny')]");
             web.WaitUntil(() => App.FindElements(deny).Count > 0, "the permission prompt didn't show", LaunchTimeout);
-            App.FindElement(deny).Click();
-            web.WaitUntil(() => App.CurrentPackage == AppiumSetup.App.Package, "the app didn't come back from the permission prompt", LaunchTimeout);
+            web.WaitUntil(
+                () =>
+                {
+                    if (App.CurrentPackage == AppiumSetup.App.Package)
+                    {
+                        return true;
+                    }
+
+                    App.FindElements(deny).FirstOrDefault()?.Click();
+                    return web.Holds(() => App.CurrentPackage == AppiumSetup.App.Package, DenyRetapTimeout);
+                },
+                "the app didn't come back from the permission prompt",
+                LaunchTimeout);
         }
         finally
         {
