@@ -1,4 +1,5 @@
 using CalorieTracker.Core.Data;
+using CalorieTracker.UI.Components.Actions;
 using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Components.Layout;
 using CalorieTracker.UI.Screens;
@@ -556,11 +557,14 @@ public class DashboardViewTests : ComponentTestBase
     public void TheNowMealHeader_HasAnArrowDownWhenFoldedAndTheOtherWayWhenOpen()
     {
         var cut = RenderAt(DashboardSamples.FullDay, DashboardSamples.Evening);
-        var open = cut.Find("[data-testid=meal-dinner-toggle]").InnerHtml;
+        string PathOf(IconName name) => Context.Render<Icon>(p => p.Add(x => x.Name, name)).Find("path").GetAttribute("d")!;
+        string Shown() => cut.Find("[data-testid=meal-dinner-toggle] svg path").GetAttribute("d")!;
+
+        Assert.That(Shown(), Is.EqualTo(PathOf(IconName.Up)), "open shows the up arrow");
 
         cut.Find("[data-testid=meal-dinner-toggle]").Click();
 
-        Assert.That(cut.Find("[data-testid=meal-dinner-toggle]").InnerHtml, Is.Not.EqualTo(open), "the chevron flips");
+        Assert.That(Shown(), Is.EqualTo(PathOf(IconName.Down)), "folded shows the down arrow");
     }
 
     [Test]
