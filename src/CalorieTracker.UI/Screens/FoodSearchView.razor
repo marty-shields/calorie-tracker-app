@@ -7,7 +7,7 @@
 @using CalorieTracker.UI.Components.Inputs
 @using CalorieTracker.UI.Components.Lists
 @using CalorieTracker.UI.Models.Search
-<AppScreen Title="@($"Add to {Meal}")" Subtitle="@(Date is { } day ? DayLabel.For(day, Today) : null)" OnBack="OnBack" Toolbar="@(!Failed ? Tools : null)">
+<AppScreen Title="@($"Add to {Meal}")" Subtitle="@(Date is { } day ? DayLabel.For(day, Today) : null)" OnBack="OnBack" Toolbar="@(!Failed ? Tools : null)" BottomBar="@(Pinned ? PinnedBar : null)">
     <ChildContent>
         @if (Loading)
         {
@@ -29,7 +29,7 @@
                 <EmptyState Message="No foods match" Hint="Try another word." TestId="food-search-none" />
             </div>
 
-            @Online(true)
+            @Online
         }
         else
         {
@@ -65,7 +65,7 @@
 
             @if (!string.IsNullOrWhiteSpace(Query))
             {
-                @Online(false)
+                @Online
             }
         }
     </ChildContent>
@@ -89,7 +89,7 @@
     [Parameter]
     public EventCallback<FoodGroupKind> OnExpand { get; set; }
 
-    /// <summary>Where the online search is. Shown under the local groups once something is typed, never with the loading state or a load error.</summary>
+    /// <summary>Where the online search is. Idle: "Search online" is pinned in the bottom bar while something is typed, never with the loading state or a load error. Any other state shows in the list under the local groups.</summary>
     [Parameter]
     public OnlineSearchState OnlineState { get; set; }
 
@@ -105,7 +105,7 @@
     [Parameter]
     public bool OnlineExpanded { get; set; }
 
-    /// <summary>Shows the first-use notice ("This sends what you typed to an online database.") under the search button.</summary>
+    /// <summary>Shows the first-use notice ("This sends what you typed to an online database.") in the pinned bar above the search button.</summary>
     [Parameter]
     public bool OnlineNoticeVisible { get; set; }
 
@@ -165,49 +165,56 @@
     [Parameter]
     public EventCallback OnRetry { get; set; }
 
-    /// <summary>The online part under the local results. <paramref name="noMatches"/>: no stored food matched, so the button is primary instead of secondary.</summary>
-    private RenderFragment Online(bool noMatches) =>
-        @<div class="online" data-testid="food-search-online-section">
-            @switch (OnlineState)
+    /// <summary>Whether the pinned "Search online" bar shows: text is typed, the list is not loading or failed, and the online search has not run for this text.</summary>
+    private bool Pinned => !Loading && !Failed && !string.IsNullOrWhiteSpace(Query) && OnlineState == OnlineSearchState.Idle;
+
+    /// <summary>The bar pinned at the foot of the screen: the first-use notice, if due, above the button. The button is primary when no stored food matched, secondary otherwise.</summary>
+    private RenderFragment PinnedBar =>
+        @<div class="pinned" data-testid="food-search-online-bar">
+            @if (OnlineNoticeVisible)
             {
-                case OnlineSearchState.Idle:
-                    <div class="online-action">
-                        <AppButton Variant="@(noMatches ? ButtonVariant.Primary : ButtonVariant.Secondary)" FullWidth TestId="food-search-online" OnClick="OnSearchOnline">Search online</AppButton>
-                    </div>
-
-                    @if (OnlineNoticeVisible)
-                    {
-                        <p class="online-notice" data-testid="food-search-online-notice">@OnlineSearchNotice.Text</p>
-                    }
-
-                    break;
-                case OnlineSearchState.Searching:
-                    <div class="loading">
-                        <Spinner Label="Searching online…" TestId="food-search-online-loading" />
-                    </div>
-                    break;
-                case OnlineSearchState.Importing:
-                    @OnlineGroup
-                    <div class="loading">
-                        <Spinner Label="Getting the product…" TestId="food-search-online-importing" />
-                    </div>
-                    break;
-                case OnlineSearchState.Results:
-                    @OnlineGroup
-                    break;
-                case OnlineSearchState.None:
-                    <p class="none" data-testid="food-search-online-none">Nothing found online</p>
-                    break;
-                case OnlineSearchState.Unavailable:
-                    <p class="none" data-testid="food-search-online-unavailable">That product can't be added</p>
-                    @OnlineGroup
-                    break;
-                default:
-                    <LoadFailed Message="@OnlineMessage" TestId="food-search-online" OnRetry="OnRetryOnline" />
-                    @OnlineGroup
-                    break;
+                <p class="online-notice" data-testid="food-search-online-notice">@OnlineSearchNotice.Text</p>
             }
+            <AppButton Variant="@(Groups.Count == 0 ? ButtonVariant.Primary : ButtonVariant.Secondary)" FullWidth TestId="food-search-online" OnClick="OnSearchOnline">Search online</AppButton>
         </div>;
+
+    /// <summary>The online part under the local results, once the search has run for the typed text; nothing before.</summary>
+    private RenderFragment Online =>
+        @<text>
+            @if (OnlineState != OnlineSearchState.Idle)
+            {
+            <div class="online" data-testid="food-search-online-section">
+                @switch (OnlineState)
+                {
+                    case OnlineSearchState.Searching:
+                        <div class="loading">
+                            <Spinner Label="Searching online…" TestId="food-search-online-loading" />
+                        </div>
+                        break;
+                    case OnlineSearchState.Importing:
+                        @OnlineGroup
+                        <div class="loading">
+                            <Spinner Label="Getting the product…" TestId="food-search-online-importing" />
+                        </div>
+                        break;
+                    case OnlineSearchState.Results:
+                        @OnlineGroup
+                        break;
+                    case OnlineSearchState.None:
+                        <p class="none" data-testid="food-search-online-none">Nothing found online</p>
+                        break;
+                    case OnlineSearchState.Unavailable:
+                        <p class="none" data-testid="food-search-online-unavailable">That product can't be added</p>
+                        @OnlineGroup
+                        break;
+                    default:
+                        <LoadFailed Message="@OnlineMessage" TestId="food-search-online" OnRetry="OnRetryOnline" />
+                        @OnlineGroup
+                        break;
+                }
+            </div>
+            }
+        </text>;
 
     private string OnlineMessage => OnlineState switch
     {

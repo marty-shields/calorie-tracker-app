@@ -137,7 +137,6 @@ public class FoodSearchPageTests : ComponentTestBase
             Assert.That(requests.Select(r => r.Food.Id), Is.EqualTo(new[] { 1 }));
             Assert.That(cut.FindAll("[data-testid=food-detail]"), Is.Empty);
             Assert.That(cut.FindAll("[data-testid=food-detail-add]"), Is.Empty);
-            Assert.That(cut.FindAll("[data-testid=bottom-bar]"), Is.Empty);
         });
     }
 
@@ -386,14 +385,14 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task ResultsList_HasNoBottomBar()
+    public async Task ResultsList_BottomBarHoldsOnlyTheSearchOnlineButton()
     {
         search.Results = [Oats];
         var cut = Context.Render<FoodSearchPage>();
 
         await cut.Find("[data-testid=food-search-input]").InputAsync("oat");
 
-        Assert.That(cut.FindAll("[data-testid=bottom-bar]"), Is.Empty);
+        Assert.That(cut.Find("[data-testid=bottom-bar]").Children.Select(c => c.GetAttribute("data-testid")), Is.EqualTo(new[] { "food-search-online-bar" }));
     }
 
     [Test]
