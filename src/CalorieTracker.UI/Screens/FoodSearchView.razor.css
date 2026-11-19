@@ -89,6 +89,8 @@
 .pinned {
     display: flex;
     flex-direction: column;
+    flex: 1;
+    min-width: 0;
     gap: var(--space-2);
 }
 
