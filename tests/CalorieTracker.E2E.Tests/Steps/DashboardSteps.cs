@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
+using CalorieTracker.E2E.Tests.Device;
 using CalorieTracker.E2E.Tests.Screens;
 using CalorieTracker.E2E.Tests.Support;
 using Reqnroll;
@@ -6,7 +8,7 @@ using Reqnroll;
 namespace CalorieTracker.E2E.Tests.Steps;
 
 [Binding]
-public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboard, Journeys journeys)
+public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboard, Journeys journeys, DeviceClock clock)
 {
     [Then(@"^I am on the Dashboard titled ""(.*)""$")]
     public void ThenOnTheDashboardTitled(string title) => web.Eventually(() => web.Text("screen-title"), Is.EqualTo(title));
@@ -43,7 +45,7 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
 
     [Then(@"^the calories eaten are above 0$")]
     public void ThenTheCaloriesEatenAreAbove0() =>
-        web.Eventually(() => int.Parse(dashboard.Eaten().Replace(",", "", StringComparison.Ordinal), System.Globalization.CultureInfo.InvariantCulture), Is.GreaterThan(0));
+        web.Eventually(() => int.Parse(dashboard.Eaten().Replace(",", "", StringComparison.Ordinal), CultureInfo.InvariantCulture), Is.GreaterThan(0));
 
     [Then(@"^the Dashboard no longer says nothing is logged$")]
     public void ThenTheDashboardNoLongerSaysNothingIsLogged() => Assert.That(web.Exists("dashboard-empty"), Is.False);
@@ -74,6 +76,8 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
     [Given(@"^I go back to the Dashboard$")]
     public void WhenIGoBackToTheDashboard() => journeys.GoToDashboard();
 
+    private bool backDated;
+
     private const string Meals = "(Breakfast|Lunch|Dinner|Snacks)";
 
     /// <summary>The file <c>E2EClockSeam</c> reads; <c>ScanSeamValuesTests</c> checks it matches.</summary>
@@ -84,15 +88,76 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
     /// then goes to tomorrow and back to today so the Dashboard reads the clock again.
     /// </summary>
     [Given(@"^the app clock reads (\d\d:\d\d)$")]
-    public void GivenTheAppClockReads(string time)
+    public void GivenTheAppClockReads(string time) => PinClock(time);
+
+    /// <summary>
+    /// Pins the Debug app's clock to a time of day some whole days before the device's date, for a scenario that saves something dated in the past.
+    /// The Release app has no clock seam, so there it does nothing and everything saved is dated today.
+    /// </summary>
+    [Given(@"^the app clock reads (\d+) days? ago at (\d\d:\d\d)$")]
+    public void GivenTheAppClockReadsDaysAgo(int days, string time)
+    {
+        if (AppiumSetup.App.IsDebug)
+        {
+            backDated = true;
+            PinClock($"-{days}d {time}", wholeDays: true);
+            AssertTodayIs(DateOnly.FromDateTime(clock.LocalNow()).AddDays(-days));
+        }
+    }
+
+    /// <summary>A failed scenario must not leave a back-dated clock for the next one.</summary>
+    [AfterScenario]
+    public void RemoveBackDatedClock()
+    {
+        if (backDated)
+        {
+            RemoveClockFile();
+        }
+    }
+
+    /// <summary>Removes the pinned clock, so the app reads the device's again; does nothing on the Release app.</summary>
+    [Given(@"^the app clock is the device's$")]
+    public void GivenTheAppClockIsTheDevices()
+    {
+        if (!AppiumSetup.App.IsDebug)
+        {
+            return;
+        }
+
+        RemoveClockFile();
+        backDated = false;
+        MakeTheDashboardReadTheClock(wholeDays: true);
+        AssertTodayIs(DateOnly.FromDateTime(clock.LocalNow()));
+    }
+
+    private static void RemoveClockFile() => AppiumSetup.Adb.Shell("rm", "-f", $"{AppiumSetup.App.ExternalFilesFolder}/{ClockSeamFileName}");
+
+    private void PinClock(string pin, bool wholeDays = false)
+    {
+        AppiumSetup.Adb.WriteText($"{AppiumSetup.App.ExternalFilesFolder}/{ClockSeamFileName}", pin);
+        MakeTheDashboardReadTheClock(wholeDays);
+    }
+
+    /// <summary>
+    /// Makes the Dashboard read the clock again. Within the same day it goes to tomorrow and back; after a whole-day shift tomorrow would be
+    /// the on-screen day's next one, not the shifted clock's, so it taps the date strip label, which loads the clock's today.
+    /// </summary>
+    private void MakeTheDashboardReadTheClock(bool wholeDays = false)
     {
         journeys.WaitFor(Journeys.Screen.Dashboard);
-        AppiumSetup.Adb.WriteText($"{AppiumSetup.App.ExternalFilesFolder}/{ClockSeamFileName}", time);
-        dashboard.NextDay();
-        web.Eventually(dashboard.DateLabel, Does.StartWith("Tomorrow"));
+        if (!wholeDays)
+        {
+            dashboard.NextDay();
+            web.Eventually(dashboard.DateLabel, Does.StartWith("Tomorrow"));
+        }
+
         dashboard.ToToday();
         web.Eventually(dashboard.DateLabel, Does.StartWith("Today"));
     }
+
+    /// <summary>Proves the seam moved the clock: the date strip's Today carries <paramref name="date"/>.</summary>
+    private void AssertTodayIs(DateOnly date) =>
+        web.Eventually(dashboard.DateLabel, Is.EqualTo($"Today, {date.ToString("d MMM", CultureInfo.InvariantCulture)}"));
 
     [When(@"^I leave Today and come back$")]
     public void WhenILeaveTodayAndComeBack()
