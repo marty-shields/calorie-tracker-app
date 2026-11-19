@@ -14,7 +14,7 @@ Feature: Upgrade seed
     Given I have opened Settings
     When I choose the Dark theme
     Then the Dark theme is chosen
-    And I go back to the Dashboard
+    When I go back to the Dashboard
     Given the app clock reads 2 days ago at 12:00
     And I have opened Settings
     When I set the daily target to 1900
