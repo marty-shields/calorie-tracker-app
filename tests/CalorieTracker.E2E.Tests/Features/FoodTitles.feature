@@ -8,7 +8,7 @@ Feature: Food titles
     When I open the first result
     Then Serving is headed with the noted title
 
-  Scenario: The dashboard row of a logged food reads as its search row did
+  Scenario: The Today row of a logged food reads as its search row did
     Given I have opened Foods
     And I have searched for "oat"
     And I have noted the title of the first result
