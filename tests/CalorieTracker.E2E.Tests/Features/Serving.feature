@@ -26,7 +26,7 @@ Feature: Serving
     Then This adds shows the energy for the amount
     And Add is enabled
 
-  Scenario: Add saves the entry and returns to the Dashboard
+  Scenario: Add saves the entry and returns to Today
     Given I have opened Serving for the first food found by "oat" with Lunch preset
     And I enter an amount of "30"
     When I tap Add

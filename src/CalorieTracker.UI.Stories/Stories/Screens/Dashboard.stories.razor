@@ -29,6 +29,12 @@
         </Template>
     </Story>
 
+    <Story Name="Now meal folded">
+        <Template>
+            <DashboardView Now="DashboardSamples.Midday" FoldedMeal="Meal.Lunch" Date="DashboardSamples.Today" Today="DashboardSamples.Today" Summary="DashboardSamples.Loaded" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnScan="(MealAddRequest _) => { }" />
+        </Template>
+    </Story>
+
     <Story Name="Past day">
         <Template>
             <DashboardView Now="DashboardSamples.Evening" Date="DashboardSamples.Today.AddDays(-1)" Today="DashboardSamples.Today" Summary="DashboardSamples.FullDay" OnAdd="(MealAddRequest _) => { }" OnEdit="(EntryEditRequest _) => { }" OnSettings="() => { }" OnNavigate="(NavDestination _) => { }" OnScan="(MealAddRequest _) => { }" />

@@ -1,5 +1,12 @@
 @page "/settings"
+@using CalorieTracker.UI.Navigation
 @using CalorieTracker.UI.Screens
 @inject NavigationManager Navigation
 
-<SettingsPage OnBack="@(() => Navigation.GoTo(string.Empty))" />
+@* Query: back, the in-app route that opened Settings (Today or Trends with its period and day); Back, arrow and Android, returns there, else to Today. *@
+<SettingsPage OnBack="@(() => Navigation.GoTo(SettingsRoute.BackTarget(BackTo)))" />
+
+@code {
+    [SupplyParameterFromQuery(Name = "back")]
+    public string? BackTo { get; set; }
+}

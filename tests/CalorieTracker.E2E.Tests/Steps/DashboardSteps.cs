@@ -114,6 +114,9 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
         Assert.That(dashboard.Expanded(meal), Is.Null.Or.EqualTo("true"), $"{meal} is open");
     }
 
+    [Then(@"^" + Meals + " is still marked Now$")]
+    public void ThenMealIsStillMarkedNow(string meal) => web.Eventually(() => dashboard.HasNowChip(meal), Is.True, $"{meal} is marked Now");
+
     [Then(@"^" + Meals + " is open$")]
     public void ThenMealIsOpen(string meal)
     {

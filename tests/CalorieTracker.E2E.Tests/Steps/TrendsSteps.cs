@@ -53,6 +53,16 @@ public sealed class TrendsSteps(TrendsScreen trends, NavigationBar navigation, A
         web.Eventually(trends.Label, Is.EqualTo(LabelOf("week")));
     }
 
+    [Then(@"^I am on Trends$")]
+    public void ThenIAmOnTrends() => web.WaitUntil(trends.IsShowing, "Trends didn't show");
+
+    [When(@"^I tap Settings on Trends$")]
+    public void WhenITapSettingsOnTrends()
+    {
+        trends.OpenSettings();
+        journeys.WaitFor(Journeys.Screen.Settings);
+    }
+
     [Then(@"^Trends is the current item in the bar$")]
     public void ThenTrendsIsTheCurrentItem() => web.Eventually(trends.IsCurrentInBar, Is.True);
 

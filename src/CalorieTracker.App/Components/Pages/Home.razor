@@ -11,7 +11,7 @@
                OnScan="@(request => Navigation.GoTo(ScanRoute.AddUrl(request.Meal, request.Date)))"
                OnEdit="@(request => Navigation.GoTo(ServingRoute.EditUrl(request.Entry.EntryId, request.Entry.FoodId, request.Meal, request.Date, request.Entry.Amount, request.Entry.Servings, request.Entry.ServingId)))"
                OnNavigate="@(destination => Navigation.GoTo(destination))"
-               OnSettings="@(() => Navigation.GoTo("settings"))" />
+               OnSettings="@(day => Navigation.GoTo(SettingsRoute.Url(DashboardRoute.Url(day))))" />
 
 @code {
     [SupplyParameterFromQuery(Name = "date")]

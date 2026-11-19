@@ -58,6 +58,17 @@ Feature: Dashboard
     And Snacks is open
 
   @today
+  Scenario: The Now meal folds when its header is tapped and is open again after leaving Today
+    Given I am on the Dashboard
+    And the app clock reads 19:30
+    And I have added 100 g of the first food found by "oat" to Dinner
+    When I tap the Dinner header
+    Then Dinner is folded to one line with 1 item and its kcal
+    And Dinner is still marked Now
+    When I leave Today and come back
+    Then Dinner is open and marked Now
+
+  @today
   Scenario: After adding to a folded meal it is open with the new entry
     Given I am on the Dashboard
     And the app clock reads 19:30

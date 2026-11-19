@@ -11,7 +11,7 @@
             OnAdd="@(request => Navigation.GoTo(FoodSearchRoute.AddUrl(request.Meal, request.Date)))"
             OnScan="@(request => Navigation.GoTo(ScanRoute.AddUrl(request.Meal, request.Date)))"
             OnNavigate="@(destination => Navigation.GoTo(destination))"
-            OnSettings="@(() => Navigation.GoTo("settings"))" />
+            OnSettings="@(() => Navigation.GoTo(SettingsRoute.Url("/" + Navigation.ToBaseRelativePath(Navigation.Uri))))" />
 
 @code {
     [SupplyParameterFromQuery(Name = "period")]

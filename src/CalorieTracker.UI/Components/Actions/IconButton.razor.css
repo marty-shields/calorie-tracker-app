@@ -26,6 +26,11 @@
     color: var(--color-on-chip);
 }
 
+.soft {
+    background-color: var(--color-chip-soft);
+    color: var(--color-on-chip-soft);
+}
+
 .icon-btn:disabled {
     opacity: var(--opacity-disabled);
     cursor: default;

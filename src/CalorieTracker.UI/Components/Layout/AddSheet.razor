@@ -14,6 +14,7 @@
     <BackHandler OnBack="DismissAsync" />
     <div class="scrim" data-testid="add-sheet-scrim" aria-hidden="true" @onclick="DismissAsync"></div>
     <div @ref="sheet" class="sheet" role="dialog" aria-modal="true" tabindex="-1" aria-labelledby="add-sheet-title" data-testid="add-sheet" @onkeydown="OnKeyDown">
+        <div class="handle" aria-hidden="true" data-testid="add-sheet-handle"></div>
         <h2 id="add-sheet-title" class="title">Add food</h2>
         <FilterChips TValue="Meal" Label="Meal" Options="Meals" Value="meal" ValueChanged="PickMeal" TestId="add-sheet-meals" />
         <div class="tiles">
@@ -38,7 +39,7 @@
                                 <span class="usual-name" data-testid="@($"add-sheet-usual-{row.FoodId}-title")" data-wrap-ok>@row.Title</span>
                                 <span class="usual-detail" data-testid="@($"add-sheet-usual-{row.FoodId}-detail")" data-wrap-ok>@row.Detail</span>
                             </div>
-                            <IconButton Style="IconButtonStyle.Filled" Icon="IconName.Plus" AriaLabel="@($"Add {row.Title} to {meal}")" TestId="@($"add-sheet-usual-{row.FoodId}-add")" OnClick="() => AddUsualAsync(row)" />
+                            <IconButton Style="IconButtonStyle.Soft" Icon="IconName.Plus" AriaLabel="@($"Add {row.Title} to {meal}")" TestId="@($"add-sheet-usual-{row.FoodId}-add")" OnClick="() => AddUsualAsync(row)" />
                         </li>
                     }
                 </ul>

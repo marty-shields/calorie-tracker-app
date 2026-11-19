@@ -106,6 +106,7 @@ public static class ScreenStates
         new("Screens/Dashboard", "Today midday", c => Dashboard(c, DashboardSamples.Loaded)),
         new("Screens/Dashboard", "Today evening", c => Dashboard(c, DashboardSamples.FullDay, now: DashboardSamples.Evening)),
         new("Screens/Dashboard", "Folded meal opened", c => Dashboard(c, DashboardSamples.FullDay, now: DashboardSamples.Evening, openMeal: Meal.Lunch)),
+        new("Screens/Dashboard", "Now meal folded", c => Dashboard(c, DashboardSamples.Loaded, foldedMeal: Meal.Lunch)),
         new("Screens/Dashboard", "Past day", c => Dashboard(c, DashboardSamples.FullDay, DashboardSamples.Today.AddDays(-1), now: DashboardSamples.Evening)),
         new("Screens/Dashboard", "Empty day", c => Dashboard(c, DashboardSamples.FirstRun, now: DashboardSamples.Evening)),
         new("Screens/Dashboard", "Over target", c => Dashboard(c, DashboardSamples.OverTarget)),
@@ -292,12 +293,13 @@ public static class ScreenStates
             .Add(x => x.OnBack, () => { }))
             .FindAll("*");
 
-    private static IReadOnlyList<IElement> Dashboard(BunitContext context, DaySummary? summary, DateOnly? date = null, bool loading = false, bool loadFailed = false, string? snackbar = null, TimeOnly? now = null, Meal? openMeal = null) =>
+    private static IReadOnlyList<IElement> Dashboard(BunitContext context, DaySummary? summary, DateOnly? date = null, bool loading = false, bool loadFailed = false, string? snackbar = null, TimeOnly? now = null, Meal? openMeal = null, Meal? foldedMeal = null) =>
         Posted(context, snackbar, "Undo").Render<DashboardView>(p => p
             .Add(x => x.Date, date ?? DashboardSamples.Today)
             .Add(x => x.Today, DashboardSamples.Today)
             .Add(x => x.Now, now ?? DashboardSamples.Midday)
             .Add(x => x.OpenMeal, openMeal)
+            .Add(x => x.FoldedMeal, foldedMeal)
             .Add(x => x.Summary, summary)
             .Add(x => x.Loading, loading)
             .Add(x => x.LoadFailed, loadFailed)

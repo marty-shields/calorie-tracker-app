@@ -28,14 +28,14 @@ Feature: Food search
     When I search for "zqxjvkw"
     Then Foods shows "No foods match"
 
-  Scenario: Android back from the results returns to the Dashboard
+  Scenario: Android back from the results returns to Today
     Given I have opened Foods
     When I press Android back
     Then I am on the Dashboard
 
-  Scenario: Going back from food search returns to Today
+  Scenario: The back arrow on food search returns to Today
     Given I have opened Foods
-    When I go back to the Dashboard
+    When I go back with the back arrow
     Then I am on the Dashboard
 
   Scenario: An old link with a type still opens search with the query typed

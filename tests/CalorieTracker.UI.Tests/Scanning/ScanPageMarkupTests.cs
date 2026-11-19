@@ -56,6 +56,22 @@ public class ScanPageMarkupTests
     }
 
     [Test]
+    public void ScanPage_DrawsTheCaptionOnAWhitePillWithDarkText_FromThePageResourcesNotLiterals()
+    {
+        var xaml = ScanXaml();
+        var pill = Regex.Match(xaml, @"<Border\s[^>]*AutomationId=""scan-native-caption-pill""[^>]*>").Value;
+        Assert.Multiple(() =>
+        {
+            Assert.That(pill, Does.Contain("BackgroundColor=\"{StaticResource OverlayText}\"").And.Contain("StrokeShape=\"RoundRectangle"));
+            Assert.That(xaml, Does.Match(@"<Label x:Name=""Caption""[^>]*TextColor=""\{StaticResource TextLight\}"""));
+            Assert.That(xaml, Does.Not.Match(@"<Label x:Name=""Caption""[^>]*BackgroundColor"), "the label has no scrim of its own");
+            Assert.That(AppColour("OverlayText"), Is.EqualTo("#ffffff"));
+            Assert.That(AppColour("TextLight"), Is.EqualTo("#373e40"), "the light theme's --color-text");
+        });
+        Assert.That(TokensCss(), Does.Contain("--color-text: light-dark(#373e40,"));
+    }
+
+    [Test]
     public void ScanPage_HidesTheDecorativeFrameFromScreenReaders() =>
         Assert.That(ScanXaml(), Does.Match(@"<Border AutomationId=""scan-native-frame""\s+AutomationProperties\.IsInAccessibleTree=""False"""));
 
