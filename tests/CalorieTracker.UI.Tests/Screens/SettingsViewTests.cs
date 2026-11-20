@@ -1,5 +1,5 @@
-using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Screens;
+using Shields.UI.Theme;
 
 namespace CalorieTracker.UI.Tests.Screens;
 

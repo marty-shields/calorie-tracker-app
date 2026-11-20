@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using CalorieTracker.UI.Components.Inputs;
+using CalorieTracker.UI.Tests.DesignSystem;
 
 namespace CalorieTracker.UI.Tests.Components.Inputs;
 
@@ -36,7 +37,7 @@ public class DateStripTests : ComponentTestBase
     public void Targets_AreAtLeast48px()
     {
         var iconButton = CssWithoutComments("IconButton.razor.css");
-        var tokens = CssWithoutComments("tokens.css");
+        var tokens = DesignTokens.KitTokensCss;
         var label = RepoFiles.Rule(CssWithoutComments("DateStrip.razor.css"), "label");
         var cut = Render(Today);
 
