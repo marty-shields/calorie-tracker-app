@@ -1,5 +1,5 @@
 ---
-$attribute: CustomPage("Components/Charts/Overview")
+$attribute: CustomPage(StoryTitles.Prefix + "Components/Charts/Overview")
 ---
 
 # Charts
@@ -30,4 +30,4 @@ Rows of a label, a value and a horizontal `--color-accent` bar on a `--color-bor
 - Text alternative: a list named by `Label`; the bars are decoration, the values are text.
 - `data-testid`: `TestId`; `{TestId}-row-{n}`, `-label-{n}`, `-value-{n}`, `-bar-{n}`, `-empty`.
 
-Stories: [CalorieRing](./?path=/docs/components-charts-caloriering--docs) · [EnergyShareBar](./?path=/docs/components-charts-energysharebar--docs) · [TrendBarChart](./?path=/docs/components-charts-trendbarchart--docs) · [MonthCalendar](./?path=/docs/components-charts-monthcalendar--docs) · [BarList](./?path=/docs/components-charts-barlist--docs)
+Stories: [CalorieRing](./?path=/docs/calorie-tracker-components-charts-caloriering--docs) · [EnergyShareBar](./?path=/docs/calorie-tracker-components-charts-energysharebar--docs) · [TrendBarChart](./?path=/docs/calorie-tracker-components-charts-trendbarchart--docs) · [MonthCalendar](./?path=/docs/calorie-tracker-components-charts-monthcalendar--docs) · [BarList](./?path=/docs/calorie-tracker-components-charts-barlist--docs)

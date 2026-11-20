@@ -1,5 +1,5 @@
 ---
-$attribute: CustomPage("Foundations/App Icon/Overview")
+$attribute: CustomPage(StoryTitles.Prefix + "Foundations/App Icon/Overview")
 ---
 
 # App icon and splash
@@ -31,4 +31,4 @@ In `src/CalorieTracker.App/`; the stories project embeds the SVGs for these stor
 ## Changing the art
 The SVGs, and the README's `docs/images/readme/icon.svg`, are generated. Edit the flame outline, the cutout or the shadow in `.github/scripts/app-icon.mjs` and colours in `palette.json`, then run `node .github/scripts/app-icon.mjs`. It overwrites every file, and rerunning it changes nothing.
 
-Story: [Icon and splash](./?path=/story/foundations-app-icon--icon-and-splash)
+Story: [Icon and splash](./?path=/story/calorie-tracker-foundations-app-icon--icon-and-splash)

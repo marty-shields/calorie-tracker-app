@@ -3,6 +3,7 @@
     <Project Path="src/CalorieTracker.App/CalorieTracker.App.csproj" />
     <Project Path="src/CalorieTracker.Core/CalorieTracker.Core.csproj" />
     <Project Path="src/CalorieTracker.UI.Stories/CalorieTracker.UI.Stories.csproj" />
+    <Project Path="src/CalorieTracker.UI.Stories.Host/CalorieTracker.UI.Stories.Host.csproj" />
     <Project Path="src/CalorieTracker.UI/CalorieTracker.UI.csproj" />
   </Folder>
   <Folder Name="/tests/">

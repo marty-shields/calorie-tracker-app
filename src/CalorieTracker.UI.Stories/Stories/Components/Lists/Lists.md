@@ -1,5 +1,5 @@
 ---
-$attribute: CustomPage("Components/Lists/Overview")
+$attribute: CustomPage(StoryTitles.Prefix + "Components/Lists/Overview")
 ---
 
 # Lists
@@ -15,4 +15,4 @@ The heading of a meal group: the meal `Name` in small bold capitals, its total `
 
 Stories: With entries, Empty, Open now, Before its window, Folded, Folded and opened and Large total.
 
-Stories: [MealHeader](./?path=/docs/components-lists-mealheader--docs)
+Stories: [MealHeader](./?path=/docs/calorie-tracker-components-lists-mealheader--docs)

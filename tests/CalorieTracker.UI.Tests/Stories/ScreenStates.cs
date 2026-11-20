@@ -8,6 +8,7 @@ using CalorieTracker.UI.Models.Search;
 using CalorieTracker.UI.Models.Serving;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Screens;
+using CalorieTracker.UI.Stories;
 using CalorieTracker.UI.Stories.Stories.Screens;
 using Microsoft.Extensions.DependencyInjection;
 using Shields.UI.Components.Feedback;
@@ -16,12 +17,12 @@ using Shields.UI.Theme;
 namespace CalorieTracker.UI.Tests.Stories;
 
 /// <summary>A screen state: its stories section and story name, and how to render it.</summary>
-/// <param name="Section">Stories title, e.g. "Screens/Settings".</param>
+/// <param name="Section">Stories title under the app's section, e.g. "Screens/Settings".</param>
 /// <param name="Name">Story name.</param>
 /// <param name="Render">Renders the state with every callback set and returns its elements.</param>
 public sealed record ScreenState(string Section, string Name, Func<BunitContext, IReadOnlyList<IElement>> Render)
 {
-    public override string ToString() => $"{Section}/{Name}";
+    public override string ToString() => $"{StoryTitles.Prefix}{Section}/{Name}";
 }
 
 /// <summary>Every screen state that has a story, in story order. Renders mirror the stories, with every callback set.</summary>

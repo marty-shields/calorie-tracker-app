@@ -21,8 +21,12 @@ const CARD_WIDTH = 328;
 const FONT_SCALE = Number(process.env.STORY_FONT_SCALE ?? 1);
 const CONCURRENCY = 8;
 const RING_SCALES = [1, 1.15, 1.3];
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../src/CalorieTracker.UI.Stories/Stories');
-const scopes = prefixes.length ? prefixes : ['Components/'];
+const storiesProject = resolve(dirname(fileURLToPath(import.meta.url)), '../../src/CalorieTracker.UI.Stories');
+const root = join(storiesProject, 'Stories');
+// Story titles start with the app's section, the one constant in StoryTitles.cs.
+const appSection = /Prefix = "([^"]+)"/.exec(readFileSync(join(storiesProject, 'StoryTitles.cs'), 'utf8'))?.[1];
+if (!appSection) throw new Error('StoryTitles.cs has no Prefix constant');
+const scopes = prefixes.length ? prefixes : [`${appSection}Components/`];
 
 const slug = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
@@ -36,7 +40,8 @@ function storyFiles(dir) {
 function stories() {
   return storyFiles(root).flatMap((file) => {
     const source = readFileSync(file, 'utf8');
-    const title = /\[Stories\("([^"]+)"\)\]/.exec(source)?.[1];
+    const suffix = /\[Stories\(StoryTitles\.Prefix \+ "([^"]+)"\)\]/.exec(source)?.[1];
+    const title = suffix && appSection + suffix;
     if (!title || !scopes.some((scope) => title.startsWith(scope))) return [];
     return [...source.matchAll(/<Story\s+Name="([^"]+)"/g)].map((m) => ({ title, name: m[1], id: `${slug(title)}--${slug(m[1])}` }));
   });

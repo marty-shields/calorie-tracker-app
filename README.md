@@ -78,7 +78,8 @@ Cutting the first release needs the keystore and the `CERT_SHA256` pin: see [Rel
 src/
   CalorieTracker.App/          MAUI Blazor Hybrid host (Android): startup, DI, routing
   CalorieTracker.UI/           Razor class library: screens, components, design tokens
-  CalorieTracker.UI.Stories/   BlazingStory stories site for the UI
+  CalorieTracker.UI.Stories/   Razor class library: the BlazingStory stories for the UI
+  CalorieTracker.UI.Stories.Host/  BlazingStory site that shows them
   CalorieTracker.Core/         Data, schema upgrades, food lookup contracts (Foods), services, logging
 tests/
   CalorieTracker.Core.Tests/   NUnit tests for Core
@@ -99,7 +100,7 @@ dotnet test tests/CalorieTracker.Core.Tests
 dotnet test tests/CalorieTracker.UI.Tests
 
 # Browse the stories site at http://localhost:5056 (main is at https://marty-shields.github.io/calorie-tracker-app/)
-dotnet run --project src/CalorieTracker.UI.Stories
+dotnet run --project src/CalorieTracker.UI.Stories.Host
 
 # Run on a connected Android phone
 dotnet build src/CalorieTracker.App -t:Run -f net11.0-android

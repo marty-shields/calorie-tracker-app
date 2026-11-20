@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using CalorieTracker.UI.Screens;
+using CalorieTracker.UI.Stories;
 using Microsoft.AspNetCore.Components;
 
 namespace CalorieTracker.UI.Tests.Stories;
@@ -24,7 +25,7 @@ public partial class StoryCoverageTests
     {
         var titles = StoriesFiles("Components").Where(f => f.Component == name).Select(f => f.Title);
 
-        Assert.That(titles, Is.EqualTo(new[] { $"Components/{group}/{name}" }));
+        Assert.That(titles, Is.EqualTo(new[] { $"{StoryTitles.Prefix}Components/{group}/{name}" }));
     }
 
     [Test]
@@ -58,11 +59,21 @@ public partial class StoryCoverageTests
     }
 
     [Test]
-    public void Stories_AreInFoundationsComponentsOrScreens()
+    public void Stories_AreInFoundationsComponentsOrScreensOfTheApp()
     {
-        var titles = StoriesFiles("").Select(f => f.Title.Split('/')[0]).Distinct();
+        var titles = StoriesFiles("").Select(f => f.Title.Split('/')).Select(t => $"{t[0]}/{t[1]}").Distinct();
 
-        Assert.That(titles, Is.SubsetOf(new[] { "Foundations", "Components", "Screens" }));
+        Assert.That(titles, Is.SubsetOf(new[] { "Foundations", "Components", "Screens" }.Select(section => StoryTitles.Prefix + section)));
+    }
+
+    [Test]
+    public void Stories_TakeTheirTitleFromTheOnePrefixConstant()
+    {
+        var literal = RepoFiles.Find("*.stories.razor", "src", "CalorieTracker.UI.Stories", "Stories")
+            .Where(f => !StoriesTitle().IsMatch(File.ReadAllText(f)))
+            .Select(f => Path.GetRelativePath(RepoFiles.Root, f));
+
+        Assert.That(literal, Is.Empty);
     }
 
     /// <summary>
@@ -73,11 +84,11 @@ public partial class StoryCoverageTests
         RepoFiles.Find("*.stories.razor", "src", "CalorieTracker.UI.Stories", "Stories", folder)
             .Select(File.ReadAllText)
             .Select(source => (
-                StoriesTitle().Match(source).Groups[1].Value,
+                StoryTitles.Prefix + StoriesTitle().Match(source).Groups[1].Value,
                 TComponent().Match(source).Groups[1].Value,
                 (IReadOnlyList<string>)Shown().Matches(source).Concat(ShownOver().Matches(source)).Select(m => m.Groups[1].Value).ToList()));
 
-    [GeneratedRegex("""\[Stories\("([^"]+)"\)\]""")]
+    [GeneratedRegex("""\[Stories\(StoryTitles\.Prefix \+ "([^"]+)"\)\]""")]
     private static partial Regex StoriesTitle();
 
     [GeneratedRegex(@"<Stories TComponent=""([A-Za-z]+)(?:<[^""]*>)?""")]

@@ -12,7 +12,7 @@ public class HostPageTests
     ];
 
     [TestCase("CalorieTracker.App")]
-    [TestCase("CalorieTracker.UI.Stories")]
+    [TestCase("CalorieTracker.UI.Stories.Host")]
     public void HostPage_LoadsTheKitBeforeTheAppTokens(string project)
     {
         var page = RepoFiles.Read("src", project, "wwwroot", project == "CalorieTracker.App" ? "index.html" : "iframe.html");
@@ -25,6 +25,25 @@ public class HostPageTests
             Assert.That(positions, Is.Ordered);
             Assert.That(page, Does.Contain("""<script src="_content/Shields.UI/theme.js" data-storage-key="calorietracker.theme"></script>"""), "the key the release before the kit stored the theme under");
             Assert.That(page, Does.Not.Contain("CalorieTracker.UI/theme.js").And.Not.Contain("CalorieTracker.UI/css/base.css"));
+        });
+    }
+
+    [TestCase("iframe.html")]
+    [TestCase("index.html")]
+    public void StoriesHost_LoadsTheStoriesStylesAndTheirTokensAfterTheKitTokens(string file)
+    {
+        var page = RepoFiles.Read("src", "CalorieTracker.UI.Stories.Host", "wwwroot", file);
+
+        var blazorUi = page.IndexOf("_content/Shields.UI.Stories/css/blazor-ui.css", StringComparison.Ordinal);
+        var storiesTokens = page.IndexOf("_content/Shields.UI.Stories/css/tokens.css", StringComparison.Ordinal);
+        Assert.Multiple(() =>
+        {
+            Assert.That(blazorUi, Is.GreaterThanOrEqualTo(0), "blazor-ui.css is not loaded");
+            Assert.That(storiesTokens, Is.GreaterThanOrEqualTo(0), "the stories tokens.css is not loaded");
+            if (file == "iframe.html")
+            {
+                Assert.That(storiesTokens, Is.GreaterThan(page.IndexOf("_content/Shields.UI/css/tokens.css", StringComparison.Ordinal)), "the stories tokens come after the kit's");
+            }
         });
     }
 

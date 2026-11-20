@@ -1,5 +1,5 @@
 ---
-$attribute: CustomPage("Foundations/Introduction")
+$attribute: CustomPage(StoryTitles.Prefix + "Foundations/Introduction")
 ---
 
 # Calorie Tracker design system
@@ -10,13 +10,14 @@ Tokens, components, screens and their behaviour for the Calorie Tracker app.
 | Item | Location |
 |---|---|
 | Tokens | the Shields.UI kit's `tokens.css`, then this app's own `src/CalorieTracker.UI/wwwroot/css/tokens.css` (CSS custom properties) |
-| Components | `src/CalorieTracker.UI/Components/` (Razor components with scoped `.razor.css`) |
+| General components (buttons, inputs, list rows, cards, the bottom bar, the phone frame) | the Shields.UI kit; its stories are on the kit's stories site |
+| This app's components | `src/CalorieTracker.UI/Components/` (Razor components with scoped `.razor.css`) |
 | Screens | `src/CalorieTracker.UI/Screens/` (`*View` components, and `*Page` components that call services) |
-| Stories and these pages | `src/CalorieTracker.UI.Stories/Stories/`: `Foundations/`, `Components/<Group>/`, `Screens/` |
+| Stories and these pages | `src/CalorieTracker.UI.Stories/Stories/` (a library): `Foundations/`, `Components/<Group>/`, `Screens/`, all under the `Calorie Tracker` section; `src/CalorieTracker.UI.Stories.Host` is the site that shows them |
 
 ## Sections
-- **Foundations**: this page, [Tokens](./?path=/story/foundations-tokens--all-tokens), [Navigation](./?path=/custom/foundations-navigation) and the [App Icon](./?path=/custom/foundations-app-icon-overview).
-- **Components**: one folder per group, with an Overview page and one stories file per component. Each story is one visual state.
+- **Foundations**: this page, [Tokens](./?path=/story/calorie-tracker-foundations-tokens--all-tokens), [Navigation](./?path=/custom/calorie-tracker-foundations-navigation) and the [App Icon](./?path=/custom/calorie-tracker-foundations-app-icon-overview).
+- **Components**: this app's own components, one folder per group, with an Overview page and one stories file per component. Each story is one visual state.
 - **Screens**: one folder per screen, with an Overview page (parts, behaviour, `data-testid`s) and one story per state, in the phone frame.
 
 ## Rules
@@ -29,7 +30,7 @@ Tokens, components, screens and their behaviour for the Calorie Tracker app.
 - Interactive elements have a `data-testid`.
 
 ## Tokens
-Defined in the two `tokens.css` files; the [Tokens](./?path=/story/foundations-tokens--all-tokens) story shows each one in light and dark.
+Defined in the two `tokens.css` files; the [Tokens](./?path=/story/calorie-tracker-foundations-tokens--all-tokens) story shows each one in light and dark.
 
 ### Palette
 Five colours. Light uses them directly; dark keeps aqua for primary buttons and uses neutral, low-tint colours for everything else so text, accents and surfaces read apart:
