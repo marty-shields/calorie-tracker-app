@@ -3,7 +3,7 @@ namespace CalorieTracker.UI.Tests.DesignSystem;
 public class AppTokensTests
 {
     // Tokens the app still sets to its own value, each removed by the issue named in tokens.css.
-    private static readonly string[] TemporaryOverrides = ["--color-chip-soft", "--color-on-chip-soft", "--add-button-lift"];
+    private static readonly string[] TemporaryOverrides = ["--add-button-lift"];
 
     [Test]
     public void AppTokens_DeclareNoTokenTheKitDeclares_ExceptTheTemporaryOverrides()

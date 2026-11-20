@@ -4,7 +4,6 @@
 @using CalorieTracker.Core.Foods
 @using CalorieTracker.Core.History
 @using CalorieTracker.Core.Summary
-@using CalorieTracker.UI.Components.Inputs
 @using CalorieTracker.UI.Components.Lists
 @using CalorieTracker.UI.Models.Search
 <AppScreen Title="@($"Add to {Meal}")" Subtitle="@(Date is { } day ? DayLabel.For(day, Today) : null)" OnBack="OnBack" Toolbar="@(!Failed ? Tools : null)" BottomBar="@(Pinned ? PinnedBar : null)">
