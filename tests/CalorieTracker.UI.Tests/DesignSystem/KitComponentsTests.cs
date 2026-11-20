@@ -9,7 +9,7 @@ public class KitComponentsTests
         "SegmentedControl", "FilterChips", "NumberField", "TextField", "SelectField", "DateStrip", "DayLabel", "RadioOption",
         "ListRow", "EmptyState", "SummaryCard", "StatTile", "ChartLegend", "LegendItem", "LegendKind",
         "StartupGate", "StartupView", "AppErrorBoundary", "ErrorView", "BackHandler", "BackButton", "IBackButton",
-        "AppLifecycle", "IAppLifecycle", "IAppStart",
+        "AppLifecycle", "IAppLifecycle", "IAppStart", "AppScreen", "BottomNav", "BottomNavItem",
     ];
 
     [TestCaseSource(nameof(KitComponents))]

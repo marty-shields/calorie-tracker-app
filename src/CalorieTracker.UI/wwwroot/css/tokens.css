@@ -17,8 +17,6 @@
     --ring-width-compact: 0.625rem;
     --share-bar-height: 0.75rem;
     --chart-dash: 6px 4px;
-    /* Temporary: the app's lift, which differs from the kit's. Removed when the Add button moves to the kit (#156). */
-    --add-button-lift: 1.25rem;
     --sheet-enter-duration: 200ms;
     --sheet-max-width: 32rem;
     --sheet-handle-width: 3rem;

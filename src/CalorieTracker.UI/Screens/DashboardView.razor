@@ -3,7 +3,7 @@
 @using CalorieTracker.Core.Diary
 @using CalorieTracker.Core.Summary
 @using CalorieTracker.UI.Components.Charts
-<AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="OnNavigate" OnAdd="OpenSheet" Status="Notice">
+<NavScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="OnNavigate" OnAdd="OpenSheet" Status="Notice">
     <Actions>
         <IconButton Icon="IconName.Settings" AriaLabel="Settings" TestId="settings" OnClick="OnSettings" />
     </Actions>
@@ -23,7 +23,7 @@
             else
             {
                 var logged = summary.Meals.Any(m => m.Entries.Count > 0);
-                <Shields.UI.Components.Layout.Card TestId="dashboard-card">
+                <Card TestId="dashboard-card">
                     <div class="summary">
                         <div class="ring-row">
                             <CalorieRing Compact Eaten="summary.Totals.Kcal" Target="summary.TargetKcal" TestId="dashboard-ring" />
@@ -45,7 +45,7 @@
                             <EnergyShareBar Protein="summary.Totals.ProteinG" Carbs="summary.Totals.CarbsG" Fat="summary.Totals.FatG" TestId="dashboard-share" />
                         }
                     </div>
-                </Shields.UI.Components.Layout.Card>
+                </Card>
                 @if (!logged)
                 {
                     <EmptyState Message="@(Date == Today ? "Nothing logged today" : "Nothing logged this day")" Hint="Tap + on a meal to add your first food." TestId="dashboard-empty" />
@@ -89,7 +89,7 @@
         </div>
         <AddSheetHost Open="sheetOpen" Date="Date" OnClose="CloseSheet" Usual="UsualFoods" AddError="@UsualAddError" OnMealChanged="OnMealChanged" OnAddUsual="AddUsualAsync" OnSearch="OnAdd" OnScan="OnScan" />
     </ChildContent>
-</AppScreen>
+</NavScreen>
 
 @code {
     private RenderFragment Notice => @<Snackbar />;

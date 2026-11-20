@@ -11,7 +11,7 @@ How a week, a month or a year went, from the bar's **Trends** item. View: `Trend
 | Top bar | Title "Trends"; Settings gear on the right. No back arrow; Android back goes to Today, the start destination (`NavDestinations.Start`). |
 | Period control | `SegmentedControl` Week, Month, Year. Switching opens the span of that kind that holds today (or, when another span is showing, the day it starts on). |
 | Period stepper | The kit's `PeriodStepper`: previous and next arrows round the label (a `span`, not a heading, so the heading order is the screen title, then each card's title): "9 – 15 Nov" (a week, Monday to Sunday; "30 Dec 2026 – 5 Jan 2027" across years), "November 2026", "2026". The arrows move a week, month or year. Next is dimmed and does nothing on the current span, so it stops there; past spans have no limit. |
-| Bar | `BottomNav` with **Trends** current, to the right of the raised **Add**. Add opens the same `AddSheet` as on Today, through `AddSheetHost` (shared with Today), and always adds to today. |
+| Bar | The kit's `BottomNav` with **Trends** current, to the right of the raised **Add**. Add opens the same `AddSheet` as on Today, through `AddSheetHost` (shared with Today), and always adds to today. |
 
 ## Week
 | Part | Content |

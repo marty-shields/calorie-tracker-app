@@ -1,0 +1,33 @@
+<AppScreen Title="@Title" NavItems="NavDestinations.Tabs" Current="NavDestinations.TabOf(Destination)" OnNavigate="Navigate"
+           AddLabel="Add" AddIcon="IconName.Plus" AddHasPopup="dialog" AddButtonAttributes="OpenerAttributes" OnAdd="OnAdd"
+           Actions="Actions" Status="Status" ChildContent="ChildContent" />
+
+@code {
+    private static readonly IReadOnlyDictionary<string, object> OpenerAttributes = new Dictionary<string, object> { ["data-sheet-opener"] = true };
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+
+    /// <summary>The top-level screen showing; its item is the bar's current one, and Android back goes to <see cref="NavDestinations.Start"/> from any other.</summary>
+    [Parameter, EditorRequired]
+    public NavDestination Destination { get; set; }
+
+    /// <summary>Raised with the destination tapped, or with <see cref="NavDestinations.Start"/> on Android back from another top-level screen.</summary>
+    [Parameter]
+    public EventCallback<NavDestination> OnNavigate { get; set; }
+
+    /// <summary>Raised by the bar's Add button; the screen shows its own <see cref="AddSheet"/>.</summary>
+    [Parameter]
+    public EventCallback OnAdd { get; set; }
+
+    [Parameter]
+    public RenderFragment? Actions { get; set; }
+
+    [Parameter]
+    public RenderFragment? Status { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private Task Navigate(BottomNavItem tab) => OnNavigate.InvokeAsync(NavDestinations.DestinationOf(tab));
+}

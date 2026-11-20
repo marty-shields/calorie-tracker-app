@@ -50,11 +50,10 @@ public partial class EventIdTests
             [UiEvent.RestoreFailed] = 3802,
             [UiEvent.FavouriteReadFailed] = 3901,
             [UiEvent.FavouriteWriteFailed] = 3902,
-            [UiEvent.PullRefreshFailed] = 4001,
         }));
 
     /// <summary>Ids that were used once and must never be given to another event.</summary>
-    private static readonly int[] RetiredUiEvents = [2001, 2002, 2101, 2201, 2202, 2203, 3201, 3301, 3502, 3701];
+    private static readonly int[] RetiredUiEvents = [2001, 2002, 2101, 2201, 2202, 2203, 3201, 3301, 3502, 3701, 4001];
 
     [Test]
     public void UiEvent_NoValueUsesARetiredId() =>

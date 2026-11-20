@@ -93,6 +93,5 @@ internal enum UiEvent
     /// <summary><see cref="Screens.FavouriteStar"/>: starring or unstarring the food failed, so the star stays as it was.</summary>
     FavouriteWriteFailed = 3902,
 
-    /// <summary><see cref="Components.Layout.AppScreen"/>: setting up pull to refresh failed, so the screen can't be pulled.</summary>
-    PullRefreshFailed = 4001,
+    // 4001 is retired: AppScreen moved to the shared kit, which logs the failed pull-to-refresh setup as KitEvent.PullRefreshFailed.
 }
