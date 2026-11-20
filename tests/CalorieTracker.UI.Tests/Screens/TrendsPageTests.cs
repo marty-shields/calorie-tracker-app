@@ -114,7 +114,7 @@ public class TrendsPageTests : ComponentTestBase
         {
             Assert.That(Text(cut, "trends-label"), Is.EqualTo("7 – 13 Jul"));
             Assert.That(Exists(cut, "trends-empty"), Is.False);
-            Assert.That(Text(cut, "trends-average-note"), Is.EqualTo("Not enough days yet"));
+            Assert.That(Text(cut, "trends-average-note"), Is.EqualTo("Not enough data yet"));
         });
 
         await Tap(cut, "trends-next");
@@ -133,9 +133,9 @@ public class TrendsPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(Text(cut, "trends-label"), Is.EqualTo("14 – 20 Jul"));
-            Assert.That(Text(cut, "trends-average-figure"), Is.EqualTo("1,800"));
-            Assert.That(Text(cut, "trends-average-caption"), Is.EqualTo("kcal a day on average, 200 under target"));
-            Assert.That(Text(cut, "trends-on-target-figure"), Is.EqualTo("1 of 7"));
+            Assert.That(Text(cut, "trends-average-value"), Is.EqualTo("1,800"));
+            Assert.That(Text(cut, "trends-average-caption"), Is.EqualTo("kcal a day, 200 under target"));
+            Assert.That(Text(cut, "trends-on-target-value"), Is.EqualTo("1 of 7"));
             Assert.That(cut.Find("[data-testid=trends-chart-bar-2031-07-17]").ClassList, Does.Contain("over"));
         });
     }
@@ -369,9 +369,9 @@ public class TrendsPageTests : ComponentTestBase
         await Log(new DateOnly(2031, 7, 15), 2000);
         await Log(new DateOnly(2031, 7, 16), 2000);
 
-        cut.WaitForState(() => Exists(cut, "trends-average-figure") && Text(cut, "trends-average-figure") == "2,000", TimeSpan.FromSeconds(5));
+        cut.WaitForState(() => Exists(cut, "trends-average-value") && Text(cut, "trends-average-value") == "2,000", TimeSpan.FromSeconds(5));
 
-        Assert.That(Text(cut, "trends-average-figure"), Is.EqualTo("2,000"));
+        Assert.That(Text(cut, "trends-average-value"), Is.EqualTo("2,000"));
     }
 
     [Test]

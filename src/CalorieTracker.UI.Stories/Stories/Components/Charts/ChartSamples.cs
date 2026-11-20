@@ -44,14 +44,4 @@ internal static class ChartSamples
 
     public static IReadOnlyList<CalendarDay> AllOver(int year, int month, DateOnly through) =>
         Month(year, month, through).Select(d => d with { Value = d.Value is null ? null : 2800 }).ToList();
-
-    public static IReadOnlyList<LegendItem> FullLegend { get; } =
-    [
-        new(LegendKind.Under, "Under"),
-        new(LegendKind.OnTarget, "On target"),
-        new(LegendKind.Over, "Over"),
-        new(LegendKind.NotLogged, "Not logged"),
-        new(LegendKind.TargetLine, "Target"),
-        new(LegendKind.TargetBand, "±10%"),
-    ];
 }

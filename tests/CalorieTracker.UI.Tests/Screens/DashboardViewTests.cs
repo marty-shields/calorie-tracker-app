@@ -871,6 +871,7 @@ public class DashboardViewTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
+            Assert.That(card.ClassList, Is.EqualTo(new[] { "card" }), "the kit's Card");
             Assert.That(card.QuerySelector("[data-testid=dashboard-ring]")!.ClassList, Does.Contain("compact"));
             Assert.That(card.QuerySelector("[data-testid=dashboard-share]"), Is.Not.Null);
             Assert.That(card.QuerySelector("[data-testid=dashboard-eaten]"), Is.Not.Null);

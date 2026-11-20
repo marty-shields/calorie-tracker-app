@@ -46,7 +46,7 @@ public sealed record TrendDay(DateOnly Date, int? TargetKcal, Nutrition Totals, 
 /// <summary>A food's place in the top foods. <see cref="Kcal"/> is the sum of its entries' whole kcal.</summary>
 public sealed record TopFood(int FoodId, string Title, int TimesEaten, int Kcal);
 
-/// <summary>Whether each figure rests on enough days to show. A figure with its flag false should read "Not enough days yet".</summary>
+/// <summary>Whether each figure rests on enough days to show. A figure with its flag false should read "Not enough data yet".</summary>
 /// <param name="Counts">Under, on target and over: needs <see cref="TrendsService.MinDays"/> judged days (logged, with a target).</param>
 public sealed record TrendsEnoughData(bool Average, bool Macros, bool ByMeal, bool Counts, bool TopFoods);
 

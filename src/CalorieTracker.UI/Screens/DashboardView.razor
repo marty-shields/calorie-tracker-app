@@ -23,9 +23,9 @@
             else
             {
                 var logged = summary.Meals.Any(m => m.Entries.Count > 0);
-                <SummaryCard TestId="dashboard-card">
+                <Shields.UI.Components.Layout.Card TestId="dashboard-card">
                     <div class="summary">
-                        <div class="card">
+                        <div class="ring-row">
                             <CalorieRing Compact Eaten="summary.Totals.Kcal" Target="summary.TargetKcal" TestId="dashboard-ring" />
                             <div class="figures">
                                 <p class="figure">Eaten <strong data-testid="dashboard-eaten">@Number(summary.Totals.Kcal)</strong></p>
@@ -45,7 +45,7 @@
                             <EnergyShareBar Protein="summary.Totals.ProteinG" Carbs="summary.Totals.CarbsG" Fat="summary.Totals.FatG" TestId="dashboard-share" />
                         }
                     </div>
-                </SummaryCard>
+                </Shields.UI.Components.Layout.Card>
                 @if (!logged)
                 {
                     <EmptyState Message="@(Date == Today ? "Nothing logged today" : "Nothing logged this day")" Hint="Tap + on a meal to add your first food." TestId="dashboard-empty" />

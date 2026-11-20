@@ -25,17 +25,9 @@ A Monday-first grid of one month's days. Each day shows its status: under (`--co
 - Each day's accessible name holds the date, the value and the status ("Tue 3 Nov, 2,500 kcal, over target"; "Wed 18 Nov, today, not logged"; "Thu 19 Nov, future"). With an `OnSelect` handler each enabled day is a button in the tab order and a click or Enter raises it with the date; without one every day is plain text.
 - `data-testid`: `TestId`; the days `{TestId}-day-{date}`, the over markers `{TestId}-marker-{date}`.
 
-## `StatTile`
-A card with a large figure ("1,980") and a caption under it ("avg kcal a day"). With `NotEnoughDays` the figure becomes a dash and "Not enough days yet" appears under the caption, so the tile keeps its place in the layout.
-- `data-testid`: `TestId`; `{TestId}-figure`, `-caption`, `-note`.
-
 ## `BarList`
 Rows of a label, a value and a horizontal `--color-accent` bar on a `--color-border` track. Bar lengths are each value over the largest in the list, or over `Max` (30 for days logged in a month). A long label is cut with an ellipsis; the value text is `ValueText` or the number. With no rows it shows `EmptyText`.
 - Text alternative: a list named by `Label`; the bars are decoration, the values are text.
 - `data-testid`: `TestId`; `{TestId}-row-{n}`, `-label-{n}`, `-value-{n}`, `-bar-{n}`, `-empty`.
 
-## `ChartLegend`
-Swatches with labels, in this order: under, on target, over (with its triangle), not logged (dashed outline), the target line and the target band. The caller lists the entries it needs, in order; they wrap onto more lines when they don't fit.
-- `data-testid`: `TestId`; `{TestId}-under`, `-on`, `-over`, `-not-logged`, `-line`, `-band`.
-
-Stories: [CalorieRing](./?path=/docs/components-charts-caloriering--docs) · [EnergyShareBar](./?path=/docs/components-charts-energysharebar--docs) · [TrendBarChart](./?path=/docs/components-charts-trendbarchart--docs) · [MonthCalendar](./?path=/docs/components-charts-monthcalendar--docs) · [StatTile](./?path=/docs/components-charts-stattile--docs) · [BarList](./?path=/docs/components-charts-barlist--docs) · [ChartLegend](./?path=/docs/components-charts-chartlegend--docs)
+Stories: [CalorieRing](./?path=/docs/components-charts-caloriering--docs) · [EnergyShareBar](./?path=/docs/components-charts-energysharebar--docs) · [TrendBarChart](./?path=/docs/components-charts-trendbarchart--docs) · [MonthCalendar](./?path=/docs/components-charts-monthcalendar--docs) · [BarList](./?path=/docs/components-charts-barlist--docs)
