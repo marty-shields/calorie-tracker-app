@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
-using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Tests.DesignSystem;
+using Shields.UI.Theme;
 
 namespace CalorieTracker.UI.Tests.Scanning;
 
@@ -193,7 +193,7 @@ public class ScanPageMarkupTests
     private static string AppColour(string key) =>
         Regex.Match(RepoFiles.Read("src", "CalorieTracker.App", "App.xaml"), @"<Color x:Key=""" + key + @""">([^<]+)</Color>").Groups[1].Value;
 
-    private static string TokensCss() => RepoFiles.Read("src", "CalorieTracker.UI", "wwwroot", "css", "tokens.css");
+    private static string TokensCss() => DesignTokens.KitTokensCss;
 
     private static string ScanXaml() => RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "ScanPage.xaml");
 

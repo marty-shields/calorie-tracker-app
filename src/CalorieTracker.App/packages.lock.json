@@ -1976,7 +1976,8 @@
         "type": "Project",
         "dependencies": {
           "CalorieTracker.Core": "[1.0.0, )",
-          "Microsoft.AspNetCore.Components.Web": "[11.0.0, )"
+          "Microsoft.AspNetCore.Components.Web": "[11.0.0, )",
+          "Shields.UI": "[1.0.0-pr.19.9, )"
         }
       },
       "Microsoft.AspNetCore.Components.Web": {
@@ -2005,6 +2006,15 @@
         "dependencies": {
           "Microsoft.Extensions.Diagnostics": "11.0.0",
           "Microsoft.Extensions.Logging": "11.0.0"
+        }
+      },
+      "Shields.UI": {
+        "type": "CentralTransitive",
+        "requested": "[1.0.0-pr.19.9, )",
+        "resolved": "1.0.0-pr.19.9",
+        "contentHash": "xg/zZa7YC5zyoaBfnBBhjQUXGjseEVBcnsG9i3C5icklDXe9yx2O4PS+rkoV+IVVPYG/bzrPByamYbz16UH4mQ==",
+        "dependencies": {
+          "Microsoft.AspNetCore.Components.Web": "11.0.0"
         }
       },
       "sqlite-net-pcl": {

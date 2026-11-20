@@ -4,16 +4,6 @@ namespace CalorieTracker.UI.Tests.DesignSystem;
 
 public partial class TokensOnlyCssTests
 {
-    // Literal values allowed outside tokens.css: the safe-area fallbacks and the visually-hidden helper.
-    private static readonly HashSet<string> Allowed =
-    [
-        "base.css: --inset-top: env(safe-area-inset-top, 0px);",
-        "base.css: --inset-bottom: env(safe-area-inset-bottom, 0px);",
-        "base.css: width: 1px;",
-        "base.css: height: 1px;",
-        "base.css: margin: -1px;",
-    ];
-
     private static IEnumerable<TestCaseData> StyleFiles() =>
         RepoFiles.Find("*.css", "src", "CalorieTracker.UI")
             .Where(f => Path.GetFileName(f) != "tokens.css")
@@ -29,8 +19,7 @@ public partial class TokensOnlyCssTests
         var literals = StripComments(File.ReadAllText(file)).Split('\n')
             .Select(line => line.Trim())
             .Where(line => Literal().IsMatch(line))
-            .Select(line => $"{Path.GetFileName(file)}: {line}")
-            .Where(line => !Allowed.Contains(line));
+            .Select(line => $"{Path.GetFileName(file)}: {line}");
 
         Assert.That(literals, Is.Empty);
     }
@@ -62,7 +51,7 @@ public partial class TokensOnlyCssTests
             .Select(line => line.Trim())
             .Where(line => BackgroundShorthand().IsMatch(line));
 
-        Assert.That(shorthands, Is.Empty, "base.css's pressed layer is a background-image, which the background shorthand resets");
+        Assert.That(shorthands, Is.Empty, "the kit's base.css pressed layer is a background-image, which the background shorthand resets");
     }
 
     private static string StripComments(string css) => Comment().Replace(css, "");

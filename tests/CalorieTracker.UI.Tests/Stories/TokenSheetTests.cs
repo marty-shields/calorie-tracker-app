@@ -1,9 +1,9 @@
-using System.Text.RegularExpressions;
 using CalorieTracker.UI.Stories.Stories.Foundations;
+using CalorieTracker.UI.Tests.DesignSystem;
 
 namespace CalorieTracker.UI.Tests.Stories;
 
-public partial class TokenSheetTests : ComponentTestBase
+public class TokenSheetTests : ComponentTestBase
 {
     private const string Module = "./Stories/Foundations/TokenSheet.razor.js";
 
@@ -34,12 +34,6 @@ public partial class TokenSheetTests : ComponentTestBase
         });
     }
 
-    private static IEnumerable<string> TokensInCss()
-    {
-        var css = RepoFiles.Read("src", "CalorieTracker.UI", "wwwroot", "css", "tokens.css");
-        return TokenName().Matches(css).Select(m => m.Groups[1].Value);
-    }
-
-    [GeneratedRegex(@"^\s*(--[a-z0-9-]+):", RegexOptions.Multiline)]
-    private static partial Regex TokenName();
+    private static IEnumerable<string> TokensInCss() =>
+        DesignTokens.Declares(DesignTokens.KitTokensCss + DesignTokens.AppCss).Distinct();
 }

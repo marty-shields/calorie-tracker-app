@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace CalorieTracker.UI.Tests;
@@ -13,6 +14,12 @@ internal static class RepoFiles
 
     /// <summary>Text of a file under the repo root.</summary>
     public static string Read(params string[] parts) => File.ReadAllText(PathOf(parts));
+
+    /// <summary>Text of one of the kit's css files (<c>tokens.css</c> or <c>base.css</c>); the folder is the <c>KitCssFolder</c> assembly metadata the project sets.</summary>
+    public static string ReadKit(string file) =>
+        File.ReadAllText(Path.Combine(
+            typeof(RepoFiles).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().Single(a => a.Key == "KitCssFolder").Value!,
+            file));
 
     /// <summary>Files under a repo folder matching a pattern, excluding bin and obj.</summary>
     public static IEnumerable<string> Find(string pattern, params string[] folder) =>

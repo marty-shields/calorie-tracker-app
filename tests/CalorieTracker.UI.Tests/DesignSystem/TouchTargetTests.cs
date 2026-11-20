@@ -40,7 +40,7 @@ public partial class TouchTargetTests
             .Where(r => r.Selectors.Contains(".compact"))
             .SelectMany(r => r.Declarations)
             .ToList();
-        var tokens = File.ReadAllText(RepoFiles.Find("tokens.css", "src", "CalorieTracker.UI").Single());
+        var tokens = DesignTokens.KitTokensCss;
 
         Assert.Multiple(() =>
         {

@@ -9,7 +9,7 @@ Tokens, components, screens and their behaviour for the Calorie Tracker app.
 ## Where it lives
 | Item | Location |
 |---|---|
-| Tokens | `src/CalorieTracker.UI/wwwroot/css/tokens.css` (CSS custom properties) |
+| Tokens | the Shields.UI kit's `tokens.css`, then this app's own `src/CalorieTracker.UI/wwwroot/css/tokens.css` (CSS custom properties) |
 | Components | `src/CalorieTracker.UI/Components/` (Razor components with scoped `.razor.css`) |
 | Screens | `src/CalorieTracker.UI/Screens/` (`*View` components, and `*Page` components that call services) |
 | Stories and these pages | `src/CalorieTracker.UI.Stories/Stories/`: `Foundations/`, `Components/<Group>/`, `Screens/` |
@@ -29,7 +29,7 @@ Tokens, components, screens and their behaviour for the Calorie Tracker app.
 - Interactive elements have a `data-testid`.
 
 ## Tokens
-Defined in `tokens.css`; the [Tokens](./?path=/story/foundations-tokens--all-tokens) story shows each one in light and dark.
+Defined in the two `tokens.css` files; the [Tokens](./?path=/story/foundations-tokens--all-tokens) story shows each one in light and dark.
 
 ### Palette
 Five colours. Light uses them directly; dark keeps aqua for primary buttons and uses neutral, low-tint colours for everything else so text, accents and surfaces read apart:

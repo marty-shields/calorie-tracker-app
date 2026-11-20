@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using CalorieTracker.UI.Components.Actions;
+using CalorieTracker.UI.Tests.DesignSystem;
 
 namespace CalorieTracker.UI.Tests.Components.Actions;
 
@@ -207,7 +208,7 @@ public class IconButtonTests : ComponentTestBase
     public void Css_SetsNoOutline_SoTheGlobalFocusRingShows()
     {
         var css = File.ReadAllText(RepoFiles.PathOf("src", "CalorieTracker.UI", "Components", "Actions", "IconButton.razor.css"));
-        var baseCss = RepoFiles.Read("src", "CalorieTracker.UI", "wwwroot", "css", "base.css");
+        var baseCss = DesignTokens.KitBaseCss;
         var ring = baseCss[baseCss.IndexOf(":focus-visible {", StringComparison.Ordinal)..];
 
         Assert.Multiple(() =>
