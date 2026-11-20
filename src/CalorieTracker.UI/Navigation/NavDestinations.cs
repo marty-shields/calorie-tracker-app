@@ -6,8 +6,8 @@ namespace CalorieTracker.UI.Navigation;
 /// <summary>The bottom navigation bar's items, in bar order. Add is not here: it is an action, not a screen.</summary>
 public static class NavDestinations
 {
-    /// <summary>Android back from another top-level screen goes here; back from here leaves the app.</summary>
-    public const NavDestination Start = NavDestination.Today;
+    /// <summary>Android back from another top-level screen goes here; back from here leaves the app. The kit sends back to the first tab, so it is the first of <see cref="All"/>.</summary>
+    public static NavDestination Start => All[0].Destination;
 
     public static IReadOnlyList<NavItem> All { get; } =
     [
@@ -22,7 +22,7 @@ public static class NavDestinations
 
     public static BottomNavItem TabOf(NavDestination destination) => Tab(Of(destination));
 
-    public static NavDestination DestinationOf(BottomNavItem tab) => All.Single(item => Tab(item) == tab).Destination;
+    public static NavDestination DestinationOf(BottomNavItem tab) => All.Single(item => item.TestId == tab.TestId).Destination;
 
     private static BottomNavItem Tab(NavItem item) => new(item.Label, item.Icon, item.TestId);
 }

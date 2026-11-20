@@ -65,6 +65,13 @@ public class NavScreenTests : ComponentTestBase
     }
 
     [Test]
+    public void Start_IsTheFirstTab_BecauseTheKitSendsAndroidBackThere()
+    {
+        Assert.That(NavDestinations.Start, Is.EqualTo(NavDestinations.All[0].Destination));
+        Assert.That(NavDestinations.DestinationOf(NavDestinations.Tabs[0]), Is.EqualTo(NavDestinations.Start));
+    }
+
+    [Test]
     public async Task OnTrends_AndroidBackGoesToTheStartDestination_WithNoBackArrow()
     {
         var navigated = new List<NavDestination>();

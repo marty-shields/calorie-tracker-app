@@ -5,6 +5,7 @@
 @code {
     private static readonly IReadOnlyDictionary<string, object> OpenerAttributes = new Dictionary<string, object> { ["data-sheet-opener"] = true };
 
+    /// <summary>The screen heading.</summary>
     [Parameter, EditorRequired]
     public string Title { get; set; } = "";
 
@@ -20,12 +21,15 @@
     [Parameter]
     public EventCallback OnAdd { get; set; }
 
+    /// <summary>Header actions beside the title.</summary>
     [Parameter]
     public RenderFragment? Actions { get; set; }
 
+    /// <summary>Notices shown above the content.</summary>
     [Parameter]
     public RenderFragment? Status { get; set; }
 
+    /// <summary>The screen body.</summary>
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 
