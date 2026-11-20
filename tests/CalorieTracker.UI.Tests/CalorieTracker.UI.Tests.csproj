@@ -4,6 +4,7 @@
     <PackageReference Include="bunit" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="Shields.UI.Testing" />
   </ItemGroup>
 
   <ItemGroup>
@@ -11,7 +12,7 @@
     <ProjectReference Include="..\..\src\CalorieTracker.UI.Stories\CalorieTracker.UI.Stories.csproj" />
   </ItemGroup>
 
-  <!-- Where the tests find the kit's tokens.css and base.css: the package's static assets, or the checkout with UseKitSource. -->
+  <!-- Where the tests find the kit components' scoped css: the package's static assets, or the checkout with UseKitSource. -->
   <PropertyGroup>
     <KitCssFolder Condition="'$(UseKitSource)' == 'true'">$(KitPath)/src/Shields.UI/wwwroot/css</KitCssFolder>
     <KitCssFolder Condition="'$(UseKitSource)' != 'true'">$(NuGetPackageRoot)shields.ui/$(ShieldsUiVersion.ToLowerInvariant())/staticwebassets/css</KitCssFolder>

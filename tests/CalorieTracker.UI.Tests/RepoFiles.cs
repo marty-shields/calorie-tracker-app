@@ -15,12 +15,6 @@ internal static partial class RepoFiles
     /// <summary>Text of a file under the repo root.</summary>
     public static string Read(params string[] parts) => File.ReadAllText(PathOf(parts));
 
-    /// <summary>Text of one of the kit's css files (<c>tokens.css</c> or <c>base.css</c>); the folder is the <c>KitCssFolder</c> assembly metadata the project sets.</summary>
-    public static string ReadKit(string file) =>
-        File.ReadAllText(Path.Combine(
-            typeof(RepoFiles).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().Single(a => a.Key == "KitCssFolder").Value!,
-            file));
-
     /// <summary>The kit components' scoped css with the <c>[b-...]</c> scope attributes removed, so <see cref="Rule"/> finds a rule by its class: the package's bundle, or every <c>*.razor.css</c> of the checkout with UseKitSource.</summary>
     public static string ReadKitComponentCss()
     {

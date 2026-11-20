@@ -30,6 +30,7 @@
     <PackageVersion Include="Reqnroll.NUnit" Version="3.3.4" />
     <PackageVersion Include="Shields.UI" Version="$(ShieldsUiVersion)" />
     <PackageVersion Include="Shields.UI.Stories" Version="$(ShieldsUiVersion)" />
+    <PackageVersion Include="Shields.UI.Testing" Version="$(ShieldsUiVersion)" />
     <PackageVersion Include="sqlite-net-pcl" Version="1.11.285" />
   </ItemGroup>
 

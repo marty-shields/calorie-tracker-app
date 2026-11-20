@@ -91,7 +91,7 @@ public class AddSheetTests : ComponentTestBase
     public void Css_SizesTheHandleAndTilesFromTokens()
     {
         var css = RepoFiles.Read("src", "CalorieTracker.UI", "Components", "Layout", "AddSheet.razor.css");
-        var tokens = DesignTokens.AppCss;
+        var tokens = AppTokens.AppCss;
 
         Assert.Multiple(() =>
         {

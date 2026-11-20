@@ -6,7 +6,7 @@ public class AppTokenNamesTests
 {
     [Test]
     public void TokensStory_ListsEveryTokenInTheAppsTokensCss() =>
-        Assert.That(AppTokenNames.Colours.Concat(AppTokenNames.Sizes), Is.EquivalentTo(DesignTokens.Declares(DesignTokens.AppCss)));
+        Assert.That(AppTokenNames.Colours.Concat(AppTokenNames.Sizes), Is.EquivalentTo(AppTokens.AppNames));
 
     [Test]
     public void Colours_AreTheColourTokens() =>
