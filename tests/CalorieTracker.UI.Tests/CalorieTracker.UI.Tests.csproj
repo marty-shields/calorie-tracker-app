@@ -4,7 +4,15 @@
     <PackageReference Include="bunit" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+
+  <!-- The kit's test helpers (KitCss, KitNames, DesignTokens) come from the Shields.UI.Testing package, or the checkout with UseKitSource. -->
+  <ItemGroup Condition="'$(UseKitSource)' != 'true'">
     <PackageReference Include="Shields.UI.Testing" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseKitSource)' == 'true'">
+    <ProjectReference Include="$(KitPath)/src/Shields.UI.Testing/Shields.UI.Testing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

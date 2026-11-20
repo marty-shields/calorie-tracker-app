@@ -1,4 +1,5 @@
 using Shields.UI.Testing;
+using Shields.UI.Theme;
 
 namespace CalorieTracker.UI.Tests.DesignSystem;
 
@@ -7,10 +8,20 @@ public class NoLocalKitCopiesTests
 {
     private static readonly string UiFolder = RepoFiles.PathOf("src", "CalorieTracker.UI");
 
-    /// <summary>Razor files named after a kit component, as paths relative to it.</summary>
-    internal static IReadOnlyList<string> ComponentCopies(IEnumerable<string> razorFiles, IReadOnlySet<string> kitComponents, string folder) =>
-        razorFiles
-            .Where(file => file.EndsWith(".razor", StringComparison.Ordinal) && kitComponents.Contains(RazorName(file)))
+    /// <summary>The names of the kit's public types, without generic arity; nested types and the Razor-generated <c>_Imports</c> are not files of their own.</summary>
+    private static readonly IReadOnlySet<string> KitTypeNames = typeof(ThemePreference).Assembly.GetExportedTypes()
+        .Where(type => !type.IsNested && !type.Name.StartsWith('_'))
+        .Select(type => type.Name.Split('`')[0])
+        .ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Source and razor files named after a kit component or public kit type, as paths relative to the folder.
+    /// The name is what comes before the first dot, so <c>Spinner.razor.css</c> and <c>Spinner.razor.cs</c> count.
+    /// </summary>
+    internal static IReadOnlyList<string> ComponentCopies(IEnumerable<string> files, IReadOnlySet<string> kitNames, string folder) =>
+        files
+            .Where(file => (file.EndsWith(".razor", StringComparison.Ordinal) || file.EndsWith(".cs", StringComparison.Ordinal))
+                && kitNames.Contains(KitName(file)))
             .Select(file => Path.GetRelativePath(folder, file))
             .ToList();
 
@@ -19,8 +30,10 @@ public class NoLocalKitCopiesTests
         DesignTokens.Declares(css).Where(kitTokens.Contains).Distinct().ToList();
 
     [Test]
-    public void AppComponents_AreNotCopiesOfKitComponents() =>
-        Assert.That(ComponentCopies(RepoFiles.Find("*.razor", "src", "CalorieTracker.UI"), KitNames.Components, UiFolder), Is.Empty);
+    public void AppFiles_AreNotCopiesOfKitComponentsOrTypes() =>
+        Assert.That(
+            ComponentCopies(RepoFiles.Find("*.razor", "src", "CalorieTracker.UI").Concat(RepoFiles.Find("*.cs", "src", "CalorieTracker.UI")), KitNames.Components.Union(KitTypeNames).ToHashSet(), UiFolder),
+            Is.Empty);
 
     [Test]
     public void AppTokens_AreNotCopiesOfKitTokens() =>
@@ -38,6 +51,17 @@ public class NoLocalKitCopiesTests
     }
 
     [Test]
+    public void ComponentCopies_FindsASourceFileNamedAfterAKitType()
+    {
+        var copies = ComponentCopies(
+            [Path.Combine(UiFolder, "SnackbarService.cs"), Path.Combine(UiFolder, "Components", "Spinner.razor.cs"), Path.Combine(UiFolder, "Screens", "ScanView.cs")],
+            KitNames.Components.Union(KitTypeNames).ToHashSet(),
+            UiFolder);
+
+        Assert.That(copies, Is.EqualTo(new[] { "SnackbarService.cs", Path.Combine("Components", "Spinner.razor.cs") }));
+    }
+
+    [Test]
     public void TokenCopies_FindsAKitTokenInATokensFile() =>
         Assert.That(TokenCopies(":root { --color-accent: #000000; --ring-size: 1px; }", KitNames.Tokens), Is.EqualTo(new[] { "--color-accent" }));
 
@@ -48,5 +72,5 @@ public class NoLocalKitCopiesTests
         Assert.That(KitNames.Tokens, Does.Contain("--color-accent"));
     }
 
-    private static string RazorName(string file) => Path.GetFileNameWithoutExtension(file);
+    private static string KitName(string file) => Path.GetFileName(file).Split('.')[0];
 }

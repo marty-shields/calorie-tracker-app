@@ -5,7 +5,7 @@ namespace CalorieTracker.UI.Tests.DesignSystem;
 /// <summary>This app's own tokens.css, read next to the kit's through Shields.UI.Testing.</summary>
 internal static class AppTokens
 {
-    /// <summary>This app's tokens.css: only the tokens the kit does not declare, and a few temporary overrides.</summary>
+    /// <summary>This app's tokens.css: only the tokens the kit does not declare.</summary>
     public static string AppCss { get; } = RepoFiles.Read("src", "CalorieTracker.UI", "wwwroot", "css", "tokens.css");
 
     /// <summary>The kit's tokens followed by this app's, which is loaded after the kit's and so wins.</summary>
