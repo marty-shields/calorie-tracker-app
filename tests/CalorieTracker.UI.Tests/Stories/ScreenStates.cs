@@ -97,8 +97,6 @@ public static class ScreenStates
 
     public static IReadOnlyList<ScreenState> All { get; } =
     [
-        new("Screens/Startup", "Loading", c => c.Render<StartupView>().FindAll("*")),
-        new("Screens/Startup", "Load failed", c => c.Render<StartupView>(p => p.Add(x => x.Failed, true)).FindAll("*")),
 
         new("Screens/Dashboard", "First run", c => Dashboard(c, DashboardSamples.FirstRun)),
         new("Screens/Dashboard", "No target", c => Dashboard(c, DashboardSamples.NoTarget)),
@@ -197,7 +195,6 @@ public static class ScreenStates
         new("Screens/Serving", "Load failed", c => Serving(c, null, loadFailed: true)),
         new("Screens/Serving", "Food not found", c => Serving(c, null)),
 
-        new("Screens/Error", "Error", c => c.Render<ErrorView>(p => p.Add(x => x.OnRestart, () => { })).FindAll("*")),
     ];
 
     private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", IReadOnlyList<FoodGroup>? groups = null, bool loading = false, bool failed = false, Meal meal = Meal.Lunch, FoodGroupKind[]? expanded = null,

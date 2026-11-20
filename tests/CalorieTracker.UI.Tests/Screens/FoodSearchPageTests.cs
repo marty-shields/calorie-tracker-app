@@ -2,7 +2,6 @@ using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Seed;
 using CalorieTracker.UI.Logging;
-using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Screens;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

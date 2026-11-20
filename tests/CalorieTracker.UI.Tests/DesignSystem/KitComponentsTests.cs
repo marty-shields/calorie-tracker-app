@@ -8,6 +8,8 @@ public class KitComponentsTests
         "Spinner", "LoadFailed", "Snackbar", "SnackbarService",
         "SegmentedControl", "FilterChips", "NumberField", "TextField", "SelectField", "DateStrip", "DayLabel", "RadioOption",
         "ListRow", "EmptyState", "SummaryCard", "StatTile", "ChartLegend", "LegendItem", "LegendKind",
+        "StartupGate", "StartupView", "AppErrorBoundary", "ErrorView", "BackHandler", "BackButton", "IBackButton",
+        "AppLifecycle", "IAppLifecycle", "IAppStart",
     ];
 
     [TestCaseSource(nameof(KitComponents))]

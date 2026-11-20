@@ -3,12 +3,12 @@ using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Summary;
 using CalorieTracker.Core.Targets;
-using CalorieTracker.UI.Lifecycle;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Screens;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
+using Shields.UI.Lifecycle;
 using SQLite;
 
 namespace CalorieTracker.UI.Tests.Screens;

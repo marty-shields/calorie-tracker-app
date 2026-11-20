@@ -1,7 +1,7 @@
-using CalorieTracker.UI.Navigation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
+using Shields.UI.Navigation;
 
 namespace CalorieTracker.UI.Tests;
 

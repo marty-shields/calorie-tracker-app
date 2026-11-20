@@ -2,6 +2,7 @@ using BarcodeScanning;
 using CalorieTracker.App.Diagnostics;
 using CalorieTracker.App.Info;
 using CalorieTracker.App.Keyboard;
+using CalorieTracker.App.Lifecycle;
 using CalorieTracker.App.Logging;
 using CalorieTracker.App.Navigation;
 using CalorieTracker.App.Scanning;
@@ -9,7 +10,6 @@ using CalorieTracker.Core;
 using CalorieTracker.Core.Logging;
 using CalorieTracker.Core.Services;
 using CalorieTracker.UI;
-using CalorieTracker.UI.Lifecycle;
 using CalorieTracker.UI.Scanning;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -48,7 +48,7 @@ public static class MauiProgram
     /// <summary>
     /// Passes the Android back button to the registered page handlers through <see cref="AndroidBackButton"/>.
     /// Only <see cref="MainActivity"/> counts; MAUI's own activities, such as the file picker's, are ignored.
-    /// The handlers resolve it from the app's services.
+    /// The handlers resolve it from the app's services; <c>Routes</c> connects it to the BlazorWebView's scoped back button.
     /// </summary>
     private static void AddBackButton(MauiAppBuilder builder)
     {
@@ -67,11 +67,13 @@ public static class MauiProgram
     }
 
     /// <summary>
-    /// Runs the pages' app start handlers through <see cref="IAppLifecycle"/> each time <see cref="MainActivity"/> starts,
-    /// and removes them when it is destroyed or replaced. MAUI's own activities are ignored. The handlers resolve it from the app's services.
+    /// Runs the pages' app start handlers through <see cref="AndroidAppLifecycle"/> each time <see cref="MainActivity"/> starts,
+    /// and removes them when it is destroyed or replaced. MAUI's own activities are ignored.
+    /// The handlers resolve it from the app's services; <c>Routes</c> connects it to the BlazorWebView's scoped app lifecycle.
     /// </summary>
     private static void AddAppLifecycle(MauiAppBuilder builder)
     {
+        builder.Services.AddSingleton<AndroidAppLifecycle>();
         builder.ConfigureLifecycleEvents(events => events.AddAndroid(android => android
             .OnCreate((activity, _) =>
             {
@@ -84,12 +86,12 @@ public static class MauiProgram
             {
                 if (activity is MainActivity)
                 {
-                    _ = Lifecycle().NotifyStartedAsync();
+                    _ = Lifecycle().StartedAsync();
                 }
             })
             .OnDestroy(activity => Lifecycle().Detach(activity))));
 
-        static IAppLifecycle Lifecycle() => IPlatformApplication.Current!.Services.GetRequiredService<IAppLifecycle>();
+        static AndroidAppLifecycle Lifecycle() => IPlatformApplication.Current!.Services.GetRequiredService<AndroidAppLifecycle>();
     }
 
     /// <summary>
