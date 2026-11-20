@@ -59,7 +59,7 @@
                         }
                         else if (servings)
                         {
-                            <Shields.UI.Components.Layout.Card TestId="serving-label"><span class="serving-label" data-wrap-ok>@Chosen!.Label</span></Shields.UI.Components.Layout.Card>
+                            <Card TestId="serving-label"><span class="serving-label" data-wrap-ok>@Chosen!.Label</span></Card>
                         }
                     </section>
                 }
@@ -111,10 +111,10 @@
                 </section>
                 @if (Valid)
                 {
-                    <Shields.UI.Components.Layout.Card Title="@(Editing ? "This entry" : "This adds")" TestId="serving-adds">
+                    <Card Title="@(Editing ? "This entry" : "This adds")" TestId="serving-adds">
                         <p class="kcal" data-testid="serving-adds-kcal">@Kcal(food) kcal</p>
                         <p class="detail" data-testid="serving-adds-detail" data-wrap-ok>@AddsDetail(food)</p>
-                    </Shields.UI.Components.Layout.Card>
+                    </Card>
                 }
             </div>
         }

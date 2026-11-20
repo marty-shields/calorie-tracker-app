@@ -6,18 +6,18 @@
     <Story Name="With usual foods">
         <Template>
             <AddSheet Open Clock="new FixedTimeProvider(new TimeOnly(19, 30))" Usual="UsualDinner" OnSearch="(Meal _) => { }" OnScan="(Meal _) => { }" OnAddUsual="(UsualAddRequest _) => { }" OnClose="() => { }" />
-            <AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
+            <NavScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
                 <p>Today</p>
-            </AppScreen>
+            </NavScreen>
         </Template>
     </Story>
 
     <Story Name="Without usual foods">
         <Template>
             <AddSheet Open Clock="new FixedTimeProvider(new TimeOnly(19, 30))" Usual="@(Array.Empty<UsualFoodRow>())" OnSearch="(Meal _) => { }" OnScan="(Meal _) => { }" OnClose="() => { }" />
-            <AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
+            <NavScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
                 <p>Today</p>
-            </AppScreen>
+            </NavScreen>
         </Template>
     </Story>
 
@@ -25,63 +25,63 @@
         <Template>
             @* A failed read leaves Usual unset, so the section is hidden and Search foods and Scan barcode work as before. *@
             <AddSheet Open Clock="new FixedTimeProvider(new TimeOnly(19, 30))" OnSearch="(Meal _) => { }" OnScan="(Meal _) => { }" OnClose="() => { }" />
-            <AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
+            <NavScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
                 <p>Today</p>
-            </AppScreen>
+            </NavScreen>
         </Template>
     </Story>
 
     <Story Name="Add failed">
         <Template>
             <AddSheet Open Clock="new FixedTimeProvider(new TimeOnly(19, 30))" Usual="UsualDinner" AddError="Couldn't add Chicken curry with rice to Dinner. Try again." OnSearch="(Meal _) => { }" OnScan="(Meal _) => { }" OnAddUsual="(UsualAddRequest _) => { }" OnClose="() => { }" />
-            <AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
+            <NavScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
                 <p>Today</p>
-            </AppScreen>
+            </NavScreen>
         </Template>
     </Story>
 
     <Story Name="Breakfast">
         <Template>
             <AddSheet Open Clock="new FixedTimeProvider(new TimeOnly(8, 0))" OnSearch="(Meal _) => { }" OnScan="(Meal _) => { }" OnClose="() => { }" />
-            <AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
+            <NavScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
                 <p>Today</p>
-            </AppScreen>
+            </NavScreen>
         </Template>
     </Story>
 
     <Story Name="Lunch">
         <Template>
             <AddSheet Open Clock="new FixedTimeProvider(new TimeOnly(12, 30))" OnSearch="(Meal _) => { }" OnScan="(Meal _) => { }" OnClose="() => { }" />
-            <AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
+            <NavScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
                 <p>Today</p>
-            </AppScreen>
+            </NavScreen>
         </Template>
     </Story>
 
     <Story Name="Dinner">
         <Template>
             <AddSheet Open Clock="new FixedTimeProvider(new TimeOnly(18, 0))" OnSearch="(Meal _) => { }" OnScan="(Meal _) => { }" OnClose="() => { }" />
-            <AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
+            <NavScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
                 <p>Today</p>
-            </AppScreen>
+            </NavScreen>
         </Template>
     </Story>
 
     <Story Name="Snacks between meals">
         <Template>
             <AddSheet Open Clock="new FixedTimeProvider(new TimeOnly(16, 0))" OnSearch="(Meal _) => { }" OnScan="(Meal _) => { }" OnClose="() => { }" />
-            <AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
+            <NavScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
                 <p>Today</p>
-            </AppScreen>
+            </NavScreen>
         </Template>
     </Story>
 
     <Story Name="Snacks overnight">
         <Template>
             <AddSheet Open Clock="new FixedTimeProvider(new TimeOnly(22, 30))" OnSearch="(Meal _) => { }" OnScan="(Meal _) => { }" OnClose="() => { }" />
-            <AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
+            <NavScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }">
                 <p>Today</p>
-            </AppScreen>
+            </NavScreen>
         </Template>
     </Story>
 
