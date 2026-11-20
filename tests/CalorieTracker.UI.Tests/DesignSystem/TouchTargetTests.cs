@@ -33,20 +33,18 @@ public partial class TouchTargetTests
     }
 
     [Test]
-    public void CompactIconButton_IsTheCompactTouchTargetAndNoSmaller()
+    public void KitIconButton_IsATouchTargetAndCompactIsTheCompactOne()
     {
-        var root = RepoFiles.Find("*.razor", "src", "CalorieTracker.UI").Single(f => f.EndsWith("IconButton.razor"));
-        var declarations = Rules(File.ReadAllText(root + ".css"))
-            .Where(r => r.Selectors.Contains(".compact"))
-            .SelectMany(r => r.Declarations)
-            .ToList();
-        var tokens = DesignTokens.KitTokensCss;
+        var css = RepoFiles.ReadKitComponentCss();
+        var button = RepoFiles.Rule(css, "icon-btn");
+        var compact = RepoFiles.Rule(css, "compact");
 
         Assert.Multiple(() =>
         {
-            Assert.That(declarations, Has.Member("min-width: var(--touch-target-compact)"));
-            Assert.That(declarations, Has.Member("min-height: var(--touch-target-compact)"));
-            Assert.That(tokens, Does.Contain("--touch-target-compact: 40px;"));
+            Assert.That(button, Does.Contain($"min-width: {TouchTarget}"));
+            Assert.That(button, Does.Contain($"min-height: {TouchTarget}"));
+            Assert.That(compact, Does.Contain("min-width: var(--touch-target-compact)"));
+            Assert.That(compact, Does.Contain("min-height: var(--touch-target-compact)"));
         });
     }
 

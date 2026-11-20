@@ -67,7 +67,7 @@ public class BottomNavTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(add.NextElementSibling!.QuerySelector("[data-testid=trends-link]"), Is.Not.Null);
-            Assert.That(NavDestinations.Of(NavDestination.Trends), Is.EqualTo(new NavItem(NavDestination.Trends, "Trends", CalorieTracker.UI.Components.Actions.IconName.BarChart, "trends-link", "trends")));
+            Assert.That(NavDestinations.Of(NavDestination.Trends), Is.EqualTo(new NavItem(NavDestination.Trends, "Trends", Shields.UI.Components.Actions.IconName.BarChart, "trends-link", "trends")));
         });
     }
 

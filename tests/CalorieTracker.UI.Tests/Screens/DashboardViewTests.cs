@@ -1,12 +1,12 @@
 using CalorieTracker.Core.Data;
-using CalorieTracker.UI.Components.Actions;
-using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Components.Layout;
 using CalorieTracker.UI.Screens;
 using CalorieTracker.UI.Stories.Stories.Screens;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
+using Shields.UI.Components.Actions;
+using Shields.UI.Components.Feedback;
 
 namespace CalorieTracker.UI.Tests.Screens;
 

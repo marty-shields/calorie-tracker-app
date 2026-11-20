@@ -3,7 +3,6 @@ using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Summary;
 using CalorieTracker.Core.Trends;
-using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Models.Scan;
 using CalorieTracker.UI.Models.Search;
 using CalorieTracker.UI.Models.Serving;
@@ -11,6 +10,7 @@ using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Screens;
 using CalorieTracker.UI.Stories.Stories.Screens;
 using Microsoft.Extensions.DependencyInjection;
+using Shields.UI.Components.Feedback;
 using Shields.UI.Theme;
 
 namespace CalorieTracker.UI.Tests.Stories;

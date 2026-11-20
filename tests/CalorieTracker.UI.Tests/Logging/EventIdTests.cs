@@ -4,7 +4,7 @@ using CalorieTracker.UI.Logging;
 namespace CalorieTracker.UI.Tests.Logging;
 
 /// <summary>
-/// Event ids are named values: <c>UiEvent</c> 2000–4999 here, <c>AppEvent</c> 5000+ (the App can't be referenced, so its file is read),
+/// Event ids are named values: <c>UiEvent</c> 2000–4999 here, <c>AppEvent</c> 5000–8999 (the App can't be referenced, so its file is read),
 /// <c>CoreEvent</c> in Core.Tests. Values are unique and fixed. No <c>[LoggerMessage]</c> in the source uses a bare number.
 /// </summary>
 public partial class EventIdTests
@@ -43,7 +43,6 @@ public partial class EventIdTests
             [UiEvent.TrendsLoadFailed] = 2402,
             [UiEvent.TrendsOpened] = 2403,
             [UiEvent.AppStartHandlerFailed] = 3201,
-            [UiEvent.LoadFailedFocusFailed] = 3301,
             [UiEvent.ThemeLoadFailed] = 3403,
             [UiEvent.ThemeSaveFailed] = 3404,
             [UiEvent.ThemeNotSaved] = 3405,
@@ -62,6 +61,13 @@ public partial class EventIdTests
             [UiEvent.PullRefreshFailed] = 4001,
         }));
 
+    /// <summary>Ids that were used once and must never be given to another event.</summary>
+    private static readonly int[] RetiredUiEvents = [3301, 3502];
+
+    [Test]
+    public void UiEvent_NoValueUsesARetiredId() =>
+        Assert.That(Enum.GetValues<UiEvent>().Select(e => (int)e), Has.None.AnyOf(RetiredUiEvents));
+
     [Test]
     public void AppEvent_ValuesAreUniqueAndInTheAppsRange()
     {
@@ -71,7 +77,7 @@ public partial class EventIdTests
         {
             Assert.That(values, Is.Not.Empty);
             Assert.That(values, Is.Unique);
-            Assert.That(values, Is.All.GreaterThanOrEqualTo(5000));
+            Assert.That(values, Is.All.InRange(5000, 8999));
         });
     }
 

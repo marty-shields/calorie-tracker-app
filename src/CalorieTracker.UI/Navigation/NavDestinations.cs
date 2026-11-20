@@ -1,4 +1,4 @@
-using CalorieTracker.UI.Components.Actions;
+using Shields.UI.Components.Actions;
 
 namespace CalorieTracker.UI.Navigation;
 

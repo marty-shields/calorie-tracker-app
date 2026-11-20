@@ -27,7 +27,7 @@ public partial class StatusMessageGutterTests
     [Test]
     public void ServingStatusError_HasTheSnackbarMargins()
     {
-        var snackbar = Margin("Components/Feedback/Snackbar.razor.css", "snackbar");
+        var snackbar = MarginOf(RepoFiles.Rule(RepoFiles.ReadKitComponentCss(), "snackbar"), "the kit's Snackbar", "snackbar");
 
         var css = CommentRegex().Replace(RepoFiles.Read("src", "CalorieTracker.UI", "Screens/ServingView.razor.css"), "");
         var rule = Regex.Match(css, @"\.error\.status-error\s*\{(?<body>[^}]*)\}");

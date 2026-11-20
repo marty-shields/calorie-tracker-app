@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
-using CalorieTracker.UI.Components.Actions;
 using CalorieTracker.UI.Components.Lists;
+using Shields.UI.Components.Actions;
 
 namespace CalorieTracker.UI.Tests.Components.Lists;
 
@@ -102,7 +102,7 @@ public class MealHeaderTests : ComponentTestBase
     }
 
     [Test]
-    public void Render_VeryLongName_WrapsAndKeepsAddButtonATouchTarget()
+    public void Render_VeryLongName_WrapsAndKeepsAddButtonFullSize()
     {
         var longName = string.Join(' ', Enumerable.Repeat("Late night snacks and second helpings", 4));
         var cut = Context.Render<MealHeader>(p => p
@@ -110,7 +110,6 @@ public class MealHeaderTests : ComponentTestBase
             .Add(x => x.Calories, 1234)
             .Add(x => x.TestId, "meal"));
         var css = RepoFiles.Read("src", "CalorieTracker.UI", "Components", "Lists", "MealHeader.razor.css");
-        var buttonCss = RepoFiles.Read("src", "CalorieTracker.UI", "Components", "Actions", "IconButton.razor.css");
         var name = css.Split(".name {")[1].Split('}')[0];
         var main = css.Split(".main {")[1].Split('}')[0];
 
@@ -122,8 +121,6 @@ public class MealHeaderTests : ComponentTestBase
             Assert.That(main, Does.Contain("min-width: 0").And.Contain("flex: 1"));
             Assert.That(name, Does.Not.Contain("nowrap").And.Not.Contain("ellipsis"));
             Assert.That(cut.Find("[data-testid=meal-add]").GetAttribute("aria-label"), Is.EqualTo($"Add to {longName}"));
-            Assert.That(buttonCss.Split(".icon-btn {")[1].Split('}')[0],
-                Does.Contain("min-width: var(--touch-target)").And.Contain("min-height: var(--touch-target)"));
             Assert.That(cut.Find("[data-testid=meal-add]").ClassList, Does.Not.Contain("compact"));
         });
     }
