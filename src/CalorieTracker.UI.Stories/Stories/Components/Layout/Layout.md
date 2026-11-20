@@ -1,5 +1,5 @@
 ---
-$attribute: CustomPage("Components/Layout/Overview")
+$attribute: CustomPage(StoryTitles.Prefix + "Components/Layout/Overview")
 ---
 
 # Layout
@@ -28,4 +28,4 @@ The modal bottom sheet the bar's Add button opens, on Today and on Trends (both 
 - It logs the action (Search, Scan, Add usual or Dismiss) and the meal, never anything else (`UiEvent` 2300 block). The Today and Trends pages log the usual foods read, the add and a failed Undo with food ids, meals, counts and statuses only.
 - `data-testid`: `add-sheet`, `add-sheet-scrim`, `add-sheet-handle`, `add-sheet-meals`, `add-sheet-meal-<meal>`, `add-sheet-search`, `add-sheet-scan`, `add-sheet-usual`, `add-sheet-usual-<foodId>`, `add-sheet-usual-<foodId>-add` (also `-title` and `-detail`), `add-sheet-add-error`.
 
-Stories: [AddSheet](./?path=/docs/components-layout-addsheet--docs), one for each guessed meal, and with usual foods, without them, with a failed read and with a failed add.
+Stories: [AddSheet](./?path=/docs/calorie-tracker-components-layout-addsheet--docs), one for each guessed meal, and with usual foods, without them, with a failed read and with a failed add.

@@ -23,7 +23,7 @@
     <!-- Each project commits a packages.lock.json; CI fails a restore that would change it. -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RestoreLockedMode Condition="'$(CI)' != ''">true</RestoreLockedMode>
-    <!-- With -p:UseKitSource=true the UI project and the tests use this checkout of the kit instead of the Shields.UI package; the default is a sibling folder of the repo. -->
+    <!-- With -p:UseKitSource=true the UI project, the stories library and the tests use this checkout of the kit instead of the Shields.UI and Shields.UI.Stories packages; the default is a sibling folder of the repo. -->
     <KitPath Condition="'$(KitPath)' == ''">$(MSBuildThisFileDirectory)../app-ui-kit</KitPath>
   </PropertyGroup>
 

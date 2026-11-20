@@ -1,5 +1,5 @@
-using CalorieTracker.UI;
 using CalorieTracker.UI.Stories;
+using CalorieTracker.UI.Stories.Host;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
@@ -8,7 +8,6 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-builder.Services.AddUi();
-builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddCalorieTrackerStories();
 
 await builder.Build().RunAsync();

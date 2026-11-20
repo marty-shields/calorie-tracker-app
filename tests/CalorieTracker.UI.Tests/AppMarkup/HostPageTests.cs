@@ -12,7 +12,7 @@ public class HostPageTests
     ];
 
     [TestCase("CalorieTracker.App")]
-    [TestCase("CalorieTracker.UI.Stories")]
+    [TestCase("CalorieTracker.UI.Stories.Host")]
     public void HostPage_LoadsTheKitBeforeTheAppTokens(string project)
     {
         var page = RepoFiles.Read("src", project, "wwwroot", project == "CalorieTracker.App" ? "index.html" : "iframe.html");

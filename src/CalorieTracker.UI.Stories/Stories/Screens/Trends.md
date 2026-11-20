@@ -1,5 +1,5 @@
 ---
-$attribute: CustomPage("Screens/Trends/Overview")
+$attribute: CustomPage(StoryTitles.Prefix + "Screens/Trends/Overview")
 ---
 
 # Trends
@@ -53,6 +53,6 @@ Every bar and calendar day is a button (the charts get `OnSelect`), so a keyboar
 
 Dark theme: the same layout; switch the theme in the toolbar to see it.
 
-States: [Week](./?path=/story/screens-trends--week), [Month](./?path=/story/screens-trends--month), [Year](./?path=/story/screens-trends--year), [Loading](./?path=/story/screens-trends--loading), [Failed](./?path=/story/screens-trends--failed), [No data](./?path=/story/screens-trends--no-data), [Little data](./?path=/story/screens-trends--little-data)
+States: [Week](./?path=/story/calorie-tracker-screens-trends--week), [Month](./?path=/story/calorie-tracker-screens-trends--month), [Year](./?path=/story/calorie-tracker-screens-trends--year), [Loading](./?path=/story/calorie-tracker-screens-trends--loading), [Failed](./?path=/story/calorie-tracker-screens-trends--failed), [No data](./?path=/story/calorie-tracker-screens-trends--no-data), [Little data](./?path=/story/calorie-tracker-screens-trends--little-data)
 
 `data-testid`: `trends-period` (`-week`, `-month`, `-year`), `trends` (the stepper), `trends-label`, `trends-previous`, `trends-next`, `trends-average`, `trends-on-target`, `trends-streak`, `trends-logged`, `trends-lowest` (each with `-label`, `-value`, `-caption`, `-note`; a tile has no `-change`), `trends-days`, `trends-chart` (`-bar-<date>`), `trends-macros`, `trends-share`, `trends-meals`, `trends-meal-list`, `trends-calendar-card`, `trends-calendar` (`-day-<date>`), `trends-weeks`, `trends-weeks-chart`, `trends-months`, `trends-months-chart` (`-bar-<date>`), `trends-top`, `trends-top-list`, `trends-logged-card`, `trends-logged-list`, `trends-thin-note`, `trends-loading`, `trends-load-failed` (`-error`, `-retry`), `trends-empty`, `bottom-nav`, `trends-link`, `add-button`, `settings`.
