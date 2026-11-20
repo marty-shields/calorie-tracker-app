@@ -31,6 +31,22 @@ public class ServingViewTests : ComponentTestBase
     private static bool Exists(IRenderedComponent<ServingView> cut, string testId) => cut.FindAll($"[data-testid={testId}]").Count > 0;
 
     [Test]
+    public void Amount_UsesTheDecimalKeyboard_AndTheMinusIsOffAtZero()
+    {
+        var cut = Render(ScreenStates.Cheddar, EntryMode.Grams, 0, 0);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=serving-amount]").GetAttribute("inputmode"), Is.EqualTo("decimal"));
+            Assert.That(cut.Find("[data-testid=serving-amount-minus]").HasAttribute("disabled"), Is.True);
+        });
+    }
+
+    [Test]
+    public void Amount_MinusIsOnAboveZero() =>
+        Assert.That(Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30).Find("[data-testid=serving-amount-minus]").HasAttribute("disabled"), Is.False);
+
+    [Test]
     public void Title_IsTheFoodsName_AndPerLineGivesKcalAndMacros()
     {
         var cut = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30);
