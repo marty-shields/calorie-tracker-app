@@ -4,7 +4,6 @@ using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.History;
 using CalorieTracker.Core.Summary;
-using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Logging;
 using CalorieTracker.UI.Screens;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Time.Testing;
+using Shields.UI.Components.Feedback;
 using SQLite;
 
 namespace CalorieTracker.UI.Tests.Screens;

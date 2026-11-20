@@ -43,7 +43,6 @@ public partial class EventIdTests
             [UiEvent.TrendsLoadFailed] = 2402,
             [UiEvent.TrendsOpened] = 2403,
             [UiEvent.AppStartHandlerFailed] = 3201,
-            [UiEvent.LoadFailedFocusFailed] = 3301,
             [UiEvent.ThemeLoadFailed] = 3403,
             [UiEvent.ThemeSaveFailed] = 3404,
             [UiEvent.ThemeNotSaved] = 3405,

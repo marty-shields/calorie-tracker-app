@@ -60,8 +60,7 @@ internal enum UiEvent
     /// <summary><see cref="Lifecycle.AppLifecycle"/>: an app start handler failed.</summary>
     AppStartHandlerFailed = 3201,
 
-    /// <summary><see cref="Components.Feedback.LoadFailed"/>: focusing Try again failed.</summary>
-    LoadFailedFocusFailed = 3301,
+    // 3301 is retired: LoadFailed moved to the shared kit, which logs it as KitEvent.LoadFailedFocusFailed.
 
     /// <summary><see cref="Screens.SettingsPage"/>: reading the saved theme failed.</summary>
     ThemeLoadFailed = 3403,

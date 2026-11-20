@@ -1,4 +1,5 @@
 using CalorieTracker.Core.Diary;
+using Shields.UI.Components.Feedback;
 
 namespace CalorieTracker.UI.Components.Feedback;
 

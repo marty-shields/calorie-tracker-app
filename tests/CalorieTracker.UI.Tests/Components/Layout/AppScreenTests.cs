@@ -1,4 +1,3 @@
-using CalorieTracker.UI.Components.Actions;
 using CalorieTracker.UI.Components.Layout;
 using CalorieTracker.UI.Logging;
 using CalorieTracker.UI.Navigation;
@@ -7,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.JSInterop;
+using Shields.UI.Components.Actions;
 
 namespace CalorieTracker.UI.Tests.Components.Layout;
 

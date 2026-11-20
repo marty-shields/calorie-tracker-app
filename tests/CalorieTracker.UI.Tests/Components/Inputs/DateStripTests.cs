@@ -36,7 +36,6 @@ public class DateStripTests : ComponentTestBase
     [Test]
     public void Targets_AreAtLeast48px()
     {
-        var iconButton = CssWithoutComments("IconButton.razor.css");
         var tokens = DesignTokens.KitTokensCss;
         var label = RepoFiles.Rule(CssWithoutComments("DateStrip.razor.css"), "label");
         var cut = Render(Today);
@@ -44,8 +43,6 @@ public class DateStripTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(tokens, Does.Match(@"--touch-target\s*:\s*48px\s*;"));
-            Assert.That(iconButton, Does.Match(@"min-width\s*:\s*var\(--touch-target\)"));
-            Assert.That(iconButton, Does.Match(@"min-height\s*:\s*var\(--touch-target\)"));
             Assert.That(label, Does.Match(@"min-height\s*:\s*var\(--touch-target\)"));
             Assert.That(cut.FindAll("button.icon-btn"), Has.Count.EqualTo(2));
             Assert.That(cut.FindAll("button.icon-btn.compact"), Is.Empty);
