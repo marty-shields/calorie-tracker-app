@@ -2,13 +2,13 @@ using CalorieTracker.Core;
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Services;
 using CalorieTracker.Core.Targets;
-using CalorieTracker.UI.Components.Inputs;
 using CalorieTracker.UI.Logging;
 using CalorieTracker.UI.Screens;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.JSInterop;
+using Shields.UI.Components.Inputs;
 using Shields.UI.Theme;
 
 namespace CalorieTracker.UI.Tests.Screens;

@@ -21,5 +21,9 @@ public class TestIdTests : ComponentTestBase
 
     private static bool IsInteractive(IElement element) =>
         element.LocalName is "button" or "input" or "select" or "textarea" or "a"
-        || element.Attributes.Any(a => a.Name == "blazor:onclick");
+        || element.Attributes.Any(a => a.Name == "blazor:onclick") && !IsNumberFieldBox(element);
+
+    // The kit's number field focuses its input when the padding or unit is clicked; the input inside carries the test id.
+    private static bool IsNumberFieldBox(IElement element) =>
+        element.LocalName == "div" && element.ClassList.Contains("box") && element.QuerySelector("input[data-testid]") is not null;
 }

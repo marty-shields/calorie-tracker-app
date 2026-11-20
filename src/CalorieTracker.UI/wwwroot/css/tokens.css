@@ -1,8 +1,5 @@
 /* This app's own tokens. The shared ones (colours, type, space, radii, touch targets) come from Shields.UI's tokens.css, loaded before this file. */
 :root {
-    /* Temporary: the app's value, which differs from the kit's. Removed when the inputs move to the kit (#154). */
-    --color-chip-soft: light-dark(#92b6b5, #466161);
-    --color-on-chip-soft: light-dark(#243d3d, #e4ecec);
     /* The calorie ring's track: 3:1 against the card, and the accent and error arcs keep 3:1 against it (accent is a darkened teal; error is darker in light and lighter in dark for that). */
     --color-ring-track: light-dark(#829493, #667476);
     /* The energy share bar's segments. */

@@ -98,13 +98,10 @@ public class AddSheetTests : ComponentTestBase
             Assert.That(css, Does.Contain("width: var(--sheet-handle-width);").And.Contain("height: var(--sheet-handle-height);"));
             Assert.That(css, Does.Contain("grid-auto-rows: minmax(var(--sheet-tile-min-height), auto);").And.Contain("--icon-size: var(--sheet-tile-icon-size);"));
             Assert.That(css, Does.Not.Contain("chip-soft"), "the usual + is an IconButton Soft, not restyled here");
-            foreach (var token in new[] { "--sheet-handle-width", "--sheet-handle-height", "--sheet-tile-min-height", "--sheet-tile-icon-size", "--color-chip-soft", "--color-on-chip-soft" })
+            foreach (var token in new[] { "--sheet-handle-width", "--sheet-handle-height", "--sheet-tile-min-height", "--sheet-tile-icon-size" })
             {
                 Assert.That(tokens, Does.Contain(token + ":"), token);
             }
-
-            Assert.That(tokens, Does.Match(@"--color-chip-soft: light-dark\(#[0-9a-f]{6}, #[0-9a-f]{6}\);"));
-            Assert.That(tokens, Does.Match(@"--color-on-chip-soft: light-dark\(#[0-9a-f]{6}, #[0-9a-f]{6}\);"));
         });
     }
 

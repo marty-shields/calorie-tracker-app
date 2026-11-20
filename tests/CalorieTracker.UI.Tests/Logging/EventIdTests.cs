@@ -53,7 +53,6 @@ public partial class EventIdTests
             [UiEvent.ScanLookupStarted] = 3601,
             [UiEvent.ScanLookupFinished] = 3602,
             [UiEvent.ScanCameraUnavailable] = 3603,
-            [UiEvent.NumberFieldFocusFailed] = 3701,
             [UiEvent.UndoFailed] = 3801,
             [UiEvent.RestoreFailed] = 3802,
             [UiEvent.FavouriteReadFailed] = 3901,
@@ -62,7 +61,7 @@ public partial class EventIdTests
         }));
 
     /// <summary>Ids that were used once and must never be given to another event.</summary>
-    private static readonly int[] RetiredUiEvents = [3301, 3502];
+    private static readonly int[] RetiredUiEvents = [3301, 3502, 3701];
 
     [Test]
     public void UiEvent_NoValueUsesARetiredId() =>

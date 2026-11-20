@@ -94,8 +94,7 @@ internal enum UiEvent
     /// <summary><see cref="Screens.ScanPage"/>: the scanner ended without a barcode because the camera is unavailable.</summary>
     ScanCameraUnavailable = 3603,
 
-    /// <summary><see cref="Components.Inputs.NumberField"/>: focusing the field when it first showed failed.</summary>
-    NumberFieldFocusFailed = 3701,
+    // 3701 is retired: NumberField moved to the shared kit, which logs it as KitEvent.NumberFieldFocusFailed.
 
     /// <summary><see cref="Screens.ServingPage"/>: Undo could not remove the entry just added, with the status.</summary>
     UndoFailed = 3801,
