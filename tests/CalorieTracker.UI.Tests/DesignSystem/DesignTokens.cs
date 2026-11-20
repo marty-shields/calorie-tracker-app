@@ -6,25 +6,22 @@ namespace CalorieTracker.UI.Tests.DesignSystem;
 /// <summary>Custom properties declared in the kit's tokens.css and base.css and in this app's tokens.css, which is loaded after the kit's and so wins.</summary>
 internal static partial class DesignTokens
 {
-    private static readonly string AppTokensCss = RepoFiles.Read("src", "CalorieTracker.UI", "wwwroot", "css", "tokens.css");
+    /// <summary>This app's tokens.css: only the tokens the kit does not declare, and a few temporary overrides.</summary>
+    public static string AppCss { get; } = RepoFiles.Read("src", "CalorieTracker.UI", "wwwroot", "css", "tokens.css");
 
     /// <summary>The kit's tokens.css, from the Shields.UI package (or the kit checkout with UseKitSource).</summary>
     public static string KitTokensCss { get; } = RepoFiles.ReadKit("tokens.css");
 
-    /// <summary>The kit's base.css.</summary>
     public static string KitBaseCss { get; } = RepoFiles.ReadKit("base.css");
-
-    /// <summary>This app's tokens.css: only the tokens the kit does not declare, and a few temporary overrides.</summary>
-    public static string AppCss => AppTokensCss;
 
     /// <summary>Names of every custom property declared in either tokens.css or the kit's base.css.</summary>
     public static IReadOnlySet<string> Names { get; } =
-        Declaration().Matches(KitTokensCss + KitBaseCss + AppTokensCss).Select(m => m.Groups[1].Value).ToHashSet();
+        Declaration().Matches(KitTokensCss + KitBaseCss + AppCss).Select(m => m.Groups[1].Value).ToHashSet();
 
     /// <summary>Light and dark value of a colour token: a <c>light-dark()</c> pair or one hex value for both.</summary>
     public static (Rgb Light, Rgb Dark) Colour(string name)
     {
-        var value = Declaration().Matches(AppTokensCss + KitTokensCss).First(m => m.Groups[1].Value == name).Groups[2].Value.Trim();
+        var value = Declaration().Matches(AppCss + KitTokensCss).First(m => m.Groups[1].Value == name).Groups[2].Value.Trim();
         var hexes = Hex().Matches(value).Select(m => Rgb.Parse(m.Value)).ToList();
         return hexes.Count == 1 ? (hexes[0], hexes[0]) : (hexes[0], hexes[1]);
     }

@@ -26,6 +26,23 @@ public class UiServiceCollectionExtensionsTests
     }
 
     [Test]
+    public void AddUi_RegistersTheKitsOwnServicesAlongsideTheApps()
+    {
+        var services = new ServiceCollection().AddUi();
+
+        Assert.That(services.Where(s => s.ServiceType.Namespace!.StartsWith("Shields.UI")).Select(s => (s.ServiceType, s.Lifetime)), Is.EquivalentTo(new[]
+        {
+            (typeof(Shields.UI.Navigation.IBackButton), ServiceLifetime.Scoped),
+            (typeof(Shields.UI.Lifecycle.AppLifecycle), ServiceLifetime.Scoped),
+            (typeof(Shields.UI.Lifecycle.IAppStart), ServiceLifetime.Scoped),
+            (typeof(Shields.UI.Lifecycle.IAppLifecycle), ServiceLifetime.Scoped),
+            (typeof(Shields.UI.Components.Feedback.SnackbarService), ServiceLifetime.Scoped),
+            (typeof(ThemeService), ServiceLifetime.Scoped),
+            (typeof(SystemBarInsetWriter), ServiceLifetime.Scoped),
+        }));
+    }
+
+    [Test]
     public void AddUi_RegistersTheKitsThemeServiceAndInsetWriterOnce()
     {
         var services = new ServiceCollection().AddUi();

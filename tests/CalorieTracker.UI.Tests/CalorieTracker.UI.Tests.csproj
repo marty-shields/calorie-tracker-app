@@ -14,7 +14,7 @@
   <!-- Where the tests find the kit's tokens.css and base.css: the package's static assets, or the checkout with UseKitSource. -->
   <PropertyGroup>
     <KitCssFolder Condition="'$(UseKitSource)' == 'true'">$(KitPath)/src/Shields.UI/wwwroot/css</KitCssFolder>
-    <KitCssFolder Condition="'$(UseKitSource)' != 'true'">$(NuGetPackageRoot)shields.ui/$(ShieldsUiVersion)/staticwebassets/css</KitCssFolder>
+    <KitCssFolder Condition="'$(UseKitSource)' != 'true'">$(NuGetPackageRoot)shields.ui/$(ShieldsUiVersion.ToLowerInvariant())/staticwebassets/css</KitCssFolder>
   </PropertyGroup>
 
   <ItemGroup>
