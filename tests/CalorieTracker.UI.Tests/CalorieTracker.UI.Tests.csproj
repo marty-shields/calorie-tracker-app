@@ -6,12 +6,21 @@
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
   </ItemGroup>
 
+  <!-- The kit's test helpers (KitCss, KitNames, DesignTokens) come from the Shields.UI.Testing package, or the checkout with UseKitSource. -->
+  <ItemGroup Condition="'$(UseKitSource)' != 'true'">
+    <PackageReference Include="Shields.UI.Testing" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseKitSource)' == 'true'">
+    <ProjectReference Include="$(KitPath)/src/Shields.UI.Testing/Shields.UI.Testing.csproj" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\CalorieTracker.UI\CalorieTracker.UI.csproj" />
     <ProjectReference Include="..\..\src\CalorieTracker.UI.Stories\CalorieTracker.UI.Stories.csproj" />
   </ItemGroup>
 
-  <!-- Where the tests find the kit's tokens.css and base.css: the package's static assets, or the checkout with UseKitSource. -->
+  <!-- Where the tests find the kit components' scoped css: the package's static assets, or the checkout with UseKitSource. -->
   <PropertyGroup>
     <KitCssFolder Condition="'$(UseKitSource)' == 'true'">$(KitPath)/src/Shields.UI/wwwroot/css</KitCssFolder>
     <KitCssFolder Condition="'$(UseKitSource)' != 'true'">$(NuGetPackageRoot)shields.ui/$(ShieldsUiVersion.ToLowerInvariant())/staticwebassets/css</KitCssFolder>

@@ -1,73 +1,46 @@
+using Shields.UI.Testing;
+using static Shields.UI.Testing.ContrastCheck;
+
 namespace CalorieTracker.UI.Tests.DesignSystem;
 
+/// <summary>Contrast of the tokens only this app declares; the kit's own pairs are checked by the kit.</summary>
 public class ContrastTests
 {
-    private const double Text = 4.5;
-    private const double LargeTextOrControl = 3.0;
-
     // Minimums are WCAG AA contrast ratios.
     private static readonly (string Foreground, string Background, double Minimum)[] Pairs =
     [
-        ("--color-text", "--color-bg", Text),
-        ("--color-text", "--color-surface", Text),
-        ("--color-text", "--color-selected", Text),
-        ("--color-text-muted", "--color-bg", Text),
-        ("--color-text-muted", "--color-surface", Text),
-        ("--color-error", "--color-bg", Text),
-        ("--color-error", "--color-surface", Text),
-        ("--color-success", "--color-bg", Text),
-        ("--color-success", "--color-surface", Text),
         ("--color-protein", "--color-bg", LargeTextOrControl),
         ("--color-protein", "--color-surface", LargeTextOrControl),
         ("--color-carbs", "--color-bg", LargeTextOrControl),
         ("--color-carbs", "--color-surface", LargeTextOrControl),
         ("--color-fat", "--color-bg", LargeTextOrControl),
         ("--color-fat", "--color-surface", LargeTextOrControl),
-        ("--color-on-chip", "--color-chip", Text),
-        ("--color-chip", "--color-bg", LargeTextOrControl),
-        ("--color-chip", "--color-surface", LargeTextOrControl),
-        ("--color-on-bar", "--color-bar", Text),
-        ("--color-on-bar-muted", "--color-bar", Text),
-        ("--color-on-primary", "--color-primary", Text),
-        ("--color-on-secondary", "--color-secondary", Text),
-        ("--color-on-danger", "--color-danger", Text),
-        ("--color-on-inverse-surface", "--color-inverse-surface", Text),
-        ("--color-inverse-primary", "--color-inverse-surface", Text),
-        ("--color-accent", "--color-surface", LargeTextOrControl),
-        ("--color-accent", "--color-bg", LargeTextOrControl),
         ("--color-accent", "--color-ring-track", LargeTextOrControl),
         ("--color-error", "--color-ring-track", LargeTextOrControl),
         ("--color-ring-track", "--color-surface", LargeTextOrControl),
-        ("--color-border-strong", "--color-bg", LargeTextOrControl),
-        ("--color-border-strong", "--color-surface", LargeTextOrControl),
-        ("--color-focus", "--color-bg", LargeTextOrControl),
-        ("--color-focus", "--color-surface", LargeTextOrControl),
     ];
 
     private static IEnumerable<TestCaseData> Cases() =>
-        Pairs.SelectMany(p => new[] { "light", "dark" }.Select(theme =>
-            new TestCaseData(p.Foreground, p.Background, p.Minimum, theme)
-                .SetArgDisplayNames($"{p.Foreground} on {p.Background} ({theme})")));
+        Pairs.SelectMany(p => Enum.GetValues<ColourScheme>().Select(scheme =>
+            new TestCaseData(p.Foreground, p.Background, p.Minimum, scheme)
+                .SetArgDisplayNames($"{p.Foreground} on {p.Background} ({scheme})")));
 
     [TestCaseSource(nameof(Cases))]
-    public void Pair_MeetsWcagAA(string foreground, string background, double minimum, string theme)
+    public void Pair_MeetsWcagAA(string foreground, string background, double minimum, ColourScheme scheme)
     {
-        var fg = Pick(DesignTokens.Colour(foreground), theme);
-        var bg = Pick(DesignTokens.Colour(background), theme);
+        var result = Measure(AppTokens.KitAndAppCss, foreground, background, minimum, scheme);
 
-        Assert.That(Rgb.Contrast(fg, bg), Is.GreaterThanOrEqualTo(minimum), $"{fg} on {bg}");
+        Assert.That(result.Passes, Is.True, result.ToString());
     }
 
     // The App keeps the status bar's icons light (StatusBarTheme.Dark in App.xaml.cs) in both themes, and Android draws them
     // white over the top bar.
-    [TestCase("light")]
-    [TestCase("dark")]
-    public void StatusBarIcons_OnTheTopBar_MeetWcagAA(string theme)
+    [TestCase(ColourScheme.Light)]
+    [TestCase(ColourScheme.Dark)]
+    public void StatusBarIcons_OnTheTopBar_MeetWcagAA(ColourScheme scheme)
     {
-        var bar = Pick(DesignTokens.Colour("--color-bar"), theme);
+        var bar = AppTokens.Colour("--color-bar").In(scheme);
 
         Assert.That(Rgb.Contrast(Rgb.Parse("#ffffff"), bar), Is.GreaterThanOrEqualTo(LargeTextOrControl), $"#ffffff on {bar}");
     }
-
-    private static Rgb Pick((Rgb Light, Rgb Dark) colour, string theme) => theme == "light" ? colour.Light : colour.Dark;
 }

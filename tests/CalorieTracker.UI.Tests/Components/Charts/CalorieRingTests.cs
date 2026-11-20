@@ -86,7 +86,7 @@ public class CalorieRingTests : ComponentTestBase
     public void Compact_UsesTheCompactTokens()
     {
         var css = RepoFiles.Read("src", "CalorieTracker.UI", "Components", "Charts", "CalorieRing.razor.css");
-        var tokens = DesignTokens.AppCss;
+        var tokens = AppTokens.AppCss;
         var normal = Context.Render<CalorieRing>(p => p.Add(x => x.Eaten, 100).Add(x => x.TestId, "ring"));
         var compact = Context.Render<CalorieRing>(p => p.Add(x => x.Eaten, 100).Add(x => x.Compact, true).Add(x => x.TestId, "ring"));
 
