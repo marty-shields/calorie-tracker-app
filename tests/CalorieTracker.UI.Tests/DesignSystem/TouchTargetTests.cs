@@ -32,6 +32,22 @@ public partial class TouchTargetTests
         });
     }
 
+    [Test]
+    public void KitIconButton_IsATouchTargetAndCompactIsTheCompactOne()
+    {
+        var css = RepoFiles.ReadKitComponentCss();
+        var button = RepoFiles.Rule(css, "icon-btn");
+        var compact = RepoFiles.Rule(css, "compact");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(button, Does.Contain($"min-width: {TouchTarget}"));
+            Assert.That(button, Does.Contain($"min-height: {TouchTarget}"));
+            Assert.That(compact, Does.Contain("min-width: var(--touch-target-compact)"));
+            Assert.That(compact, Does.Contain("min-height: var(--touch-target-compact)"));
+        });
+    }
+
     private static string? FirstClass(string attributes) =>
         Class().Match(attributes) is { Success: true } m
             ? m.Groups[1].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault(c => !c.StartsWith('@'))

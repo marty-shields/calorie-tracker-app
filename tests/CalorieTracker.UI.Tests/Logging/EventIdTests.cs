@@ -4,7 +4,7 @@ using CalorieTracker.UI.Logging;
 namespace CalorieTracker.UI.Tests.Logging;
 
 /// <summary>
-/// Event ids are named values: <c>UiEvent</c> 2000–4999 here, <c>AppEvent</c> 5000+ (the App can't be referenced, so its file is read),
+/// Event ids are named values: <c>UiEvent</c> 2000–4999 here, <c>AppEvent</c> 5000–8999 (the App can't be referenced, so its file is read),
 /// <c>CoreEvent</c> in Core.Tests. Values are unique and fixed. No <c>[LoggerMessage]</c> in the source uses a bare number.
 /// </summary>
 public partial class EventIdTests
@@ -70,7 +70,7 @@ public partial class EventIdTests
         {
             Assert.That(values, Is.Not.Empty);
             Assert.That(values, Is.Unique);
-            Assert.That(values, Is.All.GreaterThanOrEqualTo(5000));
+            Assert.That(values, Is.All.InRange(5000, 8999));
         });
     }
 

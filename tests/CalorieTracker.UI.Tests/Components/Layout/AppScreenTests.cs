@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.JSInterop;
 using Shields.UI.Components.Actions;
+using Shields.UI.Components.Feedback;
 
 namespace CalorieTracker.UI.Tests.Components.Layout;
 
@@ -360,6 +361,24 @@ public class AppScreenTests : ComponentTestBase
         await Context.DisposeComponentsAsync();
 
         module.Invocations["detach"].Single().Arguments[0].ShouldBeElementReferenceTo(main);
+    }
+
+    [Test]
+    public async Task SnackbarPostedBeforeAScreenChange_ShowsOnTheNextScreenInTheStatusSlot()
+    {
+        Context.Services.GetRequiredService<SnackbarService>().Show("Entry deleted", "Undo", () => Task.CompletedTask);
+
+        var next = Context.Render<AppScreen>(p => p
+            .Add(x => x.Title, "Foods")
+            .Add(x => x.Destination, NavDestination.Today)
+            .Add(x => x.Status, (RenderFragment)(b =>
+            {
+                b.OpenComponent<Snackbar>(0);
+                b.CloseComponent();
+            })));
+        await WaitForRendererAsync();
+
+        Assert.That(next.Find(".status-slot [data-testid=snackbar-message]").TextContent, Is.EqualTo("Entry deleted"));
     }
 
     private BunitJSModuleInterop PullModule()

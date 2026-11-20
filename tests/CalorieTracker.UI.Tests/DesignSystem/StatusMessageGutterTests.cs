@@ -24,13 +24,10 @@ public partial class StatusMessageGutterTests
         return margins[0].Groups["value"].Value.Trim();
     }
 
-    /// <summary>The margin of the kit's <c>Snackbar</c> (Shields.UI), which the in-page status message lines up with.</summary>
-    private const string KitSnackbarMargin = "0 var(--space-4) var(--space-2)";
-
     [Test]
     public void ServingStatusError_HasTheSnackbarMargins()
     {
-        const string snackbar = KitSnackbarMargin;
+        var snackbar = MarginOf(RepoFiles.Rule(RepoFiles.ReadKitComponentCss(), "snackbar"), "the kit's Snackbar", "snackbar");
 
         var css = CommentRegex().Replace(RepoFiles.Read("src", "CalorieTracker.UI", "Screens/ServingView.razor.css"), "");
         var rule = Regex.Match(css, @"\.error\.status-error\s*\{(?<body>[^}]*)\}");
