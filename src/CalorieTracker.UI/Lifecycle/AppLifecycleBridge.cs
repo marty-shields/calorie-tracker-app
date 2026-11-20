@@ -1,18 +1,18 @@
 using Shields.UI.Lifecycle;
 
-namespace CalorieTracker.App.Lifecycle;
+namespace CalorieTracker.UI.Lifecycle;
 
 /// <summary>
-/// Passes the activity's create, start and destroy to the kit's <see cref="IAppLifecycle"/>.
-/// The lifecycle is scoped to the BlazorWebView, so <c>Routes</c> hands it over with <see cref="Connect"/> once its scope exists, and takes it back with <see cref="Disconnect(IAppLifecycle)"/>.
+/// Joins the host's current activity to the kit's <see cref="IAppLifecycle"/>, which is scoped to the BlazorWebView.
+/// The host's <c>Routes</c> hands the scoped lifecycle over with <see cref="Connect"/> once its scope exists and takes it back with <see cref="Disconnect(IAppLifecycle)"/>.
 /// </summary>
-internal sealed class AndroidAppLifecycle
+public sealed class AppLifecycleBridge
 {
-    private Android.App.Activity? current;
+    private object? current;
     private IAppLifecycle? lifecycle;
 
     /// <summary>Makes a created activity current, which removes the earlier activity's handlers.</summary>
-    public void Attach(Android.App.Activity activity)
+    public void Attach(object activity)
     {
         current = activity;
         lifecycle?.Attach(activity);
@@ -40,13 +40,14 @@ internal sealed class AndroidAppLifecycle
     /// <summary>Runs the pages' start handlers. Does nothing before the pages exist: they run their own first load.</summary>
     public Task StartedAsync() => lifecycle?.NotifyStartedAsync() ?? Task.CompletedTask;
 
-    /// <summary>Removes the handlers when the current activity is destroyed. An earlier activity is ignored.</summary>
-    public void Detach(Android.App.Activity activity)
+    /// <summary>Removes the handlers and stops following the lifecycle when the current activity is destroyed: its pages are not disposed with it. An earlier activity is ignored.</summary>
+    public void Detach(object activity)
     {
         if (ReferenceEquals(activity, current))
         {
             current = null;
             lifecycle?.Detach(activity);
+            lifecycle = null;
         }
     }
 }
