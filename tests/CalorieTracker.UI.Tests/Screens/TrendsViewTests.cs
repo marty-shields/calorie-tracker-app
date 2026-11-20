@@ -347,15 +347,17 @@ public class TrendsViewTests : ComponentTestBase
         });
     }
 
-    [Test]
-    public void TheArrows_AreNamedForThePeriod()
+    [TestCase(TrendsPeriod.Week, "week")]
+    [TestCase(TrendsPeriod.Month, "month")]
+    [TestCase(TrendsPeriod.Year, "year")]
+    public void TheArrows_AreNamedForThePeriod(TrendsPeriod period, string unit)
     {
-        var cut = Month();
+        var cut = period switch { TrendsPeriod.Week => Week(), TrendsPeriod.Month => Month(), _ => Year() };
 
         Assert.Multiple(() =>
         {
-            Assert.That(cut.Find("[data-testid=trends-previous]").GetAttribute("aria-label"), Is.EqualTo("Previous month"));
-            Assert.That(cut.Find("[data-testid=trends-next]").GetAttribute("aria-label"), Is.EqualTo("Next month"));
+            Assert.That(cut.Find("[data-testid=trends-previous]").GetAttribute("aria-label"), Is.EqualTo($"Previous {unit}"));
+            Assert.That(cut.Find("[data-testid=trends-next]").GetAttribute("aria-label"), Is.EqualTo($"Next {unit}"));
         });
     }
 
@@ -486,6 +488,29 @@ public class TrendsViewTests : ComponentTestBase
             Assert.That(items[2].QuerySelector(".marker")!.TextContent, Is.EqualTo("▲"));
             Assert.That(items[0].QuerySelector(".marker"), Is.Null);
             Assert.That(Text(cut, "trends-legend-2"), Does.Contain("Over"));
+        });
+    }
+
+    [Test]
+    public void Legend_InMonth_AddsNotLoggedOnAnOutlineSwatchBeforeTheTarget()
+    {
+        var cut = Month();
+
+        var items = cut.FindAll("[data-testid^=trends-legend-]").Where(e => e.LocalName == "li").ToList();
+
+        Assert.That(items.Select(i => i.QuerySelector(".swatch")!.ClassList.Last()), Is.EqualTo(new[] { "chip", "accent", "error", "outline", "line" }));
+        Assert.That(Text(cut, "trends-legend-3"), Is.EqualTo("Not logged"));
+    }
+
+    [Test]
+    public void Year_WithNoMonthOfEnoughDays_HasNoLowestMonth()
+    {
+        var cut = YearWith((b, _) => b with { DaysLogged = 2 });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Exists(cut, "trends-lowest-caption"), Is.False);
+            Assert.That(Text(cut, "trends-lowest-note"), Is.EqualTo("Not enough data yet"));
         });
     }
 }
