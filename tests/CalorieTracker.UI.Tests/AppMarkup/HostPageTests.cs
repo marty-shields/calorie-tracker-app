@@ -28,6 +28,25 @@ public class HostPageTests
         });
     }
 
+    [TestCase("iframe.html")]
+    [TestCase("index.html")]
+    public void StoriesHost_LoadsTheStoriesStylesAndTheirTokensAfterTheKitTokens(string file)
+    {
+        var page = RepoFiles.Read("src", "CalorieTracker.UI.Stories.Host", "wwwroot", file);
+
+        var blazorUi = page.IndexOf("_content/Shields.UI.Stories/css/blazor-ui.css", StringComparison.Ordinal);
+        var storiesTokens = page.IndexOf("_content/Shields.UI.Stories/css/tokens.css", StringComparison.Ordinal);
+        Assert.Multiple(() =>
+        {
+            Assert.That(blazorUi, Is.GreaterThanOrEqualTo(0), "blazor-ui.css is not loaded");
+            Assert.That(storiesTokens, Is.GreaterThanOrEqualTo(0), "the stories tokens.css is not loaded");
+            if (file == "iframe.html")
+            {
+                Assert.That(storiesTokens, Is.GreaterThan(page.IndexOf("_content/Shields.UI/css/tokens.css", StringComparison.Ordinal)), "the stories tokens come after the kit's");
+            }
+        });
+    }
+
     [Test]
     public void LocalThemeScriptAndBaseStyles_AreGone() =>
         Assert.Multiple(() =>

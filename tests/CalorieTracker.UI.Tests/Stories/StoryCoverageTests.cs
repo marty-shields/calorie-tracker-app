@@ -63,7 +63,7 @@ public partial class StoryCoverageTests
     {
         var titles = StoriesFiles("").Select(f => f.Title.Split('/')).Select(t => $"{t[0]}/{t[1]}").Distinct();
 
-        Assert.That(titles, Is.SubsetOf(new[] { "Calorie Tracker/Foundations", "Calorie Tracker/Components", "Calorie Tracker/Screens" }));
+        Assert.That(titles, Is.SubsetOf(new[] { "Foundations", "Components", "Screens" }.Select(section => StoryTitles.Prefix + section)));
     }
 
     [Test]
