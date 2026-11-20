@@ -4,7 +4,7 @@ $attribute: CustomPage("Foundations/Navigation")
 
 # Navigation
 
-The app opens on [Startup](./?path=/custom/screens-startup-overview), then Today (`DashboardPage`, `/`).
+The app opens on the kit's start-up screen (`StartupGate`), then Today (`DashboardPage`, `/`).
 
 Today (the **Today** item; `DashboardPage` in the code) and [Trends](./?path=/custom/screens-trends-overview) (the **Trends** item, right of Add) are the top-level screens: each shows the navigation bar ([`BottomNav`](./?path=/custom/components-layout-overview)) and has no back arrow. Android back leaves the app from Today, the start destination, and goes to Today from Trends. The bar's raised **Add** button is an action, not a destination: it opens the [`AddSheet`](./?path=/custom/components-layout-overview), whose Search foods and Scan barcode open [food search](./?path=/custom/screens-foodsearch-overview) and [Scan](./?path=/custom/screens-scan-overview) for a meal and a day, each with a back arrow. Add a `NavDestination` and its `NavDestinations` entry for each new top-level screen.
 

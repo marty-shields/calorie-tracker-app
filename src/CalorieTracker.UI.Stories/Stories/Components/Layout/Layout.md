@@ -57,13 +57,3 @@ The modal bottom sheet the bar's Add button opens, on Today and on Trends (both 
 - `data-testid`: `add-sheet`, `add-sheet-scrim`, `add-sheet-handle`, `add-sheet-meals`, `add-sheet-meal-<meal>`, `add-sheet-search`, `add-sheet-scan`, `add-sheet-usual`, `add-sheet-usual-<foodId>`, `add-sheet-usual-<foodId>-add` (also `-title` and `-detail`), `add-sheet-add-error`.
 
 Stories: [AddSheet](./?path=/docs/components-layout-addsheet--docs), one for each guessed meal, and with usual foods, without them, with a failed read and with a failed add.
-
-## `StartupGate`
-Runs `Initialize` once at startup. Shows the [Startup](./?path=/custom/screens-startup-overview) screen while it runs or if it throws, then `ChildContent`.
-
-Stories: [StartupGate](./?path=/docs/components-layout-startupgate--docs)
-
-## `AppErrorBoundary`
-Shows `ChildContent` until it throws an unhandled error, then logs the error and shows the [Error](./?path=/custom/screens-error-overview) screen. **Restart** raises `OnRestart`, then shows `ChildContent` again.
-
-Stories: [AppErrorBoundary](./?path=/docs/components-layout-apperrorboundary--docs)

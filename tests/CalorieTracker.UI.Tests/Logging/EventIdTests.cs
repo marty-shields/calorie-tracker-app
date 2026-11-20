@@ -25,12 +25,6 @@ public partial class EventIdTests
     public void UiEvent_ValuesAreFixed() =>
         Assert.That(Enum.GetValues<UiEvent>().ToDictionary(e => e, e => (int)e), Is.EqualTo(new Dictionary<UiEvent, int>
         {
-            [UiEvent.StartupFinished] = 2001,
-            [UiEvent.StartupFailed] = 2002,
-            [UiEvent.ScreenError] = 2101,
-            [UiEvent.BackHandled] = 2201,
-            [UiEvent.BackNotHandled] = 2202,
-            [UiEvent.BackHandlerFailed] = 2203,
             [UiEvent.AddSheetOpened] = 2301,
             [UiEvent.AddSheetChose] = 2302,
             [UiEvent.AddSheetFocusFailed] = 2303,
@@ -42,7 +36,6 @@ public partial class EventIdTests
             [UiEvent.TrendsLoaded] = 2401,
             [UiEvent.TrendsLoadFailed] = 2402,
             [UiEvent.TrendsOpened] = 2403,
-            [UiEvent.AppStartHandlerFailed] = 3201,
             [UiEvent.ThemeLoadFailed] = 3403,
             [UiEvent.ThemeSaveFailed] = 3404,
             [UiEvent.ThemeNotSaved] = 3405,
@@ -61,7 +54,7 @@ public partial class EventIdTests
         }));
 
     /// <summary>Ids that were used once and must never be given to another event.</summary>
-    private static readonly int[] RetiredUiEvents = [3301, 3502, 3701];
+    private static readonly int[] RetiredUiEvents = [2001, 2002, 2101, 2201, 2202, 2203, 3201, 3301, 3502, 3701];
 
     [Test]
     public void UiEvent_NoValueUsesARetiredId() =>

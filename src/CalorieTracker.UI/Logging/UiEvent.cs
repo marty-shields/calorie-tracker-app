@@ -6,23 +6,9 @@ namespace CalorieTracker.UI.Logging;
 /// </summary>
 internal enum UiEvent
 {
-    /// <summary><see cref="Components.Layout.StartupGate"/>: startup finished, with its duration.</summary>
-    StartupFinished = 2001,
-
-    /// <summary><see cref="Components.Layout.StartupGate"/>: startup failed.</summary>
-    StartupFailed = 2002,
-
-    /// <summary><see cref="Components.Layout.AppErrorBoundary"/>: unhandled error in a screen.</summary>
-    ScreenError = 2101,
-
-    /// <summary><see cref="Navigation.BackButton"/>: back handled by the page.</summary>
-    BackHandled = 2201,
-
-    /// <summary><see cref="Navigation.BackButton"/>: back pressed with no handler.</summary>
-    BackNotHandled = 2202,
-
-    /// <summary><see cref="Navigation.BackButton"/>: a back handler failed.</summary>
-    BackHandlerFailed = 2203,
+    // 2001 and 2002 are retired: StartupGate moved to the shared kit, which logs it as KitEvent.StartupFinished and StartupFailed.
+    // 2101 is retired: AppErrorBoundary moved to the shared kit, which logs it as KitEvent.ScreenError.
+    // 2201, 2202 and 2203 are retired: BackButton moved to the shared kit, which logs them as KitEvent values.
 
     /// <summary><see cref="Components.Layout.AddSheet"/>: the sheet opened, with the meal it guessed.</summary>
     AddSheetOpened = 2301,
@@ -57,8 +43,7 @@ internal enum UiEvent
     /// <summary><see cref="Screens.TrendsPage"/>: a day, week or month was opened from the screen; carries what was opened (day, week or month) and the period it was opened from.</summary>
     TrendsOpened = 2403,
 
-    /// <summary><see cref="Lifecycle.AppLifecycle"/>: an app start handler failed.</summary>
-    AppStartHandlerFailed = 3201,
+    // 3201 is retired: the app lifecycle moved to the shared kit, which logs it as KitEvent.AppStartHandlerFailed.
 
     // 3301 is retired: LoadFailed moved to the shared kit, which logs it as KitEvent.LoadFailedFocusFailed.
 
