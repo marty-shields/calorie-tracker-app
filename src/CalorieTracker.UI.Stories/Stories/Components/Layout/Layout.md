@@ -58,12 +58,6 @@ The modal bottom sheet the bar's Add button opens, on Today and on Trends (both 
 
 Stories: [AddSheet](./?path=/docs/components-layout-addsheet--docs), one for each guessed meal, and with usual foods, without them, with a failed read and with a failed add.
 
-## `SummaryCard`
-A card for a summary at the top of a screen: its content on `--color-surface`, with a `--color-border` line and `--radius-lg` corners, padded `--space-4`.
-- `data-testid`: `TestId`.
-
-Stories: [SummaryCard](./?path=/docs/components-layout-summarycard--docs)
-
 ## `StartupGate`
 Runs `Initialize` once at startup. Shows the [Startup](./?path=/custom/screens-startup-overview) screen while it runs or if it throws, then `ChildContent`.
 

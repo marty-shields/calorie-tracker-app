@@ -7,6 +7,7 @@ public class KitComponentsTests
         "AppButton", "ButtonVariant", "Icon", "IconName", "IconSize", "IconTone", "IconButton", "IconButtonStyle",
         "Spinner", "LoadFailed", "Snackbar", "SnackbarService",
         "SegmentedControl", "FilterChips", "NumberField", "TextField", "SelectField", "DateStrip", "DayLabel", "RadioOption",
+        "ListRow", "EmptyState", "SummaryCard", "StatTile", "ChartLegend", "LegendItem", "LegendKind",
     ];
 
     [TestCaseSource(nameof(KitComponents))]
