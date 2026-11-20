@@ -61,6 +61,13 @@ public partial class EventIdTests
             [UiEvent.PullRefreshFailed] = 4001,
         }));
 
+    /// <summary>Ids that were used once and must never be given to another event.</summary>
+    private static readonly int[] RetiredUiEvents = [3301, 3502];
+
+    [Test]
+    public void UiEvent_NoValueUsesARetiredId() =>
+        Assert.That(Enum.GetValues<UiEvent>().Select(e => (int)e), Has.None.AnyOf(RetiredUiEvents));
+
     [Test]
     public void AppEvent_ValuesAreUniqueAndInTheAppsRange()
     {
