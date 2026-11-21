@@ -26,12 +26,12 @@
       },
       "Shields.UI.Stories": {
         "type": "Direct",
-        "requested": "[1.0.0-pr.19.23, )",
-        "resolved": "1.0.0-pr.19.23",
-        "contentHash": "NtOuUDmT+24YRqAhUlA5R5o5pALjegVxF0Avh8zK9+P++1Jyp3J3GrFWnnvweiIbvRoZudg0h7lcYdxciL8jAQ==",
+        "requested": "[1.0.0-pr.19.25, )",
+        "resolved": "1.0.0-pr.19.25",
+        "contentHash": "zNm7MATEAi9pExvWGnR+6zUayT4j3UZAKneQgJRMyRLbf+do+BiN4izpqBAd0qn9zpE548RHXh7KaLd1HliTjA==",
         "dependencies": {
           "BlazingStory": "1.0.0-preview.97",
-          "Shields.UI": "1.0.0-pr.19.23"
+          "Shields.UI": "1.0.0-pr.19.25"
         }
       },
       "BlazingStory.Abstractions": {
@@ -218,7 +218,7 @@
         "dependencies": {
           "CalorieTracker.Core": "[1.0.0, )",
           "Microsoft.AspNetCore.Components.Web": "[11.0.0, )",
-          "Shields.UI": "[1.0.0-pr.19.23, )"
+          "Shields.UI": "[1.0.0-pr.19.25, )"
         }
       },
       "Microsoft.AspNetCore.Components.Web": {
@@ -251,9 +251,9 @@
       },
       "Shields.UI": {
         "type": "CentralTransitive",
-        "requested": "[1.0.0-pr.19.23, )",
-        "resolved": "1.0.0-pr.19.23",
-        "contentHash": "oPue78zJ8f4VAmP/9LVLmj+D6zt9uc2XKzk2+dTL2+38ZR5JGA9WJhG2EsV2I7qIB/vkmDXIn/jlx1YX9MRl8Q==",
+        "requested": "[1.0.0-pr.19.25, )",
+        "resolved": "1.0.0-pr.19.25",
+        "contentHash": "S8ONBwKRU70wPh8/Ll5lwo31RAv2L28/BKTNrwEGXNiC8wPr9EUgDmDbZ1+pdHzafx85Q9I2NTs6mE30qx98kw==",
         "dependencies": {
           "Microsoft.AspNetCore.Components.Web": "11.0.0"
         }

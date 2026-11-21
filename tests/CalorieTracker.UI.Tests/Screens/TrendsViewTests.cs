@@ -99,9 +99,9 @@ public class TrendsViewTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(cut.Find("[data-testid=trends-share]").GetAttribute("aria-label"), Does.StartWith("Average energy share: Protein "));
-            Assert.That(Text(cut, "trends-share-label-0"), Does.StartWith("Protein ").And.EndWith(" kcal"));
-            Assert.That(Text(cut, "trends-share-label-1"), Does.StartWith("Carbs ").And.EndWith(" kcal"));
-            Assert.That(Text(cut, "trends-share-label-2"), Does.StartWith("Fat ").And.EndWith(" kcal"));
+            Assert.That(Text(cut, "trends-share-label-0"), Is.EqualTo("Protein 182.6 g"));
+            Assert.That(Text(cut, "trends-share-label-1"), Does.StartWith("Carbs ").And.EndWith(" g"));
+            Assert.That(Text(cut, "trends-share-label-2"), Does.StartWith("Fat ").And.EndWith(" g"));
             Assert.That(cut.FindAll("[data-testid^=trends-share-segment-]").Select(e => e.ClassList.Single(c => c.StartsWith("series-", StringComparison.Ordinal))), Is.EqualTo(new[] { "series-1", "series-2", "series-3" }));
         });
     }

@@ -22,24 +22,6 @@
     gap: var(--space-4);
 }
 
-.ring-number {
-    font-size: var(--font-size-md);
-    font-weight: var(--font-weight-bold);
-    line-height: var(--line-height-tight);
-}
-
-.ring-number.over {
-    color: var(--color-ring-arc-over);
-}
-
-.ring-number.wider {
-    font-size: var(--font-size-sm);
-}
-
-.ring-number.widest {
-    font-size: var(--font-size-xs);
-}
-
 .figures {
     display: flex;
     flex-direction: column;
