@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Shields.UI.Testing;
 
 namespace CalorieTracker.UI.Tests.DesignSystem;
 
@@ -39,22 +40,31 @@ public partial class NoAppTokensTests
 
     /// <summary>Names of the custom properties a stylesheet declares (<c>--name:</c>); <c>var(--name)</c> uses and comments do not count.</summary>
     internal static IReadOnlySet<string> Declared(string css) =>
-        DeclarationPattern().Matches(CommentPattern().Replace(css, ""))
-            .Select(match => match.Groups["name"].Value)
+        DesignTokens.Declares(CommentPattern().Replace(css, "")).ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>Names of the custom properties declared in the inline <c>style="..."</c> values of markup.</summary>
+    internal static IReadOnlySet<string> DeclaredInline(string markup) =>
+        StylePattern().Matches(markup)
+            .SelectMany(match => DesignTokens.Declares(match.Groups["style"].Value + ";"))
             .ToHashSet(StringComparer.Ordinal);
 
-    private static HashSet<string> DeclaredInApp() =>
-        RepoFiles.Find("*.css", "src").SelectMany(file => Declared(File.ReadAllText(file))).ToHashSet(StringComparer.Ordinal);
+    private static IReadOnlySet<string> DeclaredInApp() =>
+        RepoFiles.Find("*.css", "src").SelectMany(file => Declared(File.ReadAllText(file))).ToHashSet(StringComparer.Ordinal)
+            .Union(RepoFiles.Find("*.razor", "src").SelectMany(file => DeclaredInline(File.ReadAllText(file))))
+            .ToHashSet(StringComparer.Ordinal);
 
     [Test]
-    public void AppCss_DeclaresOnlyPendingKitTokens() =>
+    public void App_DeclaresOnlyPendingKitTokens() =>
         Assert.That(DeclaredInApp().Where(name => !PendingKitTokens.ContainsKey(name)), Is.Empty,
             "declare a token in app-ui-kit, not in this app");
 
     [Test]
-    public void PendingKitTokens_AreAllStillDeclared() =>
-        Assert.That(PendingKitTokens.Keys.Where(name => !DeclaredInApp().Contains(name)), Is.Empty,
+    public void PendingKitTokens_AreAllStillDeclared()
+    {
+        var declared = DeclaredInApp();
+        Assert.That(PendingKitTokens.Keys.Where(name => !declared.Contains(name)), Is.Empty,
             "remove the token from PendingKitTokens: the list only shrinks");
+    }
 
     [Test]
     public void Declared_FindsDeclarationsButNotUsesOrComments() =>
@@ -62,8 +72,14 @@ public partial class NoAppTokensTests
             Declared("/* --old: 1 */ :root { --a: 1px; margin: var(--b); } .x { --c-d:2; width: calc(var(--e) * 2); }"),
             Is.EquivalentTo(new[] { "--a", "--c-d" }));
 
-    [GeneratedRegex(@"(?<![\w-])(?<name>--[\w-]+)\s*:")]
-    private static partial Regex DeclarationPattern();
+    [Test]
+    public void DeclaredInline_FindsCustomPropertiesInStyleAttributes() =>
+        Assert.That(
+            DeclaredInline("<span style=\"--x: var(--y)\"></span><div style=\"--fill: @Fill; --gap-x: var(--space-2)\" class=\"a\"></div><p style=\"margin: var(--z)\"></p>"),
+            Is.EquivalentTo(new[] { "--x", "--fill", "--gap-x" }));
+
+    [GeneratedRegex("\\bstyle=\"(?<style>[^\"]*)\"")]
+    private static partial Regex StylePattern();
 
     [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline)]
     private static partial Regex CommentPattern();

@@ -77,7 +77,7 @@ Cutting the first release needs the keystore and the `CERT_SHA256` pin: see [Rel
 ```
 src/
   CalorieTracker.App/          MAUI Blazor Hybrid host (Android): startup, DI, routing
-  CalorieTracker.UI/           Razor class library: screens, app-only components, the few design tokens the shared kit (Shields.UI) lacks
+  CalorieTracker.UI/           Razor class library: screens and food-specific rows, plus the few tokens and components still waiting to move to the shared kit (Shields.UI, #164)
   CalorieTracker.UI.Stories/   Razor class library: the BlazingStory stories for the UI
   CalorieTracker.UI.Stories.Host/  BlazingStory site that shows them (the kit's shell comes from Shields.UI.Stories)
   CalorieTracker.Core/         Data, schema upgrades, food lookup contracts (Foods), services, logging

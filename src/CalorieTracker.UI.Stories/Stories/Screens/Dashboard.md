@@ -6,7 +6,7 @@ $attribute: CustomPage(StoryTitles.Prefix + "Screens/Dashboard/Overview")
 
 Home screen, called **Today** in the app's design: the day diary. A date strip, a compact card with the day's calories and macros, then the four meals with their entries and a + each. The code keeps its old names: view `DashboardView`, page `DashboardPage`.
 
-`IconButton`, `Card`, `ListRow`, `BottomNav` and the snackbar here are components of the `Shields.UI` kit, not this app's; their stories are on the kit's stories site.
+`IconButton`, `Card`, `ListRow`, `BottomNav`, `DateStrip`, `EmptyState` and the snackbar here are components of the `Shields.UI` kit, not this app's; their stories are on the kit's stories site.
 
 | Part | Content |
 |---|---|
