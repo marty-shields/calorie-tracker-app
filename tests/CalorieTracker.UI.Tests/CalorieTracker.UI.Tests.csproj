@@ -16,18 +16,6 @@
     <ProjectReference Include="..\..\src\CalorieTracker.UI.Stories\CalorieTracker.UI.Stories.csproj" />
   </ItemGroup>
 
-  <!-- Where the tests find the kit components' scoped css: the package's static assets. -->
-  <PropertyGroup>
-    <KitCssFolder>$(NuGetPackageRoot)shields.ui/$(ShieldsUiVersion.ToLowerInvariant())/staticwebassets/css</KitCssFolder>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
-      <_Parameter1>KitCssFolder</_Parameter1>
-      <_Parameter2>$(KitCssFolder)</_Parameter2>
-    </AssemblyAttribute>
-  </ItemGroup>
-
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <Compile Include="..\..\src\CalorieTracker.App\Diagnostics\E2EClockPin.cs" Link="Scanning\E2EClockPin.cs" />
   </ItemGroup>

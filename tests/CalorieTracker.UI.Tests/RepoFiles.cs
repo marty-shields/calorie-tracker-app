@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace CalorieTracker.UI.Tests;
@@ -14,16 +13,6 @@ internal static partial class RepoFiles
 
     /// <summary>Text of a file under the repo root.</summary>
     public static string Read(params string[] parts) => File.ReadAllText(PathOf(parts));
-
-    /// <summary>The kit components' scoped css (the package's bundle) with the <c>[b-...]</c> scope attributes removed, so <see cref="Rule"/> finds a rule by its class.</summary>
-    public static string ReadKitComponentCss()
-    {
-        var assets = Directory.GetParent(typeof(RepoFiles).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().Single(a => a.Key == "KitCssFolder").Value!)!.FullName;
-        return ScopeAttribute().Replace(File.ReadAllText(Directory.GetFiles(assets, "Shields.UI.*.bundle.scp.css").Single()), "");
-    }
-
-    [GeneratedRegex(@"\[b-[a-z0-9]+\]")]
-    private static partial Regex ScopeAttribute();
 
     /// <summary>Files under a repo folder matching a pattern, excluding bin and obj.</summary>
     public static IEnumerable<string> Find(string pattern, params string[] folder) =>

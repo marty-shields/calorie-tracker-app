@@ -42,7 +42,7 @@ public class TrendsPageTests : ComponentTestBase
         await connection.InsertOrReplaceAsync(new TargetHistory { EffectiveFrom = "0001-01-01", Kcal = 2000 });
         rice = new Food { Source = FoodSource.OpenFoodFacts, SourceId = "rice", Name = "Secret rice", Type = FoodType.Ingredient, Unit = FoodUnit.Gram, Kcal = 100, ProteinG = 2, CarbsG = 20, FatG = 1, SearchText = "secret rice" };
         await connection.InsertAsync(rice);
-        Context.JSInterop.SetupModule("./_content/CalorieTracker.UI/Components/Layout/AddSheet.razor.js").Mode = JSRuntimeMode.Loose;
+        Context.JSInterop.SetupModule("./_content/Shields.UI/Components/Overlays/Sheet.razor.js").Mode = JSRuntimeMode.Loose;
         logger = new FakeLogger<TrendsPage>();
         Context.Services.AddSingleton<ILogger<TrendsPage>>(logger);
         foreach (var service in new object[] { core.GetRequiredService<TrendsService>(), core.GetRequiredService<DiaryService>(), core.GetRequiredService<FoodHistoryService>(), core.GetRequiredService<FoodService>() })

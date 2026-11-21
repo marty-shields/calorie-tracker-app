@@ -37,12 +37,12 @@ public sealed class DashboardScreen(WebView web)
     public string? Expanded(string meal) => web.Exists($"meal-{Meal(meal)}-toggle") ? web.Attribute($"meal-{Meal(meal)}-toggle", "aria-expanded") : null;
 
     /// <summary>The folded line, such as "1 item · 125 kcal"; null when the meal is not folded.</summary>
-    public string? FoldedLine(string meal) => web.Exists($"meal-{Meal(meal)}-summary") ? web.Text($"meal-{Meal(meal)}-summary") : null;
+    public string? FoldedLine(string meal) => AfterStart(meal) is { } rest && (rest.Contains(" item") || rest == "Nothing logged") ? rest : null;
 
     /// <summary>The "from 11:00" text of a meal whose window has not opened; null otherwise.</summary>
-    public string? FromText(string meal) => web.Exists($"meal-{Meal(meal)}-hint") ? web.Text($"meal-{Meal(meal)}-hint") : null;
+    public string? FromText(string meal) => Total(meal)?.Split(" · ")[0] is { } first && first.StartsWith("from ", StringComparison.Ordinal) ? first : null;
 
-    public bool HasNowChip(string meal) => web.Exists($"meal-{Meal(meal)}-now");
+    public bool HasNowChip(string meal) => web.Exists($"meal-{Meal(meal)}-badge");
 
     /// <summary>Taps the meal's header, which opens a folded meal and folds an open one.</summary>
     public void ToggleMeal(string meal) => web.Tap($"meal-{Meal(meal)}-toggle");
@@ -51,14 +51,29 @@ public sealed class DashboardScreen(WebView web)
     public int OpenAndCountEntries(string meal)
     {
         Expand(meal);
-        return web.FindAll($"[data-testid=\"meal-{Meal(meal)}\"] ~ ul > li").Count;
+        return web.FindAll($"[data-testid=\"meal-{Meal(meal)}-section\"] > ul > li").Count;
     }
 
     /// <summary>The meal's total, such as "125 kcal"; null while it has no entries. Opens a folded meal first.</summary>
     public string? OpenAndReadMealTotal(string meal)
     {
         Expand(meal);
-        return web.Exists($"meal-{Meal(meal)}-calories") ? web.Text($"meal-{Meal(meal)}-calories") : null;
+        return AfterStart(meal) is { } rest && rest.EndsWith(" kcal", StringComparison.Ordinal) ? rest : null;
+    }
+
+    private string? Total(string meal) => web.Exists($"meal-{Meal(meal)}-total") ? web.Text($"meal-{Meal(meal)}-total") : null;
+
+    /// <summary>The meal's total text without its "from 11:00" part; null when there is none.</summary>
+    private string? AfterStart(string meal)
+    {
+        var total = Total(meal);
+        if (total is null)
+        {
+            return null;
+        }
+
+        var parts = total.Split(" · ", 2);
+        return parts[0].StartsWith("from ", StringComparison.Ordinal) ? (parts.Length > 1 ? parts[1] : null) : total;
     }
 
     /// <summary>The calories eaten on the day, as the card shows them.</summary>
@@ -87,14 +102,14 @@ public sealed class DashboardScreen(WebView web)
     public IReadOnlyList<string> OpenAndReadEntries(string meal)
     {
         Expand(meal);
-        return web.FindAll($"[data-testid=\"meal-{Meal(meal)}\"] ~ ul > li").Select(row => row.Text).ToList();
+        return web.FindAll($"[data-testid=\"meal-{Meal(meal)}-section\"] > ul > li").Select(row => row.Text).ToList();
     }
 
     /// <summary>Taps the first entry under a meal, opening it first when it is folded, and waits for Serving in edit mode.</summary>
     public void OpenEntry(string meal)
     {
         Expand(meal);
-        web.FindAll($"[data-testid=\"meal-{Meal(meal)}\"] ~ ul > li button").First().Click();
+        web.FindAll($"[data-testid=\"meal-{Meal(meal)}-section\"] > ul > li button").First().Click();
         web.WaitUntil(() => web.Exists("serving-save"), "the Serving screen didn't open in edit mode");
     }
 

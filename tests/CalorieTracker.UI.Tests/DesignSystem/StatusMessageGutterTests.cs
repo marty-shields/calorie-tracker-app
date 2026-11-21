@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Shields.UI.Testing;
 
 namespace CalorieTracker.UI.Tests.DesignSystem;
 
@@ -27,13 +28,13 @@ public partial class StatusMessageGutterTests
     [Test]
     public void ServingStatusError_HasTheSnackbarMargins()
     {
-        var snackbar = MarginOf(RepoFiles.Rule(RepoFiles.ReadKitComponentCss(), "snackbar"), "the kit's Snackbar", "snackbar");
+        Assert.That(KitNames.Tokens, Does.Contain("--snackbar-gap-bottom"), "the kit's Snackbar gap token");
 
         var css = CommentRegex().Replace(RepoFiles.Read("src", "CalorieTracker.UI", "Screens/ServingView.razor.css"), "");
         var rule = Regex.Match(css, @"\.error\.status-error\s*\{(?<body>[^}]*)\}");
         Assert.That(rule.Success, Is.True, "the status margins need the .error.status-error selector so they beat .error whatever the order");
 
-        Assert.That(MarginOf(rule.Groups["body"].Value, "Screens/ServingView.razor.css", "error.status-error"), Is.EqualTo(snackbar));
+        Assert.That(MarginOf(rule.Groups["body"].Value, "Screens/ServingView.razor.css", "error.status-error"), Is.EqualTo("0 var(--space-4) var(--snackbar-gap-bottom)"), "the kit Snackbar's margins");
     }
 
     [Test]
