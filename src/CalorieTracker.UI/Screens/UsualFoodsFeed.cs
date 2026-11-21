@@ -6,6 +6,7 @@ using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Components.Layout;
 using CalorieTracker.UI.Logging;
 using Microsoft.Extensions.Logging;
+using Shields.UI.Components.Feedback;
 
 namespace CalorieTracker.UI.Screens;
 

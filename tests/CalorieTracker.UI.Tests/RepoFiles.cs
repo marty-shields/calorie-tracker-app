@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace CalorieTracker.UI.Tests;
 
 /// <summary>Source files in the repo, found from the test output folder.</summary>
-internal static class RepoFiles
+internal static partial class RepoFiles
 {
     /// <summary>Repo root: the folder that holds CalorieTracker.slnx.</summary>
     public static string Root { get; } = FindRoot();

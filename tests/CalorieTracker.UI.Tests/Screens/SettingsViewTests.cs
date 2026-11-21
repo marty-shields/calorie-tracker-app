@@ -1,5 +1,5 @@
-using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Screens;
+using Shields.UI.Theme;
 
 namespace CalorieTracker.UI.Tests.Screens;
 
@@ -63,6 +63,7 @@ public class SettingsViewTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(cut.Find("[data-testid=settings-target]").GetAttribute("value"), Is.EqualTo("2100"));
+            Assert.That(cut.Find("[data-testid=settings-target]").GetAttribute("inputmode"), Is.EqualTo("numeric"));
             Assert.That(cut.Find("[data-testid=settings-target-unit]").TextContent, Is.EqualTo("kcal"));
             Assert.That(cut.Find("[data-testid=settings-target-hint]").TextContent, Is.EqualTo("Shown on the dashboard. Leave it empty for no target."));
             Assert.That(cut.FindAll("[data-testid=settings-target-error]"), Is.Empty);

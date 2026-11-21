@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using CalorieTracker.UI.Stories;
 
 namespace CalorieTracker.UI.Tests.Stories;
 
@@ -8,7 +9,7 @@ public sealed partial class ScreenPageLinkTests
     private static partial Regex StoryLink();
 
     private static string StoryId(ScreenState state) =>
-        $"{state.Section.Replace('/', '-')}--{state.Name.Replace(' ', '-')}".ToLowerInvariant();
+        $"{StoryTitles.Prefix}{state.Section}".Replace('/', '-').Replace(' ', '-').ToLowerInvariant() + $"--{state.Name.Replace(' ', '-').ToLowerInvariant()}";
 
     [Test]
     public void ScreenPages_LinkOnlyToStoriesThatExist()

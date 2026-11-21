@@ -13,6 +13,11 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
   </ItemGroup>
 
+  <!-- The kit comes from the Shields.UI package. -->
+  <ItemGroup>
+    <PackageReference Include="Shields.UI" />
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="CalorieTracker.UI.Tests" />
   </ItemGroup>

@@ -1,5 +1,5 @@
 ---
-$attribute: CustomPage("Screens/Settings/Overview")
+$attribute: CustomPage(StoryTitles.Prefix + "Screens/Settings/Overview")
 ---
 
 # Settings
@@ -16,6 +16,6 @@ Opened from the gear on Today or Trends; Back (the arrow and Android back) retur
 
 Back: the opener (Trends on the same period and day, or Today on its day), else Today.
 
-States: [Default](./?path=/story/screens-settings--default) · [Dark chosen](./?path=/story/screens-settings--dark-chosen) · [No version](./?path=/story/screens-settings--no-version) · [Target set](./?path=/story/screens-settings--target-set) · [Target not set](./?path=/story/screens-settings--target-not-set) · [Invalid target](./?path=/story/screens-settings--invalid-target)
+States: [Default](./?path=/story/calorie-tracker-screens-settings--default) · [Dark chosen](./?path=/story/calorie-tracker-screens-settings--dark-chosen) · [No version](./?path=/story/calorie-tracker-screens-settings--no-version) · [Target set](./?path=/story/calorie-tracker-screens-settings--target-set) · [Target not set](./?path=/story/calorie-tracker-screens-settings--target-not-set) · [Invalid target](./?path=/story/calorie-tracker-screens-settings--invalid-target)
 
 `data-testid`: `back`, `theme`, `settings-theme-system`, `settings-theme-light`, `settings-theme-dark`, `settings-target` (the input; also `settings-target-unit`, `settings-target-error`), `settings-target-hint`, `app-version`.

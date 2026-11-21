@@ -2,14 +2,13 @@ using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.UI.Logging;
 using CalorieTracker.UI.Models.Scan;
-using CalorieTracker.UI.Models.Settings;
-using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Scanning;
 using CalorieTracker.UI.Screens;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.JSInterop;
+using Shields.UI.Theme;
 
 namespace CalorieTracker.UI.Tests.Screens;
 
@@ -29,7 +28,7 @@ public class ScanPageTests : ComponentTestBase
         lookup = new FakeLookup();
         search = new FakeFoodSearch();
         logger = new FakeLogger<ScanPage>();
-        Context.JSInterop.Setup<string>("calorieTrackerTheme.get").SetResult("dark");
+        Context.JSInterop.Setup<string>("shieldsTheme.get").SetResult("dark");
         Context.Services.AddSingleton<IBarcodeScanner>(scanner);
         Context.Services.AddSingleton<IBarcodeLookup>(lookup);
         Context.Services.AddSingleton<IFoodSearch>(search);
@@ -268,7 +267,7 @@ public class ScanPageTests : ComponentTestBase
     [TestCase("system", ThemePreference.System)]
     public void Scan_PassesTheSavedThemeToTheScanner(string saved, ThemePreference expected)
     {
-        Context.JSInterop.Setup<string>("calorieTrackerTheme.get").SetResult(saved);
+        Context.JSInterop.Setup<string>("shieldsTheme.get").SetResult(saved);
 
         Context.Render<ScanPage>();
 
@@ -278,7 +277,7 @@ public class ScanPageTests : ComponentTestBase
     [Test]
     public void Scan_ThemeCannotBeRead_StillScansWithSystem()
     {
-        Context.JSInterop.Setup<string>("calorieTrackerTheme.get").SetException(new JSException("storage unavailable"));
+        Context.JSInterop.Setup<string>("shieldsTheme.get").SetException(new JSException("storage unavailable"));
 
         Context.Render<ScanPage>();
 

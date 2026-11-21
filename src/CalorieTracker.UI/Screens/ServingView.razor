@@ -2,9 +2,6 @@
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Diary
 @using CalorieTracker.Core.Foods
-@using CalorieTracker.UI.Components.Actions
-@using CalorieTracker.UI.Components.Feedback
-@using CalorieTracker.UI.Components.Inputs
 @using CalorieTracker.UI.Models.Serving
 <AppScreen Title="@(Display is { } titled ? titled.Title : Editing ? "Edit entry" : "Add food")" OnBack="OnBack">
     <Actions>
@@ -41,20 +38,20 @@
             <div class="body">
                 @if (Display?.Detail is { } detail)
                 {
-                    <p class="brand" data-testid="serving-brand" data-wrap-ok>@detail</p>
+                    <Shields.UI.Components.Layout.Text Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-brand" data-wrap-ok>@detail</Shields.UI.Components.Layout.Text>
                 }
                 @if (Editing)
                 {
-                    <p class="when" data-testid="serving-when">@Meal · @Date.ToString("d MMM", CultureInfo.InvariantCulture)</p>
+                    <Shields.UI.Components.Layout.Text Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-when">@Meal · @Date.ToString("d MMM", CultureInfo.InvariantCulture)</Shields.UI.Components.Layout.Text>
                 }
                 else
                 {
-                    <p class="per" data-testid="serving-per" data-wrap-ok>@PerLine(food)</p>
+                    <Shields.UI.Components.Layout.Text Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-per" data-wrap-ok>@PerLine(food)</Shields.UI.Components.Layout.Text>
                 }
                 @if (HasServing)
                 {
                     <section class="section">
-                        <h2 class="heading">Enter as</h2>
+                        <Text Variant="TextVariant.Label" As="TextElement.H2">Enter as</Text>
                         <SegmentedControl TValue="EntryMode" Label="Enter as" Options="Modes" Value="mode" ValueChanged="OnModeChanged" TestId="serving-mode" />
                         @if (servings && Servings.Count > 1)
                         {
@@ -62,17 +59,17 @@
                         }
                         else if (servings)
                         {
-                            <SummaryCard TestId="serving-label"><span class="serving-label" data-wrap-ok>@Chosen!.Label</span></SummaryCard>
+                            <Card TestId="serving-label"><Text Variant="TextVariant.Strong" data-wrap-ok>@Chosen!.Label</Text></Card>
                         }
                     </section>
                 }
                 <section class="section">
-                    <h2 class="heading">@(servings ? "How many" : "Amount")</h2>
+                    <Text Variant="TextVariant.Label" As="TextElement.H2">@(servings ? "How many" : "Amount")</Text>
                     <NumberField Label="@(servings ? "Servings" : "Amount")" Value="Amount" ValueChanged="OnAmountChanged" Unit="@(servings ? "serving" : UnitText(food))" Stepper
                                  Step="@(servings ? 1 : 10)" Minimum="0" InvalidMessage="@InvalidMessage(food, servings)" TestId="serving-amount" />
                     @if (servings && Valid)
                     {
-                        <p class="weight" data-testid="serving-weight">= @Weight(Grams!.Value) @UnitText(food)</p>
+                        <Shields.UI.Components.Layout.Text Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-weight">= @Weight(Grams!.Value) @UnitText(food)</Shields.UI.Components.Layout.Text>
                     }
                     @if (HasServing && !servings)
                     {
@@ -80,16 +77,13 @@
                     }
                 </section>
                 <section class="section">
-                    <h2 class="heading">Your servings</h2>
+                    <Text Variant="TextVariant.Label" As="TextElement.H2">Your servings</Text>
                     @if (AddingOwn)
                     {
                         <TextField Label="Serving name" Value="@OwnLabel" ValueChanged="OnOwnLabelChanged" MaxLength="FoodService.MaxServingLabelLength" Placeholder="Serving name, such as 1 slice"
                                    InvalidMessage="@OwnLabelMessage" TestId="serving-own-label" />
                         <NumberField Label="Serving size" Value="OwnAmount" ValueChanged="OnOwnAmountChanged" Unit="@UnitText(food)" InvalidMessage="@OwnAmountMessage(food)" TestId="serving-own-amount" />
-                        @if (OwnError is not null)
-                        {
-                            <p class="error" role="alert" data-testid="serving-own-error" data-wrap-ok>@OwnError</p>
-                        }
+                        <InlineAlert Message="@OwnError" TestId="serving-own-error" />
                         <div class="own-actions">
                             <AppButton Variant="ButtonVariant.Secondary" FullWidth Disabled="SavingOwn" TestId="serving-own-cancel" OnClick="OnOwnCancel">Cancel</AppButton>
                             <AppButton FullWidth Busy="SavingOwn" Disabled="!OwnValid" TestId="serving-own-save" OnClick="OnOwnSave">@(SavingOwn ? "Saving…" : "Save serving")</AppButton>
@@ -105,20 +99,19 @@
                     }
                 </section>
                 <section class="section">
-                    <h2 class="heading">Meal</h2>
+                    <Text Variant="TextVariant.Label" As="TextElement.H2">Meal</Text>
                     <FilterChips TValue="Meal" Label="Meal" Options="Meals" Value="Meal" ValueChanged="OnMealChanged" TestId="serving-meal" />
                     @if (SuggestedAt is { } at && !Editing)
                     {
-                        <p class="suggested" data-testid="serving-suggestion">Suggested from the time: @at.ToString("HH:mm", CultureInfo.InvariantCulture)</p>
+                        <Shields.UI.Components.Layout.Text Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-suggestion">Suggested from the time: @at.ToString("HH:mm", CultureInfo.InvariantCulture)</Shields.UI.Components.Layout.Text>
                     }
                 </section>
                 @if (Valid)
                 {
-                    <SummaryCard TestId="serving-adds">
-                        <h2 class="heading">@(Editing ? "This entry" : "This adds")</h2>
-                        <p class="kcal" data-testid="serving-adds-kcal">@Kcal(food) kcal</p>
-                        <p class="detail" data-testid="serving-adds-detail" data-wrap-ok>@AddsDetail(food)</p>
-                    </SummaryCard>
+                    <Card Title="@(Editing ? "This entry" : "This adds")" TestId="serving-adds">
+                        <Text Variant="TextVariant.Figure" As="TextElement.P" TestId="serving-adds-kcal">@Kcal(food) kcal</Text>
+                        <Text Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-adds-detail" data-wrap-ok>@AddsDetail(food)</Text>
+                    </Card>
                 }
             </div>
         }
@@ -139,15 +132,15 @@
     <Status>
         @if (EntryGone)
         {
-            <p class="error status-error" role="alert" data-testid="serving-gone" data-wrap-ok>This entry was already removed.</p>
+            <div class="status-error"><InlineAlert Message="This entry was already removed." TestId="serving-gone" /></div>
         }
         else if (RemoveFailed)
         {
-            <p class="error status-error" role="alert" data-testid="serving-error" data-wrap-ok>Couldn't remove this entry. Try again.</p>
+            <div class="status-error"><InlineAlert Message="Couldn't remove this entry. Try again." TestId="serving-error" /></div>
         }
         else if (SaveFailed)
         {
-            <p class="error status-error" role="alert" data-testid="serving-error" data-wrap-ok>@(Editing ? "Couldn't save this entry. Try again." : "Couldn't add this food. Try again.")</p>
+            <div class="status-error"><InlineAlert Message="@(Editing ? "Couldn't save this entry. Try again." : "Couldn't add this food. Try again.")" TestId="serving-error" /></div>
         }
         <Snackbar />
     </Status>

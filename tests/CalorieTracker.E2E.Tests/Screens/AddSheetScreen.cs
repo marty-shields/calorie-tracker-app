@@ -12,7 +12,7 @@ public sealed class AddSheetScreen(WebView web, NavigationBar navigation)
 
     public bool IsOpen() => web.Exists("add-sheet");
 
-    public string Title() => web.FindAll("#add-sheet-title").Single().Text.Trim();
+    public string Title() => web.FindAll($"#{web.Attribute("add-sheet", "aria-labelledby")}").Single().Text.Trim();
 
     public void ChooseMeal(string meal)
     {

@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
-using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Tests.DesignSystem;
+using Shields.UI.Testing;
+using Shields.UI.Theme;
 
 namespace CalorieTracker.UI.Tests.Scanning;
 
@@ -94,7 +95,7 @@ public class ScanPageMarkupTests
     [TestCase("BorderStrong", "--color-border-strong")]
     public void AppColours_MatchTheLightAndDarkToken(string key, string token)
     {
-        var (light, dark) = DesignTokens.Colour(token);
+        var (light, dark) = AppTokens.Colour(token);
         Assert.Multiple(() =>
         {
             Assert.That(AppColour(key + "Light"), Is.EqualTo(light.ToString()));
@@ -193,7 +194,7 @@ public class ScanPageMarkupTests
     private static string AppColour(string key) =>
         Regex.Match(RepoFiles.Read("src", "CalorieTracker.App", "App.xaml"), @"<Color x:Key=""" + key + @""">([^<]+)</Color>").Groups[1].Value;
 
-    private static string TokensCss() => RepoFiles.Read("src", "CalorieTracker.UI", "wwwroot", "css", "tokens.css");
+    private static string TokensCss() => KitCss.Tokens;
 
     private static string ScanXaml() => RepoFiles.Read("src", "CalorieTracker.App", "Scanning", "ScanPage.xaml");
 

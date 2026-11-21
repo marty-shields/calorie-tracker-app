@@ -6,6 +6,11 @@
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
   </ItemGroup>
 
+  <!-- The kit's test helpers (KitCss, KitNames, DesignTokens) come from the Shields.UI.Testing package. -->
+  <ItemGroup>
+    <PackageReference Include="Shields.UI.Testing" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\CalorieTracker.UI\CalorieTracker.UI.csproj" />
     <ProjectReference Include="..\..\src\CalorieTracker.UI.Stories\CalorieTracker.UI.Stories.csproj" />

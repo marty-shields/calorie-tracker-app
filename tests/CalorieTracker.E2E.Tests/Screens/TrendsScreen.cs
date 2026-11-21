@@ -3,7 +3,7 @@ using OpenQA.Selenium;
 
 namespace CalorieTracker.E2E.Tests.Screens;
 
-/// <summary>Trends: the Week, Month, Year control, the period strip, and the calendar of Month.</summary>
+/// <summary>Trends: the Week, Month, Year control, the period stepper, and the calendar of Month.</summary>
 public sealed class TrendsScreen(WebView web)
 {
     public const string Title = "Trends";

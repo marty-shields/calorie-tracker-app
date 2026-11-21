@@ -1,65 +1,60 @@
 using AndroidX.Activity;
-using CalorieTracker.UI.Navigation;
+using Shields.UI.Navigation;
 
 namespace CalorieTracker.App.Navigation;
 
 /// <summary>
-/// Passes the Android back button to <see cref="IBackButton"/> while a handler is registered.
+/// Puts an <see cref="OnBackPressedCallback"/> on the created activity that passes back to <see cref="BackButtonBridge"/> while a page handler is registered.
 /// Without one, the callback is off and Android handles back: the app closes.
 /// </summary>
-internal sealed class AndroidBackButton(IBackButton backButton)
+internal sealed class AndroidBackButton
 {
+    private readonly BackButtonBridge bridge;
     private ComponentActivity? current;
     private Callback? callback;
+
+    public AndroidBackButton(BackButtonBridge bridge)
+    {
+        this.bridge = bridge;
+        bridge.EnabledChanged += Update;
+    }
 
     /// <summary>Adds the back callback to a created activity, which replaces any earlier one.</summary>
     public void Attach(ComponentActivity activity)
     {
-        if (current is null)
-        {
-            backButton.Changed += Update;
-        }
-
         current = activity;
-        callback = new Callback(backButton, activity.OnBackPressedDispatcher);
+        callback = new Callback(bridge, activity.OnBackPressedDispatcher);
         activity.OnBackPressedDispatcher.AddCallback(activity, callback);
-        backButton.Attach(activity);
-        Update();
+        bridge.Attach(activity);
     }
 
-    /// <summary>
-    /// Stops following the handlers when the current activity is destroyed, and removes them: its pages are not disposed with it.
-    /// An earlier activity is ignored. The dispatcher removes the callback itself.
-    /// </summary>
+    /// <summary>Drops the callback when the current activity is destroyed; the dispatcher removes it itself. An earlier activity is ignored.</summary>
     public void Detach(Android.App.Activity activity)
     {
-        if (!ReferenceEquals(activity, current))
+        if (ReferenceEquals(activity, current))
         {
-            return;
+            current = null;
+            callback = null;
         }
 
-        backButton.Changed -= Update;
-        current = null;
-        callback = null;
-        backButton.Detach(activity);
+        bridge.Detach(activity);
     }
 
     private void Update() => MainThread.BeginInvokeOnMainThread(() =>
     {
         if (callback is not null)
         {
-            callback.Enabled = backButton.HasHandler;
+            callback.Enabled = bridge.Enabled;
         }
     });
 
-    private sealed class Callback(IBackButton backButton, OnBackPressedDispatcher dispatcher) : OnBackPressedCallback(false)
+    private sealed class Callback(BackButtonBridge bridge, OnBackPressedDispatcher dispatcher) : OnBackPressedCallback(false)
     {
-        // The handler can be removed between the gesture starting and back being pressed; Android then handles it.
         public override void HandleOnBackPressed()
         {
-            if (backButton.HasHandler)
+            // The kit's handler never throws, so the task is not awaited.
+            if (bridge.HandleAsync() is not null)
             {
-                _ = backButton.HandleAsync();
                 return;
             }
 

@@ -6,23 +6,9 @@ namespace CalorieTracker.UI.Logging;
 /// </summary>
 internal enum UiEvent
 {
-    /// <summary><see cref="Components.Layout.StartupGate"/>: startup finished, with its duration.</summary>
-    StartupFinished = 2001,
-
-    /// <summary><see cref="Components.Layout.StartupGate"/>: startup failed.</summary>
-    StartupFailed = 2002,
-
-    /// <summary><see cref="Components.Layout.AppErrorBoundary"/>: unhandled error in a screen.</summary>
-    ScreenError = 2101,
-
-    /// <summary><see cref="Navigation.BackButton"/>: back handled by the page.</summary>
-    BackHandled = 2201,
-
-    /// <summary><see cref="Navigation.BackButton"/>: back pressed with no handler.</summary>
-    BackNotHandled = 2202,
-
-    /// <summary><see cref="Navigation.BackButton"/>: a back handler failed.</summary>
-    BackHandlerFailed = 2203,
+    // 2001 and 2002 are retired: StartupGate moved to the shared kit, which logs it as KitEvent.StartupFinished and StartupFailed.
+    // 2101 is retired: AppErrorBoundary moved to the shared kit, which logs it as KitEvent.ScreenError.
+    // 2201, 2202 and 2203 are retired: BackButton moved to the shared kit, which logs them as KitEvent values.
 
     /// <summary><see cref="Components.Layout.AddSheet"/>: the sheet opened, with the meal it guessed.</summary>
     AddSheetOpened = 2301,
@@ -30,8 +16,7 @@ internal enum UiEvent
     /// <summary><see cref="Components.Layout.AddSheet"/>: Search foods, Scan barcode or a dismissal, with the meal chosen.</summary>
     AddSheetChose = 2302,
 
-    /// <summary><see cref="Components.Layout.AddSheet"/>: keeping focus in the sheet or returning it to Add failed; the sheet still works.</summary>
-    AddSheetFocusFailed = 2303,
+    // 2303 is retired: the Add sheet's frame moved to the shared kit, which logs a focus failure as KitEvent.SheetFocusFailed.
 
     /// <summary><see cref="Screens.UsualFoodsFeed"/>: the usual foods for the Add sheet were read; carries the meal and the count of rows.</summary>
     UsualRead = 2304,
@@ -57,11 +42,9 @@ internal enum UiEvent
     /// <summary><see cref="Screens.TrendsPage"/>: a day, week or month was opened from the screen; carries what was opened (day, week or month) and the period it was opened from.</summary>
     TrendsOpened = 2403,
 
-    /// <summary><see cref="Lifecycle.AppLifecycle"/>: an app start handler failed.</summary>
-    AppStartHandlerFailed = 3201,
+    // 3201 is retired: the app lifecycle moved to the shared kit, which logs it as KitEvent.AppStartHandlerFailed.
 
-    /// <summary><see cref="Components.Feedback.LoadFailed"/>: focusing Try again failed.</summary>
-    LoadFailedFocusFailed = 3301,
+    // 3301 is retired: LoadFailed moved to the shared kit, which logs it as KitEvent.LoadFailedFocusFailed.
 
     /// <summary><see cref="Screens.SettingsPage"/>: reading the saved theme failed.</summary>
     ThemeLoadFailed = 3403,
@@ -95,8 +78,7 @@ internal enum UiEvent
     /// <summary><see cref="Screens.ScanPage"/>: the scanner ended without a barcode because the camera is unavailable.</summary>
     ScanCameraUnavailable = 3603,
 
-    /// <summary><see cref="Components.Inputs.NumberField"/>: focusing the field when it first showed failed.</summary>
-    NumberFieldFocusFailed = 3701,
+    // 3701 is retired: NumberField moved to the shared kit, which logs it as KitEvent.NumberFieldFocusFailed.
 
     /// <summary><see cref="Screens.ServingPage"/>: Undo could not remove the entry just added, with the status.</summary>
     UndoFailed = 3801,
@@ -110,6 +92,5 @@ internal enum UiEvent
     /// <summary><see cref="Screens.FavouriteStar"/>: starring or unstarring the food failed, so the star stays as it was.</summary>
     FavouriteWriteFailed = 3902,
 
-    /// <summary><see cref="Components.Layout.AppScreen"/>: setting up pull to refresh failed, so the screen can't be pulled.</summary>
-    PullRefreshFailed = 4001,
+    // 4001 is retired: AppScreen moved to the shared kit, which logs the failed pull-to-refresh setup as KitEvent.PullRefreshFailed.
 }

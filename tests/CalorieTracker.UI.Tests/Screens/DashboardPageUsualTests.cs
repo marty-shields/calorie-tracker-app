@@ -4,7 +4,6 @@ using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.History;
 using CalorieTracker.Core.Summary;
-using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Logging;
 using CalorieTracker.UI.Screens;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Time.Testing;
+using Shields.UI.Components.Feedback;
 using SQLite;
 
 namespace CalorieTracker.UI.Tests.Screens;
@@ -37,7 +37,7 @@ public class DashboardPageUsualTests : ComponentTestBase
             .BuildServiceProvider();
         await core.GetRequiredService<IDatabaseInitializer>().InitializeAsync();
         connection = new SQLiteAsyncConnection(databasePath);
-        Context.JSInterop.SetupModule("./_content/CalorieTracker.UI/Components/Layout/AddSheet.razor.js").Mode = JSRuntimeMode.Loose;
+        Context.JSInterop.SetupModule("./_content/Shields.UI/Components/Overlays/Sheet.razor.js").Mode = JSRuntimeMode.Loose;
         logger = new FakeLogger<DashboardPage>();
         Context.Services.AddSingleton<ILogger<DashboardPage>>(logger);
         foreach (var service in new object[] { core.GetRequiredService<DaySummaryService>(), core.GetRequiredService<DiaryService>(), core.GetRequiredService<FoodHistoryService>(), core.GetRequiredService<FoodService>() })
@@ -230,7 +230,7 @@ public class DashboardPageUsualTests : ComponentTestBase
             Assert.That(snackbar.Current!.Text, Is.EqualTo("Pasta added to Dinner"));
             Assert.That(snackbar.Current.ActionLabel, Is.EqualTo("Undo"));
         });
-        cut.WaitForAssertion(() => Assert.That(Text(cut, "meal-dinner-calories"), Is.EqualTo("222 kcal")));
+        cut.WaitForAssertion(() => Assert.That(Text(cut, "meal-dinner-total"), Is.EqualTo("222 kcal")));
     }
 
     [Test]
@@ -292,7 +292,7 @@ public class DashboardPageUsualTests : ComponentTestBase
         cut.WaitForState(() => Exists(cut, $"add-sheet-usual-{pasta.Id}-add"));
         await Tap(cut, $"[data-testid=add-sheet-usual-{pasta.Id}-add]");
         var message = snackbar.Current!;
-        cut.WaitForAssertion(() => Assert.That(Text(cut, "meal-dinner-calories"), Is.EqualTo("222 kcal")));
+        cut.WaitForAssertion(() => Assert.That(Text(cut, "meal-dinner-total"), Is.EqualTo("222 kcal")));
         await connection.ExecuteAsync("DROP TABLE DiaryEntry");
 
         await snackbar.InvokeActionAsync(message);
@@ -332,7 +332,7 @@ public class DashboardPageUsualTests : ComponentTestBase
         var cut = OpenSheet();
         cut.WaitForState(() => Exists(cut, $"add-sheet-usual-{pasta.Id}-add"));
         await Tap(cut, $"[data-testid=add-sheet-usual-{pasta.Id}-add]");
-        cut.WaitForAssertion(() => Assert.That(Text(cut, "meal-dinner-calories"), Is.EqualTo("232 kcal")));
+        cut.WaitForAssertion(() => Assert.That(Text(cut, "meal-dinner-total"), Is.EqualTo("232 kcal")));
         await connection.ExecuteAsync("DROP TABLE DiaryEntry");
         await snackbar.InvokeActionAsync(snackbar.Current!);
 

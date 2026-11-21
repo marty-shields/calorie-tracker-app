@@ -3,25 +3,26 @@ using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Summary;
 using CalorieTracker.Core.Trends;
-using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Models.Scan;
 using CalorieTracker.UI.Models.Search;
 using CalorieTracker.UI.Models.Serving;
-using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Screens;
+using CalorieTracker.UI.Stories;
 using CalorieTracker.UI.Stories.Stories.Screens;
 using Microsoft.Extensions.DependencyInjection;
+using Shields.UI.Components.Feedback;
+using Shields.UI.Theme;
 
 namespace CalorieTracker.UI.Tests.Stories;
 
 /// <summary>A screen state: its stories section and story name, and how to render it.</summary>
-/// <param name="Section">Stories title, e.g. "Screens/Settings".</param>
+/// <param name="Section">Stories title under the app's section, e.g. "Screens/Settings".</param>
 /// <param name="Name">Story name.</param>
 /// <param name="Render">Renders the state with every callback set and returns its elements.</param>
 public sealed record ScreenState(string Section, string Name, Func<BunitContext, IReadOnlyList<IElement>> Render)
 {
-    public override string ToString() => $"{Section}/{Name}";
+    public override string ToString() => $"{StoryTitles.Prefix}{Section}/{Name}";
 }
 
 /// <summary>Every screen state that has a story, in story order. Renders mirror the stories, with every callback set.</summary>
@@ -97,8 +98,6 @@ public static class ScreenStates
 
     public static IReadOnlyList<ScreenState> All { get; } =
     [
-        new("Screens/Startup", "Loading", c => c.Render<StartupView>().FindAll("*")),
-        new("Screens/Startup", "Load failed", c => c.Render<StartupView>(p => p.Add(x => x.Failed, true)).FindAll("*")),
 
         new("Screens/Dashboard", "First run", c => Dashboard(c, DashboardSamples.FirstRun)),
         new("Screens/Dashboard", "No target", c => Dashboard(c, DashboardSamples.NoTarget)),
@@ -197,7 +196,6 @@ public static class ScreenStates
         new("Screens/Serving", "Load failed", c => Serving(c, null, loadFailed: true)),
         new("Screens/Serving", "Food not found", c => Serving(c, null)),
 
-        new("Screens/Error", "Error", c => c.Render<ErrorView>(p => p.Add(x => x.OnRestart, () => { })).FindAll("*")),
     ];
 
     private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", IReadOnlyList<FoodGroup>? groups = null, bool loading = false, bool failed = false, Meal meal = Meal.Lunch, FoodGroupKind[]? expanded = null,

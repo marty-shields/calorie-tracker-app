@@ -14,6 +14,15 @@
           "Microsoft.JSInterop": "11.0.0"
         }
       },
+      "Shields.UI": {
+        "type": "Direct",
+        "requested": "[1.0.0-pr.19.31, )",
+        "resolved": "1.0.0-pr.19.31",
+        "contentHash": "shvdVGbpdCbCqLm9HycTazsGTIXt8w18qBDNInAM5fKv7y4q86BgrZsk6ijbCYkJ4xsrFAzyNPGz2whFq3NIwQ==",
+        "dependencies": {
+          "Microsoft.AspNetCore.Components.Web": "11.0.0"
+        }
+      },
       "Microsoft.AspNetCore.Authorization": {
         "type": "Transitive",
         "resolved": "11.0.0",

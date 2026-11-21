@@ -2,7 +2,6 @@ using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Seed;
 using CalorieTracker.UI.Logging;
-using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Screens;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -43,6 +42,20 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
+    public void SearchBox_HasPlaceholderAndLabelSearchFoods()
+    {
+        var cut = Context.Render<FoodSearchPage>();
+
+        var input = cut.Find("[data-testid=food-search-input]");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(input.GetAttribute("placeholder"), Is.EqualTo("Search foods"));
+            Assert.That(input.GetAttribute("aria-label"), Is.EqualTo("Search foods"));
+        });
+    }
+
+    [Test]
     public async Task Typing_ListsTheResults()
     {
         search.Results = [Oats];
@@ -80,8 +93,9 @@ public class FoodSearchPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(button.GetAttribute("aria-label"), Is.EqualTo("Scan a barcode"));
-            Assert.That(order.IndexOf("food-search-input"), Is.LessThan(order.IndexOf("search-divider")));
-            Assert.That(order.IndexOf("search-divider"), Is.LessThan(order.IndexOf("search-scan")));
+            Assert.That(order.IndexOf("food-search-input"), Is.LessThan(order.IndexOf("divider-slot")));
+            Assert.That(order.IndexOf("divider-slot"), Is.LessThan(order.IndexOf("trailing")));
+            Assert.That(button.Closest(".trailing"), Is.Not.Null);
             Assert.That(scans, Is.EqualTo(1));
         });
     }

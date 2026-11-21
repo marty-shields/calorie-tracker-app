@@ -91,6 +91,13 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
     public void GivenTheAppClockReads(string time) => PinClock(time);
 
     /// <summary>
+    /// Moves the pinned clock without making Today read it, so only the app coming back from the background can: the proof that Android's start reaches Today.
+    /// </summary>
+    [When(@"^the app clock moves to (\d\d:\d\d) while Today stays as it is$")]
+    public void WhenTheAppClockMovesWhileTodayStays(string time) =>
+        AppiumSetup.Adb.WriteText($"{AppiumSetup.App.ExternalFilesFolder}/{ClockSeamFileName}", time);
+
+    /// <summary>
     /// Pins the Debug app's clock to a time of day some whole days before the device's date, for a scenario that saves something dated in the past.
     /// The Release app has no clock seam, so there it does nothing and everything saved is dated today.
     /// </summary>
