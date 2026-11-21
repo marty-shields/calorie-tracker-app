@@ -189,7 +189,7 @@
         new(LegendSwatch.Accent, "On target"),
         new(LegendSwatch.Error, "Over", "▲"),
         .. notLogged ? new[] { new LegendItem(LegendSwatch.Outline, "Not logged") } : [],
-        .. target is { } goal ? new[] { new LegendItem(LegendSwatch.Line, $"Target {Number(goal)}, band ±10%") } : [],
+        .. target is { } goal ? new[] { new LegendItem(LegendSwatch.Line, $"Target {Number(goal)}"), new LegendItem(LegendSwatch.Band, "Band ±10%") } : [],
     ];
 
     private RenderFragment WeekBody(TrendsReport report) => @<text>

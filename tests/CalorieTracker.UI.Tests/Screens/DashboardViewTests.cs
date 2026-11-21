@@ -176,6 +176,92 @@ public class DashboardViewTests : ComponentTestBase
         });
     }
 
+    private static Core.Summary.DaySummary WithTotals(Core.Summary.Nutrition totals, int? target) =>
+        DashboardSamples.Loaded with { Totals = totals, TargetKcal = target };
+
+    [Test]
+    public void TheMacroLabels_AreTheEnergyOfEachMacroInWholeKcal()
+    {
+        var cut = Render(WithTotals(new Core.Summary.Nutrition(500, 30, 67, 29), 2100));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "dashboard-share-label-0"), Is.EqualTo("Protein 120 kcal"));
+            Assert.That(Text(cut, "dashboard-share-label-1"), Is.EqualTo("Carbs 268 kcal"));
+            Assert.That(Text(cut, "dashboard-share-label-2"), Is.EqualTo("Fat 261 kcal"));
+        });
+    }
+
+    [Test]
+    public void TheMacroLabels_RoundHalfKcalUp_AndCountNegativeGramsAsZero()
+    {
+        var cut = Render(WithTotals(new Core.Summary.Nutrition(500, 30.375, -5, 10), 2100));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "dashboard-share-label-0"), Is.EqualTo("Protein 122 kcal"));
+            Assert.That(Text(cut, "dashboard-share-label-1"), Is.EqualTo("Carbs 0 kcal"));
+            Assert.That(Text(cut, "dashboard-share-label-2"), Is.EqualTo("Fat 90 kcal"));
+        });
+    }
+
+    [Test]
+    public void EatingExactlyTheTarget_ShowsZeroLeft_NotOver()
+    {
+        var cut = Render(WithTotals(new Core.Summary.Nutrition(2100, 30, 67, 29), 2100));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "dashboard-ring-value"), Is.EqualTo("0"));
+            Assert.That(Text(cut, "dashboard-ring-caption"), Is.EqualTo("kcal left"));
+            Assert.That(cut.Find("[data-testid=dashboard-ring]").ClassList, Does.Not.Contain("over"));
+            Assert.That(cut.Find("[data-testid=dashboard-ring-value]").ClassList, Does.Not.Contain("over"));
+        });
+    }
+
+    [Test]
+    public void ATargetOfZero_IsNoTarget()
+    {
+        var cut = Render(WithTotals(new Core.Summary.Nutrition(762, 30, 67, 29), 0));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "dashboard-ring-caption"), Is.EqualTo("kcal eaten"));
+            Assert.That(cut.Find("[data-testid=dashboard-ring]").GetAttribute("aria-label"), Is.EqualTo("762 kcal eaten. No target set."));
+        });
+    }
+
+    [Test]
+    public void ANegativeTotal_ShowsAsZeroEaten()
+    {
+        var cut = Render(WithTotals(new Core.Summary.Nutrition(-50, 30, 67, 29), 2100));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Text(cut, "dashboard-eaten"), Is.EqualTo("0"));
+            Assert.That(Text(cut, "dashboard-ring-value"), Is.EqualTo("2,100"));
+            Assert.That(cut.Find("[data-testid=dashboard-ring]").GetAttribute("aria-label"), Is.EqualTo("2,100 kcal left. Eaten 0 of 2,100 kcal target."));
+        });
+    }
+
+    [TestCase(99, "", "99")]
+    [TestCase(9999, "", "9,999")]
+    [TestCase(12345, " wider", "12,345")]
+    [TestCase(99999, " wider", "99,999")]
+    [TestCase(123456, " widest", "123,456")]
+    [TestCase(1234567, " widest", "1,234,567")]
+    public void TheRingNumber_StepsDownASizeAsItGetsWider(int eaten, string step, string shown)
+    {
+        var cut = Render(WithTotals(new Core.Summary.Nutrition(eaten, 30, 67, 29), null));
+
+        var value = cut.Find("[data-testid=dashboard-ring-value]");
+        Assert.Multiple(() =>
+        {
+            Assert.That(value.TextContent.Trim(), Is.EqualTo(shown));
+            Assert.That(value.ClassName, Is.EqualTo("ring-number" + step));
+        });
+    }
+
     [Test]
     public void TheRing_IsTheKitsProgressRingFilledByTheCaloriesEatenOfTheTarget()
     {

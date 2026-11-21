@@ -27,14 +27,15 @@
                         <div class="ring-row">
                             @{
                                 var ringTarget = TargetOf(summary);
-                                var ringShown = ringTarget is { } limit ? Math.Abs(limit - summary.Totals.Kcal) : summary.Totals.Kcal;
-                                var ringWord = RingWord(summary.Totals.Kcal, ringTarget);
+                                var eaten = Math.Max(summary.Totals.Kcal, 0);
+                                var ringShown = ringTarget is { } limit ? Math.Abs(limit - eaten) : eaten;
+                                var ringWord = RingWord(eaten, ringTarget);
                             }
-                            <ProgressRing Compact Value="summary.Totals.Kcal" Max="ringTarget ?? 0" Caption="@($"kcal {ringWord}")" AriaLabel="@RingLabel(summary.Totals.Kcal, ringTarget, ringShown, ringWord)" TestId="dashboard-ring">
+                            <ProgressRing Compact Value="eaten" Max="ringTarget ?? 0" Caption="@($"kcal {ringWord}")" AriaLabel="@RingLabel(eaten, ringTarget, ringShown, ringWord)" TestId="dashboard-ring">
                                 <span class="@RingNumberClass(ringWord, ringShown)" data-testid="dashboard-ring-value">@Number(ringShown)</span>
                             </ProgressRing>
                             <div class="figures">
-                                <p class="figure">Eaten <strong data-testid="dashboard-eaten">@Number(summary.Totals.Kcal)</strong></p>
+                                <p class="figure">Eaten <strong data-testid="dashboard-eaten">@Number(eaten)</strong></p>
                                 @if (summary.TargetKcal is { } target)
                                 {
                                     <p class="figure">Target <strong data-testid="dashboard-target">@Number(target)</strong></p>
