@@ -16,6 +16,7 @@ public class StartupGateAppTextTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(cut.Find("h1").TextContent, Is.EqualTo("Calorie Tracker"));
+            Assert.That(cut.Find("[data-testid=startup-top-bar]").QuerySelector("h1"), Is.Not.Null, "the title sits in the kit's top bar");
             Assert.That(cut.Markup, Does.Contain("Couldn't open the database"));
             Assert.That(cut.FindAll("[data-testid=startup-retry]"), Has.Count.EqualTo(1));
         });
@@ -31,6 +32,8 @@ public class StartupGateAppTextTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(cut.Find("h1").TextContent, Is.EqualTo("Calorie Tracker"));
+            Assert.That(cut.Find("[data-testid=error-top-bar]").QuerySelector("h1"), Is.Not.Null, "the title sits in the kit's top bar");
+            Assert.That(cut.Find("[data-testid=error-bottom-bar]").QuerySelector("[data-testid=error-restart]"), Is.Not.Null, "Restart sits in the kit's bottom bar");
             Assert.That(cut.Find("[data-testid=error-message]").TextContent, Is.EqualTo("Something went wrong"));
             Assert.That(cut.FindAll("[data-testid=error-restart]"), Has.Count.EqualTo(1));
         });

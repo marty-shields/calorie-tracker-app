@@ -99,7 +99,7 @@ function inspect() {
   return findings;
 }
 
-// Runs in the page. A CalorieRing's text block (number and label) must keep `--space-1` between its corners and the inner
+// Runs in the page. A ProgressRing's text block (number and label) must keep `--space-1` between its corners and the inner
 // edge of the band, so it sits in the inner circle (radius = size / 2 - stroke) and not just in its square.
 function ringFit() {
   const gapNeeded = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--space-1'));

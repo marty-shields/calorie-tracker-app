@@ -65,7 +65,7 @@ public sealed class DashboardScreen(WebView web)
     public string Eaten() => web.Text("dashboard-eaten");
 
     /// <summary>The ring's caption: "kcal left", "kcal over" or "kcal eaten".</summary>
-    public string RingLabel() => web.Text("dashboard-ring-label");
+    public string RingLabel() => web.Text("dashboard-ring-caption");
 
     public string? NoTargetText() => web.Exists("dashboard-no-target") ? web.Text("dashboard-no-target") : null;
 

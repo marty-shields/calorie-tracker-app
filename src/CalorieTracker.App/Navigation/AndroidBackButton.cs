@@ -1,5 +1,5 @@
 using AndroidX.Activity;
-using CalorieTracker.UI.Navigation;
+using Shields.UI.Navigation;
 
 namespace CalorieTracker.App.Navigation;
 

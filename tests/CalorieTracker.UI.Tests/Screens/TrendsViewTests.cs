@@ -91,6 +91,51 @@ public class TrendsViewTests : ComponentTestBase
     }
 
     [Test]
+    public void Week_ShowsTheMacrosAsTheKitsStackedBarInDataSeriesOneTwoAndThree()
+    {
+        var cut = Week();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=trends-share]").GetAttribute("aria-label"), Does.StartWith("Average energy share: Protein "));
+            Assert.That(Text(cut, "trends-share-label-0"), Does.StartWith("Protein ").And.EndWith(" kcal"));
+            Assert.That(Text(cut, "trends-share-label-1"), Does.StartWith("Carbs ").And.EndWith(" kcal"));
+            Assert.That(Text(cut, "trends-share-label-2"), Does.StartWith("Fat ").And.EndWith(" kcal"));
+            Assert.That(cut.FindAll("[data-testid^=trends-share-segment-]").Select(e => e.ClassList.Single(c => c.StartsWith("series-", StringComparison.Ordinal))), Is.EqualTo(new[] { "series-1", "series-2", "series-3" }));
+        });
+    }
+
+    [Test]
+    public void Week_DrawsTheTargetAsTheKitsLineAndBandOutline_AndNamesBarsInKcal()
+    {
+        var cut = Week();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Exists(cut, "trends-chart-target"), Is.True);
+            Assert.That(Exists(cut, "trends-chart-band-top"), Is.True);
+            Assert.That(Exists(cut, "trends-chart-band-bottom"), Is.True);
+            Assert.That(cut.Find("[data-testid=trends-chart-bar-2026-11-13]").GetAttribute("aria-label"), Does.EndWith("kcal, over target"));
+        });
+    }
+
+    [Test]
+    public void Month_ShowsTheCalendarFromMondayWithLettersForEveryDay()
+    {
+        var cut = Month();
+
+        var headings = cut.Find("[data-testid=trends-calendar] .weekdays").Children.Select(e => e.TextContent);
+        var blanks = cut.FindAll("[data-testid=trends-calendar] .blank");
+        Assert.Multiple(() =>
+        {
+            Assert.That(headings, Is.EqualTo(new[] { "M", "T", "W", "T", "F", "S", "S" }));
+            Assert.That(blanks, Has.Count.EqualTo(6), "1 November 2026 is a Sunday, the last day of a Monday-first week");
+            Assert.That(cut.Find("[data-testid=trends-calendar-day-2026-11-01]").TextContent, Does.Contain("kcal"), "the day's text alternative names the unit");
+            Assert.That(cut.Find("[data-testid=trends-calendar-day-2026-11-01]").QuerySelector("[data-testid=trends-calendar-marker-2026-11-01]")!.TextContent, Is.EqualTo("✓"), "an on-target day carries a tick, as the kit draws it");
+        });
+    }
+
+    [Test]
     public void Week_ColoursEachDayByItsStatus_FridayAndSaturdayOverAndWednesdayAndSundayUnder()
     {
         var cut = Week();

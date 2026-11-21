@@ -1,7 +1,6 @@
 @using System.Globalization
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Trends
-@using CalorieTracker.UI.Components.Charts
 @using CalorieTracker.UI.Components.Lists
 <NavScreen Title="Trends" Destination="NavDestination.Trends" OnNavigate="OnNavigate" OnAdd="OpenSheet" Status="Notice">
     <Actions>
@@ -51,6 +50,11 @@
     ];
 
     private static readonly CultureInfo Culture = CultureInfo.InvariantCulture;
+
+    private const string NoDaysText = "No days logged yet";
+
+    /// <summary>The calendar's headings, Sunday first whatever the week's first day, so they do not depend on the device's language.</summary>
+    private static readonly IReadOnlyList<string> WeekdayLetters = ["S", "M", "T", "W", "T", "F", "S"];
 
     private RenderFragment Notice => @<Snackbar />;
 
@@ -200,13 +204,13 @@
         <Card Title="Calories by day" TestId="trends-days">
             <div class="card-body">
                 <ChartLegend Items="Legend(target)" TestId="trends-legend" />
-                <TrendBarChart Bars="DayBars(report)" Target="target" DateFormat="ddd d MMM" Label="Calories by day" TestId="trends-chart" OnSelect="OnSelectDay" />
+                <TrendBarChart Bars="DayBars(report)" Target="target" DateFormat="ddd d MMM" Label="Calories by day" Unit="kcal" EmptyText="@NoDaysText" TestId="trends-chart" OnSelect="OnSelectDay" />
             </div>
         </Card>
         <Card Title="Average macros" TestId="trends-macros">
             @if (range.Enough.Macros && range.AverageMacros is { } macros)
             {
-                <EnergyShareBar Protein="macros.ProteinG" Carbs="macros.CarbsG" Fat="macros.FatG" TestId="trends-share" />
+                <StackedBar Label="Average energy share" Unit="kcal" Segments="MacroSegments.Of(macros.ProteinG, macros.CarbsG, macros.FatG)" TestId="trends-share" />
             }
             else
             {
@@ -241,12 +245,12 @@
         <Card Title="Each day" TestId="trends-calendar-card">
             <div class="card-body">
                 <ChartLegend Items="Legend(target, notLogged: true)" TestId="trends-legend" />
-                <MonthCalendar Month="Start" Days="CalendarDays(report)" Target="target" Today="Today" TestId="trends-calendar" OnSelect="OnSelectDay" />
+                <MonthCalendar Month="Start" Days="CalendarDays(report)" Target="target" Today="Today" Unit="kcal" FirstDayOfWeek="DayOfWeek.Monday" DayNames="WeekdayLetters" TestId="trends-calendar" OnSelect="OnSelectDay" />
             </div>
         </Card>
         <Card Title="Average a day, by week" TestId="trends-weeks">
             <div class="card-body">
-                <TrendBarChart Bars="BucketBars(report)" Target="target" DateFormat="'Week of' d MMM" Label="Average a day, by week" TestId="trends-weeks-chart" OnSelect="OnSelectWeek" />
+                <TrendBarChart Bars="BucketBars(report)" Target="target" DateFormat="'Week of' d MMM" Label="Average a day, by week" Unit="kcal" EmptyText="@NoDaysText" TestId="trends-weeks-chart" OnSelect="OnSelectWeek" />
                 @if (report.Buckets.Any(Thin))
                 {
                     <p class="note" data-wrap-ok data-testid="trends-thin-note">Faded bars rest on fewer than @TrendsService.MinDays logged days.</p>
@@ -284,7 +288,7 @@
         <Card Title="Average a day, by month" TestId="trends-months">
             <div class="card-body">
                 <ChartLegend Items="Legend(target)" TestId="trends-legend" />
-                <TrendBarChart Bars="BucketBars(report)" Target="target" DateFormat="MMMM yyyy" Label="Average a day, by month" TestId="trends-months-chart" OnSelect="OnSelectMonth" />
+                <TrendBarChart Bars="BucketBars(report)" Target="target" DateFormat="MMMM yyyy" Label="Average a day, by month" Unit="kcal" EmptyText="@NoDaysText" TestId="trends-months-chart" OnSelect="OnSelectMonth" />
                 @if (report.Buckets.Any(Thin))
                 {
                     <p class="note" data-wrap-ok data-testid="trends-thin-note">Faded bars rest on fewer than @TrendsService.MinDays logged days.</p>

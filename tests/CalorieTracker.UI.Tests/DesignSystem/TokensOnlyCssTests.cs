@@ -6,7 +6,6 @@ public class TokensOnlyCssTests
 {
     private static IEnumerable<TestCaseData> StyleFiles() =>
         RepoFiles.Find("*.css", "src", "CalorieTracker.UI")
-            .Where(f => Path.GetFileName(f) != "tokens.css")
             .Select(f => new TestCaseData(f).SetArgDisplayNames(Path.GetFileName(f)));
 
     private static IEnumerable<TestCaseData> MarkupFiles() =>
@@ -23,7 +22,7 @@ public class TokensOnlyCssTests
 
     [TestCaseSource(nameof(StyleFiles))]
     public void Css_UsesOnlyDeclaredTokens(string file) =>
-        Assert.That(TokensOnlyCheck.UnknownTokens(File.ReadAllText(file), AppTokens.AppNames), Is.Empty);
+        Assert.That(TokensOnlyCheck.UnknownTokens(File.ReadAllText(file), KitNames.Tokens.ToList()), Is.Empty);
 
     [TestCaseSource(nameof(StyleFiles))]
     public void Css_FillsWithBackgroundColor_SoThePressedLayerShows(string file) =>

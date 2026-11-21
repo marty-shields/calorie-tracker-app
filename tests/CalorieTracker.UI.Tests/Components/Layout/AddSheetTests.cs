@@ -1,13 +1,13 @@
 using CalorieTracker.Core.Data;
 using CalorieTracker.UI.Components.Layout;
 using CalorieTracker.UI.Logging;
-using CalorieTracker.UI.Tests.DesignSystem;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Time.Testing;
 using Microsoft.JSInterop;
+using Shields.UI.Testing;
 
 namespace CalorieTracker.UI.Tests.Components.Layout;
 
@@ -91,7 +91,7 @@ public class AddSheetTests : ComponentTestBase
     public void Css_SizesTheHandleAndTilesFromTokens()
     {
         var css = RepoFiles.Read("src", "CalorieTracker.UI", "Components", "Layout", "AddSheet.razor.css");
-        var tokens = AppTokens.AppCss;
+        var tokens = KitCss.Tokens;
 
         Assert.Multiple(() =>
         {
