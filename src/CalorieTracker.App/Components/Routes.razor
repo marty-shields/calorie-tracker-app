@@ -1,20 +1,12 @@
 @using Microsoft.AspNetCore.Components.Routing
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Seed
-@using CalorieTracker.UI.Lifecycle
-@using CalorieTracker.UI.Navigation
 @using Shields.UI.Components.Layout
-@using Shields.UI.Lifecycle
-@using Shields.UI.Navigation
-@implements IDisposable
-@inject IBackButton BackButton
-@inject IAppLifecycle AppLifecycle
-@inject BackButtonBridge BackBridge
-@inject AppLifecycleBridge LifecycleBridge
 @inject IDatabaseInitializer DatabaseInitializer
 @inject SeedProgress Seed
 @inject NavigationManager Navigation
 
+<HostBridges />
 <SystemBarInsets />
 <StartupGate Initialize="InitializeAsync" Title="Calorie Tracker" FailedMessage="Couldn't open the database">
     <AppErrorBoundary Title="Calorie Tracker" OnRestart="() => Navigation.GoTo(string.Empty)">
@@ -27,19 +19,6 @@
 </StartupGate>
 
 @code {
-    // Routes is the root component, so it runs before any page: the scoped back button and app lifecycle are handed to the Android side before the pages register.
-    protected override void OnInitialized()
-    {
-        BackBridge.Connect(BackButton);
-        LifecycleBridge.Connect(AppLifecycle);
-    }
-
-    public void Dispose()
-    {
-        BackBridge.Disconnect(BackButton);
-        LifecycleBridge.Disconnect(AppLifecycle);
-    }
-
     private async Task InitializeAsync()
     {
         await DatabaseInitializer.InitializeAsync();

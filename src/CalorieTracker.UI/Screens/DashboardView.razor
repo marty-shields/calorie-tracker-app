@@ -2,7 +2,6 @@
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Diary
 @using CalorieTracker.Core.Summary
-@using CalorieTracker.UI.Components.Charts
 <NavScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="OnNavigate" OnAdd="OpenSheet" Status="Notice">
     <Actions>
         <IconButton Icon="IconName.Settings" AriaLabel="Settings" TestId="settings" OnClick="OnSettings" />
@@ -26,9 +25,17 @@
                 <Card TestId="dashboard-card">
                     <div class="summary">
                         <div class="ring-row">
-                            <CalorieRing Compact Eaten="summary.Totals.Kcal" Target="summary.TargetKcal" TestId="dashboard-ring" />
+                            @{
+                                var ringTarget = TargetOf(summary);
+                                var eaten = Math.Max(summary.Totals.Kcal, 0);
+                                var ringShown = ringTarget is { } limit ? Math.Abs(limit - eaten) : eaten;
+                                var ringWord = RingWord(eaten, ringTarget);
+                            }
+                            <ProgressRing Compact Value="eaten" Max="ringTarget ?? 0" Caption="@($"kcal {ringWord}")" AriaLabel="@RingLabel(eaten, ringTarget, ringShown, ringWord)" TestId="dashboard-ring">
+                                <span class="@RingNumberClass(ringWord, ringShown)" data-testid="dashboard-ring-value">@Number(ringShown)</span>
+                            </ProgressRing>
                             <div class="figures">
-                                <p class="figure">Eaten <strong data-testid="dashboard-eaten">@Number(summary.Totals.Kcal)</strong></p>
+                                <p class="figure">Eaten <strong data-testid="dashboard-eaten">@Number(eaten)</strong></p>
                                 @if (summary.TargetKcal is { } target)
                                 {
                                     <p class="figure">Target <strong data-testid="dashboard-target">@Number(target)</strong></p>
@@ -42,7 +49,7 @@
                         </div>
                         @if (logged)
                         {
-                            <EnergyShareBar Protein="summary.Totals.ProteinG" Carbs="summary.Totals.CarbsG" Fat="summary.Totals.FatG" TestId="dashboard-share" />
+                            <StackedBar Label="Energy share" Unit="kcal" Segments="MacroSegments.Of(summary.Totals.ProteinG, summary.Totals.CarbsG, summary.Totals.FatG)" TestId="dashboard-share" />
                         }
                     </div>
                 </Card>
@@ -276,6 +283,23 @@
     public EventCallback OnSettings { get; set; }
 
     private static string Number(int value) => value.ToString("N0", CultureInfo.InvariantCulture);
+
+    /// <summary>The day's target, or null when none is set (null or zero).</summary>
+    private static int? TargetOf(DaySummary summary) => summary.TargetKcal is > 0 ? summary.TargetKcal : null;
+
+    private static string RingWord(int eaten, int? target) => target is not { } goal ? "eaten" : eaten > goal ? "over" : "left";
+
+    private static string RingLabel(int eaten, int? target, int shown, string word) => target is { } goal
+        ? $"{Number(shown)} kcal {word}. Eaten {Number(eaten)} of {Number(goal)} kcal target."
+        : $"{Number(shown)} kcal eaten. No target set.";
+
+    /// <summary>The centre number steps down a size as it gets wider, as the kit's own does: 6 characters ("12,345") one step, 7 or more a second.</summary>
+    private static string RingNumberClass(string word, int shown) => $"ring-number{(word == "over" ? " over" : "")}" + Number(shown).Length switch
+    {
+        >= 7 => " widest",
+        6 => " wider",
+        _ => "",
+    };
 
     /// <summary>The amount text after the brand line when the food has one.</summary>
     private static string EntryDetail(SummaryEntry entry) =>

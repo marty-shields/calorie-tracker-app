@@ -36,8 +36,8 @@ public class NoLocalKitCopiesTests
             Is.Empty);
 
     [Test]
-    public void AppTokens_AreNotCopiesOfKitTokens() =>
-        Assert.That(TokenCopies(AppTokens.AppCss, KitNames.Tokens), Is.Empty);
+    public void AppCss_DoesNotDeclareKitTokens() =>
+        Assert.That(RepoFiles.Find("*.css", "src").SelectMany(file => TokenCopies(File.ReadAllText(file), KitNames.Tokens)), Is.Empty);
 
     [Test]
     public void ComponentCopies_FindsAFileNamedAfterAKitComponent()
@@ -62,8 +62,8 @@ public class NoLocalKitCopiesTests
     }
 
     [Test]
-    public void TokenCopies_FindsAKitTokenInATokensFile() =>
-        Assert.That(TokenCopies(":root { --color-accent: #000000; --ring-size: 1px; }", KitNames.Tokens), Is.EqualTo(new[] { "--color-accent" }));
+    public void TokenCopies_FindsAKitTokenInAStylesheet() =>
+        Assert.That(TokenCopies(":root { --color-accent: #000000; --local-size: 1px; }", KitNames.Tokens), Is.EqualTo(new[] { "--color-accent" }));
 
     [Test]
     public void KitNames_ListTheKitsComponentsAndTokens()

@@ -94,7 +94,7 @@ public class DashboardPageTests : ComponentTestBase
         {
             Assert.That(Text(cut, "date-strip-label"), Does.StartWith("Today, 19 Jul"));
             Assert.That(Text(cut, "dashboard-empty-message"), Is.EqualTo("Nothing logged today"));
-            Assert.That(Text(cut, "dashboard-ring-label"), Is.EqualTo("kcal eaten"));
+            Assert.That(Text(cut, "dashboard-ring-caption"), Is.EqualTo("kcal eaten"));
             Assert.That(Text(cut, "dashboard-no-target"), Is.EqualTo("No target set"));
         });
     }
@@ -112,11 +112,11 @@ public class DashboardPageTests : ComponentTestBase
             Assert.That(Text(cut, "meal-lunch-calories"), Is.EqualTo("125 kcal"));
             Assert.That(Text(cut, "dashboard-eaten"), Is.EqualTo("125"));
             Assert.That(Text(cut, "dashboard-ring-value"), Is.EqualTo("1,975"));
-            Assert.That(Text(cut, "dashboard-ring-label"), Is.EqualTo("kcal left"));
+            Assert.That(Text(cut, "dashboard-ring-caption"), Is.EqualTo("kcal left"));
             Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul .row"), Has.Count.EqualTo(1));
             Assert.That(cut.FindAll("[data-testid=meal-breakfast] ~ ul .row"), Is.Empty);
             Assert.That(Exists(cut, "dashboard-empty"), Is.False);
-            Assert.That(Text(cut, "dashboard-share-protein"), Does.Contain("7.6 g"));
+            Assert.That(Text(cut, "dashboard-share-label-0"), Is.EqualTo("Protein 30 kcal"));
         });
     }
 
@@ -171,7 +171,7 @@ public class DashboardPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(Text(cut, "dashboard-ring-value"), Is.EqualTo("16"));
-            Assert.That(Text(cut, "dashboard-ring-label"), Is.EqualTo("kcal over"));
+            Assert.That(Text(cut, "dashboard-ring-caption"), Is.EqualTo("kcal over"));
         });
     }
 

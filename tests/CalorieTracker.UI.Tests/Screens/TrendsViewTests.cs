@@ -83,10 +83,56 @@ public class TrendsViewTests : ComponentTestBase
             Assert.That(Text(cut, "trends-average-caption"), Is.EqualTo("kcal a day, 24 over target"));
             Assert.That(Text(cut, "trends-on-target-value"), Is.EqualTo("3 of 7"));
             Assert.That(Text(cut, "trends-on-target-caption"), Is.EqualTo("days within 10% of target"));
-            Assert.That(Text(cut, "trends-legend-3"), Is.EqualTo("Target 2,100, band ±10%"));
+            Assert.That(Text(cut, "trends-legend-3"), Is.EqualTo("Target 2,100"));
+            Assert.That(Text(cut, "trends-legend-4"), Is.EqualTo("Band ±10%"));
             Assert.That(Exists(cut, "trends-share"), Is.True);
             Assert.That(Text(cut, "trends-meal-list-label-0"), Is.EqualTo("Breakfast"));
             Assert.That(cut.FindAll("[data-testid^=trends-meal-list-row-]"), Has.Count.EqualTo(4));
+        });
+    }
+
+    [Test]
+    public void Week_ShowsTheMacrosAsTheKitsStackedBarInDataSeriesOneTwoAndThree()
+    {
+        var cut = Week();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find("[data-testid=trends-share]").GetAttribute("aria-label"), Does.StartWith("Average energy share: Protein "));
+            Assert.That(Text(cut, "trends-share-label-0"), Does.StartWith("Protein ").And.EndWith(" kcal"));
+            Assert.That(Text(cut, "trends-share-label-1"), Does.StartWith("Carbs ").And.EndWith(" kcal"));
+            Assert.That(Text(cut, "trends-share-label-2"), Does.StartWith("Fat ").And.EndWith(" kcal"));
+            Assert.That(cut.FindAll("[data-testid^=trends-share-segment-]").Select(e => e.ClassList.Single(c => c.StartsWith("series-", StringComparison.Ordinal))), Is.EqualTo(new[] { "series-1", "series-2", "series-3" }));
+        });
+    }
+
+    [Test]
+    public void Week_DrawsTheTargetAsTheKitsLineAndBandOutline_AndNamesBarsInKcal()
+    {
+        var cut = Week();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Exists(cut, "trends-chart-target"), Is.True);
+            Assert.That(Exists(cut, "trends-chart-band-top"), Is.True);
+            Assert.That(Exists(cut, "trends-chart-band-bottom"), Is.True);
+            Assert.That(cut.Find("[data-testid=trends-chart-bar-2026-11-13]").GetAttribute("aria-label"), Does.EndWith("kcal, over target"));
+        });
+    }
+
+    [Test]
+    public void Month_ShowsTheCalendarFromMondayWithLettersForEveryDay()
+    {
+        var cut = Month();
+
+        var headings = cut.Find("[data-testid=trends-calendar] .weekdays").Children.Select(e => e.TextContent);
+        var blanks = cut.FindAll("[data-testid=trends-calendar] .blank");
+        Assert.Multiple(() =>
+        {
+            Assert.That(headings, Is.EqualTo(new[] { "M", "T", "W", "T", "F", "S", "S" }));
+            Assert.That(blanks, Has.Count.EqualTo(6), "1 November 2026 is a Sunday, the last day of a Monday-first week");
+            Assert.That(cut.Find("[data-testid=trends-calendar-day-2026-11-01]").TextContent, Does.Contain("kcal"), "the day's text alternative names the unit");
+            Assert.That(cut.Find("[data-testid=trends-calendar-day-2026-11-01]").QuerySelector("[data-testid=trends-calendar-marker-2026-11-01]")!.TextContent, Is.EqualTo("✓"), "an on-target day carries a tick, as the kit draws it");
         });
     }
 
@@ -433,7 +479,7 @@ public class TrendsViewTests : ComponentTestBase
     {
         var cut = Month();
 
-        Assert.That(cut.FindAll("[data-testid^=trends-legend-]").Select(e => e.GetAttribute("data-testid")), Is.EqualTo(new[] { "trends-legend-0", "trends-legend-1", "trends-legend-2", "trends-legend-3", "trends-legend-4" }));
+        Assert.That(cut.FindAll("[data-testid^=trends-legend-]").Select(e => e.GetAttribute("data-testid")), Is.EqualTo(new[] { "trends-legend-0", "trends-legend-1", "trends-legend-2", "trends-legend-3", "trends-legend-4", "trends-legend-5" }));
     }
 
     [Test]
@@ -484,10 +530,12 @@ public class TrendsViewTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(items.Select(i => i.QuerySelector(".swatch")!.ClassList.Last()), Is.EqualTo(new[] { "chip", "accent", "error", "line" }));
+            Assert.That(items.Select(i => i.QuerySelector(".swatch")!.ClassList.Last()), Is.EqualTo(new[] { "chip", "accent", "error", "line", "band" }));
             Assert.That(items[2].QuerySelector(".marker")!.TextContent, Is.EqualTo("▲"));
             Assert.That(items[0].QuerySelector(".marker"), Is.Null);
             Assert.That(Text(cut, "trends-legend-2"), Does.Contain("Over"));
+            Assert.That(Text(cut, "trends-legend-3"), Does.StartWith("Target "));
+            Assert.That(Text(cut, "trends-legend-4"), Is.EqualTo("Band ±10%"));
         });
     }
 
@@ -498,7 +546,7 @@ public class TrendsViewTests : ComponentTestBase
 
         var items = cut.FindAll("[data-testid^=trends-legend-]").Where(e => e.LocalName == "li").ToList();
 
-        Assert.That(items.Select(i => i.QuerySelector(".swatch")!.ClassList.Last()), Is.EqualTo(new[] { "chip", "accent", "error", "outline", "line" }));
+        Assert.That(items.Select(i => i.QuerySelector(".swatch")!.ClassList.Last()), Is.EqualTo(new[] { "chip", "accent", "error", "outline", "line", "band" }));
         Assert.That(Text(cut, "trends-legend-3"), Is.EqualTo("Not logged"));
     }
 

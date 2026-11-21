@@ -17,11 +17,6 @@ public class AppComponentsAllowListTests
     /// <summary>Components outside <c>Screens/</c>, keyed by path relative to the UI project, with why each stays.</summary>
     private static readonly IReadOnlyDictionary<string, string> Allowed = new Dictionary<string, string>
     {
-        ["Components/Charts/CalorieRing.razor"] = MovesToKit,
-        ["Components/Charts/TrendBarChart.razor"] = MovesToKit,
-        ["Components/Charts/MonthCalendar.razor"] = MovesToKit,
-        ["Components/Charts/BarList.razor"] = MovesToKit,
-        ["Components/Charts/EnergyShareBar.razor"] = MovesToKit,
         ["Components/Layout/AddSheet.razor"] = MovesToKit,
         ["Components/Lists/MealHeader.razor"] = MovesToKit,
         ["Screens/AddSheetHost.razor"] = FoodSpecific + ": opens this app's AddSheet and adds the usual foods for the day",

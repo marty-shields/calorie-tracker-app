@@ -11,30 +11,7 @@ public partial class NoAppTokensTests
     /// <summary>Custom properties the app still declares until the kit releases them; the list only shrinks.</summary>
     private static readonly IReadOnlyDictionary<string, string> PendingKitTokens = new Dictionary<string, string>
     {
-        ["--color-ring-track"] = MovesToKit,
-        ["--color-protein"] = MovesToKit,
-        ["--color-carbs"] = MovesToKit,
-        ["--color-fat"] = MovesToKit,
-        ["--color-target-band"] = MovesToKit,
-        ["--font-size-xs"] = MovesToKit,
-        ["--opacity-thin"] = MovesToKit,
-        ["--ring-size"] = MovesToKit,
-        ["--ring-width"] = MovesToKit,
-        ["--ring-size-compact"] = MovesToKit,
-        ["--ring-width-compact"] = MovesToKit,
-        ["--share-bar-height"] = MovesToKit,
-        ["--chart-dash"] = MovesToKit,
-        ["--sheet-enter-duration"] = MovesToKit,
-        ["--sheet-max-width"] = MovesToKit,
-        ["--sheet-handle-width"] = MovesToKit,
-        ["--sheet-handle-height"] = MovesToKit,
-        ["--sheet-tile-min-height"] = MovesToKit,
-        ["--sheet-tile-icon-size"] = MovesToKit,
-
-        // Component-local properties of kit-bound components.
-        ["--fill"] = MovesToKit,
-        ["--size"] = MovesToKit,
-        ["--stroke"] = MovesToKit,
+        // Component-local property of the Add sheet, until the kit's Sheet replaces it.
         ["--icon-size"] = MovesToKit,
     };
 

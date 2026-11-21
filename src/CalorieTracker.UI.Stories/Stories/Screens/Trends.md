@@ -19,24 +19,24 @@ How a week, a month or a year went, from the bar's **Trends** item. View: `Trend
 | Part | Content |
 |---|---|
 | Tiles | Each tile is the kit's `StatTile`, label first. **Average**: "2,124" with "kcal a day, 24 over target" (or "under" or "on target"). **On target**: "3 of 7" with "days within 10% of target" (7 is the days of the week). |
-| Calories by day | The kit's `ChartLegend` with dots (Under, On target, Over with a ▲ marker, "Target 2,100, band ±10%" on the dashed-line swatch, since the kit has no band swatch) (legend test ids `trends-legend-0`, `-1`, ... run in this order: Week with a target Under, On target, Over, Target; Week without a target Under, On target, Over; Month Under, On target, Over, Not logged, Target; Year Under, On target, Over, Target) and a `TrendBarChart`: one bar for each past logged day, coloured by its status against its own target, an over marker on Over days and the tallest value labelled. Today and later days, and days not logged, are empty slots. A bar is a button: it opens that day on Today (`/?date=yyyy-MM-dd`). |
-| Average macros | `EnergyShareBar` with the average protein, carbs and fat in grams. |
-| Kcal by meal | `BarList` of the average kcal in Breakfast, Lunch, Dinner and Snacks. |
+| Calories by day | The kit's `ChartLegend` with dots (Under, On target, Over with a ▲ marker, "Target 2,100" on the dashed-line swatch and "Band ±10%" on the band swatch) (legend test ids `trends-legend-0`, `-1`, ... run in this order: Week with a target Under, On target, Over, Target, Band; Week without a target Under, On target, Over; Month Under, On target, Over, Not logged, Target, Band; Year Under, On target, Over, Target, Band) and the kit's `TrendBarChart` (the target is a dashed line and the band's two edges are outlines in `--color-chart-band`): one bar for each past logged day, coloured by its status against its own target, an over marker on Over days and the tallest value labelled. Today and later days, and days not logged, are empty slots. A bar is a button: it opens that day on Today (`/?date=yyyy-MM-dd`). |
+| Average macros | The kit's `StackedBar` with the average protein, carbs and fat in the data series 1, 2 and 3, sized by calories and labelled in kcal (test ids `trends-share-segment-<n>` and `-label-<n>`). |
+| Kcal by meal | The kit's `BarList` of the average kcal in Breakfast, Lunch, Dinner and Snacks. |
 
 ## Month
 | Part | Content |
 |---|---|
 | Tiles | **Average** ("kcal a day"); **On target** ("N of M", "logged days within 10% of target"); **Streak** ("13 days", "logged in a row"; another month is labelled **Longest streak** and shows its longest run); **Logged** ("N of M", "past days logged"). |
-| Each day | The `MonthCalendar`: a cell for each day coloured by status, an over marker, today outlined, later days disabled. A cell is a button that opens that day on Today. |
-| Average a day, by week | A `TrendBarChart` of Monday-start weeks (the first and last cover only their days in the month, but are named and opened by their Monday), labelled W1, W2, … A bar opens that week in Week. |
-| Top foods | `BarList` of the 5 foods with the most kcal, as `TrendsService` ranks them. |
+| Each day | The kit's `MonthCalendar` (Monday first, headings M T W T F S S): a cell for each day coloured by status, a ▲ marker on over days and a ✓ on on-target days (so colour is not the only cue), today with a double ring, later days disabled. A cell is a button that opens that day on Today. |
+| Average a day, by week | The kit's `TrendBarChart` of Monday-start weeks (the first and last cover only their days in the month, but are named and opened by their Monday), labelled W1, W2, … A bar opens that week in Week. |
+| Top foods | The kit's `BarList` of the 5 foods with the most kcal, as `TrendsService` ranks them. |
 
 ## Year
 | Part | Content |
 |---|---|
 | Tiles | **Average** ("kcal a day"); **On target** ("N of M", "months averaging within 10% of target"; M is the months judged against a target; a month of fewer than 3 logged days is left out here and from the lowest month); **Logged** ("88%", "283 of 321 days"); **Lowest month** ("Oct", "1,990 kcal a day"). |
-| Average a day, by month | A `TrendBarChart` against the target band, one bar for each month with a logged day, labelled by its short month name (Jan, Mar). A bar opens that month in Month. |
-| Days logged per month | `BarList` of "28 of 31" for each month, full at 31 days. |
+| Average a day, by month | The kit's `TrendBarChart` against the target band, one bar for each month with a logged day, labelled by its short month name (Jan, Mar). A bar opens that month in Month. |
+| Days logged per month | The kit's `BarList` of "28 of 31" for each month, full at 31 days. |
 
 ## Thin buckets
 A week or month averages from as few as one logged day. Such a bucket (fewer than 3 logged days, `TrendsService.MinDays`) is still drawn, but faded (`--opacity-thin`), its text alternative ends "based on 2 days", and a line under the chart says "Faded bars rest on fewer than 3 logged days."

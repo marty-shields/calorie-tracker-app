@@ -28,7 +28,22 @@ public class UiServiceCollectionExtensionsTests
             (typeof(SnackbarService), ServiceLifetime.Scoped),
             (typeof(ThemeService), ServiceLifetime.Scoped),
             (typeof(SystemBarInsetWriter), ServiceLifetime.Scoped),
+            (typeof(BackButtonBridge), ServiceLifetime.Singleton),
+            (typeof(AppLifecycleBridge), ServiceLifetime.Singleton),
         }));
+    }
+
+    [Test]
+    public void AddUi_RegistersTheKitsHostBridgesAsSingletonsForTheActivity()
+    {
+        using var provider = new ServiceCollection().AddUi().BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
+        using var scope = provider.CreateScope();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(scope.ServiceProvider.GetRequiredService<BackButtonBridge>(), Is.SameAs(provider.GetRequiredService<BackButtonBridge>()));
+            Assert.That(scope.ServiceProvider.GetRequiredService<AppLifecycleBridge>(), Is.SameAs(provider.GetRequiredService<AppLifecycleBridge>()));
+        });
     }
 
     [Test]
