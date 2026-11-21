@@ -1,5 +1,4 @@
 using Shields.UI.Testing;
-using Shields.UI.Theme;
 
 namespace CalorieTracker.UI.Tests.DesignSystem;
 
@@ -7,12 +6,6 @@ namespace CalorieTracker.UI.Tests.DesignSystem;
 public class NoLocalKitCopiesTests
 {
     private static readonly string UiFolder = RepoFiles.PathOf("src", "CalorieTracker.UI");
-
-    /// <summary>The names of the kit's public types, without generic arity; nested types and the Razor-generated <c>_Imports</c> are not files of their own.</summary>
-    private static readonly IReadOnlySet<string> KitTypeNames = typeof(ThemePreference).Assembly.GetExportedTypes()
-        .Where(type => !type.IsNested && !type.Name.StartsWith('_'))
-        .Select(type => type.Name.Split('`')[0])
-        .ToHashSet(StringComparer.Ordinal);
 
     /// <summary>
     /// Source and razor files named after a kit component or public kit type, as paths relative to the folder.
@@ -32,7 +25,7 @@ public class NoLocalKitCopiesTests
     [Test]
     public void AppFiles_AreNotCopiesOfKitComponentsOrTypes() =>
         Assert.That(
-            ComponentCopies(RepoFiles.Find("*.razor", "src", "CalorieTracker.UI").Concat(RepoFiles.Find("*.cs", "src", "CalorieTracker.UI")), KitNames.Components.Union(KitTypeNames).ToHashSet(), UiFolder),
+            ComponentCopies(RepoFiles.Find("*.razor", "src", "CalorieTracker.UI").Concat(RepoFiles.Find("*.cs", "src", "CalorieTracker.UI")), KitNames.Components.Union(KitNames.Types).ToHashSet(), UiFolder),
             Is.Empty);
 
     [Test]
@@ -55,7 +48,7 @@ public class NoLocalKitCopiesTests
     {
         var copies = ComponentCopies(
             [Path.Combine(UiFolder, "SnackbarService.cs"), Path.Combine(UiFolder, "Components", "Spinner.razor.cs"), Path.Combine(UiFolder, "Screens", "ScanView.cs")],
-            KitNames.Components.Union(KitTypeNames).ToHashSet(),
+            KitNames.Components.Union(KitNames.Types).ToHashSet(),
             UiFolder);
 
         Assert.That(copies, Is.EqualTo(new[] { "SnackbarService.cs", Path.Combine("Components", "Spinner.razor.cs") }));

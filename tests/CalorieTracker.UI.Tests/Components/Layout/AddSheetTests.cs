@@ -7,13 +7,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Time.Testing;
 using Microsoft.JSInterop;
-using Shields.UI.Testing;
 
 namespace CalorieTracker.UI.Tests.Components.Layout;
 
 public class AddSheetTests : ComponentTestBase
 {
-    private const string Module = "./_content/CalorieTracker.UI/Components/Layout/AddSheet.razor.js";
+    private const string Module = "./_content/Shields.UI/Components/Overlays/Sheet.razor.js";
 
     private BunitJSModuleInterop sheetModule = null!;
 
@@ -61,8 +60,7 @@ public class AddSheetTests : ComponentTestBase
         {
             Assert.That(sheet.GetAttribute("role"), Is.EqualTo("dialog"));
             Assert.That(sheet.GetAttribute("aria-modal"), Is.EqualTo("true"));
-            Assert.That(cut.Find("#add-sheet-title").TextContent, Is.EqualTo("Add food"));
-            Assert.That(sheet.GetAttribute("aria-labelledby"), Is.EqualTo("add-sheet-title"));
+            Assert.That(cut.Find($"#{sheet.GetAttribute("aria-labelledby")}").TextContent, Is.EqualTo("Add food"));
             Assert.That(cut.FindAll("[data-testid^=add-sheet-meal-]").Select(r => r.ParentElement!.TextContent.Trim()), Is.EqualTo(new[] { "Breakfast", "Lunch", "Dinner", "Snacks" }));
             Assert.That(cut.Find("[data-testid=add-sheet-search]").TextContent.Trim(), Is.EqualTo("Search foods"));
             Assert.That(cut.Find("[data-testid=add-sheet-scan]").TextContent.Trim(), Is.EqualTo("Scan barcode"));
@@ -83,25 +81,22 @@ public class AddSheetTests : ComponentTestBase
             Assert.That(handle.TextContent, Is.Empty);
             Assert.That(handle.TagName, Is.EqualTo("DIV"), "not a button: it has no behaviour");
             Assert.That(handle.ParentElement!.FirstElementChild!.GetAttribute("data-testid"), Is.EqualTo("add-sheet-handle"), "first in the dialog");
-            Assert.That(cut.Find("[data-testid=add-sheet]").GetAttribute("aria-labelledby"), Is.EqualTo("add-sheet-title"));
         });
     }
 
     [Test]
-    public void Css_SizesTheHandleAndTilesFromTokens()
+    public void Css_HoldsNoSheetFrame_TheKitSheetOwnsIt()
     {
         var css = RepoFiles.Read("src", "CalorieTracker.UI", "Components", "Layout", "AddSheet.razor.css");
-        var tokens = KitCss.Tokens;
 
         Assert.Multiple(() =>
         {
-            Assert.That(css, Does.Contain("width: var(--sheet-handle-width);").And.Contain("height: var(--sheet-handle-height);"));
-            Assert.That(css, Does.Contain("grid-auto-rows: minmax(var(--sheet-tile-min-height), auto);").And.Contain("--icon-size: var(--sheet-tile-icon-size);"));
-            Assert.That(css, Does.Not.Contain("chip-soft"), "the usual + is an IconButton Soft, not restyled here");
-            foreach (var token in new[] { "--sheet-handle-width", "--sheet-handle-height", "--sheet-tile-min-height", "--sheet-tile-icon-size" })
+            foreach (var frame in new[] { ".scrim", ".sheet {", ".handle", ".tile {", "@keyframes" })
             {
-                Assert.That(tokens, Does.Contain(token + ":"), token);
+                Assert.That(css, Does.Not.Contain(frame), frame);
             }
+
+            Assert.That(css, Does.Contain("grid-auto-rows: minmax(var(--sheet-tile-min-height), auto);"), "the app lays out the tiles");
         });
     }
 
@@ -284,21 +279,15 @@ public class AddSheetTests : ComponentTestBase
     }
 
     [Test]
-    public void FocusSetUpFails_LogsItAndTheSheetStillWorks()
+    public void FocusSetUpFails_TheSheetStillWorks()
     {
-        var logger = new FakeLogger<AddSheet>();
-        Context.Services.AddSingleton<ILogger<AddSheet>>(logger);
         Context.JSInterop.Mode = JSRuntimeMode.Strict;
         var module = Context.JSInterop.SetupModule(Module);
-        module.SetupVoid("open", _ => true).SetException(new JSException("Open failed"));
+        module.Setup<int>("open", _ => true).SetException(new JSException("Open failed"));
 
         var cut = Render();
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(cut.FindAll("[data-testid=add-sheet]"), Has.Count.EqualTo(1));
-            Assert.That(LoggedEvents.Of(logger).Select(e => e.Id), Does.Contain(UiEvent.AddSheetFocusFailed));
-        });
+        Assert.That(cut.FindAll("[data-testid=add-sheet]"), Has.Count.EqualTo(1));
     }
 
     [Test]

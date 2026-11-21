@@ -27,7 +27,6 @@ public partial class EventIdTests
         {
             [UiEvent.AddSheetOpened] = 2301,
             [UiEvent.AddSheetChose] = 2302,
-            [UiEvent.AddSheetFocusFailed] = 2303,
             [UiEvent.UsualRead] = 2304,
             [UiEvent.UsualReadFailed] = 2305,
             [UiEvent.UsualAdded] = 2306,
@@ -53,7 +52,7 @@ public partial class EventIdTests
         }));
 
     /// <summary>Ids that were used once and must never be given to another event.</summary>
-    private static readonly int[] RetiredUiEvents = [2001, 2002, 2101, 2201, 2202, 2203, 3201, 3301, 3502, 3701, 4001];
+    private static readonly int[] RetiredUiEvents = [2001, 2002, 2101, 2201, 2202, 2203, 2303, 3201, 3301, 3502, 3701, 4001];
 
     [Test]
     public void UiEvent_NoValueUsesARetiredId() =>

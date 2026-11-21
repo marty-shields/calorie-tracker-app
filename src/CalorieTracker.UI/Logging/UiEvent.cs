@@ -16,8 +16,7 @@ internal enum UiEvent
     /// <summary><see cref="Components.Layout.AddSheet"/>: Search foods, Scan barcode or a dismissal, with the meal chosen.</summary>
     AddSheetChose = 2302,
 
-    /// <summary><see cref="Components.Layout.AddSheet"/>: keeping focus in the sheet or returning it to Add failed; the sheet still works.</summary>
-    AddSheetFocusFailed = 2303,
+    // 2303 is retired: the Add sheet's frame moved to the shared kit, which logs a focus failure as KitEvent.SheetFocusFailed.
 
     /// <summary><see cref="Screens.UsualFoodsFeed"/>: the usual foods for the Add sheet were read; carries the meal and the count of rows.</summary>
     UsualRead = 2304,

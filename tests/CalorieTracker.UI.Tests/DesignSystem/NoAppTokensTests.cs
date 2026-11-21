@@ -6,15 +6,6 @@ namespace CalorieTracker.UI.Tests.DesignSystem;
 /// <summary>This app declares no CSS custom properties (tokens); a new one is requested in app-ui-kit and used from the kit.</summary>
 public partial class NoAppTokensTests
 {
-    private const string MovesToKit = "moves to the kit: #164";
-
-    /// <summary>Custom properties the app still declares until the kit releases them; the list only shrinks.</summary>
-    private static readonly IReadOnlyDictionary<string, string> PendingKitTokens = new Dictionary<string, string>
-    {
-        // Component-local property of the Add sheet, until the kit's Sheet replaces it.
-        ["--icon-size"] = MovesToKit,
-    };
-
     /// <summary>Names of the custom properties a stylesheet declares (<c>--name:</c>); <c>var(--name)</c> uses and comments do not count.</summary>
     internal static IReadOnlySet<string> Declared(string css) =>
         DesignTokens.Declares(CommentPattern().Replace(css, "")).ToHashSet(StringComparer.Ordinal);
@@ -31,17 +22,8 @@ public partial class NoAppTokensTests
             .ToHashSet(StringComparer.Ordinal);
 
     [Test]
-    public void App_DeclaresOnlyPendingKitTokens() =>
-        Assert.That(DeclaredInApp().Where(name => !PendingKitTokens.ContainsKey(name)), Is.Empty,
-            "declare a token in app-ui-kit, not in this app");
-
-    [Test]
-    public void PendingKitTokens_AreAllStillDeclared()
-    {
-        var declared = DeclaredInApp();
-        Assert.That(PendingKitTokens.Keys.Where(name => !declared.Contains(name)), Is.Empty,
-            "remove the token from PendingKitTokens: the list only shrinks");
-    }
+    public void App_DeclaresNoCustomProperty() =>
+        Assert.That(DeclaredInApp(), Is.Empty, "declare a token in app-ui-kit, not in this app");
 
     [Test]
     public void Declared_FindsDeclarationsButNotUsesOrComments() =>

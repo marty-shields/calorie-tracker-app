@@ -1,54 +1,40 @@
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Diary
 @using Microsoft.Extensions.Logging
-@using Microsoft.JSInterop
-@implements IAsyncDisposable
-@inject IJSRuntime JS
 @inject TimeProvider Time
 @inject ILogger<AddSheet> Logger
 
-@if (Open)
-{
-    <BackHandler OnBack="DismissAsync" />
-    <div class="scrim" data-testid="add-sheet-scrim" aria-hidden="true" @onclick="DismissAsync"></div>
-    <div @ref="sheet" class="sheet" role="dialog" aria-modal="true" tabindex="-1" aria-labelledby="add-sheet-title" data-testid="add-sheet" @onkeydown="OnKeyDown">
-        <div class="handle" aria-hidden="true" data-testid="add-sheet-handle"></div>
-        <h2 id="add-sheet-title" class="title">Add food</h2>
+<Sheet Open="Open" Title="Add food" TestId="add-sheet" OnClose="DismissAsync">
+    <div class="meals">
         <FilterChips TValue="Meal" Label="Meal" Options="Meals" Value="meal" ValueChanged="PickMeal" TestId="add-sheet-meals" />
-        <div class="tiles">
-            <button type="button" class="tile" data-testid="add-sheet-search" @onclick="() => ChooseAsync(AddSheetAction.Search, OnSearch)">
-                <Icon Name="IconName.Search" />
-                <span class="text">Search foods</span>
-            </button>
-            <button type="button" class="tile" data-testid="add-sheet-scan" @onclick="() => ChooseAsync(AddSheetAction.Scan, OnScan)">
-                <Icon Name="IconName.Scan" />
-                <span class="text">Scan barcode</span>
-            </button>
-        </div>
-        @if (Usual is { Count: > 0 } usual)
-        {
-            <section class="usual" aria-labelledby="add-sheet-usual-heading" data-testid="add-sheet-usual">
-                <h3 id="add-sheet-usual-heading" class="usual-title" data-testid="add-sheet-usual-heading">Usual for @meal.ToString().ToLowerInvariant()</h3>
-                <ul class="usual-rows">
-                    @foreach (var row in usual)
-                    {
-                        <li class="usual-row" data-testid="@($"add-sheet-usual-{row.FoodId}")">
-                            <div class="usual-text">
-                                <span class="usual-name" data-testid="@($"add-sheet-usual-{row.FoodId}-title")" data-wrap-ok>@row.Title</span>
-                                <span class="usual-detail" data-testid="@($"add-sheet-usual-{row.FoodId}-detail")" data-wrap-ok>@row.Detail</span>
-                            </div>
-                            <IconButton Style="IconButtonStyle.Soft" Icon="IconName.Plus" AriaLabel="@($"Add {row.Title} to {meal}")" TestId="@($"add-sheet-usual-{row.FoodId}-add")" OnClick="() => AddUsualAsync(row)" />
-                        </li>
-                    }
-                </ul>
-            </section>
-        }
-        @if (AddError is not null)
-        {
-            <p class="add-error" role="alert" data-testid="add-sheet-add-error" data-wrap-ok>@AddError</p>
-        }
     </div>
-}
+    <div class="tiles">
+        <SheetAction Icon="IconName.Search" Label="Search foods" TestId="add-sheet-search" OnClick="() => ChooseAsync(AddSheetAction.Search, OnSearch)" />
+        <SheetAction Icon="IconName.Scan" Label="Scan barcode" TestId="add-sheet-scan" OnClick="() => ChooseAsync(AddSheetAction.Scan, OnScan)" />
+    </div>
+    @if (Usual is { Count: > 0 } usual)
+    {
+        <section class="usual" aria-labelledby="add-sheet-usual-heading" data-testid="add-sheet-usual">
+            <h3 id="add-sheet-usual-heading" class="usual-title" data-testid="add-sheet-usual-heading">Usual for @meal.ToString().ToLowerInvariant()</h3>
+            <ul class="usual-rows">
+                @foreach (var row in usual)
+                {
+                    <li class="usual-row" data-testid="@($"add-sheet-usual-{row.FoodId}")">
+                        <div class="usual-text">
+                            <span class="usual-name" data-testid="@($"add-sheet-usual-{row.FoodId}-title")" data-wrap-ok>@row.Title</span>
+                            <span class="usual-detail" data-testid="@($"add-sheet-usual-{row.FoodId}-detail")" data-wrap-ok>@row.Detail</span>
+                        </div>
+                        <IconButton Style="IconButtonStyle.Soft" Icon="IconName.Plus" AriaLabel="@($"Add {row.Title} to {meal}")" TestId="@($"add-sheet-usual-{row.FoodId}-add")" OnClick="() => AddUsualAsync(row)" />
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+    @if (AddError is not null)
+    {
+        <p class="add-error" role="alert" data-testid="add-sheet-add-error" data-wrap-ok>@AddError</p>
+    }
+</Sheet>
 
 @code {
     private static readonly IReadOnlyList<RadioOption<Meal>> Meals =
@@ -59,11 +45,8 @@
         new(Meal.Snacks, "Snacks", "add-sheet-meal-snacks"),
     ];
 
-    private ElementReference sheet;
-    private IJSObjectReference? module;
     private Meal meal;
     private bool wasOpen;
-    private bool trapping;
 
     /// <summary>Shows the sheet. The meal for the time on the <see cref="TimeProvider"/> is selected each time it opens.</summary>
     [Parameter]
@@ -113,35 +96,6 @@
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (Open == trapping)
-        {
-            return;
-        }
-
-        trapping = Open;
-        try
-        {
-            module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./_content/CalorieTracker.UI/Components/Layout/AddSheet.razor.js");
-            if (Open)
-            {
-                await module.InvokeVoidAsync("open", sheet);
-            }
-            else
-            {
-                await module.InvokeVoidAsync("close");
-            }
-        }
-        catch (JSException exception)
-        {
-            Log.FocusFailed(Logger, exception);
-        }
-        catch (JSDisconnectedException)
-        {
-        }
-    }
-
     private Task PickMeal(Meal picked)
     {
         meal = picked;
@@ -164,28 +118,5 @@
     {
         Log.Chose(Logger, AddSheetAction.Dismiss, meal);
         return OnClose.InvokeAsync();
-    }
-
-    private Task OnKeyDown(KeyboardEventArgs args) => args.Key == "Escape" ? DismissAsync() : Task.CompletedTask;
-
-    public async ValueTask DisposeAsync()
-    {
-        if (module is null)
-        {
-            return;
-        }
-
-        try
-        {
-            if (trapping)
-            {
-                await module.InvokeVoidAsync("close");
-            }
-
-            await module.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-        }
     }
 }

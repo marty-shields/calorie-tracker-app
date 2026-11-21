@@ -49,7 +49,7 @@ public class DashboardViewTests : ComponentTestBase
             foreach (var meal in new[] { "breakfast", "lunch", "dinner", "snacks" })
             {
                 Assert.That(Exists(cut, $"meal-{meal}-add"), Is.True, meal);
-                Assert.That(Exists(cut, $"meal-{meal}-calories"), Is.False, meal);
+                Assert.That(Exists(cut, $"meal-{meal}-total"), Is.False, meal);
                 Assert.That(Exists(cut, $"meal-{meal}-none"), Is.False, meal);
             }
 
@@ -68,10 +68,10 @@ public class DashboardViewTests : ComponentTestBase
             Assert.That(Text(cut, "dashboard-eaten"), Is.EqualTo("762"));
             Assert.That(Exists(cut, "dashboard-share"), Is.True);
             Assert.That(Text(cut, "dashboard-share-label-0"), Is.EqualTo("Protein 116 kcal"));
-            Assert.That(Text(cut, "meal-breakfast-name"), Is.EqualTo("Breakfast"));
-            Assert.That(Text(cut, "meal-lunch-calories"), Is.EqualTo("521 kcal"));
+            Assert.That(Text(cut, "meal-breakfast-title"), Is.EqualTo("Breakfast"));
+            Assert.That(Text(cut, "meal-lunch-total"), Is.EqualTo("521 kcal"));
             Assert.That(Text(cut, "meal-dinner-none"), Is.EqualTo("Nothing logged"));
-            Assert.That(cut.FindAll("[data-testid=meal-breakfast] ~ ul .row"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=meal-breakfast-section] ul .row"), Has.Count.EqualTo(1));
             Assert.That(Text(cut, "entry-4"), Does.Contain("200 ml"));
             Assert.That(Text(cut, "entry-1"), Does.StartWith("Quaker Porridge oats").And.Contain("40 g").And.EndWith("149"));
         });
@@ -353,6 +353,40 @@ public class DashboardViewTests : ComponentTestBase
         });
     }
 
+    [TestCase("breakfast", "Breakfast")]
+    [TestCase("lunch", "Lunch")]
+    [TestCase("dinner", "Dinner")]
+    [TestCase("snacks", "Snacks")]
+    public void MealPlus_IsNamedForItsMeal_IsTheFilledStyleAndShowsAPlus(string id, string meal)
+    {
+        var cut = Render(DashboardSamples.Loaded);
+
+        var add = cut.Find($"[data-testid=meal-{id}-add]");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(add.GetAttribute("aria-label"), Is.EqualTo($"Add to {meal}"));
+            Assert.That(add.ClassList, Does.Contain("filled"));
+            Assert.That(add.QuerySelector("svg path")!.GetAttribute("d"), Is.EqualTo(Context.Render<Icon>(p => p.Add(x => x.Name, IconName.Plus)).Find("path").GetAttribute("d")));
+        });
+    }
+
+    [Test]
+    public void TheOpenMealsToggle_ControlsTheEntriesItShows()
+    {
+        var cut = RenderAt(DashboardSamples.FullDay, DashboardSamples.Evening);
+        cut.Find("[data-testid=meal-lunch-toggle]").Click();
+
+        var toggle = cut.Find("[data-testid=meal-lunch-toggle]");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(toggle.GetAttribute("aria-expanded"), Is.EqualTo("true"));
+            Assert.That(toggle.GetAttribute("aria-controls"), Is.EqualTo("meal-lunch-entries"));
+            Assert.That(cut.Find("#meal-lunch-entries").QuerySelectorAll("li"), Is.Not.Empty);
+        });
+    }
+
     [Test]
     public async Task MealPlus_RaisesTheMealAndTheDayOnTheStrip()
     {
@@ -396,7 +430,7 @@ public class DashboardViewTests : ComponentTestBase
 
     private void UseSheetModule()
     {
-        sheetModule = Context.JSInterop.SetupModule("./_content/CalorieTracker.UI/Components/Layout/AddSheet.razor.js");
+        sheetModule = Context.JSInterop.SetupModule("./_content/Shields.UI/Components/Overlays/Sheet.razor.js");
         sheetModule.Mode = JSRuntimeMode.Loose;
     }
 
@@ -563,21 +597,21 @@ public class DashboardViewTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(Text(cut, "meal-breakfast-now"), Is.EqualTo("Now"));
+            Assert.That(Text(cut, "meal-breakfast-badge"), Is.EqualTo("Now"));
             Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("true"), "the Now meal starts open with a fold button");
-            Assert.That(cut.FindAll("[data-testid=meal-breakfast] ~ ul .row"), Has.Count.EqualTo(1));
-            Assert.That(Text(cut, "meal-lunch-hint"), Is.EqualTo("from 11:00"));
-            Assert.That(Text(cut, "meal-dinner-hint"), Is.EqualTo("from 17:00"));
+            Assert.That(cut.FindAll("[data-testid=meal-breakfast-section] ul .row"), Has.Count.EqualTo(1));
+            Assert.That(Text(cut, "meal-lunch-total"), Is.EqualTo("from 11:00"));
+            Assert.That(Text(cut, "meal-dinner-total"), Is.EqualTo("from 17:00"));
             foreach (var meal in new[] { "lunch", "dinner" })
             {
                 Assert.That(Exists(cut, $"meal-{meal}-add"), Is.True, meal);
-                Assert.That(cut.FindAll($"[data-testid=meal-{meal}] ~ ul"), Is.Empty, meal);
+                Assert.That(cut.FindAll($"[data-testid=meal-{meal}-section] ul"), Is.Empty, meal);
                 Assert.That(Exists(cut, $"meal-{meal}-none"), Is.False, meal);
-                Assert.That(Exists(cut, $"meal-{meal}-now"), Is.False, meal);
+                Assert.That(Exists(cut, $"meal-{meal}-badge"), Is.False, meal);
             }
 
-            Assert.That(Exists(cut, "meal-snacks-now"), Is.False);
-            Assert.That(Exists(cut, "meal-snacks-hint"), Is.False);
+            Assert.That(Exists(cut, "meal-snacks-badge"), Is.False);
+            Assert.That(Exists(cut, "meal-snacks-total"), Is.False);
             Assert.That(Exists(cut, "meal-snacks-toggle"), Is.False);
             Assert.That(Text(cut, "meal-snacks-none"), Is.EqualTo("Nothing logged"));
         });
@@ -590,17 +624,17 @@ public class DashboardViewTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(Text(cut, "meal-breakfast-summary"), Is.EqualTo("1 item · 149 kcal"));
-            Assert.That(Text(cut, "meal-lunch-summary"), Is.EqualTo("1 item · 521 kcal"));
+            Assert.That(Text(cut, "meal-breakfast-total"), Is.EqualTo("1 item · 149 kcal"));
+            Assert.That(Text(cut, "meal-lunch-total"), Is.EqualTo("1 item · 521 kcal"));
             Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("false"));
             Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("false"));
-            Assert.That(cut.FindAll("[data-testid=meal-breakfast] ~ ul"), Is.Empty);
-            Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=meal-breakfast-section] ul"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=meal-lunch-section] ul"), Is.Empty);
             Assert.That(Exists(cut, "meal-breakfast-add"), Is.True, "the + stays");
-            Assert.That(Text(cut, "meal-dinner-now"), Is.EqualTo("Now"));
+            Assert.That(Text(cut, "meal-dinner-badge"), Is.EqualTo("Now"));
             Assert.That(ExpandedOf(cut, "dinner"), Is.EqualTo("true"));
-            Assert.That(cut.FindAll("[data-testid=meal-dinner] ~ ul .row"), Has.Count.EqualTo(1));
-            Assert.That(cut.FindAll("[data-testid=meal-snacks] ~ ul .row"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=meal-dinner-section] ul .row"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=meal-snacks-section] ul .row"), Has.Count.EqualTo(1));
             Assert.That(Exists(cut, "meal-snacks-toggle"), Is.False);
         });
     }
@@ -610,7 +644,7 @@ public class DashboardViewTests : ComponentTestBase
     {
         var cut = RenderAt(DashboardSamples.OverTarget, DashboardSamples.Evening);
 
-        Assert.That(Text(cut, "meal-lunch-summary"), Is.EqualTo("2 items · 646 kcal"));
+        Assert.That(Text(cut, "meal-lunch-total"), Is.EqualTo("2 items · 646 kcal"));
     }
 
     [Test]
@@ -618,14 +652,14 @@ public class DashboardViewTests : ComponentTestBase
     {
         var empty = RenderAt(DashboardSamples.EarlyDay, DashboardSamples.Evening);
 
-        Assert.That(Text(empty, "meal-lunch-summary"), Is.EqualTo("Nothing logged"));
+        Assert.That(Text(empty, "meal-lunch-total"), Is.EqualTo("Nothing logged"));
         empty.Find("[data-testid=meal-lunch-toggle]").Click();
 
         Assert.Multiple(() =>
         {
             Assert.That(ExpandedOf(empty, "lunch"), Is.EqualTo("true"));
             Assert.That(Text(empty, "meal-lunch-none"), Is.EqualTo("Nothing logged"));
-            Assert.That(Exists(empty, "meal-lunch-summary"), Is.False);
+            Assert.That(Exists(empty, "meal-lunch-total"), Is.False);
         });
     }
 
@@ -639,8 +673,8 @@ public class DashboardViewTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("true"));
-            Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul .row"), Has.Count.EqualTo(1));
-            Assert.That(Text(cut, "meal-lunch-calories"), Is.EqualTo("521 kcal"));
+            Assert.That(cut.FindAll("[data-testid=meal-lunch-section] ul .row"), Has.Count.EqualTo(1));
+            Assert.That(Text(cut, "meal-lunch-total"), Is.EqualTo("521 kcal"));
             Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("false"), "only the tapped meal opens");
         });
 
@@ -659,9 +693,9 @@ public class DashboardViewTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(ExpandedOf(cut, "dinner"), Is.EqualTo("false"));
-            Assert.That(Text(cut, "meal-dinner-now"), Is.EqualTo("Now"), "the chip stays");
-            Assert.That(Text(cut, "meal-dinner-summary"), Does.EndWith(" kcal").And.Contain("item"));
-            Assert.That(cut.FindAll("[data-testid=meal-dinner] ~ ul"), Is.Empty);
+            Assert.That(Text(cut, "meal-dinner-badge"), Is.EqualTo("Now"), "the chip stays");
+            Assert.That(Text(cut, "meal-dinner-total"), Does.EndWith(" kcal").And.Contain("item"));
+            Assert.That(cut.FindAll("[data-testid=meal-dinner-section] ul"), Is.Empty);
             Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("false"), "other meals are unchanged");
         });
 
@@ -670,7 +704,7 @@ public class DashboardViewTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(ExpandedOf(cut, "dinner"), Is.EqualTo("true"));
-            Assert.That(cut.FindAll("[data-testid=meal-dinner] ~ ul .row"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=meal-dinner-section] ul .row"), Has.Count.EqualTo(1));
         });
     }
 
@@ -682,7 +716,7 @@ public class DashboardViewTests : ComponentTestBase
         cut.Find("[data-testid=meal-breakfast-toggle]").Click();
 
         Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("false"));
-        Assert.That(Text(cut, "meal-breakfast-summary"), Is.EqualTo("Nothing logged"));
+        Assert.That(Text(cut, "meal-breakfast-total"), Is.EqualTo("Nothing logged"));
         cut.Find("[data-testid=meal-breakfast-toggle]").Click();
         Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("true"));
     }
@@ -722,7 +756,7 @@ public class DashboardViewTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("false"));
-            Assert.That(Exists(cut, "meal-lunch-summary"), Is.True);
+            Assert.That(Exists(cut, "meal-lunch-total"), Is.True);
         });
     }
 
@@ -769,11 +803,10 @@ public class DashboardViewTests : ComponentTestBase
             {
                 foreach (var meal in new[] { "breakfast", "lunch", "dinner", "snacks" })
                 {
-                    Assert.That(Exists(cut, $"meal-{meal}-now"), Is.False, $"{day} {meal}");
-                    Assert.That(Exists(cut, $"meal-{meal}-hint"), Is.False, $"{day} {meal}");
+                    Assert.That(Exists(cut, $"meal-{meal}-badge"), Is.False, $"{day} {meal}");
+                    Assert.That(Text(cut, $"meal-{meal}-total"), Does.Not.StartWith("from"), $"{day} {meal}");
                     Assert.That(Exists(cut, $"meal-{meal}-toggle"), Is.False, $"{day} {meal}");
-                    Assert.That(Exists(cut, $"meal-{meal}-summary"), Is.False, $"{day} {meal}");
-                    Assert.That(cut.FindAll($"[data-testid=meal-{meal}] ~ ul .row"), Has.Count.EqualTo(1), $"{day} {meal}");
+                    Assert.That(cut.FindAll($"[data-testid=meal-{meal}-section] ul .row"), Has.Count.EqualTo(1), $"{day} {meal}");
                 }
             });
         }
@@ -794,8 +827,8 @@ public class DashboardViewTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(Text(cut, "meal-lunch-hint"), Is.EqualTo("from 11:00"));
-            Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul .row"), Has.Count.EqualTo(1));
+            Assert.That(Text(cut, "meal-lunch-total"), Is.EqualTo("from 11:00 · 521 kcal"));
+            Assert.That(cut.FindAll("[data-testid=meal-lunch-section] ul .row"), Has.Count.EqualTo(1));
         });
     }
 
@@ -825,7 +858,7 @@ public class DashboardViewTests : ComponentTestBase
             Assert.That(asked, Is.EqualTo(new[] { new UsualAddRequest(UsualRows[0], Meal.Lunch) }));
             Assert.That(Exists(cut, "add-sheet"), Is.False);
             Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("true"));
-            Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul .row"), Has.Count.EqualTo(2));
+            Assert.That(cut.FindAll("[data-testid=meal-lunch-section] ul .row"), Has.Count.EqualTo(2));
             Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("false"));
         });
     }
@@ -849,7 +882,7 @@ public class DashboardViewTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("true"));
-            Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul .row"), Has.Count.EqualTo(2));
+            Assert.That(cut.FindAll("[data-testid=meal-lunch-section] ul .row"), Has.Count.EqualTo(2));
         });
     }
 
@@ -939,7 +972,7 @@ public class DashboardViewTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("true"));
-            Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul .row"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=meal-lunch-section] ul .row"), Has.Count.EqualTo(1));
             Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("false"));
         });
     }
@@ -991,8 +1024,8 @@ public class DashboardViewTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(Exists(cut, "meal-breakfast-toggle"), Is.False);
-            Assert.That(Exists(cut, "meal-dinner-hint"), Is.False);
-            Assert.That(Exists(cut, "meal-lunch-now"), Is.False);
+            Assert.That(Text(cut, "meal-dinner-total"), Does.Not.StartWith("from"));
+            Assert.That(Exists(cut, "meal-lunch-badge"), Is.False);
         });
     }
 

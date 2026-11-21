@@ -14,8 +14,5 @@ public partial class AddSheet
 
         [LoggerMessage((int)UiEvent.AddSheetChose, LogLevel.Information, "Add sheet {Action} for {Meal}")]
         public static partial void Chose(ILogger logger, AddSheetAction action, Meal meal);
-
-        [LoggerMessage((int)UiEvent.AddSheetFocusFailed, LogLevel.Warning, "Moving focus for the add sheet failed")]
-        public static partial void FocusFailed(ILogger logger, Exception exception);
     }
 }

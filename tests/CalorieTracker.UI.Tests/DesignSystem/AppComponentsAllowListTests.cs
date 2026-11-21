@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using CalorieTracker.UI.Components.Layout;
 using Microsoft.AspNetCore.Components;
 
@@ -5,22 +6,24 @@ namespace CalorieTracker.UI.Tests.DesignSystem;
 
 /// <summary>
 /// The UI project holds screens and food-specific rows only; any other component is requested in app-ui-kit.
-/// Screens (<c>*View.razor</c> and <c>*Page.razor</c> under <c>Screens/</c>) need no entry; any other file there, and any component class written in C#, does. The App and Stories hosts are not scanned: they only wire the kit's shell.
+/// Screens (<c>*View.razor</c> and <c>*Page.razor</c> under <c>Screens/</c>) need no entry; any other file there, and any component class written in C#, does.
+/// The App project is scanned too, except its routed pages (<c>Components/Pages/</c>) and <c>Routes.razor</c>; its entries start with <c>App/</c>. The Stories hosts are not scanned: they only wire the kit's shell.
 /// </summary>
-public class AppComponentsAllowListTests
+public partial class AppComponentsAllowListTests
 {
     private const string FoodSpecific = "food-specific";
-    private const string MovesToKit = "moves to the kit: #164";
+    private const string AppWiring = "app wiring";
 
     private static readonly string UiFolder = RepoFiles.PathOf("src", "CalorieTracker.UI");
+    private static readonly string AppFolder = RepoFiles.PathOf("src", "CalorieTracker.App");
 
-    /// <summary>Components outside <c>Screens/</c>, keyed by path relative to the UI project, with why each stays.</summary>
+    /// <summary>Components outside <c>Screens/</c>, keyed by path relative to the UI project (the App project's start with <c>App/</c>), with why each stays.</summary>
     private static readonly IReadOnlyDictionary<string, string> Allowed = new Dictionary<string, string>
     {
-        ["Components/Layout/AddSheet.razor"] = MovesToKit,
-        ["Components/Lists/MealHeader.razor"] = MovesToKit,
-        ["Screens/AddSheetHost.razor"] = FoodSpecific + ": opens this app's AddSheet and adds the usual foods for the day",
-        ["Navigation/NavScreen.razor"] = FoodSpecific + ": binds the kit's AppScreen to this app's destinations",
+        ["Components/Layout/AddSheet.razor"] = FoodSpecific + ": the meal chips and usual foods inside the kit's Sheet",
+        ["Screens/AddSheetHost.razor"] = AppWiring + ": opens this app's AddSheet and adds the usual foods for the day",
+        ["Navigation/NavScreen.razor"] = AppWiring + ": binds the kit's AppScreen to this app's destinations",
+        ["App/Components/SystemBarInsets.cs"] = AppWiring + ": hands the Android system bar insets to the page",
     };
 
     /// <summary>Components that are not a <c>*View</c> or <c>*Page</c> under <c>Screens/</c>, as paths relative to the folder with <c>/</c> separators.</summary>
@@ -35,7 +38,20 @@ public class AppComponentsAllowListTests
         path.StartsWith("Screens/", StringComparison.Ordinal)
         && (path.EndsWith("View.razor", StringComparison.Ordinal) || path.EndsWith("Page.razor", StringComparison.Ordinal));
 
-    private static IReadOnlyList<string> Found() => Components(RepoFiles.Find("*.razor", "src", "CalorieTracker.UI"), UiFolder);
+    /// <summary>Components of the App project that are not a routed page or <c>Routes.razor</c>: its .razor files, and the .cs files whose base types include <c>ComponentBase</c>, <c>LayoutComponentBase</c>, <c>OwningComponentBase</c> or <c>IComponent</c>.</summary>
+    internal static IReadOnlyList<string> AppComponents(IEnumerable<string> razorFiles, IEnumerable<string> sourceFiles, string folder) =>
+        razorFiles.Concat(sourceFiles.Where(file => ComponentBaseRegex().IsMatch(File.ReadAllText(file))))
+            .Select(file => Path.GetRelativePath(folder, file).Replace(Path.DirectorySeparatorChar, '/'))
+            .Where(path => !path.StartsWith("Components/Pages/", StringComparison.Ordinal) && path != "Components/Routes.razor" && !Path.GetFileName(path).StartsWith('_'))
+            .Select(path => "App/" + path)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+    [GeneratedRegex(@"[:,]\s*(?:\w+\.)*(?:ComponentBase|LayoutComponentBase|OwningComponentBase(?:<[^>]+>)?|IComponent)\b")]
+    private static partial Regex ComponentBaseRegex();
+
+    private static IReadOnlyList<string> Found() =>
+        [.. Components(RepoFiles.Find("*.razor", "src", "CalorieTracker.UI"), UiFolder), .. AppComponents(RepoFiles.Find("*.razor", "src", "CalorieTracker.App"), RepoFiles.Find("*.cs", "src", "CalorieTracker.App"), AppFolder)];
 
     /// <summary>Names of the component classes in an assembly that are not a <c>*View</c> or <c>*Page</c> in a <c>Screens</c> namespace, whatever file or language they come from.</summary>
     internal static IReadOnlyList<string> ComponentTypes(IEnumerable<Type> types) =>
@@ -72,7 +88,41 @@ public class AppComponentsAllowListTests
 
     [Test]
     public void AllowList_GivesEachComponentAReason() =>
-        Assert.That(Allowed.Where(entry => !entry.Value.StartsWith(FoodSpecific, StringComparison.Ordinal) && entry.Value != MovesToKit), Is.Empty);
+        Assert.That(Allowed.Where(entry => !entry.Value.StartsWith(FoodSpecific, StringComparison.Ordinal) && !entry.Value.StartsWith(AppWiring, StringComparison.Ordinal)), Is.Empty);
+
+    [Test]
+    public void AppComponents_SkipsPagesRoutesAndImportsAndFindsComponentClasses()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), $"app-components-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(Path.Combine(folder, "Components"));
+        var widget = Path.Combine(folder, "Components", "Widget.cs");
+        var helper = Path.Combine(folder, "Components", "Helper.cs");
+        File.WriteAllText(widget, "public sealed class Widget : ComponentBase;");
+        File.WriteAllText(helper, "public static class Helper;");
+        var layout = Path.Combine(folder, "Components", "Frame.cs");
+        var owning = Path.Combine(folder, "Components", "Owner.cs");
+        var tight = Path.Combine(folder, "Components", "Tight.cs");
+        var ownLine = Path.Combine(folder, "Components", "OwnLine.cs");
+        var raw = Path.Combine(folder, "Components", "Raw.cs");
+        File.WriteAllText(layout, "public sealed class Frame : LayoutComponentBase;");
+        File.WriteAllText(owning, "public sealed class Owner : OwningComponentBase<Service>;");
+        File.WriteAllText(tight, "public sealed class Tight:ComponentBase;");
+        File.WriteAllText(ownLine, "public sealed class OwnLine\n    : ComponentBase;");
+        File.WriteAllText(raw, "public sealed class Raw : Base, IComponent;");
+        try
+        {
+            Assert.That(
+                AppComponents(
+                    [Path.Combine(folder, "Components", "Pages", "Home.razor"), Path.Combine(folder, "Components", "Routes.razor"), Path.Combine(folder, "Components", "_Imports.razor"), Path.Combine(folder, "Components", "Shell.razor")],
+                    [widget, helper, layout, owning, tight, ownLine, raw],
+                    folder),
+                Is.EqualTo(new[] { "App/Components/Frame.cs", "App/Components/OwnLine.cs", "App/Components/Owner.cs", "App/Components/Raw.cs", "App/Components/Shell.razor", "App/Components/Tight.cs", "App/Components/Widget.cs" }));
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
 
     [Test]
     public void Components_SkipsScreensAndImports() =>
