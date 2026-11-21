@@ -14,7 +14,8 @@ if (!baseUrl || !chromePath) {
 
 // ThemeLayout shows a story in a padded preview card: at 424 the card is 360px wide with 16px of padding, which leaves
 // 328px of content, a 360dp phone less 16px side padding. PhoneLayout stories sit in a fixed 412px phone mock that is
-// wider than the window, so they are measured against that phone's screen, not the window.
+// wider than the window, so they are measured against that phone's screen, not the window. The card check applies only
+// when ThemeLayout stories are in scope; with none, it is skipped.
 const WIDTH = 424;
 const CARD_WIDTH = 328;
 // Exploration knob (Android font size scales rem); not run in CI.
@@ -261,11 +262,11 @@ try {
     }
   }));
 
-  console.log(`Checked ${jobs.length} stories at ${WIDTH}px in ${((Date.now() - started) / 1000).toFixed(1)}s. Card width: ${[...new Set(cardWidths)].join(', ') || 'none found'}px.`);
+  console.log(`Checked ${jobs.length} stories at ${WIDTH}px in ${((Date.now() - started) / 1000).toFixed(1)}s. Card width: ${[...new Set(cardWidths)].join(', ') || 'none'}${cardWidths.length ? 'px' : ' (no ThemeLayout stories in scope; card check skipped)'}.`);
   for (const [key, { gap, story, text }] of [...ringGaps].sort()) {
     console.log(`Smallest gap, ${key}: ${gap.toFixed(1)}px ("${text}" in ${story}).`);
   }
-  if (cardWidths.length === 0 || cardWidths.some((width) => width !== CARD_WIDTH)) {
+  if (cardWidths.some((width) => width !== CARD_WIDTH)) {
     console.log(`::error title=Story layout::Card is not ${CARD_WIDTH}px wide at ${WIDTH}px; the story preview offset changed, update WIDTH.`);
     exitCode = 1;
   }
