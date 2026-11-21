@@ -50,7 +50,7 @@ function stories() {
 
 // Runs in the page. Returns one finding per problem.
 function inspect() {
-  const PROSE = 'h1, h2, h3, [role=alert], .note, .error, [data-wrap-ok]';
+  const PROSE = 'h1, h2, h3, [role=alert], [data-wrap-ok]';
   const findings = [];
   const label = (el) => {
     const id = el.closest('[data-testid]')?.getAttribute('data-testid');

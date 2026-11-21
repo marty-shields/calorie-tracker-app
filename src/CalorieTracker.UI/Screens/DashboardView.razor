@@ -33,14 +33,14 @@
                             }
                             <ProgressRing Compact Value="eaten" Max="ringTarget ?? 0" Figure="@Number(ringShown)" FigureUnit="@($"kcal {ringWord}")" AriaLabel="@RingLabel(eaten, ringTarget, ringShown, ringWord)" TestId="dashboard-ring" />
                             <div class="figures">
-                                <Text Variant="TextVariant.Muted" As="TextElement.P">Eaten <Text Variant="TextVariant.Strong" TestId="dashboard-eaten">@Number(eaten)</Text></Text>
+                                <Typography Variant="TextVariant.Muted" As="TextElement.P">Eaten <Typography Variant="TextVariant.Strong" TestId="dashboard-eaten">@Number(eaten)</Typography></Typography>
                                 @if (summary.TargetKcal is { } target)
                                 {
-                                    <Shields.UI.Components.Layout.Text Variant="TextVariant.Muted" As="TextElement.P">Target <Shields.UI.Components.Layout.Text Variant="TextVariant.Strong" TestId="dashboard-target">@Number(target)</Shields.UI.Components.Layout.Text></Shields.UI.Components.Layout.Text>
+                                    <Typography Variant="TextVariant.Muted" As="TextElement.P">Target <Typography Variant="TextVariant.Strong" TestId="dashboard-target">@Number(target)</Typography></Typography>
                                 }
                                 else
                                 {
-                                    <Shields.UI.Components.Layout.Text Variant="TextVariant.Muted" As="TextElement.P" TestId="dashboard-no-target" data-wrap-ok>No target set</Shields.UI.Components.Layout.Text>
+                                    <Typography Variant="TextVariant.Muted" As="TextElement.P" TestId="dashboard-no-target" data-wrap-ok>No target set</Typography>
                                     <AppButton Variant="ButtonVariant.Secondary" TestId="dashboard-set-target" OnClick="OnSettings">Set a target</AppButton>
                                 }
                             </div>
@@ -88,7 +88,7 @@
                                 }
                                 else if (state != MealWindowState.Before && (logged || state == MealWindowState.After))
                                 {
-                                    <div class="none"><Text Variant="TextVariant.Muted" As="TextElement.P" TestId="@($"{id}-none")">Nothing logged</Text></div>
+                                    <div class="none"><Typography Variant="TextVariant.Muted" As="TextElement.P" TestId="@($"{id}-none")">Nothing logged</Typography></div>
                                 }
                             </div>
                         }

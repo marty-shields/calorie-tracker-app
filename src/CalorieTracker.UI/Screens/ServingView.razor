@@ -38,20 +38,20 @@
             <div class="body">
                 @if (Display?.Detail is { } detail)
                 {
-                    <Shields.UI.Components.Layout.Text Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-brand" data-wrap-ok>@detail</Shields.UI.Components.Layout.Text>
+                    <Typography Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-brand" data-wrap-ok>@detail</Typography>
                 }
                 @if (Editing)
                 {
-                    <Shields.UI.Components.Layout.Text Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-when">@Meal · @Date.ToString("d MMM", CultureInfo.InvariantCulture)</Shields.UI.Components.Layout.Text>
+                    <Typography Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-when">@Meal · @Date.ToString("d MMM", CultureInfo.InvariantCulture)</Typography>
                 }
                 else
                 {
-                    <Shields.UI.Components.Layout.Text Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-per" data-wrap-ok>@PerLine(food)</Shields.UI.Components.Layout.Text>
+                    <Typography Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-per" data-wrap-ok>@PerLine(food)</Typography>
                 }
                 @if (HasServing)
                 {
                     <section class="section">
-                        <Text Variant="TextVariant.Label" As="TextElement.H2">Enter as</Text>
+                        <Typography Variant="TextVariant.Label" As="TextElement.H2">Enter as</Typography>
                         <SegmentedControl TValue="EntryMode" Label="Enter as" Options="Modes" Value="mode" ValueChanged="OnModeChanged" TestId="serving-mode" />
                         @if (servings && Servings.Count > 1)
                         {
@@ -59,17 +59,17 @@
                         }
                         else if (servings)
                         {
-                            <Card TestId="serving-label"><Text Variant="TextVariant.Strong" data-wrap-ok>@Chosen!.Label</Text></Card>
+                            <Card TestId="serving-label"><Typography Variant="TextVariant.Strong" data-wrap-ok>@Chosen!.Label</Typography></Card>
                         }
                     </section>
                 }
                 <section class="section">
-                    <Text Variant="TextVariant.Label" As="TextElement.H2">@(servings ? "How many" : "Amount")</Text>
+                    <Typography Variant="TextVariant.Label" As="TextElement.H2">@(servings ? "How many" : "Amount")</Typography>
                     <NumberField Label="@(servings ? "Servings" : "Amount")" Value="Amount" ValueChanged="OnAmountChanged" Unit="@(servings ? "serving" : UnitText(food))" Stepper
                                  Step="@(servings ? 1 : 10)" Minimum="0" InvalidMessage="@InvalidMessage(food, servings)" TestId="serving-amount" />
                     @if (servings && Valid)
                     {
-                        <Shields.UI.Components.Layout.Text Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-weight">= @Weight(Grams!.Value) @UnitText(food)</Shields.UI.Components.Layout.Text>
+                        <Typography Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-weight">= @Weight(Grams!.Value) @UnitText(food)</Typography>
                     }
                     @if (HasServing && !servings)
                     {
@@ -77,7 +77,7 @@
                     }
                 </section>
                 <section class="section">
-                    <Text Variant="TextVariant.Label" As="TextElement.H2">Your servings</Text>
+                    <Typography Variant="TextVariant.Label" As="TextElement.H2">Your servings</Typography>
                     @if (AddingOwn)
                     {
                         <TextField Label="Serving name" Value="@OwnLabel" ValueChanged="OnOwnLabelChanged" MaxLength="FoodService.MaxServingLabelLength" Placeholder="Serving name, such as 1 slice"
@@ -99,18 +99,18 @@
                     }
                 </section>
                 <section class="section">
-                    <Text Variant="TextVariant.Label" As="TextElement.H2">Meal</Text>
+                    <Typography Variant="TextVariant.Label" As="TextElement.H2">Meal</Typography>
                     <FilterChips TValue="Meal" Label="Meal" Options="Meals" Value="Meal" ValueChanged="OnMealChanged" TestId="serving-meal" />
                     @if (SuggestedAt is { } at && !Editing)
                     {
-                        <Shields.UI.Components.Layout.Text Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-suggestion">Suggested from the time: @at.ToString("HH:mm", CultureInfo.InvariantCulture)</Shields.UI.Components.Layout.Text>
+                        <Typography Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-suggestion">Suggested from the time: @at.ToString("HH:mm", CultureInfo.InvariantCulture)</Typography>
                     }
                 </section>
                 @if (Valid)
                 {
                     <Card Title="@(Editing ? "This entry" : "This adds")" TestId="serving-adds">
-                        <Text Variant="TextVariant.Figure" As="TextElement.P" TestId="serving-adds-kcal">@Kcal(food) kcal</Text>
-                        <Text Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-adds-detail" data-wrap-ok>@AddsDetail(food)</Text>
+                        <Typography Variant="TextVariant.Figure" As="TextElement.P" TestId="serving-adds-kcal">@Kcal(food) kcal</Typography>
+                        <Typography Variant="TextVariant.Muted" As="TextElement.P" TestId="serving-adds-detail" data-wrap-ok>@AddsDetail(food)</Typography>
                     </Card>
                 }
             </div>

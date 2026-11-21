@@ -2,20 +2,20 @@
 <AppScreen Title="Settings" OnBack="OnBack">
     <div class="body">
         <section class="section">
-            <Text Variant="TextVariant.Label" As="TextElement.H2">Appearance</Text>
+            <Typography Variant="TextVariant.Label" As="TextElement.H2">Appearance</Typography>
             <SegmentedControl TValue="ThemePreference" Label="Theme" Options="Themes" Value="Theme" ValueChanged="OnThemeChanged" TestId="theme" />
         </section>
         <section class="section">
-            <Text Variant="TextVariant.Label" As="TextElement.H2">Daily target</Text>
+            <Typography Variant="TextVariant.Label" As="TextElement.H2">Daily target</Typography>
             <NumberField Label="Calories per day" Unit="kcal" AllowDecimal="false" Value="Target" ValueChanged="OnTargetChanged" TextChanged="OnTargetTextChanged" InvalidMessage="@TargetInvalidMessage" TestId="settings-target" />
             @if (string.IsNullOrEmpty(TargetInvalidMessage))
             {
-                <Shields.UI.Components.Layout.Text Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="settings-target-hint" data-wrap-ok>Shown on the dashboard. Leave it empty for no target.</Shields.UI.Components.Layout.Text>
+                <Typography Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="settings-target-hint" data-wrap-ok>Shown on the dashboard. Leave it empty for no target.</Typography>
             }
         </section>
         @if (Version is not null)
         {
-            <div class="version"><Text Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="app-version">Version @Version</Text></div>
+            <div class="version"><Typography Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="app-version">Version @Version</Typography></div>
         }
     </div>
 </AppScreen>

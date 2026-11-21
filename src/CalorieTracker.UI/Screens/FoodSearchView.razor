@@ -39,7 +39,7 @@
                     var shown = showsAll ? group.Foods.Count : Math.Min(group.Foods.Count, ShownLimit);
                     <section class="group">
                         <div class="heading">
-                            <Text Variant="TextVariant.Label" As="TextElement.H2" TestId="@($"food-group-{name}")">@Heading(group.Kind)</Text>
+                            <Typography Variant="TextVariant.Label" As="TextElement.H2" TestId="@($"food-group-{name}")">@Heading(group.Kind)</Typography>
                         </div>
                         <ul class="rows">
                             @foreach (var item in group.Foods.Take(shown))
@@ -172,7 +172,7 @@
             @if (OnlineNoticeVisible)
             {
                 <div class="notice">
-                    <Shields.UI.Components.Layout.Text Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="food-search-online-notice">@OnlineSearchNotice.Text</Shields.UI.Components.Layout.Text>
+                    <Typography Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="food-search-online-notice">@OnlineSearchNotice.Text</Typography>
                 </div>
             }
             <AppButton Variant="@(Groups.Count == 0 ? ButtonVariant.Primary : ButtonVariant.Secondary)" FullWidth TestId="food-search-online" OnClick="SearchOnline">Search online</AppButton>
@@ -201,10 +201,10 @@
                         @OnlineGroup
                         break;
                     case OnlineSearchState.None:
-                        <div class="none"><Text Variant="TextVariant.Muted" As="TextElement.P" TestId="food-search-online-none">Nothing found online</Text></div>
+                        <div class="none"><Typography Variant="TextVariant.Muted" As="TextElement.P" TestId="food-search-online-none">Nothing found online</Typography></div>
                         break;
                     case OnlineSearchState.Unavailable:
-                        <div class="none"><Text Variant="TextVariant.Muted" As="TextElement.P" TestId="food-search-online-unavailable">That product can't be added</Text></div>
+                        <div class="none"><Typography Variant="TextVariant.Muted" As="TextElement.P" TestId="food-search-online-unavailable">That product can't be added</Typography></div>
                         @OnlineGroup
                         break;
                     default:
@@ -231,7 +231,7 @@
                 var shown = OnlineProducts.Count - hidden;
                 <section class="group">
                     <div class="heading">
-                        <Text Variant="TextVariant.Label" As="TextElement.H2" TestId="food-group-online">Online · @(OnlineCountry ?? "worldwide")</Text>
+                        <Typography Variant="TextVariant.Label" As="TextElement.H2" TestId="food-group-online">Online · @(OnlineCountry ?? "worldwide")</Typography>
                     </div>
                     <ul class="rows">
                         @foreach (var product in OnlineProducts.Take(shown))

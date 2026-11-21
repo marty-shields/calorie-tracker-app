@@ -137,6 +137,22 @@ public class TrendsViewTests : ComponentTestBase
     }
 
     [Test]
+    public void OverDays_CarryNoMarkerInAnyPeriod_ButTheyStillSayOver()
+    {
+        var week = Week();
+        var month = Month();
+        var year = Year();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(week.FindAll("[data-testid^=trends-chart-marker-]"), Is.Empty);
+            Assert.That(month.FindAll("[data-testid^=trends-calendar-marker-]").Select(e => e.TextContent), Has.All.EqualTo("✓"));
+            Assert.That(year.FindAll("[data-testid^=trends-months-chart-marker-]"), Is.Empty);
+            Assert.That(week.Find("[data-testid=trends-chart-bar-2026-11-13]").GetAttribute("aria-label"), Does.EndWith("over target"));
+        });
+    }
+
+    [Test]
     public void Week_ColoursEachDayByItsStatus_FridayAndSaturdayOverAndWednesdayAndSundayUnder()
     {
         var cut = Week();
@@ -522,7 +538,7 @@ public class TrendsViewTests : ComponentTestBase
     }
 
     [Test]
-    public void Legend_UsesDotsAndMarksOverWithATriangleSoColourIsNotTheOnlyCue()
+    public void Legend_UsesDotsAndMarksNothingOnOver()
     {
         var cut = Week();
 
@@ -531,8 +547,7 @@ public class TrendsViewTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(items.Select(i => i.QuerySelector(".swatch")!.ClassList.Last()), Is.EqualTo(new[] { "chip", "accent", "error", "line", "band" }));
-            Assert.That(items[2].QuerySelector(".marker")!.TextContent, Is.EqualTo("▲"));
-            Assert.That(items[0].QuerySelector(".marker"), Is.Null);
+            Assert.That(items.Select(i => i.QuerySelector(".marker")), Has.All.Null, "Over is shown by colour only");
             Assert.That(Text(cut, "trends-legend-2"), Does.Contain("Over"));
             Assert.That(Text(cut, "trends-legend-3"), Does.StartWith("Target "));
             Assert.That(Text(cut, "trends-legend-4"), Is.EqualTo("Band ±10%"));
@@ -540,13 +555,13 @@ public class TrendsViewTests : ComponentTestBase
     }
 
     [Test]
-    public void Legend_InMonth_AddsNotLoggedOnAnOutlineSwatchBeforeTheTarget()
+    public void Legend_InMonth_ExplainsTheTickAndAddsNotLoggedOnAnOutlineSwatchBeforeTheTarget()
     {
         var cut = Month();
 
         var items = cut.FindAll("[data-testid^=trends-legend-]").Where(e => e.LocalName == "li").ToList();
 
-        Assert.That(items.Select(i => i.QuerySelector(".swatch")!.ClassList.Last()), Is.EqualTo(new[] { "chip", "accent", "error", "outline", "line", "band" }));
+        Assert.That(items.Select(i => i.QuerySelector(".swatch")!.ClassList.Last()), Is.EqualTo(new[] { "chip", "check", "error", "outline", "line", "band" }));
         Assert.That(Text(cut, "trends-legend-3"), Is.EqualTo("Not logged"));
     }
 

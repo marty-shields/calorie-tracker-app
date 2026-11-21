@@ -182,12 +182,12 @@
 
     private static string Plural(int count, string one, string many) => count == 1 ? one : many;
 
-    private IReadOnlyList<LegendItem> Legend(int? target, bool notLogged = false) =>
+    private IReadOnlyList<LegendItem> Legend(int? target, bool month = false) =>
     [
         new(LegendSwatch.Chip, "Under"),
-        new(LegendSwatch.Accent, "On target"),
-        new(LegendSwatch.Error, "Over", "▲"),
-        .. notLogged ? new[] { new LegendItem(LegendSwatch.Outline, "Not logged") } : [],
+        new(month ? LegendSwatch.Check : LegendSwatch.Accent, "On target"),
+        new(LegendSwatch.Error, "Over"),
+        .. month ? new[] { new LegendItem(LegendSwatch.Outline, "Not logged") } : [],
         .. target is { } goal ? new[] { new LegendItem(LegendSwatch.Line, $"Target {Number(goal)}"), new LegendItem(LegendSwatch.Band, "Band ±10%") } : [],
     ];
 
@@ -203,7 +203,7 @@
         <Card Title="Calories by day" TestId="trends-days">
             <div class="card-body">
                 <ChartLegend Items="Legend(target)" TestId="trends-legend" />
-                <TrendBarChart Bars="DayBars(report)" Target="target" DateFormat="ddd d MMM" Label="Calories by day" Unit="kcal" EmptyText="@NoDaysText" TestId="trends-chart" OnSelect="OnSelectDay" />
+                <TrendBarChart Bars="DayBars(report)" Target="target" ShowOverMarker="false" DateFormat="ddd d MMM" Label="Calories by day" Unit="kcal" EmptyText="@NoDaysText" TestId="trends-chart" OnSelect="OnSelectDay" />
             </div>
         </Card>
         <Card Title="Average macros" TestId="trends-macros">
@@ -213,7 +213,7 @@
             }
             else
             {
-                <Shields.UI.Components.Layout.Text Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-macros-note" data-wrap-ok>Not enough data yet</Shields.UI.Components.Layout.Text>
+                <Typography Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-macros-note" data-wrap-ok>Not enough data yet</Typography>
             }
         </Card>
         <Card Title="Kcal by meal" TestId="trends-meals">
@@ -223,7 +223,7 @@
             }
             else
             {
-                <Shields.UI.Components.Layout.Text Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-meals-note" data-wrap-ok>Not enough data yet</Shields.UI.Components.Layout.Text>
+                <Typography Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-meals-note" data-wrap-ok>Not enough data yet</Typography>
             }
         </Card>
     </text>;
@@ -243,16 +243,16 @@
         </div>
         <Card Title="Each day" TestId="trends-calendar-card">
             <div class="card-body">
-                <ChartLegend Items="Legend(target, notLogged: true)" TestId="trends-legend" />
-                <MonthCalendar Month="Start" Days="CalendarDays(report)" Target="target" Today="Today" Unit="kcal" FirstDayOfWeek="DayOfWeek.Monday" DayNames="WeekdayLetters" TestId="trends-calendar" OnSelect="OnSelectDay" />
+                <ChartLegend Items="Legend(target, month: true)" TestId="trends-legend" />
+                <MonthCalendar Month="Start" Days="CalendarDays(report)" Target="target" ShowOverMarker="false" Today="Today" Unit="kcal" FirstDayOfWeek="DayOfWeek.Monday" DayNames="WeekdayLetters" TestId="trends-calendar" OnSelect="OnSelectDay" />
             </div>
         </Card>
         <Card Title="Average a day, by week" TestId="trends-weeks">
             <div class="card-body">
-                <TrendBarChart Bars="BucketBars(report)" Target="target" DateFormat="'Week of' d MMM" Label="Average a day, by week" Unit="kcal" EmptyText="@NoDaysText" TestId="trends-weeks-chart" OnSelect="OnSelectWeek" />
+                <TrendBarChart Bars="BucketBars(report)" Target="target" ShowOverMarker="false" DateFormat="'Week of' d MMM" Label="Average a day, by week" Unit="kcal" EmptyText="@NoDaysText" TestId="trends-weeks-chart" OnSelect="OnSelectWeek" />
                 @if (report.Buckets.Any(Thin))
                 {
-                    <Shields.UI.Components.Layout.Text Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-thin-note" data-wrap-ok>Faded bars rest on fewer than @TrendsService.MinDays logged days.</Shields.UI.Components.Layout.Text>
+                    <Typography Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-thin-note" data-wrap-ok>Faded bars rest on fewer than @TrendsService.MinDays logged days.</Typography>
                 }
             </div>
         </Card>
@@ -263,7 +263,7 @@
             }
             else
             {
-                <Shields.UI.Components.Layout.Text Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-top-note" data-wrap-ok>Not enough data yet</Shields.UI.Components.Layout.Text>
+                <Typography Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-top-note" data-wrap-ok>Not enough data yet</Typography>
             }
         </Card>
     </text>;
@@ -287,10 +287,10 @@
         <Card Title="Average a day, by month" TestId="trends-months">
             <div class="card-body">
                 <ChartLegend Items="Legend(target)" TestId="trends-legend" />
-                <TrendBarChart Bars="BucketBars(report)" Target="target" DateFormat="MMMM yyyy" Label="Average a day, by month" Unit="kcal" EmptyText="@NoDaysText" TestId="trends-months-chart" OnSelect="OnSelectMonth" />
+                <TrendBarChart Bars="BucketBars(report)" Target="target" ShowOverMarker="false" DateFormat="MMMM yyyy" Label="Average a day, by month" Unit="kcal" EmptyText="@NoDaysText" TestId="trends-months-chart" OnSelect="OnSelectMonth" />
                 @if (report.Buckets.Any(Thin))
                 {
-                    <Shields.UI.Components.Layout.Text Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-thin-note" data-wrap-ok>Faded bars rest on fewer than @TrendsService.MinDays logged days.</Shields.UI.Components.Layout.Text>
+                    <Typography Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-thin-note" data-wrap-ok>Faded bars rest on fewer than @TrendsService.MinDays logged days.</Typography>
                 }
             </div>
         </Card>
