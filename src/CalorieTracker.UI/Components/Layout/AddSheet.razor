@@ -15,25 +15,25 @@
     @if (Usual is { Count: > 0 } usual)
     {
         <section class="usual" aria-labelledby="add-sheet-usual-heading" data-testid="add-sheet-usual">
-            <h3 id="add-sheet-usual-heading" class="usual-title" data-testid="add-sheet-usual-heading">Usual for @meal.ToString().ToLowerInvariant()</h3>
+            <Text Variant="TextVariant.Label" As="TextElement.H3" id="add-sheet-usual-heading" TestId="add-sheet-usual-heading">Usual for @meal.ToString().ToLowerInvariant()</Text>
             <ul class="usual-rows">
                 @foreach (var row in usual)
                 {
-                    <li class="usual-row" data-testid="@($"add-sheet-usual-{row.FoodId}")">
-                        <div class="usual-text">
-                            <span class="usual-name" data-testid="@($"add-sheet-usual-{row.FoodId}-title")" data-wrap-ok>@row.Title</span>
-                            <span class="usual-detail" data-testid="@($"add-sheet-usual-{row.FoodId}-detail")" data-wrap-ok>@row.Detail</span>
+                    <li data-testid="@($"add-sheet-usual-{row.FoodId}")">
+                        <div class="usual-row">
+                            <div class="usual-text">
+                                <Text TestId="@($"add-sheet-usual-{row.FoodId}-title")" data-wrap-ok>@row.Title</Text>
+                                <Text Variant="TextVariant.MutedSmall" TestId="@($"add-sheet-usual-{row.FoodId}-detail")" data-wrap-ok>@row.Detail</Text>
+                            </div>
+                            <IconButton Style="IconButtonStyle.Soft" Icon="IconName.Plus" AriaLabel="@($"Add {row.Title} to {meal}")" TestId="@($"add-sheet-usual-{row.FoodId}-add")" OnClick="() => AddUsualAsync(row)" />
                         </div>
-                        <IconButton Style="IconButtonStyle.Soft" Icon="IconName.Plus" AriaLabel="@($"Add {row.Title} to {meal}")" TestId="@($"add-sheet-usual-{row.FoodId}-add")" OnClick="() => AddUsualAsync(row)" />
+                        <Divider Decorative />
                     </li>
                 }
             </ul>
         </section>
     }
-    @if (AddError is not null)
-    {
-        <p class="add-error" role="alert" data-testid="add-sheet-add-error" data-wrap-ok>@AddError</p>
-    }
+    <InlineAlert Message="@AddError" TestId="add-sheet-add-error" />
 </Sheet>
 
 @code {

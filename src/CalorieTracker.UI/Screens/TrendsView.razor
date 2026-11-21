@@ -213,7 +213,7 @@
             }
             else
             {
-                <p class="note" data-wrap-ok data-testid="trends-macros-note">Not enough data yet</p>
+                <Shields.UI.Components.Layout.Text Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-macros-note" data-wrap-ok>Not enough data yet</Shields.UI.Components.Layout.Text>
             }
         </Card>
         <Card Title="Kcal by meal" TestId="trends-meals">
@@ -223,7 +223,7 @@
             }
             else
             {
-                <p class="note" data-wrap-ok data-testid="trends-meals-note">Not enough data yet</p>
+                <Shields.UI.Components.Layout.Text Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-meals-note" data-wrap-ok>Not enough data yet</Shields.UI.Components.Layout.Text>
             }
         </Card>
     </text>;
@@ -252,7 +252,7 @@
                 <TrendBarChart Bars="BucketBars(report)" Target="target" DateFormat="'Week of' d MMM" Label="Average a day, by week" Unit="kcal" EmptyText="@NoDaysText" TestId="trends-weeks-chart" OnSelect="OnSelectWeek" />
                 @if (report.Buckets.Any(Thin))
                 {
-                    <p class="note" data-wrap-ok data-testid="trends-thin-note">Faded bars rest on fewer than @TrendsService.MinDays logged days.</p>
+                    <Shields.UI.Components.Layout.Text Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-thin-note" data-wrap-ok>Faded bars rest on fewer than @TrendsService.MinDays logged days.</Shields.UI.Components.Layout.Text>
                 }
             </div>
         </Card>
@@ -263,7 +263,7 @@
             }
             else
             {
-                <p class="note" data-wrap-ok data-testid="trends-top-note">Not enough data yet</p>
+                <Shields.UI.Components.Layout.Text Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-top-note" data-wrap-ok>Not enough data yet</Shields.UI.Components.Layout.Text>
             }
         </Card>
     </text>;
@@ -290,7 +290,7 @@
                 <TrendBarChart Bars="BucketBars(report)" Target="target" DateFormat="MMMM yyyy" Label="Average a day, by month" Unit="kcal" EmptyText="@NoDaysText" TestId="trends-months-chart" OnSelect="OnSelectMonth" />
                 @if (report.Buckets.Any(Thin))
                 {
-                    <p class="note" data-wrap-ok data-testid="trends-thin-note">Faded bars rest on fewer than @TrendsService.MinDays logged days.</p>
+                    <Shields.UI.Components.Layout.Text Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-thin-note" data-wrap-ok>Faded bars rest on fewer than @TrendsService.MinDays logged days.</Shields.UI.Components.Layout.Text>
                 }
             </div>
         </Card>
@@ -301,17 +301,17 @@
 
     private static bool Thin(TrendBucket bucket) => bucket.AverageKcal is not null && bucket.DaysLogged < TrendsService.MinDays;
 
-    private IReadOnlyList<TrendBar> DayBars(TrendsReport report) =>
-        report.Days.Select(d => new TrendBar(d.Date, d.Date.ToString("ddd", Culture), d.Date < Today && d.IsLogged ? d.Totals.Kcal : null, d.TargetKcal)).ToList();
+    private IReadOnlyList<TrendBarPoint> DayBars(TrendsReport report) =>
+        report.Days.Select(d => new TrendBarPoint(d.Date, d.Date.ToString("ddd", Culture), d.Date < Today && d.IsLogged ? d.Totals.Kcal : null, d.TargetKcal)).ToList();
 
     private IReadOnlyList<CalendarDay> CalendarDays(TrendsReport report) =>
         report.Days.Select(d => new CalendarDay(d.Date, d.Date < Today && d.IsLogged ? d.Totals.Kcal : null, d.TargetKcal)).ToList();
 
-    private IReadOnlyList<TrendBar> BucketBars(TrendsReport report)
+    private IReadOnlyList<TrendBarPoint> BucketBars(TrendsReport report)
     {
         var weeks = report.BucketKind == TrendBucketKind.Week;
         // A week is named and opened by its Monday, even when the range clips its first bucket to the 1st.
-        return report.Buckets.Select((b, index) => new TrendBar(
+        return report.Buckets.Select((b, index) => new TrendBarPoint(
             weeks ? TrendsRoute.Start(TrendsPeriod.Week, b.Start) : b.Start,
             weeks ? $"W{index + 1}" : b.Start.ToString("MMM", Culture),
             b.AverageKcal,

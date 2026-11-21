@@ -1977,7 +1977,7 @@
         "dependencies": {
           "CalorieTracker.Core": "[1.0.0, )",
           "Microsoft.AspNetCore.Components.Web": "[11.0.0, )",
-          "Shields.UI": "[1.0.0-pr.19.25, )"
+          "Shields.UI": "[1.0.0-pr.19.31, )"
         }
       },
       "Microsoft.AspNetCore.Components.Web": {
@@ -2010,9 +2010,9 @@
       },
       "Shields.UI": {
         "type": "CentralTransitive",
-        "requested": "[1.0.0-pr.19.25, )",
-        "resolved": "1.0.0-pr.19.25",
-        "contentHash": "S8ONBwKRU70wPh8/Ll5lwo31RAv2L28/BKTNrwEGXNiC8wPr9EUgDmDbZ1+pdHzafx85Q9I2NTs6mE30qx98kw==",
+        "requested": "[1.0.0-pr.19.31, )",
+        "resolved": "1.0.0-pr.19.31",
+        "contentHash": "shvdVGbpdCbCqLm9HycTazsGTIXt8w18qBDNInAM5fKv7y4q86BgrZsk6ijbCYkJ4xsrFAzyNPGz2whFq3NIwQ==",
         "dependencies": {
           "Microsoft.AspNetCore.Components.Web": "11.0.0"
         }

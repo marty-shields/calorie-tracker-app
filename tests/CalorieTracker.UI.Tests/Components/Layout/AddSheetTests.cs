@@ -377,7 +377,7 @@ public class AddSheetTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(cut.Find("[data-testid=add-sheet-add-error]").TextContent, Is.EqualTo("Couldn't add Pasta to Dinner. Try again."));
+            Assert.That(cut.Find("[data-testid=add-sheet-add-error]").TextContent.Trim(), Is.EqualTo("Couldn't add Pasta to Dinner. Try again."));
             Assert.That(cut.Find("[data-testid=add-sheet-add-error]").GetAttribute("role"), Is.EqualTo("alert"));
             Assert.That(cut.FindAll("[data-testid=add-sheet-search]"), Has.Count.EqualTo(1));
         });

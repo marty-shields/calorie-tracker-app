@@ -308,9 +308,9 @@ public class DashboardPageTests : ComponentTestBase
 
         var cut = Render();
 
-        Assert.That(Text(cut, "meal-breakfast-total"), Is.EqualTo("1 item · 125 kcal"));
+        Assert.That(Text(cut, "meal-breakfast-hint"), Is.EqualTo("1 item · 125 kcal"));
         Assert.That(Text(cut, "meal-lunch-badge"), Is.EqualTo("Now"));
-        Assert.That(Text(cut, "meal-dinner-total"), Is.EqualTo("from 17:00"));
+        Assert.That(Text(cut, "meal-dinner-hint"), Is.EqualTo("from 17:00"));
 
         await cut.Find("[data-testid=meal-breakfast-toggle]").ClickAsync();
 
@@ -327,7 +327,7 @@ public class DashboardPageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(Text(cut, "meal-lunch-total"), Is.EqualTo("1 item · 125 kcal"));
+            Assert.That(Text(cut, "meal-lunch-hint"), Is.EqualTo("1 item · 125 kcal"));
             Assert.That(Text(cut, "meal-dinner-badge"), Is.EqualTo("Now"));
         });
     }
@@ -344,7 +344,7 @@ public class DashboardPageTests : ComponentTestBase
 
         cut.WaitForAssertion(() =>
         {
-            Assert.That(Text(cut, "meal-lunch-total"), Is.EqualTo("1 item · 125 kcal"));
+            Assert.That(Text(cut, "meal-lunch-hint"), Is.EqualTo("1 item · 125 kcal"));
             Assert.That(Text(cut, "meal-dinner-badge"), Is.EqualTo("Now"));
             Assert.That(Text(cut, "date-strip-label"), Does.StartWith("Today, 19 Jul"));
         });
@@ -401,7 +401,7 @@ public class DashboardPageTests : ComponentTestBase
         await cut.Find("[data-testid=date-strip-label]").ClickAsync();
         cut.WaitForAssertion(() =>
         {
-            Assert.That(Text(cut, "meal-lunch-total"), Is.EqualTo("1 item · 125 kcal"));
+            Assert.That(Text(cut, "meal-lunch-hint"), Is.EqualTo("1 item · 125 kcal"));
             Assert.That(Text(cut, "meal-dinner-badge"), Is.EqualTo("Now"));
         });
     }

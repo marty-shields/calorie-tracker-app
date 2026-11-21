@@ -79,8 +79,9 @@ public class FoodSearchPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(button.GetAttribute("aria-label"), Is.EqualTo("Scan a barcode"));
-            Assert.That(order.IndexOf("food-search-input"), Is.LessThan(order.IndexOf("search-divider")));
-            Assert.That(order.IndexOf("search-divider"), Is.LessThan(order.IndexOf("search-scan")));
+            Assert.That(order.IndexOf("food-search-input"), Is.LessThan(order.IndexOf("divider-slot")));
+            Assert.That(order.IndexOf("divider-slot"), Is.LessThan(order.IndexOf("trailing")));
+            Assert.That(button.Closest(".trailing"), Is.Not.Null);
             Assert.That(scans, Is.EqualTo(1));
         });
     }

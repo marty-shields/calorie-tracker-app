@@ -33,14 +33,14 @@
                             }
                             <ProgressRing Compact Value="eaten" Max="ringTarget ?? 0" Figure="@Number(ringShown)" FigureUnit="@($"kcal {ringWord}")" AriaLabel="@RingLabel(eaten, ringTarget, ringShown, ringWord)" TestId="dashboard-ring" />
                             <div class="figures">
-                                <p class="figure">Eaten <strong data-testid="dashboard-eaten">@Number(eaten)</strong></p>
+                                <Text Variant="TextVariant.Muted" As="TextElement.P">Eaten <Text Variant="TextVariant.Strong" TestId="dashboard-eaten">@Number(eaten)</Text></Text>
                                 @if (summary.TargetKcal is { } target)
                                 {
-                                    <p class="figure">Target <strong data-testid="dashboard-target">@Number(target)</strong></p>
+                                    <Shields.UI.Components.Layout.Text Variant="TextVariant.Muted" As="TextElement.P">Target <Shields.UI.Components.Layout.Text Variant="TextVariant.Strong" TestId="dashboard-target">@Number(target)</Shields.UI.Components.Layout.Text></Shields.UI.Components.Layout.Text>
                                 }
                                 else
                                 {
-                                    <p class="figure" data-testid="dashboard-no-target" data-wrap-ok>No target set</p>
+                                    <Shields.UI.Components.Layout.Text Variant="TextVariant.Muted" As="TextElement.P" TestId="dashboard-no-target" data-wrap-ok>No target set</Shields.UI.Components.Layout.Text>
                                     <AppButton Variant="ButtonVariant.Secondary" TestId="dashboard-set-target" OnClick="OnSettings">Set a target</AppButton>
                                 }
                             </div>
@@ -65,7 +65,8 @@
                     <section class="meal" data-testid="@($"{id}-section")">
                         <div class="meal-head">
                             <SectionHeader Title="@meal.Meal.ToString()"
-                                           Total="@MealTotal(meal, state, folded)"
+                                           Hint="@MealHint(meal, state, folded)"
+                                           Total="@MealTotal(meal, folded)"
                                            Badge="@(state == MealWindowState.During ? "Now" : null)"
                                            Expanded="!folded"
                                            ExpandedChanged="@(foldable ? EventCallback.Factory.Create<bool>(this, (bool _) => Toggle(meal.Meal)) : default)"
@@ -87,7 +88,7 @@
                                 }
                                 else if (state != MealWindowState.Before && (logged || state == MealWindowState.After))
                                 {
-                                    <p class="none" data-testid="@($"{id}-none")">Nothing logged</p>
+                                    <div class="none"><Text Variant="TextVariant.Muted" As="TextElement.P" TestId="@($"{id}-none")">Nothing logged</Text></div>
                                 }
                             </div>
                         }
@@ -178,26 +179,15 @@
     private static string FoldedSummary(MealSummary meal) =>
         meal.Entries.Count == 0 ? "Nothing logged" : $"{meal.Entries.Count} {(meal.Entries.Count == 1 ? "item" : "items")} · {Number(meal.Totals.Kcal)} kcal";
 
-    /// <summary>What follows a meal's title: "from 17:00" before its window, then the folded line, or the energy once it has entries, joined with a dot. Null when there is none.</summary>
-    private static string? MealTotal(MealSummary meal, MealWindowState state, bool folded)
-    {
-        var parts = new List<string>(2);
-        if (state == MealWindowState.Before)
-        {
-            parts.Add($"from {MealWindows.StartOf(meal.Meal).ToString("HH:mm", CultureInfo.InvariantCulture)}");
-        }
+    /// <summary>"from 17:00" before the meal's window, the folded line once it is folded, else null.</summary>
+    private static string? MealHint(MealSummary meal, MealWindowState state, bool folded) =>
+        state == MealWindowState.Before ? $"from {MealWindows.StartOf(meal.Meal).ToString("HH:mm", CultureInfo.InvariantCulture)}"
+        : folded ? FoldedSummary(meal)
+        : null;
 
-        if (folded)
-        {
-            parts.Add(FoldedSummary(meal));
-        }
-        else if (meal.Entries.Count > 0)
-        {
-            parts.Add($"{Number(meal.Totals.Kcal)} kcal");
-        }
-
-        return parts.Count == 0 ? null : string.Join(" · ", parts);
-    }
+    /// <summary>The meal's energy on its own once it has entries and is open, else null.</summary>
+    private static string? MealTotal(MealSummary meal, bool folded) =>
+        !folded && meal.Entries.Count > 0 ? $"{Number(meal.Totals.Kcal)} kcal" : null;
 
     private void OpenSheet() => sheetOpen = true;
 

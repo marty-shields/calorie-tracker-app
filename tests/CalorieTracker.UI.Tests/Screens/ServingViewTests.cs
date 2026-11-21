@@ -302,9 +302,9 @@ public class ServingViewTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(save.Find("[data-testid=serving-error]").ClassList, Does.Contain("status-error"));
-            Assert.That(remove.Find("[data-testid=serving-error]").ClassList, Does.Contain("status-error"));
-            Assert.That(gone.Find("[data-testid=serving-gone]").ClassList, Does.Contain("status-error"));
+            Assert.That(save.Find("[data-testid=serving-error]").ParentElement!.ClassList, Does.Contain("status-error"));
+            Assert.That(remove.Find("[data-testid=serving-error]").ParentElement!.ClassList, Does.Contain("status-error"));
+            Assert.That(gone.Find("[data-testid=serving-gone]").ParentElement!.ClassList, Does.Contain("status-error"));
         });
     }
 

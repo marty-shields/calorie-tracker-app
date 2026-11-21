@@ -6,3 +6,6 @@
 
 ## Screenshots
 <!-- Required when the PR changes the UI: the changed screens, light and dark, before this is marked ready. If the README screenshots changed, retake them with `readme-screenshots.mjs`. Write "None: no UI change" otherwise. -->
+
+## Checklist
+- [ ] No new tokens, styling or components; anything visual comes from app-ui-kit
