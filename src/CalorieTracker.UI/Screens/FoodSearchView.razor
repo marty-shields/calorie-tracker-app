@@ -23,9 +23,7 @@
         }
         else if (Groups.Count == 0)
         {
-            <div class="add-none">
-                <EmptyState Message="No foods match" Hint="Try another word." TestId="food-search-none" />
-            </div>
+            <EmptyState Message="No foods match" Hint="Try another word." TestId="food-search-none" />
 
             @Online
         }
@@ -40,7 +38,9 @@
                     var hidden = showsAll ? 0 : Math.Max(0, group.Foods.Count - ShownLimit);
                     var shown = showsAll ? group.Foods.Count : Math.Min(group.Foods.Count, ShownLimit);
                     <section class="group">
-                        <h2 class="group-heading" data-testid="@($"food-group-{name}")">@Heading(group.Kind)</h2>
+                        <div class="heading">
+                            <Text Variant="TextVariant.Label" As="TextElement.H2" TestId="@($"food-group-{name}")">@Heading(group.Kind)</Text>
+                        </div>
                         <ul class="rows">
                             @foreach (var item in group.Foods.Take(shown))
                             {
@@ -171,7 +171,9 @@
         @<div class="pinned" data-testid="food-search-online-bar">
             @if (OnlineNoticeVisible)
             {
-                <p class="online-notice" data-testid="food-search-online-notice">@OnlineSearchNotice.Text</p>
+                <div class="notice">
+                    <Shields.UI.Components.Layout.Text Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="food-search-online-notice">@OnlineSearchNotice.Text</Shields.UI.Components.Layout.Text>
+                </div>
             }
             <AppButton Variant="@(Groups.Count == 0 ? ButtonVariant.Primary : ButtonVariant.Secondary)" FullWidth TestId="food-search-online" OnClick="SearchOnline">Search online</AppButton>
         </div>;
@@ -199,10 +201,10 @@
                         @OnlineGroup
                         break;
                     case OnlineSearchState.None:
-                        <p class="none" data-testid="food-search-online-none">Nothing found online</p>
+                        <div class="none"><Text Variant="TextVariant.Muted" As="TextElement.P" TestId="food-search-online-none">Nothing found online</Text></div>
                         break;
                     case OnlineSearchState.Unavailable:
-                        <p class="none" data-testid="food-search-online-unavailable">That product can't be added</p>
+                        <div class="none"><Text Variant="TextVariant.Muted" As="TextElement.P" TestId="food-search-online-unavailable">That product can't be added</Text></div>
                         @OnlineGroup
                         break;
                     default:
@@ -228,7 +230,9 @@
                 var hidden = OnlineExpanded ? 0 : Math.Max(0, OnlineProducts.Count - ShownLimit);
                 var shown = OnlineProducts.Count - hidden;
                 <section class="group">
-                    <h2 class="group-heading" data-testid="food-group-online">Online · @(OnlineCountry ?? "worldwide")</h2>
+                    <div class="heading">
+                        <Text Variant="TextVariant.Label" As="TextElement.H2" TestId="food-group-online">Online · @(OnlineCountry ?? "worldwide")</Text>
+                    </div>
                     <ul class="rows">
                         @foreach (var product in OnlineProducts.Take(shown))
                         {
@@ -251,20 +255,17 @@
 
     private RenderFragment Tools =>
         @<div class="tools">
-            <div class="search">
-                <span class="search-icon"><Icon Name="IconName.Search" Tone="IconTone.Muted" /></span>
-                <input type="search" class="search-input" placeholder="Search foods" aria-label="Search foods" autocomplete="off" enterkeyhint="search"
-                       value="@Query" data-testid="food-search-input" @oninput="OnInput" @onkeydown="OnKeyDown" />
-                <span class="search-divider" aria-hidden="true"></span>
-                <span class="search-scan">
+            <SearchField Value="@Query" ValueChanged="OnQueryChanged" OnEnter="OnEnter" Placeholder="Search foods" AriaLabel="Search foods" TestId="food-search-input">
+                <Trailing>
                     <IconButton Icon="IconName.Scan" AriaLabel="Scan a barcode" Compact TestId="search-scan" OnClick="OnScan" />
-                </span>
-            </div>
+                </Trailing>
+            </SearchField>
+            <Divider Decorative />
         </div>;
 
     /// <summary>The search key of the keyboard is a tap on "Search online" once something is typed.</summary>
-    private Task OnKeyDown(KeyboardEventArgs args) =>
-        args.Key == "Enter" && !Loading && !string.IsNullOrWhiteSpace(Query) ? SearchOnline() : Task.CompletedTask;
+    private Task OnEnter() =>
+        !Loading && !string.IsNullOrWhiteSpace(Query) ? SearchOnline() : Task.CompletedTask;
 
     private ElementReference onlineSection;
 
@@ -295,8 +296,6 @@
             // Focus is a courtesy; the results show either way.
         }
     }
-
-    private Task OnInput(ChangeEventArgs args) => OnQueryChanged.InvokeAsync(args.Value?.ToString() ?? "");
 
     /// <summary>Foods a group shows before its "Show N more" row.</summary>
     public const int ShownLimit = 5;

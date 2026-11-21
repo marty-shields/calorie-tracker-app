@@ -2,43 +2,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
-    padding: var(--space-4) var(--space-4) var(--space-3);
-    border-bottom: var(--border-width) solid var(--color-border);
-}
-
-.search {
-    position: relative;
-}
-
-.search-icon {
-    position: absolute;
-    inset: 0 auto 0 var(--space-3);
-    display: flex;
-    align-items: center;
-    pointer-events: none;
-}
-
-.search-input {
-    width: 100%;
-    min-height: var(--touch-target);
-    padding: 0 calc(var(--touch-target-compact) + var(--space-3)) 0 calc(var(--space-3) + var(--font-size-xl) + var(--space-2));
-    border: var(--border-width) solid var(--color-border-strong);
-    border-radius: var(--radius-md);
-    background-color: var(--color-surface);
-}
-
-.search-divider {
-    position: absolute;
-    inset: var(--space-2) calc(var(--touch-target-compact) + var(--space-1)) var(--space-2) auto;
-    border-left: var(--border-width) solid var(--color-border-strong);
-    pointer-events: none;
-}
-
-.search-scan {
-    position: absolute;
-    inset: 0 var(--space-1) 0 auto;
-    display: flex;
-    align-items: center;
+    padding: var(--space-4) var(--space-4) 0;
 }
 
 .groups {
@@ -47,13 +11,18 @@
     gap: var(--space-4);
 }
 
-.group-heading {
-    margin: 0;
+.group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.heading {
     padding: var(--space-3) var(--space-1) var(--space-1);
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
+}
+
+.notice {
+    padding: 0 var(--space-1);
 }
 
 .rows {
@@ -63,9 +32,7 @@
 }
 
 .none {
-    margin: 0;
     padding: var(--space-6) 0;
-    color: var(--color-text-muted);
     text-align: center;
 }
 
@@ -73,10 +40,6 @@
     display: grid;
     place-items: center;
     padding: var(--space-6) 0;
-}
-
-.add-none ::deep .message {
-    font-weight: var(--font-weight-bold);
 }
 
 .online {
@@ -92,11 +55,4 @@
     flex: 1;
     min-width: 0;
     gap: var(--space-2);
-}
-
-.online-notice {
-    margin: 0;
-    padding: 0 var(--space-1);
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
 }

@@ -37,10 +37,10 @@ public sealed class DashboardScreen(WebView web)
     public string? Expanded(string meal) => web.Exists($"meal-{Meal(meal)}-toggle") ? web.Attribute($"meal-{Meal(meal)}-toggle", "aria-expanded") : null;
 
     /// <summary>The folded line, such as "1 item · 125 kcal"; null when the meal is not folded.</summary>
-    public string? FoldedLine(string meal) => AfterStart(meal) is { } rest && (rest.Contains(" item") || rest == "Nothing logged") ? rest : null;
+    public string? FoldedLine(string meal) => Hint(meal) is { } hint && (hint.Contains(" item") || hint == "Nothing logged") ? hint : null;
 
     /// <summary>The "from 11:00" text of a meal whose window has not opened; null otherwise.</summary>
-    public string? FromText(string meal) => SplitTotal(meal).From;
+    public string? FromText(string meal) => Hint(meal) is { } hint && hint.StartsWith("from ", StringComparison.Ordinal) ? hint : null;
 
     public bool HasNowChip(string meal) => web.Exists($"meal-{Meal(meal)}-badge");
 
@@ -58,26 +58,10 @@ public sealed class DashboardScreen(WebView web)
     public string? OpenAndReadMealTotal(string meal)
     {
         Expand(meal);
-        return AfterStart(meal) is { } rest && rest.EndsWith(" kcal", StringComparison.Ordinal) ? rest : null;
+        return web.Exists($"meal-{Meal(meal)}-total") ? web.Text($"meal-{Meal(meal)}-total") : null;
     }
 
-    private string? Total(string meal) => web.Exists($"meal-{Meal(meal)}-total") ? web.Text($"meal-{Meal(meal)}-total") : null;
-
-    /// <summary>The meal's total text without its "from 11:00" part; null when there is none.</summary>
-    private string? AfterStart(string meal) => SplitTotal(meal).Remainder;
-
-    /// <summary>The merged total text split into its "from 11:00" part (null when absent) and the rest (null when empty).</summary>
-    private (string? From, string? Remainder) SplitTotal(string meal)
-    {
-        var total = Total(meal);
-        if (total is null)
-        {
-            return (null, null);
-        }
-
-        var parts = total.Split(" · ", 2);
-        return parts[0].StartsWith("from ", StringComparison.Ordinal) ? (parts[0], parts.Length > 1 ? parts[1] : null) : (null, total);
-    }
+    private string? Hint(string meal) => web.Exists($"meal-{Meal(meal)}-hint") ? web.Text($"meal-{Meal(meal)}-hint") : null;
 
     /// <summary>The calories eaten on the day, as the card shows them.</summary>
     public string Eaten() => web.Text("dashboard-eaten");
