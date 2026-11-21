@@ -30,7 +30,7 @@ public partial class StatusMessageGutterTests
     [Test]
     public void ServingStatusError_HasTheSnackbarMargins()
     {
-        Assert.That(KitCss.Tokens, Does.Contain("--snackbar-gap-bottom"), "the kit's Snackbar gap token");
+        Assert.That(KitCss.Tokens, Does.Contain(GapToken), "the kit's Snackbar gap token");
 
         var css = CommentRegex().Replace(RepoFiles.Read("src", "CalorieTracker.UI", "Screens/ServingView.razor.css"), "");
         var rule = Regex.Match(css, @"\.error\.status-error\s*\{(?<body>[^}]*)\}");

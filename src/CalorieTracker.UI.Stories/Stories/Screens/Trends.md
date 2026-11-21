@@ -20,7 +20,7 @@ How a week, a month or a year went, from the bar's **Trends** item. View: `Trend
 |---|---|
 | Tiles | Each tile is the kit's `StatTile`, label first. **Average**: "2,124" with "kcal a day, 24 over target" (or "under" or "on target"). **On target**: "3 of 7" with "days within 10% of target" (7 is the days of the week). |
 | Calories by day | The kit's `ChartLegend` with dots (Under, On target, Over with a ▲ marker, "Target 2,100" on the dashed-line swatch and "Band ±10%" on the band swatch) (legend test ids `trends-legend-0`, `-1`, ... run in this order: Week with a target Under, On target, Over, Target, Band; Week without a target Under, On target, Over; Month Under, On target, Over, Not logged, Target, Band; Year Under, On target, Over, Target, Band) and the kit's `TrendBarChart` (the target is a dashed line and the band's two edges are outlines in `--color-chart-band`): one bar for each past logged day, coloured by its status against its own target, an over marker on Over days and the tallest value labelled. Today and later days, and days not logged, are empty slots. A bar is a button: it opens that day on Today (`/?date=yyyy-MM-dd`). |
-| Average macros | The kit's `StackedBar` with the average protein, carbs and fat in the data series 1, 2 and 3, sized by calories and labelled in kcal (test ids `trends-share-segment-<n>` and `-label-<n>`). |
+| Average macros | The kit's `StackedBar` with the average protein, carbs and fat in the data series 1, 2 and 3, sized by calories and labelled in grams (test ids `trends-share-segment-<n>` and `-label-<n>`). |
 | Kcal by meal | The kit's `BarList` of the average kcal in Breakfast, Lunch, Dinner and Snacks. |
 
 ## Month
