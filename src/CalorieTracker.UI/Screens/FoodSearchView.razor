@@ -41,7 +41,7 @@
                         <div class="heading">
                             <Typography Variant="TextVariant.Label" As="TextElement.H2" TestId="@($"food-group-{name}")">@Heading(group.Kind)</Typography>
                         </div>
-                        <ul class="rows">
+                        <ul class="rows" data-testid="@($"food-group-{name}-list")">
                             @foreach (var item in group.Foods.Take(shown))
                             {
                                 <li>
@@ -233,7 +233,7 @@
                     <div class="heading">
                         <Typography Variant="TextVariant.Label" As="TextElement.H2" TestId="food-group-online">Online · @(OnlineCountry ?? "worldwide")</Typography>
                     </div>
-                    <ul class="rows">
+                    <ul class="rows" data-testid="food-group-online-list">
                         @foreach (var product in OnlineProducts.Take(shown))
                         {
                             var display = FoodDisplay.Of(product.Food);
