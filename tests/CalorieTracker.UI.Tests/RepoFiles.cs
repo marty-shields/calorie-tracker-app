@@ -15,15 +15,11 @@ internal static partial class RepoFiles
     /// <summary>Text of a file under the repo root.</summary>
     public static string Read(params string[] parts) => File.ReadAllText(PathOf(parts));
 
-    /// <summary>The kit components' scoped css with the <c>[b-...]</c> scope attributes removed, so <see cref="Rule"/> finds a rule by its class: the package's bundle, or every <c>*.razor.css</c> of the checkout with UseKitSource.</summary>
+    /// <summary>The kit components' scoped css (the package's bundle) with the <c>[b-...]</c> scope attributes removed, so <see cref="Rule"/> finds a rule by its class.</summary>
     public static string ReadKitComponentCss()
     {
         var assets = Directory.GetParent(typeof(RepoFiles).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().Single(a => a.Key == "KitCssFolder").Value!)!.FullName;
-        var bundle = Directory.GetFiles(assets, "Shields.UI.*.bundle.scp.css");
-        var css = bundle.Length > 0
-            ? File.ReadAllText(bundle[0])
-            : string.Join('\n', Directory.GetFiles(Path.Combine(assets, "..", "Components"), "*.razor.css", SearchOption.AllDirectories).Order(StringComparer.Ordinal).Select(File.ReadAllText));
-        return ScopeAttribute().Replace(css, "");
+        return ScopeAttribute().Replace(File.ReadAllText(Directory.GetFiles(assets, "Shields.UI.*.bundle.scp.css").Single()), "");
     }
 
     [GeneratedRegex(@"\[b-[a-z0-9]+\]")]

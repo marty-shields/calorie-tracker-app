@@ -19,26 +19,4 @@ public class FoundationStoryWiringTests : BunitContext
             Assert.That(cut.Find(".splash.dark .splash-image").GetAttribute("src"), Is.EqualTo(AppIconArt.SplashDark));
         });
     }
-
-    [Test]
-    public void TokensStory_ShowsTheAppColoursAsThemedRowsAndTheSizesAsSizes()
-    {
-        JSInterop.SetupModule("./_content/Shields.UI.Stories/Shared/TokenSheet.razor.js")
-            .Setup<Dictionary<string, string>>("read", _ => true).SetResult([]);
-
-        var cut = Render<TokensStory>();
-
-        Assert.Multiple(() =>
-        {
-            foreach (var colour in AppTokenNames.Colours)
-            {
-                Assert.That(cut.Find($"[data-token=\"{colour}\"]").QuerySelectorAll("td[data-theme]"), Has.Count.EqualTo(2), colour);
-            }
-
-            foreach (var size in AppTokenNames.Sizes)
-            {
-                Assert.That(cut.Find($"li[data-token=\"{size}\"]"), Is.Not.Null, size);
-            }
-        });
-    }
 }

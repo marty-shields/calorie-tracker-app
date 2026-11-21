@@ -6,6 +6,8 @@ $attribute: CustomPage(StoryTitles.Prefix + "Screens/FoodSearch/Overview")
 
 Reached from the Add sheet's **Search foods**, a meal's + on Today, and the Scan screen's **Search by name instead**; always an add to a meal on a day (route `/foods?meal=<Meal>&date=yyyy-MM-dd`, below). There is no navigation bar and no browse mode: a tap on a result opens Serving, which shows the food's values and its favourite star. An old `/foods` link without a `meal` takes the meal from `MealWindows` at the current time (and today). View: `FoodSearchView`; page: `FoodSearchPage`.
 
+`IconButton`, `ListRow`, `AppScreen` and the spinner here are components of the `Shields.UI` kit, not this app's; their stories are on the kit's stories site.
+
 | Part | Content |
 |---|---|
 | Top bar | Title "Add to Lunch" (the meal) with the day under it in the date strip's wording ("Today, 18 Nov", "Yesterday, 17 Nov", else "Sat, 14 Nov"; `DayLabel`), a back arrow (and Android back) to Today on the route's day. |

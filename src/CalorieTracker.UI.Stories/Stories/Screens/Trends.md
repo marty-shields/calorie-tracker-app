@@ -6,6 +6,8 @@ $attribute: CustomPage(StoryTitles.Prefix + "Screens/Trends/Overview")
 
 How a week, a month or a year went, from the bar's **Trends** item. View: `TrendsView`; page: `TrendsPage`. Route: `/trends?period=week|month|year&from=yyyy-MM-dd`, where `from` is any day of the span; without a query it opens on the current week. All figures come from `TrendsService`; a day is on target within 10% either side of the target it had.
 
+`SegmentedControl`, `PeriodStepper`, `BottomNav` and `StatTile` here are components of the `Shields.UI` kit, not this app's; their stories are on the kit's stories site.
+
 | Part | Content |
 |---|---|
 | Top bar | Title "Trends"; Settings gear on the right. No back arrow; Android back goes to Today, the start destination (`NavDestinations.Start`). |

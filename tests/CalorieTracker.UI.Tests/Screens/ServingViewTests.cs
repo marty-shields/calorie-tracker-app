@@ -47,6 +47,19 @@ public class ServingViewTests : ComponentTestBase
         Assert.That(Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30).Find("[data-testid=serving-amount-minus]").HasAttribute("disabled"), Is.False);
 
     [Test]
+    public void AddsCard_IsTitledThisAdds_AndThisEntryWhenEditing()
+    {
+        var adding = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30);
+        var editing = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30, more: p => p.Add(x => x.Editing, true));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(adding.Find("[data-testid=serving-adds] h2.title").TextContent.Trim(), Is.EqualTo("This adds"));
+            Assert.That(editing.Find("[data-testid=serving-adds] h2.title").TextContent.Trim(), Is.EqualTo("This entry"));
+        });
+    }
+
+    [Test]
     public void Title_IsTheFoodsName_AndPerLineGivesKcalAndMacros()
     {
         var cut = Render(ScreenStates.Cheddar, EntryMode.Grams, 30, 30);

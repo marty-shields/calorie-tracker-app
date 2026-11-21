@@ -6,6 +6,8 @@ $attribute: CustomPage(StoryTitles.Prefix + "Screens/Serving/Overview")
 
 Choose an amount and a meal, then add the food to a day. Opened from a food (route `/serving/<food id>`; food search and the Scan screen link to it), or from a Today entry in edit mode (see Edit mode). View: `ServingView`; page: `ServingPage`; route page: `Serving.razor` in the App.
 
+`IconButton`, `SegmentedControl`, `NumberField`, `TextField`, `Card` and the snackbar here are components of the `Shields.UI` kit, not this app's; their stories are on the kit's stories site.
+
 Query parameters: `amount`, `servings` and `serving` (without `entry`: the weight in g or ml, the count of servings it was entered as, and the id of the serving the count is in, to open with instead of the default amount (a count of one of the smallest serving, or 100 g), such as what food search found logged last; servings mode only when the food has a serving; a weight that is not valid is ignored; a `serving` the food does not have opens on the smallest), `meal` (Breakfast, Lunch, Dinner or Snacks; a preset, such as from a meal's +), `date` (yyyy-MM-dd; today when missing or not a date), `back` (an in-app route for Back, so a meal's search can be returned to; a saved entry always goes to Today). Without `back`, Back goes to food search (`/foods`, `ServingRoute.DefaultBack`) and a saved entry to Today. After a saved entry a snackbar says "<food> added to <meal>" with **Undo**, which removes the entry just added.
 
 | Part | Content |

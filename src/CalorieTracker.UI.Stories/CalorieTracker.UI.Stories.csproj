@@ -17,14 +17,9 @@
     </PackageReference>
   </ItemGroup>
 
-  <!-- The kit's stories shell comes from the Shields.UI.Stories package. -p:UseKitSource=true uses a checkout of the kit instead
-       (KitPath, see Directory.Build.props); add -p:RestoreLockedMode=false, since the lock files describe the packages. -->
-  <ItemGroup Condition="'$(UseKitSource)' != 'true'">
+  <!-- The kit's stories shell comes from the Shields.UI.Stories package. -->
+  <ItemGroup>
     <PackageReference Include="Shields.UI.Stories" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(UseKitSource)' == 'true'">
-    <ProjectReference Include="$(KitPath)/src/Shields.UI.Stories/Shields.UI.Stories.csproj" />
   </ItemGroup>
 
   <ItemGroup>
