@@ -15,15 +15,15 @@
     @if (Usual is { Count: > 0 } usual)
     {
         <section class="usual" aria-labelledby="add-sheet-usual-heading" data-testid="add-sheet-usual">
-            <Text Variant="TextVariant.Label" As="TextElement.H3" id="add-sheet-usual-heading" TestId="add-sheet-usual-heading">Usual for @meal.ToString().ToLowerInvariant()</Text>
+            <Typography Variant="TextVariant.Label" As="TextElement.H3" id="add-sheet-usual-heading" TestId="add-sheet-usual-heading">Usual for @meal.ToString().ToLowerInvariant()</Typography>
             <ul class="usual-rows">
                 @foreach (var row in usual)
                 {
                     <li data-testid="@($"add-sheet-usual-{row.FoodId}")">
                         <div class="usual-row">
                             <div class="usual-text">
-                                <Text TestId="@($"add-sheet-usual-{row.FoodId}-title")" data-wrap-ok>@row.Title</Text>
-                                <Text Variant="TextVariant.MutedSmall" TestId="@($"add-sheet-usual-{row.FoodId}-detail")" data-wrap-ok>@row.Detail</Text>
+                                <Typography TestId="@($"add-sheet-usual-{row.FoodId}-title")" data-wrap-ok>@row.Title</Typography>
+                                <Typography Variant="TextVariant.MutedSmall" TestId="@($"add-sheet-usual-{row.FoodId}-detail")" data-wrap-ok>@row.Detail</Typography>
                             </div>
                             <IconButton Style="IconButtonStyle.Soft" Icon="IconName.Plus" AriaLabel="@($"Add {row.Title} to {meal}")" TestId="@($"add-sheet-usual-{row.FoodId}-add")" OnClick="() => AddUsualAsync(row)" />
                         </div>

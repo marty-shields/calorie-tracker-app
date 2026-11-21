@@ -10,10 +10,10 @@ public partial class NoAppTokensTests
     internal static IReadOnlySet<string> Declared(string css) =>
         DesignTokens.Declares(CommentPattern().Replace(css, "")).ToHashSet(StringComparer.Ordinal);
 
-    /// <summary>Names of the custom properties declared in the inline <c>style="..."</c> values of markup.</summary>
+    /// <summary>Names of the custom properties declared in the inline <c>style="..."</c> or <c>style='...'</c> values of markup.</summary>
     internal static IReadOnlySet<string> DeclaredInline(string markup) =>
         StylePattern().Matches(markup)
-            .SelectMany(match => DesignTokens.Declares(match.Groups["style"].Value + ";"))
+            .SelectMany(match => DesignTokens.Declares((match.Groups["style"].Success ? match.Groups["style"].Value : match.Groups["single"].Value) + ";"))
             .ToHashSet(StringComparer.Ordinal);
 
     private static IReadOnlySet<string> DeclaredInApp() =>
@@ -37,8 +37,14 @@ public partial class NoAppTokensTests
             DeclaredInline("<span style=\"--x: var(--y)\"></span><div style=\"--fill: @Fill; --gap-x: var(--space-2)\" class=\"a\"></div><p style=\"margin: var(--z)\"></p>"),
             Is.EquivalentTo(new[] { "--x", "--fill", "--gap-x" }));
 
-    [GeneratedRegex("\\bstyle=\"(?<style>[^\"]*)\"")]
+    [GeneratedRegex("\\bstyle=(?:\"(?<style>[^\"]*)\"|'(?<single>[^']*)')")]
     private static partial Regex StylePattern();
+
+    [Test]
+    public void DeclaredInline_FindsCustomPropertiesInSingleQuotedStyleAttributes() =>
+        Assert.That(
+            DeclaredInline("<span style='--x: var(--y)'></span><div style='--fill: 1; margin: 0'></div><p style='margin: var(--z)'></p>"),
+            Is.EquivalentTo(new[] { "--x", "--fill" }));
 
     [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline)]
     private static partial Regex CommentPattern();
