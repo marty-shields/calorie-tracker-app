@@ -34,7 +34,7 @@ public partial class StatusMessageGutterTests
         var rule = Regex.Match(css, @"\.error\.status-error\s*\{(?<body>[^}]*)\}");
         Assert.That(rule.Success, Is.True, "the status margins need the .error.status-error selector so they beat .error whatever the order");
 
-        Assert.That(MarginOf(rule.Groups["body"].Value, "Screens/ServingView.razor.css", "error.status-error"), Is.EqualTo("0 var(--space-4) var(--snackbar-gap-bottom)"), "the kit Snackbar's margins");
+        Assert.That(MarginOf(rule.Groups["body"].Value, "Screens/ServingView.razor.css", "error.status-error"), Is.EqualTo("0 var(--space-4) var(--snackbar-gap-bottom)"), "the kit Snackbar's margins, copied here as a literal: a kit change to them is not caught automatically");
     }
 
     [Test]

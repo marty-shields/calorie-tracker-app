@@ -71,24 +71,27 @@
                                            Badge="@(state == MealWindowState.During ? "Now" : null)"
                                            Expanded="!folded"
                                            ExpandedChanged="@(foldable ? EventCallback.Factory.Create<bool>(this, (bool _) => Toggle(meal.Meal)) : default)"
+                                           ControlsId="@($"{id}-entries")"
                                            TestId="@id" />
                             <IconButton Style="IconButtonStyle.Filled" Icon="IconName.Plus" AriaLabel="@($"Add to {meal.Meal}")" TestId="@($"{id}-add")" OnClick="@(() => OnAdd.InvokeAsync(new MealAddRequest(meal.Meal, Date)))" />
                         </div>
                         @if (!folded)
                         {
-                            if (count > 0)
-                            {
-                                <ul class="entries">
-                                    @foreach (var entry in meal.Entries)
-                                    {
-                                        <li><ListRow Text="@entry.Display.Title" Detail="@EntryDetail(entry)" Aside="@Number(entry.Nutrition.Kcal)" TestId="@($"entry-{entry.EntryId}")" OnClick="@EditTap(entry, meal.Meal)" /></li>
-                                    }
-                                </ul>
-                            }
-                            else if (state != MealWindowState.Before && (logged || state == MealWindowState.After))
-                            {
-                                <p class="none" data-testid="@($"{id}-none")">Nothing logged</p>
-                            }
+                            <div id="@($"{id}-entries")">
+                                @if (count > 0)
+                                {
+                                    <ul class="entries">
+                                        @foreach (var entry in meal.Entries)
+                                        {
+                                            <li><ListRow Text="@entry.Display.Title" Detail="@EntryDetail(entry)" Aside="@Number(entry.Nutrition.Kcal)" TestId="@($"entry-{entry.EntryId}")" OnClick="@EditTap(entry, meal.Meal)" /></li>
+                                        }
+                                    </ul>
+                                }
+                                else if (state != MealWindowState.Before && (logged || state == MealWindowState.After))
+                                {
+                                    <p class="none" data-testid="@($"{id}-none")">Nothing logged</p>
+                                }
+                            </div>
                         }
                     </section>
                 }

@@ -7,8 +7,6 @@ public class NoLocalKitCopiesTests
 {
     private static readonly string UiFolder = RepoFiles.PathOf("src", "CalorieTracker.UI");
 
-    private static readonly IReadOnlySet<string> KitTypeNames = KitNames.Types;
-
     /// <summary>
     /// Source and razor files named after a kit component or public kit type, as paths relative to the folder.
     /// The name is what comes before the first dot, so <c>Spinner.razor.css</c> and <c>Spinner.razor.cs</c> count.
@@ -27,7 +25,7 @@ public class NoLocalKitCopiesTests
     [Test]
     public void AppFiles_AreNotCopiesOfKitComponentsOrTypes() =>
         Assert.That(
-            ComponentCopies(RepoFiles.Find("*.razor", "src", "CalorieTracker.UI").Concat(RepoFiles.Find("*.cs", "src", "CalorieTracker.UI")), KitNames.Components.Union(KitTypeNames).ToHashSet(), UiFolder),
+            ComponentCopies(RepoFiles.Find("*.razor", "src", "CalorieTracker.UI").Concat(RepoFiles.Find("*.cs", "src", "CalorieTracker.UI")), KitNames.Components.Union(KitNames.Types).ToHashSet(), UiFolder),
             Is.Empty);
 
     [Test]
@@ -50,7 +48,7 @@ public class NoLocalKitCopiesTests
     {
         var copies = ComponentCopies(
             [Path.Combine(UiFolder, "SnackbarService.cs"), Path.Combine(UiFolder, "Components", "Spinner.razor.cs"), Path.Combine(UiFolder, "Screens", "ScanView.cs")],
-            KitNames.Components.Union(KitTypeNames).ToHashSet(),
+            KitNames.Components.Union(KitNames.Types).ToHashSet(),
             UiFolder);
 
         Assert.That(copies, Is.EqualTo(new[] { "SnackbarService.cs", Path.Combine("Components", "Spinner.razor.cs") }));

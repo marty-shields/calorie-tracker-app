@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using CalorieTracker.UI.Components.Layout;
 using Microsoft.AspNetCore.Components;
 
@@ -8,7 +9,7 @@ namespace CalorieTracker.UI.Tests.DesignSystem;
 /// Screens (<c>*View.razor</c> and <c>*Page.razor</c> under <c>Screens/</c>) need no entry; any other file there, and any component class written in C#, does.
 /// The App project is scanned too, except its routed pages (<c>Components/Pages/</c>) and <c>Routes.razor</c>; its entries start with <c>App/</c>. The Stories hosts are not scanned: they only wire the kit's shell.
 /// </summary>
-public class AppComponentsAllowListTests
+public partial class AppComponentsAllowListTests
 {
     private const string FoodSpecific = "food-specific";
     private const string AppWiring = "app wiring";
@@ -37,14 +38,17 @@ public class AppComponentsAllowListTests
         path.StartsWith("Screens/", StringComparison.Ordinal)
         && (path.EndsWith("View.razor", StringComparison.Ordinal) || path.EndsWith("Page.razor", StringComparison.Ordinal));
 
-    /// <summary>Components of the App project that are not a routed page or <c>Routes.razor</c>: its .razor files, and the .cs files that derive from <c>ComponentBase</c>.</summary>
+    /// <summary>Components of the App project that are not a routed page or <c>Routes.razor</c>: its .razor files, and the .cs files whose base types include <c>ComponentBase</c>, <c>LayoutComponentBase</c>, <c>OwningComponentBase</c> or <c>IComponent</c>.</summary>
     internal static IReadOnlyList<string> AppComponents(IEnumerable<string> razorFiles, IEnumerable<string> sourceFiles, string folder) =>
-        razorFiles.Concat(sourceFiles.Where(file => File.ReadAllText(file).Contains(": ComponentBase", StringComparison.Ordinal)))
+        razorFiles.Concat(sourceFiles.Where(file => ComponentBaseRegex().IsMatch(File.ReadAllText(file))))
             .Select(file => Path.GetRelativePath(folder, file).Replace(Path.DirectorySeparatorChar, '/'))
             .Where(path => !path.StartsWith("Components/Pages/", StringComparison.Ordinal) && path != "Components/Routes.razor" && !Path.GetFileName(path).StartsWith('_'))
             .Select(path => "App/" + path)
             .Order(StringComparer.Ordinal)
             .ToList();
+
+    [GeneratedRegex(@"[:,]\s*(?:\w+\.)*(?:ComponentBase|LayoutComponentBase|OwningComponentBase(?:<[^>]+>)?|IComponent)\b")]
+    private static partial Regex ComponentBaseRegex();
 
     private static IReadOnlyList<string> Found() =>
         [.. Components(RepoFiles.Find("*.razor", "src", "CalorieTracker.UI"), UiFolder), .. AppComponents(RepoFiles.Find("*.razor", "src", "CalorieTracker.App"), RepoFiles.Find("*.cs", "src", "CalorieTracker.App"), AppFolder)];
@@ -95,14 +99,24 @@ public class AppComponentsAllowListTests
         var helper = Path.Combine(folder, "Components", "Helper.cs");
         File.WriteAllText(widget, "public sealed class Widget : ComponentBase;");
         File.WriteAllText(helper, "public static class Helper;");
+        var layout = Path.Combine(folder, "Components", "Frame.cs");
+        var owning = Path.Combine(folder, "Components", "Owner.cs");
+        var tight = Path.Combine(folder, "Components", "Tight.cs");
+        var ownLine = Path.Combine(folder, "Components", "OwnLine.cs");
+        var raw = Path.Combine(folder, "Components", "Raw.cs");
+        File.WriteAllText(layout, "public sealed class Frame : LayoutComponentBase;");
+        File.WriteAllText(owning, "public sealed class Owner : OwningComponentBase<Service>;");
+        File.WriteAllText(tight, "public sealed class Tight:ComponentBase;");
+        File.WriteAllText(ownLine, "public sealed class OwnLine\n    : ComponentBase;");
+        File.WriteAllText(raw, "public sealed class Raw : Base, IComponent;");
         try
         {
             Assert.That(
                 AppComponents(
                     [Path.Combine(folder, "Components", "Pages", "Home.razor"), Path.Combine(folder, "Components", "Routes.razor"), Path.Combine(folder, "Components", "_Imports.razor"), Path.Combine(folder, "Components", "Shell.razor")],
-                    [widget, helper],
+                    [widget, helper, layout, owning, tight, ownLine, raw],
                     folder),
-                Is.EqualTo(new[] { "App/Components/Shell.razor", "App/Components/Widget.cs" }));
+                Is.EqualTo(new[] { "App/Components/Frame.cs", "App/Components/OwnLine.cs", "App/Components/Owner.cs", "App/Components/Raw.cs", "App/Components/Shell.razor", "App/Components/Tight.cs", "App/Components/Widget.cs" }));
         }
         finally
         {

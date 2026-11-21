@@ -113,8 +113,8 @@ public class DashboardPageTests : ComponentTestBase
             Assert.That(Text(cut, "dashboard-eaten"), Is.EqualTo("125"));
             Assert.That(Text(cut, "dashboard-ring-value"), Is.EqualTo("1,975"));
             Assert.That(Text(cut, "dashboard-ring-caption"), Is.EqualTo("kcal left"));
-            Assert.That(cut.FindAll("[data-testid=meal-lunch-section] > ul .row"), Has.Count.EqualTo(1));
-            Assert.That(cut.FindAll("[data-testid=meal-breakfast-section] > ul .row"), Is.Empty);
+            Assert.That(cut.FindAll("[data-testid=meal-lunch-section] ul .row"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=meal-breakfast-section] ul .row"), Is.Empty);
             Assert.That(Exists(cut, "dashboard-empty"), Is.False);
             Assert.That(Text(cut, "dashboard-share-label-0"), Is.EqualTo("Protein 30 kcal"));
         });
@@ -156,7 +156,7 @@ public class DashboardPageTests : ComponentTestBase
         {
             Assert.That(Text(cut, "dashboard-eaten"), Is.EqualTo("125"));
             Assert.That(Text(cut, "meal-lunch-total"), Is.EqualTo("125 kcal"));
-            Assert.That(cut.FindAll("[data-testid=meal-lunch-section] > ul .row"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=meal-lunch-section] ul .row"), Has.Count.EqualTo(1));
         });
     }
 
@@ -314,7 +314,7 @@ public class DashboardPageTests : ComponentTestBase
 
         await cut.Find("[data-testid=meal-breakfast-toggle]").ClickAsync();
 
-        Assert.That(cut.FindAll("[data-testid=meal-breakfast-section] > ul .row"), Has.Count.EqualTo(1));
+        Assert.That(cut.FindAll("[data-testid=meal-breakfast-section] ul .row"), Has.Count.EqualTo(1));
     }
 
     [Test]
@@ -417,7 +417,7 @@ public class DashboardPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(cut.Find("[data-testid=meal-lunch-toggle]").GetAttribute("aria-expanded"), Is.EqualTo("true"));
-            Assert.That(cut.FindAll("[data-testid=meal-lunch-section] > ul .row"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=meal-lunch-section] ul .row"), Has.Count.EqualTo(1));
         });
     }
 
@@ -433,7 +433,7 @@ public class DashboardPageTests : ComponentTestBase
         {
             Assert.That(Exists(cut, "meal-breakfast-toggle"), Is.False);
             Assert.That(Exists(cut, "meal-dinner-badge"), Is.False);
-            Assert.That(cut.FindAll("[data-testid=meal-breakfast-section] > ul .row"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=meal-breakfast-section] ul .row"), Has.Count.EqualTo(1));
         });
     }
 }
