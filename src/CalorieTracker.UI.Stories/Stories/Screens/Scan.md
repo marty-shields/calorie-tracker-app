@@ -6,6 +6,8 @@ $attribute: CustomPage(StoryTitles.Prefix + "Screens/Scan/Overview")
 
 Scans a product's barcode and, when the product is found, goes straight to the Serving screen (no values screen in between). View: `ScanView`; page: `ScanPage`.
 
+`LoadFailed`, `EmptyState` and the spinner here are components of the `Shields.UI` kit, not this app's; their stories are on the kit's stories site.
+
 | Part | Content |
 |---|---|
 | Top bar | The title "Scan barcode", a back arrow (and Android back) to where Scan was opened from (an in-app `back` route, else Today on that day), no navigation bar, and the centred chip "Adding to <meal> · <day>". |
