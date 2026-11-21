@@ -9,7 +9,7 @@ public partial class LayoutOnlyCssTests
 
     /// <summary>Properties that may be declared. Custom properties (<c>--x</c>) are left to <see cref="NoAppTokensTests"/>.</summary>
     [GeneratedRegex(
-        "^(display|gap|row-gap|column-gap|order|width|min-width|max-width|height|min-height|max-height|inline-size|block-size|box-sizing|position|top|right|bottom|left|z-index|aspect-ratio|white-space|text-align|visibility|content|pointer-events|container|grid(-.*)?|flex(-.*)?|place-.*|align-.*|justify-.*|margin(-.*)?|padding(-.*)?|inset(-.*)?|overflow(-.*)?|container-.*|list-style(-.*)?)$")]
+        "^(display|gap|row-gap|column-gap|order|width|min-width|max-width|height|min-height|max-height|inline-size|block-size|box-sizing|position|top|right|bottom|left|z-index|aspect-ratio|white-space|text-align|visibility|content|pointer-events|grid(-.*)?|flex(-.*)?|place-.*|align-.*|justify-.*|margin(-.*)?|padding(-.*)?|inset(-.*)?|overflow(-.*)?|container-.*|list-style|list-style-type)$")]
     private static partial Regex LayoutProperty();
 
     /// <summary>The <c>selector { property }</c> pairs of a stylesheet whose property is not a layout property, as "selector { property }".</summary>
@@ -18,9 +18,13 @@ public partial class LayoutOnlyCssTests
             .SelectMany(rule => NonLayout(rule.Groups["body"].Value).Select(property => $"{Squash(rule.Groups["selector"].Value)} {{ {property} }}"))
             .ToList();
 
-    /// <summary>The non-layout properties declared in the inline <c>style="..."</c> values of markup.</summary>
+    /// <summary>The non-layout properties declared in the inline <c>style="..."</c> or <c>style='...'</c> values of markup, and "@" for a style value computed in Razor, whose declarations cannot be checked. A <c>&lt;style</c> block counts as its own violation.</summary>
     internal static IReadOnlyList<string> InlineViolations(string markup) =>
-        StylePattern().Matches(markup).SelectMany(match => NonLayout(match.Groups["style"].Value)).ToList();
+        StylePattern().Matches(markup)
+            .Select(match => match.Groups["style"].Success ? match.Groups["style"].Value : match.Groups["single"].Value)
+            .SelectMany(value => value.Contains('@', StringComparison.Ordinal) ? ["@"] : NonLayout(value))
+            .Concat(StyleBlockPattern().Matches(markup).Select(_ => "<style>"))
+            .ToList();
 
     private static IEnumerable<string> NonLayout(string declarations) =>
         declarations.Split(';')
@@ -47,7 +51,7 @@ public partial class LayoutOnlyCssTests
     public void AppMarkup_HasNoVisualInlineStyle()
     {
         var found = AppFolders
-            .SelectMany(folder => RepoFiles.Find("*.razor", folder.Split('/')))
+            .SelectMany(folder => RepoFiles.Find("*.razor", folder.Split('/')).Concat(RepoFiles.Find("*.html", folder.Split('/'))))
             .SelectMany(file => InlineViolations(File.ReadAllText(file)).Select(property => $"{Relative(file)}: style \"{property}\""))
             .ToList();
         Assert.That(found, Is.Empty, "a look comes from app-ui-kit, not from an inline style; request the part there");
@@ -68,14 +72,33 @@ public partial class LayoutOnlyCssTests
     [Test]
     public void InlineViolations_FindsAVisualInlineStyle() =>
         Assert.That(
-            InlineViolations("<p style=\"font-weight: bold\"></p><div style=\"--fill: @Fill; margin: var(--space-2)\"></div><span style=\"color: red; gap: 1px\"></span>"),
+            InlineViolations("<p style=\"font-weight: bold\"></p><div style=\"--fill: 1; margin: var(--space-2)\"></div><span style=\"color: red; gap: 1px\"></span>"),
             Is.EqualTo(new[] { "font-weight", "color" }));
+
+    [Test]
+    public void InlineViolations_FindsSingleQuotedComputedAndBlockStyles()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(InlineViolations("<p style='color: red; gap: 1px'></p>"), Is.EqualTo(new[] { "color" }));
+            Assert.That(InlineViolations("<p style=\"@($\"color: {x}\")\"></p>"), Is.EqualTo(new[] { "@" }));
+            Assert.That(InlineViolations("<p style=\"@Style\"></p>"), Is.EqualTo(new[] { "@" }));
+            Assert.That(InlineViolations("<STYLE>.x{color:red}</STYLE>"), Is.EqualTo(new[] { "<style>" }));
+        });
+    }
+
+    [Test]
+    public void Violations_RejectsListStyleImage() =>
+        Assert.That(Violations(".a { list-style-image: url(x.png); list-style-type: none; }"), Is.EqualTo(new[] { ".a { list-style-image }" }));
 
     [GeneratedRegex("(?<selector>[^{}]+)\\{(?<body>[^{}]*)\\}")]
     private static partial Regex RulePattern();
 
-    [GeneratedRegex("\\bstyle=\"(?<style>[^\"]*)\"")]
+    [GeneratedRegex("\\bstyle=(?:\"(?<style>[^\"]*)\"|'(?<single>[^']*)')")]
     private static partial Regex StylePattern();
+
+    [GeneratedRegex("<style\\b", RegexOptions.IgnoreCase)]
+    private static partial Regex StyleBlockPattern();
 
     [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline)]
     private static partial Regex CommentPattern();

@@ -17,6 +17,14 @@
     gap: var(--space-1);
 }
 
+.heading {
+    padding: var(--space-3) var(--space-1) var(--space-1);
+}
+
+.notice {
+    padding: 0 var(--space-1);
+}
+
 .rows {
     margin: 0;
     padding: 0;

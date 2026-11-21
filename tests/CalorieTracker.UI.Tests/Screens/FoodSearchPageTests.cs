@@ -42,6 +42,20 @@ public class FoodSearchPageTests : ComponentTestBase
     }
 
     [Test]
+    public void SearchBox_HasPlaceholderAndLabelSearchFoods()
+    {
+        var cut = Context.Render<FoodSearchPage>();
+
+        var input = cut.Find("[data-testid=food-search-input]");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(input.GetAttribute("placeholder"), Is.EqualTo("Search foods"));
+            Assert.That(input.GetAttribute("aria-label"), Is.EqualTo("Search foods"));
+        });
+    }
+
+    [Test]
     public async Task Typing_ListsTheResults()
     {
         search.Results = [Oats];

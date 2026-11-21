@@ -23,9 +23,7 @@
         }
         else if (Groups.Count == 0)
         {
-            <div class="add-none">
-                <EmptyState Message="No foods match" Hint="Try another word." TestId="food-search-none" />
-            </div>
+            <EmptyState Message="No foods match" Hint="Try another word." TestId="food-search-none" />
 
             @Online
         }
@@ -40,7 +38,9 @@
                     var hidden = showsAll ? 0 : Math.Max(0, group.Foods.Count - ShownLimit);
                     var shown = showsAll ? group.Foods.Count : Math.Min(group.Foods.Count, ShownLimit);
                     <section class="group">
-                        <Text Variant="TextVariant.Label" As="TextElement.H2" TestId="@($"food-group-{name}")">@Heading(group.Kind)</Text>
+                        <div class="heading">
+                            <Text Variant="TextVariant.Label" As="TextElement.H2" TestId="@($"food-group-{name}")">@Heading(group.Kind)</Text>
+                        </div>
                         <ul class="rows">
                             @foreach (var item in group.Foods.Take(shown))
                             {
@@ -171,7 +171,9 @@
         @<div class="pinned" data-testid="food-search-online-bar">
             @if (OnlineNoticeVisible)
             {
-                <Shields.UI.Components.Layout.Text Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="food-search-online-notice">@OnlineSearchNotice.Text</Shields.UI.Components.Layout.Text>
+                <div class="notice">
+                    <Shields.UI.Components.Layout.Text Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="food-search-online-notice">@OnlineSearchNotice.Text</Shields.UI.Components.Layout.Text>
+                </div>
             }
             <AppButton Variant="@(Groups.Count == 0 ? ButtonVariant.Primary : ButtonVariant.Secondary)" FullWidth TestId="food-search-online" OnClick="SearchOnline">Search online</AppButton>
         </div>;
@@ -228,7 +230,9 @@
                 var hidden = OnlineExpanded ? 0 : Math.Max(0, OnlineProducts.Count - ShownLimit);
                 var shown = OnlineProducts.Count - hidden;
                 <section class="group">
-                    <Text Variant="TextVariant.Label" As="TextElement.H2" TestId="food-group-online">Online · @(OnlineCountry ?? "worldwide")</Text>
+                    <div class="heading">
+                        <Text Variant="TextVariant.Label" As="TextElement.H2" TestId="food-group-online">Online · @(OnlineCountry ?? "worldwide")</Text>
+                    </div>
                     <ul class="rows">
                         @foreach (var product in OnlineProducts.Take(shown))
                         {
