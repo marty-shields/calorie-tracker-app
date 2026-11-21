@@ -73,22 +73,22 @@ public sealed class FoodSearchScreen(WebView web)
 
     /// <summary>The testids of the food rows of one group, in order.</summary>
     public IReadOnlyList<string> RowIds(string group) =>
-        web.FindAll($"[data-testid=\"food-group-{group}\"] ~ ul [data-testid^=\"food-result-\"]").Select(row => row.GetDomAttribute("data-testid")!).ToList();
+        web.FindAll($"[data-testid=\"food-group-{group}-list\"] [data-testid^=\"food-result-\"]").Select(row => row.GetDomAttribute("data-testid")!).ToList();
 
     /// <summary>The text of each food row of one group, in order.</summary>
     public IReadOnlyList<string> RowTexts(string group) =>
-        web.FindAll($"[data-testid=\"food-group-{group}\"] ~ ul [data-testid^=\"food-result-\"]").Select(row => row.Text.Trim()).ToList();
+        web.FindAll($"[data-testid=\"food-group-{group}-list\"] [data-testid^=\"food-result-\"]").Select(row => row.Text.Trim()).ToList();
 
     public string FirstRowText(string group)
     {
         web.WaitUntil(() => RowIds(group).Count > 0, $"the {group} group has no rows");
-        return web.FindAll($"[data-testid=\"food-group-{group}\"] ~ ul [data-testid^=\"food-result-\"]").First().Text.Trim();
+        return web.FindAll($"[data-testid=\"food-group-{group}-list\"] [data-testid^=\"food-result-\"]").First().Text.Trim();
     }
 
     public void OpenFirstIn(string group)
     {
         web.WaitUntil(() => RowIds(group).Count > 0, $"the {group} group has no rows");
-        web.FindAll($"[data-testid=\"food-group-{group}\"] ~ ul [data-testid^=\"food-result-\"]").First().Click();
+        web.FindAll($"[data-testid=\"food-group-{group}-list\"] [data-testid^=\"food-result-\"]").First().Click();
     }
 
     /// <summary>The testid of every food row on the screen, in order.</summary>

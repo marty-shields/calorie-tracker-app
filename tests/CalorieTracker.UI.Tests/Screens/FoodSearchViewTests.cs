@@ -1,4 +1,5 @@
 using CalorieTracker.Core.Data;
+using CalorieTracker.Core.Foods;
 using CalorieTracker.UI.Models.Search;
 using CalorieTracker.UI.Screens;
 using CalorieTracker.UI.Stories.Stories.Screens;
@@ -20,6 +21,37 @@ public class FoodSearchViewTests : ComponentTestBase
             .Add(x => x.Loading, loading)
             .Add(x => x.Failed, failed)
             .Add(x => x.OnSearchOnline, () => onSearch?.Invoke()));
+
+    [Test]
+    public void EveryGroup_HoldsItsRowsInAListWithItsOwnTestId_AndTheHeadingIsNotItsSibling()
+    {
+        var groups = new[]
+        {
+            new FoodGroup(FoodGroupKind.Favourites, [Listing(1)]),
+            new FoodGroup(FoodGroupKind.Usual, [Listing(5)]),
+            new FoodGroup(FoodGroupKind.Recent, [Listing(2), Listing(3)]),
+            new FoodGroup(FoodGroupKind.Diary, [Listing(4)]),
+            new FoodGroup(FoodGroupKind.Common, Enumerable.Range(10, 7).Select(Listing).ToArray()),
+        };
+        var cut = Context.Render<FoodSearchView>(p => p.Add(x => x.Query, "a").Add(x => x.Groups, groups));
+
+        Assert.Multiple(() =>
+        {
+            foreach (var name in new[] { "favourites", "usual", "recent", "diary", "common" })
+            {
+                var list = cut.Find($"ul[data-testid=food-group-{name}-list]");
+                Assert.That(cut.Find($"h2[data-testid=food-group-{name}]").ParentElement!.ParentElement, Is.SameAs(list.ParentElement), name);
+                Assert.That(list.QuerySelectorAll("[data-testid^=food-result-]"), Is.Not.Empty, name);
+            }
+
+            Assert.That(cut.FindAll("[data-testid=food-group-recent-list] [data-testid^=food-result-]").Select(r => r.GetAttribute("data-testid")), Is.EqualTo(new[] { "food-result-2", "food-result-3" }));
+            Assert.That(cut.FindAll("[data-testid=food-group-common-list] [data-testid^=food-result-]"), Has.Count.EqualTo(5));
+            Assert.That(cut.FindAll("[data-testid=food-group-common-list] [data-testid=food-group-common-more]"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=food-group-diary-list] [data-testid^=food-result-]"), Has.Count.EqualTo(1));
+        });
+    }
+
+    private static FoodListing Listing(int id) => new(new Food { Id = id, Name = $"Food {id}", Unit = FoodUnit.Gram, Kcal = 100 }, null);
 
     private static string Bar(IRenderedComponent<FoodSearchView> cut) => cut.Find("footer [data-testid=food-search-online-bar]").InnerHtml;
 
