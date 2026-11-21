@@ -5,6 +5,8 @@ namespace CalorieTracker.UI.Tests.DesignSystem;
 
 public partial class StatusMessageGutterTests
 {
+    private const string GapToken = "--snackbar-gap-bottom";
+
     private static string Body(string file, string className)
     {
         var css = CommentRegex().Replace(RepoFiles.Read("src", "CalorieTracker.UI", file), "");
@@ -28,13 +30,13 @@ public partial class StatusMessageGutterTests
     [Test]
     public void ServingStatusError_HasTheSnackbarMargins()
     {
-        Assert.That(KitNames.Tokens, Does.Contain("--snackbar-gap-bottom"), "the kit's Snackbar gap token");
+        Assert.That(KitCss.Tokens, Does.Contain("--snackbar-gap-bottom"), "the kit's Snackbar gap token");
 
         var css = CommentRegex().Replace(RepoFiles.Read("src", "CalorieTracker.UI", "Screens/ServingView.razor.css"), "");
         var rule = Regex.Match(css, @"\.error\.status-error\s*\{(?<body>[^}]*)\}");
         Assert.That(rule.Success, Is.True, "the status margins need the .error.status-error selector so they beat .error whatever the order");
 
-        Assert.That(MarginOf(rule.Groups["body"].Value, "Screens/ServingView.razor.css", "error.status-error"), Is.EqualTo("0 var(--space-4) var(--snackbar-gap-bottom)"), "the kit Snackbar's margins, copied here as a literal: a kit change to them is not caught automatically");
+        Assert.That(MarginOf(rule.Groups["body"].Value, "Screens/ServingView.razor.css", "error.status-error"), Is.EqualTo($"0 var(--space-4) var({GapToken})"), "the bottom margin is the kit's Snackbar gap token, not a literal copy of its value");
     }
 
     [Test]

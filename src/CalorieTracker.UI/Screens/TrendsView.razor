@@ -209,7 +209,7 @@
         <Card Title="Average macros" TestId="trends-macros">
             @if (range.Enough.Macros && range.AverageMacros is { } macros)
             {
-                <StackedBar Label="Average energy share" Unit="kcal" Segments="MacroSegments.Of(macros.ProteinG, macros.CarbsG, macros.FatG)" TestId="trends-share" />
+                <StackedBar Label="Average energy share" Segments="MacroSegments.Of(macros.ProteinG, macros.CarbsG, macros.FatG)" TestId="trends-share" />
             }
             else
             {

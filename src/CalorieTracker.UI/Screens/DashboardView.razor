@@ -31,9 +31,7 @@
                                 var ringShown = ringTarget is { } limit ? Math.Abs(limit - eaten) : eaten;
                                 var ringWord = RingWord(eaten, ringTarget);
                             }
-                            <ProgressRing Compact Value="eaten" Max="ringTarget ?? 0" Caption="@($"kcal {ringWord}")" AriaLabel="@RingLabel(eaten, ringTarget, ringShown, ringWord)" TestId="dashboard-ring">
-                                <span class="@RingNumberClass(ringWord, ringShown)" data-testid="dashboard-ring-value">@Number(ringShown)</span>
-                            </ProgressRing>
+                            <ProgressRing Compact Value="eaten" Max="ringTarget ?? 0" Figure="@Number(ringShown)" FigureUnit="@($"kcal {ringWord}")" AriaLabel="@RingLabel(eaten, ringTarget, ringShown, ringWord)" TestId="dashboard-ring" />
                             <div class="figures">
                                 <p class="figure">Eaten <strong data-testid="dashboard-eaten">@Number(eaten)</strong></p>
                                 @if (summary.TargetKcal is { } target)
@@ -49,7 +47,7 @@
                         </div>
                         @if (logged)
                         {
-                            <StackedBar Label="Energy share" Unit="kcal" Segments="MacroSegments.Of(summary.Totals.ProteinG, summary.Totals.CarbsG, summary.Totals.FatG)" TestId="dashboard-share" />
+                            <StackedBar Label="Energy share" Segments="MacroSegments.Of(summary.Totals.ProteinG, summary.Totals.CarbsG, summary.Totals.FatG)" TestId="dashboard-share" />
                         }
                     </div>
                 </Card>
@@ -316,14 +314,6 @@
     private static string RingLabel(int eaten, int? target, int shown, string word) => target is { } goal
         ? $"{Number(shown)} kcal {word}. Eaten {Number(eaten)} of {Number(goal)} kcal target."
         : $"{Number(shown)} kcal eaten. No target set.";
-
-    /// <summary>The centre number steps down a size as it gets wider, as the kit's own does: 6 characters ("12,345") one step, 7 or more a second.</summary>
-    private static string RingNumberClass(string word, int shown) => $"ring-number{(word == "over" ? " over" : "")}" + Number(shown).Length switch
-    {
-        >= 7 => " widest",
-        6 => " wider",
-        _ => "",
-    };
 
     /// <summary>The amount text after the brand line when the food has one.</summary>
     private static string EntryDetail(SummaryEntry entry) =>

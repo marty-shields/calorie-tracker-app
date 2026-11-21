@@ -67,7 +67,7 @@ public class DashboardViewTests : ComponentTestBase
             Assert.That(Text(cut, "dashboard-ring-value"), Is.EqualTo("1,338"));
             Assert.That(Text(cut, "dashboard-eaten"), Is.EqualTo("762"));
             Assert.That(Exists(cut, "dashboard-share"), Is.True);
-            Assert.That(Text(cut, "dashboard-share-label-0"), Is.EqualTo("Protein 116 kcal"));
+            Assert.That(Text(cut, "dashboard-share-label-0"), Is.EqualTo("Protein 29 g"));
             Assert.That(Text(cut, "meal-breakfast-title"), Is.EqualTo("Breakfast"));
             Assert.That(Text(cut, "meal-lunch-total"), Is.EqualTo("521 kcal"));
             Assert.That(Text(cut, "meal-dinner-none"), Is.EqualTo("Nothing logged"));
@@ -167,9 +167,9 @@ public class DashboardViewTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(share.GetAttribute("aria-label"), Does.StartWith("Energy share: Protein ").And.Contain("Carbs ").And.Contain("Fat "));
-            Assert.That(Text(cut, "dashboard-share-label-0"), Does.StartWith("Protein ").And.EndWith(" kcal"));
-            Assert.That(Text(cut, "dashboard-share-label-1"), Does.StartWith("Carbs ").And.EndWith(" kcal"));
-            Assert.That(Text(cut, "dashboard-share-label-2"), Does.StartWith("Fat ").And.EndWith(" kcal"));
+            Assert.That(Text(cut, "dashboard-share-label-0"), Does.StartWith("Protein ").And.EndWith(" g"));
+            Assert.That(Text(cut, "dashboard-share-label-1"), Does.StartWith("Carbs ").And.EndWith(" g"));
+            Assert.That(Text(cut, "dashboard-share-label-2"), Does.StartWith("Fat ").And.EndWith(" g"));
             Assert.That(cut.Find("[data-testid=dashboard-share-segment-0]").ClassList, Does.Contain("series-1"));
             Assert.That(cut.Find("[data-testid=dashboard-share-segment-1]").ClassList, Does.Contain("series-2"));
             Assert.That(cut.Find("[data-testid=dashboard-share-segment-2]").ClassList, Does.Contain("series-3"));
@@ -180,28 +180,30 @@ public class DashboardViewTests : ComponentTestBase
         DashboardSamples.Loaded with { Totals = totals, TargetKcal = target };
 
     [Test]
-    public void TheMacroLabels_AreTheEnergyOfEachMacroInWholeKcal()
+    public void TheMacroLabels_AreInGrams_AndTheBarIsSizedByKcal()
     {
         var cut = Render(WithTotals(new Core.Summary.Nutrition(500, 30, 67, 29), 2100));
 
         Assert.Multiple(() =>
         {
-            Assert.That(Text(cut, "dashboard-share-label-0"), Is.EqualTo("Protein 120 kcal"));
-            Assert.That(Text(cut, "dashboard-share-label-1"), Is.EqualTo("Carbs 268 kcal"));
-            Assert.That(Text(cut, "dashboard-share-label-2"), Is.EqualTo("Fat 261 kcal"));
+            Assert.That(Text(cut, "dashboard-share-label-0"), Is.EqualTo("Protein 30 g"));
+            Assert.That(Text(cut, "dashboard-share-label-1"), Is.EqualTo("Carbs 67 g"));
+            Assert.That(Text(cut, "dashboard-share-label-2"), Is.EqualTo("Fat 29 g"));
+            Assert.That(cut.Find("[data-testid=dashboard-share]").GetAttribute("aria-label"), Does.Contain("Protein 30 g, 19%").And.Contain("Carbs 67 g, 41%").And.Contain("Fat 29 g, 40%"), "the screen-reader text follows the grams while the shares are kcal");
         });
     }
 
     [Test]
-    public void TheMacroLabels_RoundHalfKcalUp_AndCountNegativeGramsAsZero()
+    public void TheMacroLabels_RoundGramsToOneDecimal_AndCountNegativeGramsAsZero()
     {
         var cut = Render(WithTotals(new Core.Summary.Nutrition(500, 30.375, -5, 10), 2100));
 
         Assert.Multiple(() =>
         {
-            Assert.That(Text(cut, "dashboard-share-label-0"), Is.EqualTo("Protein 122 kcal"));
-            Assert.That(Text(cut, "dashboard-share-label-1"), Is.EqualTo("Carbs 0 kcal"));
-            Assert.That(Text(cut, "dashboard-share-label-2"), Is.EqualTo("Fat 90 kcal"));
+            Assert.That(Text(cut, "dashboard-share-label-0"), Is.EqualTo("Protein 30.4 g"));
+            Assert.That(Text(cut, "dashboard-share-label-1"), Is.EqualTo("Carbs 0 g"));
+            Assert.That(Text(cut, "dashboard-share-label-2"), Is.EqualTo("Fat 10 g"));
+            Assert.That(cut.Find("[data-testid=dashboard-share-segment-0]").GetAttribute("style"), Does.Contain("57.547"), "30.375 g is 121.5 kcal, rounded half up to 122 of 212 kcal");
         });
     }
 
@@ -215,7 +217,6 @@ public class DashboardViewTests : ComponentTestBase
             Assert.That(Text(cut, "dashboard-ring-value"), Is.EqualTo("0"));
             Assert.That(Text(cut, "dashboard-ring-caption"), Is.EqualTo("kcal left"));
             Assert.That(cut.Find("[data-testid=dashboard-ring]").ClassList, Does.Not.Contain("over"));
-            Assert.That(cut.Find("[data-testid=dashboard-ring-value]").ClassList, Does.Not.Contain("over"));
         });
     }
 
@@ -244,13 +245,12 @@ public class DashboardViewTests : ComponentTestBase
         });
     }
 
-    [TestCase(99, "", "99")]
-    [TestCase(9999, "", "9,999")]
-    [TestCase(12345, " wider", "12,345")]
-    [TestCase(99999, " wider", "99,999")]
-    [TestCase(123456, " widest", "123,456")]
-    [TestCase(1234567, " widest", "1,234,567")]
-    public void TheRingNumber_StepsDownASizeAsItGetsWider(int eaten, string step, string shown)
+    [TestCase(99, "99")]
+    [TestCase(9999, "9,999")]
+    [TestCase(12345, "12,345")]
+    [TestCase(123456, "123,456")]
+    [TestCase(1234567, "1,234,567")]
+    public void TheRingFigure_IsTheKitsFigureWithTheNumberAsText(int eaten, string shown)
     {
         var cut = Render(WithTotals(new Core.Summary.Nutrition(eaten, 30, 67, 29), null));
 
@@ -258,8 +258,18 @@ public class DashboardViewTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(value.TextContent.Trim(), Is.EqualTo(shown));
-            Assert.That(value.ClassName, Is.EqualTo("ring-number" + step));
+            Assert.That(value.ClassList, Does.Contain("value"), "the kit's figure, not app markup");
+            Assert.That(Text(cut, "dashboard-ring-caption"), Is.EqualTo("kcal eaten"));
+            Assert.That(cut.Find("[data-testid=dashboard-ring]").GetAttribute("aria-label"), Is.EqualTo($"{shown} kcal eaten. No target set."));
         });
+    }
+
+    [Test]
+    public void TheRingStyling_BelongsToTheKit_NoRingNumberInAppCss()
+    {
+        var files = RepoFiles.Find("*.css", "src", "CalorieTracker.UI").Concat(RepoFiles.Find("*.razor", "src", "CalorieTracker.UI"));
+
+        Assert.That(files.Where(f => File.ReadAllText(f).Contains("ring-number", StringComparison.Ordinal)), Is.Empty);
     }
 
     [Test]
@@ -273,7 +283,6 @@ public class DashboardViewTests : ComponentTestBase
             Assert.That(ring.GetAttribute("style"), Does.Contain("--fill: 0.3629"), "762 of 2,100");
             Assert.That(ring.GetAttribute("aria-label"), Is.EqualTo("1,338 kcal left. Eaten 762 of 2,100 kcal target."));
             Assert.That(ring.ClassList, Does.Not.Contain("over"));
-            Assert.That(cut.Find("[data-testid=dashboard-ring-value]").ClassList, Does.Not.Contain("over"));
         });
     }
 
@@ -300,7 +309,6 @@ public class DashboardViewTests : ComponentTestBase
             Assert.That(Text(cut, "dashboard-ring-value"), Is.EqualTo("233"));
             Assert.That(Text(cut, "dashboard-ring-caption"), Is.EqualTo("kcal over"));
             Assert.That(cut.Find("[data-testid=dashboard-ring]").ClassList, Does.Contain("over"));
-            Assert.That(cut.Find("[data-testid=dashboard-ring-value]").ClassList, Does.Contain("over"), "the number takes the over colour like the kit's own");
             Assert.That(cut.Find("[data-testid=dashboard-ring]").GetAttribute("aria-label"), Is.EqualTo("233 kcal over. Eaten 1,233 of 1,000 kcal target."));
         });
     }

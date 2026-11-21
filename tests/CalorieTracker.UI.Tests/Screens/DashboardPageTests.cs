@@ -116,7 +116,7 @@ public class DashboardPageTests : ComponentTestBase
             Assert.That(cut.FindAll("[data-testid=meal-lunch-section] ul .row"), Has.Count.EqualTo(1));
             Assert.That(cut.FindAll("[data-testid=meal-breakfast-section] ul .row"), Is.Empty);
             Assert.That(Exists(cut, "dashboard-empty"), Is.False);
-            Assert.That(Text(cut, "dashboard-share-label-0"), Is.EqualTo("Protein 30 kcal"));
+            Assert.That(Text(cut, "dashboard-share-label-0"), Is.EqualTo("Protein 7.6 g"));
         });
     }
 
