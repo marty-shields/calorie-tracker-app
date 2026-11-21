@@ -141,14 +141,23 @@ public class TrendsViewTests : ComponentTestBase
     {
         var week = Week();
         var month = Month();
-        var year = Year();
+        var monthWithOverWeek = Render(TrendsPeriod.Month, new(2026, 11, 1), TrendsSamples.Month with
+        {
+            Buckets = TrendsSamples.Month.Buckets.Select((b, i) => i == 2 ? b with { AverageKcal = 2800 } : b).ToList(),
+        });
+        var year = YearWith((b, i) => i == 2 ? b with { AverageKcal = 2800 } : b);
 
         Assert.Multiple(() =>
         {
             Assert.That(week.FindAll("[data-testid^=trends-chart-marker-]"), Is.Empty);
-            Assert.That(month.FindAll("[data-testid^=trends-calendar-marker-]").Select(e => e.TextContent), Has.All.EqualTo("✓"));
+            var ticks = month.FindAll("[data-testid^=trends-calendar-marker-]").Select(e => e.TextContent).ToList();
+            Assert.That(ticks, Is.Not.Empty);
+            Assert.That(ticks, Has.All.EqualTo("✓"));
+            Assert.That(monthWithOverWeek.FindAll("[data-testid^=trends-weeks-chart-marker-]"), Is.Empty);
             Assert.That(year.FindAll("[data-testid^=trends-months-chart-marker-]"), Is.Empty);
             Assert.That(week.Find("[data-testid=trends-chart-bar-2026-11-13]").GetAttribute("aria-label"), Does.EndWith("over target"));
+            Assert.That(monthWithOverWeek.Find("[data-testid=trends-weeks-chart-bar-2026-11-09]").GetAttribute("aria-label"), Does.Contain("over target"));
+            Assert.That(year.Find("[data-testid=trends-months-chart-bar-2026-03-01]").GetAttribute("aria-label"), Does.Contain("over target"));
         });
     }
 
