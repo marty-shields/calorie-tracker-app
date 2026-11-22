@@ -7,11 +7,6 @@
 
 .adding {
     align-self: center;
-    margin: 0;
-    padding: var(--space-1) var(--space-3);
-    border-radius: var(--radius-lg);
-    background-color: var(--color-selected);
-    font-weight: var(--font-weight-bold);
 }
 
 .actions {

@@ -1,8 +1,8 @@
 using BarcodeScanning;
 using CalorieTracker.App.Logging;
-using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Scanning;
 using Microsoft.Extensions.Logging;
+using Shields.UI.Theme;
 
 namespace CalorieTracker.App.Scanning;
 

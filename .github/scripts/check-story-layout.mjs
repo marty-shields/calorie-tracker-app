@@ -14,15 +14,20 @@ if (!baseUrl || !chromePath) {
 
 // ThemeLayout shows a story in a padded preview card: at 424 the card is 360px wide with 16px of padding, which leaves
 // 328px of content, a 360dp phone less 16px side padding. PhoneLayout stories sit in a fixed 412px phone mock that is
-// wider than the window, so they are measured against that phone's screen, not the window.
+// wider than the window, so they are measured against that phone's screen, not the window. The card check applies only
+// when ThemeLayout stories are in scope; with none, it is skipped.
 const WIDTH = 424;
 const CARD_WIDTH = 328;
 // Exploration knob (Android font size scales rem); not run in CI.
 const FONT_SCALE = Number(process.env.STORY_FONT_SCALE ?? 1);
 const CONCURRENCY = 8;
 const RING_SCALES = [1, 1.15, 1.3];
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../src/CalorieTracker.UI.Stories/Stories');
-const scopes = prefixes.length ? prefixes : ['Components/'];
+const storiesProject = resolve(dirname(fileURLToPath(import.meta.url)), '../../src/CalorieTracker.UI.Stories');
+const root = join(storiesProject, 'Stories');
+// Story titles start with the app's section, the one constant in StoryTitles.cs.
+const appSection = /Prefix = "([^"]+)"/.exec(readFileSync(join(storiesProject, 'StoryTitles.cs'), 'utf8'))?.[1];
+if (!appSection) throw new Error('StoryTitles.cs has no Prefix constant');
+const scopes = prefixes.length ? prefixes : [`${appSection}Components/`];
 
 const slug = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
@@ -36,7 +41,8 @@ function storyFiles(dir) {
 function stories() {
   return storyFiles(root).flatMap((file) => {
     const source = readFileSync(file, 'utf8');
-    const title = /\[Stories\("([^"]+)"\)\]/.exec(source)?.[1];
+    const suffix = /\[Stories\(StoryTitles\.Prefix \+ "([^"]+)"\)\]/.exec(source)?.[1];
+    const title = suffix && appSection + suffix;
     if (!title || !scopes.some((scope) => title.startsWith(scope))) return [];
     return [...source.matchAll(/<Story\s+Name="([^"]+)"/g)].map((m) => ({ title, name: m[1], id: `${slug(title)}--${slug(m[1])}` }));
   });
@@ -44,7 +50,7 @@ function stories() {
 
 // Runs in the page. Returns one finding per problem.
 function inspect() {
-  const PROSE = 'h1, h2, h3, [role=alert], .note, .error, [data-wrap-ok]';
+  const PROSE = 'h1, h2, h3, [role=alert], [data-wrap-ok]';
   const findings = [];
   const label = (el) => {
     const id = el.closest('[data-testid]')?.getAttribute('data-testid');
@@ -94,7 +100,7 @@ function inspect() {
   return findings;
 }
 
-// Runs in the page. A CalorieRing's text block (number and label) must keep `--space-1` between its corners and the inner
+// Runs in the page. A ProgressRing's text block (number and label) must keep `--space-1` between its corners and the inner
 // edge of the band, so it sits in the inner circle (radius = size / 2 - stroke) and not just in its square.
 function ringFit() {
   const gapNeeded = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--space-1'));
@@ -256,11 +262,11 @@ try {
     }
   }));
 
-  console.log(`Checked ${jobs.length} stories at ${WIDTH}px in ${((Date.now() - started) / 1000).toFixed(1)}s. Card width: ${[...new Set(cardWidths)].join(', ') || 'none found'}px.`);
+  console.log(`Checked ${jobs.length} stories at ${WIDTH}px in ${((Date.now() - started) / 1000).toFixed(1)}s. Card width: ${[...new Set(cardWidths)].join(', ') || 'none'}${cardWidths.length ? 'px' : ' (no ThemeLayout stories in scope; card check skipped)'}.`);
   for (const [key, { gap, story, text }] of [...ringGaps].sort()) {
     console.log(`Smallest gap, ${key}: ${gap.toFixed(1)}px ("${text}" in ${story}).`);
   }
-  if (cardWidths.length === 0 || cardWidths.some((width) => width !== CARD_WIDTH)) {
+  if (cardWidths.some((width) => width !== CARD_WIDTH)) {
     console.log(`::error title=Story layout::Card is not ${CARD_WIDTH}px wide at ${WIDTH}px; the story preview offset changed, update WIDTH.`);
     exitCode = 1;
   }

@@ -1,11 +1,9 @@
 @using CalorieTracker.Core.Data
-@using CalorieTracker.UI.Components.Feedback
-@using CalorieTracker.UI.Components.Lists
 @using CalorieTracker.UI.Models.Scan
 @using CalorieTracker.UI.Scanning
 <AppScreen Title="Scan barcode" OnBack="OnBack">
     <div class="scan">
-        <p class="adding" data-testid="scan-adding">@ScanCaption.For(Meal, Date)</p>
+        <div class="adding"><Banner Tone="BannerTone.Selected" TestId="scan-adding">@ScanCaption.For(Meal, Date)</Banner></div>
         @switch (State)
         {
             case ScanState.OpeningCamera:

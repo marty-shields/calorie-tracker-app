@@ -10,45 +10,8 @@
     gap: var(--space-3);
 }
 
-.heading {
-    margin: 0;
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
-}
-
-.per,
-.brand,
-.when,
-.weight,
-.suggested,
-.detail {
-    margin: 0;
-    color: var(--color-text-muted);
-}
-
-.serving-label {
-    font-weight: var(--font-weight-bold);
-}
-
-.kcal {
-    margin: 0;
-    font-size: var(--font-size-xl);
-    font-weight: var(--font-weight-bold);
-}
-
-.error {
-    margin: 0;
-    padding: var(--space-3) var(--space-4);
-    border: var(--border-width-error) solid var(--color-error);
-    border-radius: var(--radius-md);
-    background-color: var(--color-surface);
-    color: var(--color-error);
-}
-
-.error.status-error {
-    margin: 0 var(--space-4) var(--space-2);
+.status-error {
+    margin: 0 var(--snackbar-gap-inline) var(--snackbar-gap-bottom);
 }
 
 .centre {

@@ -1,8 +1,8 @@
 using CalorieTracker.Core.Foods;
-using CalorieTracker.UI.Components.Actions;
-using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Logging;
 using Microsoft.Extensions.Logging;
+using Shields.UI.Components.Actions;
+using Shields.UI.Components.Feedback;
 
 namespace CalorieTracker.UI.Screens;
 

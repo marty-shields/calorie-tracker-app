@@ -9,11 +9,12 @@ using CalorieTracker.Core;
 using CalorieTracker.Core.Logging;
 using CalorieTracker.Core.Services;
 using CalorieTracker.UI;
-using CalorieTracker.UI.Lifecycle;
 using CalorieTracker.UI.Scanning;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.LifecycleEvents;
+using Shields.UI.Lifecycle;
+using Shields.UI.Navigation;
 
 namespace CalorieTracker.App;
 
@@ -46,9 +47,9 @@ public static class MauiProgram
     }
 
     /// <summary>
-    /// Passes the Android back button to the registered page handlers through <see cref="AndroidBackButton"/>.
+    /// Passes the Android back button to the registered page handlers through <see cref="AndroidBackButton"/> and <see cref="BackButtonBridge"/>.
     /// Only <see cref="MainActivity"/> counts; MAUI's own activities, such as the file picker's, are ignored.
-    /// The handlers resolve it from the app's services.
+    /// The kit registers the bridge; the handlers resolve it from the app's services, and <c>HostBridges</c> in <c>Routes</c> connects it to the BlazorWebView's scoped back button.
     /// </summary>
     private static void AddBackButton(MauiAppBuilder builder)
     {
@@ -67,8 +68,9 @@ public static class MauiProgram
     }
 
     /// <summary>
-    /// Runs the pages' app start handlers through <see cref="IAppLifecycle"/> each time <see cref="MainActivity"/> starts,
-    /// and removes them when it is destroyed or replaced. MAUI's own activities are ignored. The handlers resolve it from the app's services.
+    /// Runs the pages' app start handlers through <see cref="AppLifecycleBridge"/> each time <see cref="MainActivity"/> starts,
+    /// and removes them when it is destroyed or replaced. MAUI's own activities are ignored.
+    /// The kit registers the bridge; the handlers resolve it from the app's services, and <c>HostBridges</c> in <c>Routes</c> connects it to the BlazorWebView's scoped app lifecycle.
     /// </summary>
     private static void AddAppLifecycle(MauiAppBuilder builder)
     {
@@ -84,12 +86,12 @@ public static class MauiProgram
             {
                 if (activity is MainActivity)
                 {
-                    _ = Lifecycle().NotifyStartedAsync();
+                    _ = Lifecycle().StartedAsync();
                 }
             })
             .OnDestroy(activity => Lifecycle().Detach(activity))));
 
-        static IAppLifecycle Lifecycle() => IPlatformApplication.Current!.Services.GetRequiredService<IAppLifecycle>();
+        static AppLifecycleBridge Lifecycle() => IPlatformApplication.Current!.Services.GetRequiredService<AppLifecycleBridge>();
     }
 
     /// <summary>

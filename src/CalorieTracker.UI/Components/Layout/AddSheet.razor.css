@@ -1,60 +1,3 @@
-.scrim {
-    position: fixed;
-    inset: 0;
-    z-index: 10;
-    background-color: var(--color-scrim);
-}
-
-.sheet {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 11;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    box-sizing: border-box;
-    max-width: var(--sheet-max-width);
-    margin: 0 auto;
-    padding: var(--space-3) var(--space-4) calc(var(--space-6) + var(--inset-bottom));
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    background-color: var(--color-surface);
-    color: var(--color-text);
-    animation: rise var(--sheet-enter-duration) ease-out;
-}
-
-.sheet:focus {
-    outline: none;
-}
-
-@keyframes rise {
-    from {
-        transform: translateY(100%);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .sheet {
-        animation: none;
-    }
-}
-
-/* Decorative grab bar at the top of the sheet; the sheet has no drag behaviour. */
-.handle {
-    align-self: center;
-    flex-shrink: 0;
-    width: var(--sheet-handle-width);
-    height: var(--sheet-handle-height);
-    border-radius: var(--radius-lg);
-    background-color: var(--color-border-strong);
-}
-
-.title {
-    margin: 0;
-    font-size: var(--font-size-lg);
-}
-
 .tiles {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -62,38 +5,12 @@
     gap: var(--space-3);
 }
 
-.tile {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--space-2);
-    min-width: 0;
-    min-height: var(--touch-target);
-    padding: var(--space-4);
-    border: 0;
-    border-radius: var(--radius-lg);
-    background-color: var(--color-secondary);
-    color: var(--color-on-secondary);
-    font-size: var(--font-size-md);
-    font-weight: var(--font-weight-bold);
-    cursor: pointer;
-}
-
-.tile ::deep .icon {
-    --icon-size: var(--sheet-tile-icon-size);
-}
-
-.tile:active {
-    background-image: linear-gradient(var(--state-pressed), var(--state-pressed));
-}
-
 /* The four meal chips share one row at the narrowest width. */
-.sheet ::deep .chips {
+.meals ::deep .chips {
     flex-wrap: nowrap;
 }
 
-.sheet ::deep .chip {
+.meals ::deep .chip {
     padding: 0 var(--space-3);
 }
 
@@ -101,15 +18,6 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
-}
-
-.usual-title {
-    margin: 0;
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-bold);
-    letter-spacing: var(--letter-spacing-label);
-    text-transform: uppercase;
 }
 
 .usual-rows {
@@ -125,7 +33,6 @@
     align-items: center;
     gap: var(--space-3);
     padding: var(--space-3) 0;
-    border-bottom: var(--border-width) solid var(--color-border);
 }
 
 .usual-text {
@@ -133,20 +40,5 @@
     flex: 1;
     flex-direction: column;
     min-width: 0;
-}
-
-.usual-name {
-    font-weight: var(--font-weight-regular);
     overflow-wrap: anywhere;
-}
-
-.usual-detail {
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
-    overflow-wrap: anywhere;
-}
-
-.add-error {
-    margin: 0;
-    color: var(--color-error);
 }

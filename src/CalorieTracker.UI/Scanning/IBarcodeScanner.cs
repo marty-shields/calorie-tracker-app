@@ -1,4 +1,4 @@
-using CalorieTracker.UI.Models.Settings;
+using Shields.UI.Theme;
 
 namespace CalorieTracker.UI.Scanning;
 

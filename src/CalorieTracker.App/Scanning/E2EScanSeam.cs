@@ -1,7 +1,7 @@
 #if DEBUG
 using CalorieTracker.Core.Foods;
-using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Scanning;
+using Shields.UI.Theme;
 
 namespace CalorieTracker.App.Scanning;
 

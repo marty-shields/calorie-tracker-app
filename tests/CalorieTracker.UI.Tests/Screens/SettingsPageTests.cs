@@ -2,14 +2,14 @@ using CalorieTracker.Core;
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Services;
 using CalorieTracker.Core.Targets;
-using CalorieTracker.UI.Components.Inputs;
 using CalorieTracker.UI.Logging;
-using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Screens;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.JSInterop;
+using Shields.UI.Components.Inputs;
+using Shields.UI.Theme;
 
 namespace CalorieTracker.UI.Tests.Screens;
 
@@ -34,8 +34,8 @@ public class SettingsPageTests : ComponentTestBase
         Context.Services.AddSingleton<IAppEnvironment>(new FakeEnvironment());
         logger = new FakeLogger<SettingsPage>();
         Context.Services.AddSingleton<ILogger<SettingsPage>>(logger);
-        Context.JSInterop.Setup<string>("calorieTrackerTheme.get", _ => true).SetResult("system");
-        Context.JSInterop.Setup<bool>("calorieTrackerTheme.set", _ => true).SetResult(true);
+        Context.JSInterop.Setup<string>("shieldsTheme.get", _ => true).SetResult("system");
+        Context.JSInterop.Setup<bool>("shieldsTheme.set", _ => true).SetResult(true);
     }
 
     [TearDown]
@@ -287,7 +287,7 @@ public class SettingsPageTests : ComponentTestBase
     [Test]
     public async Task Theme_ShowsTheSavedChoice()
     {
-        Context.JSInterop.Setup<string>("calorieTrackerTheme.get", _ => true).SetResult("dark");
+        Context.JSInterop.Setup<string>("shieldsTheme.get", _ => true).SetResult("dark");
         var cut = Context.Render<SettingsPage>();
         await WaitForRendererAsync();
 
@@ -308,7 +308,7 @@ public class SettingsPageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(Context.JSInterop.Invocations["calorieTrackerTheme.set"].Single().Arguments, Is.EqualTo(new object[] { "light" }));
+            Assert.That(Context.JSInterop.Invocations["shieldsTheme.set"].Single().Arguments, Is.EqualTo(new object[] { "light" }));
             Assert.That(cut.Find("[data-testid=settings-theme-light]").HasAttribute("checked"), Is.True);
         });
     }
@@ -317,7 +317,7 @@ public class SettingsPageTests : ComponentTestBase
     public async Task Theme_ReadFails_ShowsSystemAndLogsTheWarning()
     {
         var exception = new JSException("no storage");
-        Context.JSInterop.Setup<string>("calorieTrackerTheme.get", _ => true).SetException(exception);
+        Context.JSInterop.Setup<string>("shieldsTheme.get", _ => true).SetException(exception);
         var cut = Context.Render<SettingsPage>();
         await WaitForRendererAsync();
 
@@ -334,7 +334,7 @@ public class SettingsPageTests : ComponentTestBase
     public async Task Theme_SaveFails_KeepsThePreviousChoiceAndLogsTheWarning()
     {
         var exception = new JSException("no storage");
-        Context.JSInterop.Setup<bool>("calorieTrackerTheme.set", _ => true).SetException(exception);
+        Context.JSInterop.Setup<bool>("shieldsTheme.set", _ => true).SetException(exception);
         var cut = Context.Render<SettingsPage>();
         await WaitForRendererAsync();
 
@@ -355,7 +355,7 @@ public class SettingsPageTests : ComponentTestBase
     [Test]
     public async Task Theme_StorageRefusesTheSave_KeepsTheChoiceAndLogsTheWarning()
     {
-        Context.JSInterop.Setup<bool>("calorieTrackerTheme.set", _ => true).SetResult(false);
+        Context.JSInterop.Setup<bool>("shieldsTheme.set", _ => true).SetResult(false);
         var cut = Context.Render<SettingsPage>();
         await WaitForRendererAsync();
 

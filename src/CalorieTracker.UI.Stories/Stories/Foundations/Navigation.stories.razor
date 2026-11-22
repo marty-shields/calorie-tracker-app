@@ -1,0 +1,21 @@
+@attribute [Stories(StoryTitles.Prefix + "Foundations/Navigation")]
+
+<Stories TComponent="NavScreen" Layout="typeof(PhoneLayout)">
+
+    <Story Name="Today current">
+        <Template>
+            <NavScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="(NavDestination _) => { }" OnAdd="() => { }">
+                <p>Today</p>
+            </NavScreen>
+        </Template>
+    </Story>
+
+    <Story Name="Trends current">
+        <Template>
+            <NavScreen Title="Trends" Destination="NavDestination.Trends" OnNavigate="(NavDestination _) => { }" OnAdd="() => { }">
+                <p>Trends</p>
+            </NavScreen>
+        </Template>
+    </Story>
+
+</Stories>

@@ -1,8 +1,8 @@
 using CalorieTracker.Core.Data;
-using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Screens;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
+using Shields.UI.Components.Feedback;
 
 namespace CalorieTracker.UI.Tests.Screens;
 

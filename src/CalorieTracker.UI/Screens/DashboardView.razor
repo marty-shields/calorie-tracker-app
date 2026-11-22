@@ -2,10 +2,7 @@
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Diary
 @using CalorieTracker.Core.Summary
-@using CalorieTracker.UI.Components.Charts
-@using CalorieTracker.UI.Components.Feedback
-@using CalorieTracker.UI.Components.Inputs
-<AppScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="OnNavigate" OnAdd="OpenSheet" Status="Notice">
+<NavScreen Title="Calorie Tracker" Destination="NavDestination.Today" OnNavigate="OnNavigate" OnAdd="OpenSheet" Status="Notice">
     <Actions>
         <IconButton Icon="IconName.Settings" AriaLabel="Settings" TestId="settings" OnClick="OnSettings" />
     </Actions>
@@ -25,29 +22,35 @@
             else
             {
                 var logged = summary.Meals.Any(m => m.Entries.Count > 0);
-                <SummaryCard TestId="dashboard-card">
+                <Card TestId="dashboard-card">
                     <div class="summary">
-                        <div class="card">
-                            <CalorieRing Compact Eaten="summary.Totals.Kcal" Target="summary.TargetKcal" TestId="dashboard-ring" />
+                        <div class="ring-row">
+                            @{
+                                var ringTarget = TargetOf(summary);
+                                var eaten = Math.Max(summary.Totals.Kcal, 0);
+                                var ringShown = ringTarget is { } limit ? Math.Abs(limit - eaten) : eaten;
+                                var ringWord = RingWord(eaten, ringTarget);
+                            }
+                            <ProgressRing Compact Value="eaten" Max="ringTarget ?? 0" Figure="@Number(ringShown)" FigureUnit="@($"kcal {ringWord}")" AriaLabel="@RingLabel(eaten, ringTarget, ringShown, ringWord)" TestId="dashboard-ring" />
                             <div class="figures">
-                                <p class="figure">Eaten <strong data-testid="dashboard-eaten">@Number(summary.Totals.Kcal)</strong></p>
+                                <Typography Variant="TextVariant.Muted" As="TextElement.P">Eaten <Typography Variant="TextVariant.Strong" TestId="dashboard-eaten">@Number(eaten)</Typography></Typography>
                                 @if (summary.TargetKcal is { } target)
                                 {
-                                    <p class="figure">Target <strong data-testid="dashboard-target">@Number(target)</strong></p>
+                                    <Typography Variant="TextVariant.Muted" As="TextElement.P">Target <Typography Variant="TextVariant.Strong" TestId="dashboard-target">@Number(target)</Typography></Typography>
                                 }
                                 else
                                 {
-                                    <p class="figure" data-testid="dashboard-no-target" data-wrap-ok>No target set</p>
+                                    <Typography Variant="TextVariant.Muted" As="TextElement.P" TestId="dashboard-no-target" data-wrap-ok>No target set</Typography>
                                     <AppButton Variant="ButtonVariant.Secondary" TestId="dashboard-set-target" OnClick="OnSettings">Set a target</AppButton>
                                 }
                             </div>
                         </div>
                         @if (logged)
                         {
-                            <EnergyShareBar Protein="summary.Totals.ProteinG" Carbs="summary.Totals.CarbsG" Fat="summary.Totals.FatG" TestId="dashboard-share" />
+                            <StackedBar Label="Energy share" Segments="MacroSegments.Of(summary.Totals.ProteinG, summary.Totals.CarbsG, summary.Totals.FatG)" TestId="dashboard-share" />
                         }
                     </div>
-                </SummaryCard>
+                </Card>
                 @if (!logged)
                 {
                     <EmptyState Message="@(Date == Today ? "Nothing logged today" : "Nothing logged this day")" Hint="Tap + on a meal to add your first food." TestId="dashboard-empty" />
@@ -59,31 +62,35 @@
                     var folded = IsFolded(meal.Meal, state);
                     var foldable = state is MealWindowState.After or MealWindowState.During;
                     var count = meal.Entries.Count;
-                    <section class="meal">
-                        <MealHeader Name="@meal.Meal.ToString()"
-                                    Calories="@(count > 0 ? meal.Totals.Kcal : null)"
-                                    Now="@(state == MealWindowState.During)"
-                                    Hint="@(state == MealWindowState.Before ? $"from {MealWindows.StartOf(meal.Meal).ToString("HH:mm", CultureInfo.InvariantCulture)}" : null)"
-                                    Summary="@(folded ? FoldedSummary(meal) : null)"
-                                    Expanded="!folded"
-                                    OnToggle="@(foldable ? EventCallback.Factory.Create(this, () => Toggle(meal.Meal)) : default)"
-                                    TestId="@id"
-                                    OnAdd="@(() => OnAdd.InvokeAsync(new MealAddRequest(meal.Meal, Date)))" />
+                    <section class="meal" data-testid="@($"{id}-section")">
+                        <div class="meal-head">
+                            <SectionHeader Title="@meal.Meal.ToString()"
+                                           Hint="@MealHint(meal, state, folded)"
+                                           Total="@MealTotal(meal, folded)"
+                                           Badge="@(state == MealWindowState.During ? "Now" : null)"
+                                           Expanded="!folded"
+                                           ExpandedChanged="@(foldable ? EventCallback.Factory.Create<bool>(this, (bool _) => Toggle(meal.Meal)) : default)"
+                                           ControlsId="@($"{id}-entries")"
+                                           TestId="@id" />
+                            <IconButton Style="IconButtonStyle.Filled" Icon="IconName.Plus" AriaLabel="@($"Add to {meal.Meal}")" TestId="@($"{id}-add")" OnClick="@(() => OnAdd.InvokeAsync(new MealAddRequest(meal.Meal, Date)))" />
+                        </div>
                         @if (!folded)
                         {
-                            if (count > 0)
-                            {
-                                <ul class="entries">
-                                    @foreach (var entry in meal.Entries)
-                                    {
-                                        <li><ListRow Text="@entry.Display.Title" Detail="@EntryDetail(entry)" Aside="@Number(entry.Nutrition.Kcal)" TestId="@($"entry-{entry.EntryId}")" OnClick="@EditTap(entry, meal.Meal)" /></li>
-                                    }
-                                </ul>
-                            }
-                            else if (state != MealWindowState.Before && (logged || state == MealWindowState.After))
-                            {
-                                <p class="none" data-testid="@($"{id}-none")">Nothing logged</p>
-                            }
+                            <div id="@($"{id}-entries")">
+                                @if (count > 0)
+                                {
+                                    <ul class="entries">
+                                        @foreach (var entry in meal.Entries)
+                                        {
+                                            <li><ListRow Text="@entry.Display.Title" Detail="@EntryDetail(entry)" Aside="@Number(entry.Nutrition.Kcal)" TestId="@($"entry-{entry.EntryId}")" OnClick="@EditTap(entry, meal.Meal)" /></li>
+                                        }
+                                    </ul>
+                                }
+                                else if (state != MealWindowState.Before && (logged || state == MealWindowState.After))
+                                {
+                                    <div class="none"><Typography Variant="TextVariant.Muted" As="TextElement.P" TestId="@($"{id}-none")">Nothing logged</Typography></div>
+                                }
+                            </div>
                         }
                     </section>
                 }
@@ -91,7 +98,7 @@
         </div>
         <AddSheetHost Open="sheetOpen" Date="Date" OnClose="CloseSheet" Usual="UsualFoods" AddError="@UsualAddError" OnMealChanged="OnMealChanged" OnAddUsual="AddUsualAsync" OnSearch="OnAdd" OnScan="OnScan" />
     </ChildContent>
-</AppScreen>
+</NavScreen>
 
 @code {
     private RenderFragment Notice => @<Snackbar />;
@@ -171,6 +178,16 @@
     /// <summary>"3 items · 348 kcal", or "Nothing logged" for an empty meal.</summary>
     private static string FoldedSummary(MealSummary meal) =>
         meal.Entries.Count == 0 ? "Nothing logged" : $"{meal.Entries.Count} {(meal.Entries.Count == 1 ? "item" : "items")} · {Number(meal.Totals.Kcal)} kcal";
+
+    /// <summary>"from 17:00" before the meal's window, the folded line once it is folded, else null.</summary>
+    private static string? MealHint(MealSummary meal, MealWindowState state, bool folded) =>
+        state == MealWindowState.Before ? $"from {MealWindows.StartOf(meal.Meal).ToString("HH:mm", CultureInfo.InvariantCulture)}"
+        : folded ? FoldedSummary(meal)
+        : null;
+
+    /// <summary>The meal's energy on its own once it has entries and is open, else null.</summary>
+    private static string? MealTotal(MealSummary meal, bool folded) =>
+        !folded && meal.Entries.Count > 0 ? $"{Number(meal.Totals.Kcal)} kcal" : null;
 
     private void OpenSheet() => sheetOpen = true;
 
@@ -278,6 +295,15 @@
     public EventCallback OnSettings { get; set; }
 
     private static string Number(int value) => value.ToString("N0", CultureInfo.InvariantCulture);
+
+    /// <summary>The day's target, or null when none is set (null or zero).</summary>
+    private static int? TargetOf(DaySummary summary) => summary.TargetKcal is > 0 ? summary.TargetKcal : null;
+
+    private static string RingWord(int eaten, int? target) => target is not { } goal ? "eaten" : eaten > goal ? "over" : "left";
+
+    private static string RingLabel(int eaten, int? target, int shown, string word) => target is { } goal
+        ? $"{Number(shown)} kcal {word}. Eaten {Number(eaten)} of {Number(goal)} kcal target."
+        : $"{Number(shown)} kcal eaten. No target set.";
 
     /// <summary>The amount text after the brand line when the food has one.</summary>
     private static string EntryDetail(SummaryEntry entry) =>
