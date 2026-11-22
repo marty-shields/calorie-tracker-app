@@ -24,7 +24,7 @@ The README shows the screen stories in the table below, light and dark, from `do
 
 | File | Story id |
 |---|---|
-| `today` | `calorie-tracker-screens-dashboard--today-midday` |
+| `today` | `calorie-tracker-screens-dashboard--today` |
 | `trends` | `calorie-tracker-screens-trends--week` |
 | `food-search` | `calorie-tracker-screens-foodsearch--results` |
 | `serving` | `calorie-tracker-screens-serving--servings` |

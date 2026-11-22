@@ -11,7 +11,7 @@
              OnSaved="@(() => Navigation.GoTo(DashboardRoute.Url(EntryDay)))"
              OnRemoved="@(() => Navigation.GoTo(DashboardRoute.Url(EntryDay)))"
              OnBack="@(() => Navigation.GoTo(EntryId is null ? ServingRoute.BackTarget(BackTo) : DashboardRoute.Url(EntryDay)))"
-             OnAdded="@(meal => Navigation.GoTo(ServingRoute.AfterAddTarget(RouteDate.Parse(DateText), meal)))" />
+             OnAdded="@(_ => Navigation.GoTo(DashboardRoute.Url(RouteDate.Parse(DateText))))" />
 
 @code {
     [Parameter]

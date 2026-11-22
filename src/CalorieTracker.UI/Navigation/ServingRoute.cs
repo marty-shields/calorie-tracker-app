@@ -82,8 +82,4 @@ public static class ServingRoute
 
     /// <summary>Where Back goes: the <c>back</c> route if it is in-app, else <see cref="DefaultBack"/>.</summary>
     public static string BackTarget(string? backTo) => ReturnOr(backTo, DefaultBack);
-
-    /// <summary>Where a saved entry goes: the Dashboard on <paramref name="date"/> (today when null) with <paramref name="meal"/> open, so the new entry shows even when the meal's window has passed.</summary>
-    public static string AfterAddTarget(DateOnly? date, Meal meal) =>
-        DashboardRoute.Url(date, meal);
 }

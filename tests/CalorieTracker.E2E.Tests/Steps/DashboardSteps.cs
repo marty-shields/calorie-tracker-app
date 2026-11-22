@@ -84,18 +84,11 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
     private const string ClockSeamFileName = "e2e-clock.txt";
 
     /// <summary>
-    /// Pins the Debug app's clock to a time of day on the device's date, so which meals are open does not depend on the wall clock,
+    /// Pins the Debug app's clock to a time of day on the device's date, so the meal the Add sheet picks does not depend on the wall clock,
     /// then goes to tomorrow and back to today so the Dashboard reads the clock again.
     /// </summary>
     [Given(@"^the app clock reads (\d\d:\d\d)$")]
     public void GivenTheAppClockReads(string time) => PinClock(time);
-
-    /// <summary>
-    /// Moves the pinned clock without making Today read it, so only the app coming back from the background can: the proof that Android's start reaches Today.
-    /// </summary>
-    [When(@"^the app clock moves to (\d\d:\d\d) while Today stays as it is$")]
-    public void WhenTheAppClockMovesWhileTodayStays(string time) =>
-        AppiumSetup.Adb.WriteText($"{AppiumSetup.App.ExternalFilesFolder}/{ClockSeamFileName}", time);
 
     /// <summary>
     /// Pins the Debug app's clock to a time of day some whole days before the device's date, for a scenario that saves something dated in the past.
@@ -179,35 +172,6 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
     [When(@"^I tap the " + Meals + " header$")]
     public void WhenITapTheMealHeader(string meal) => dashboard.ToggleMeal(meal);
 
-    [Then(@"^" + Meals + " is open and marked Now$")]
-    public void ThenMealIsOpenAndMarkedNow(string meal)
-    {
-        web.Eventually(() => dashboard.HasNowChip(meal), Is.True, $"{meal} is marked Now");
-        Assert.That(dashboard.Expanded(meal), Is.Null.Or.EqualTo("true"), $"{meal} is open");
-    }
-
-    [Then(@"^" + Meals + " is still marked Now$")]
-    public void ThenMealIsStillMarkedNow(string meal) => web.Eventually(() => dashboard.HasNowChip(meal), Is.True, $"{meal} is marked Now");
-
-    [Then(@"^" + Meals + " is open$")]
-    public void ThenMealIsOpen(string meal)
-    {
-        web.Eventually(() => dashboard.Expanded(meal), Is.Null.Or.EqualTo("true"), $"{meal} is open");
-        Assert.That(dashboard.FromText(meal), Is.Null, $"{meal} shows no start time");
-    }
-
-    [Then(@"^" + Meals + @" shows ""(from \d\d:\d\d)"" with a \+ and no entries$")]
-    public void ThenMealShowsFrom(string meal, string from)
-    {
-        web.Eventually(() => dashboard.FromText(meal), Is.EqualTo(from));
-        Assert.Multiple(() =>
-        {
-            Assert.That(dashboard.HasAddButton(meal), Is.True, $"{meal} has a +");
-            Assert.That(dashboard.OpenAndCountEntries(meal), Is.Zero, $"{meal} lists no entries");
-            Assert.That(web.Exists($"meal-{meal.ToLowerInvariant()}-none"), Is.False, $"{meal} says nothing logged");
-        });
-    }
-
     [Then(@"^" + Meals + " is folded to one line with 1 item and its kcal$")]
     public void ThenMealIsFolded(string meal)
     {
@@ -232,7 +196,24 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
         Assert.That(dashboard.OpenAndCountEntries(meal), Is.EqualTo(1), $"{meal}'s entries");
     }
 
-    [Then(@"^no meal is marked Now, shows a start time or is folded$")]
+    [Then(@"^" + Meals + @" is folded to one line saying ""Nothing logged""$")]
+    public void ThenMealIsFoldedToNothingLogged(string meal)
+    {
+        web.Eventually(() => dashboard.Expanded(meal), Is.EqualTo("false"), $"{meal} is folded");
+        Assert.That(dashboard.FoldedLine(meal), Is.EqualTo("Nothing logged"), $"{meal}'s folded line");
+    }
+
+    [Then(@"^every meal is open$")]
+    public void ThenEveryMealIsOpen()
+    {
+        journeys.WaitFor(Journeys.Screen.Dashboard);
+        foreach (var meal in MealNames)
+        {
+            web.Eventually(() => dashboard.Expanded(meal), Is.EqualTo("true"), $"{meal} is open");
+        }
+    }
+
+    [Then(@"^no meal is marked Now or shows a start time$")]
     public void ThenNoMealHasAWindow()
     {
         journeys.WaitFor(Journeys.Screen.Dashboard);
@@ -240,9 +221,8 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
         {
             foreach (var meal in MealNames)
             {
-                Assert.That(dashboard.HasNowChip(meal), Is.False, $"{meal} is marked Now");
-                Assert.That(dashboard.FromText(meal), Is.Null, $"{meal} shows a start time");
-                Assert.That(dashboard.Expanded(meal), Is.Null.Or.EqualTo("true"), $"{meal} is folded");
+                Assert.That(dashboard.HasBadge(meal), Is.False, $"{meal} has a chip");
+                Assert.That(dashboard.Hint(meal) ?? "", Does.Not.StartWith("from "), $"{meal} shows a start time");
             }
         });
     }

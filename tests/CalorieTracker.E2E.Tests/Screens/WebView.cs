@@ -20,6 +20,20 @@ public sealed class WebView
         if (document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) !== el) el.scrollIntoView({ block: 'center' });
         """;
 
+    /// <summary>As <see cref="ScrollIfCovered"/>, but the element's own content at its centre does not count as covering it.</summary>
+    private const string ScrollIfCoveredByOther = """
+        const el = arguments[0], r = el.getBoundingClientRect();
+        const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        if (!at || !el.contains(at)) el.scrollIntoView({ block: 'center' });
+        """;
+
+    /// <summary>Whether the element, or its own content, is the topmost element at its centre.</summary>
+    private const string UncoveredByOther = """
+        const el = arguments[0], r = el.getBoundingClientRect();
+        const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return !!at && el.contains(at);
+        """;
+
     /// <summary>The element's top when it is the topmost element at its centre, otherwise what is there.</summary>
     private const string TopIfUncovered = """
         const el = arguments[0], r = el.getBoundingClientRect();
@@ -84,6 +98,18 @@ public sealed class WebView
     }
 
     public void Tap(string testId) => Find(testId).Click();
+
+    /// <summary>
+    /// Taps the element once nothing else covers its centre: a control low on a long screen (such as the last meal's header on Today) can sit
+    /// under the bottom navigation bar, so it is first scrolled to the middle of the screen. Its own content (text, icon) at the centre counts as uncovered.
+    /// </summary>
+    public void TapUncovered(string testId)
+    {
+        var element = Find(testId);
+        App.ExecuteScript(ScrollIfCoveredByOther, element);
+        WaitUntil(() => App.ExecuteScript(UncoveredByOther, element) is true, $"{testId} stayed covered");
+        element.Click();
+    }
 
     /// <summary>Opens an in-app route through Blazor's router, as a link would, without reloading the page. For screens no tap reaches yet.</summary>
     public void NavigateTo(string route) =>

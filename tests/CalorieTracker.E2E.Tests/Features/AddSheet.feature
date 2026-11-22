@@ -64,9 +64,8 @@ Feature: Add sheet
   @today
   Scenario: A usual food added to a folded meal leaves that meal open
     Given I am on the Dashboard
-    And the app clock reads 19:30
     And I have logged 35 g of the first food found by "oat" in Lunch
-    When I leave Today and come back
+    When I tap the Lunch header
     Then Lunch is folded to one line with 1 item and its kcal
     When I open the Add sheet
     And I choose Lunch on the Add sheet
