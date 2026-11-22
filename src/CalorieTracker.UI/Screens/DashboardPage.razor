@@ -14,9 +14,8 @@
 @inject SnackbarService Snackbar
 @inject ILogger<DashboardPage> Logger
 @inject TimeProvider Time
-@inject IAppStart AppStart
 
-<DashboardView Date="date" Today="Today()" Now="now" OpenMeal="OpenMeal" Summary="summary" Loading="loading" LoadFailed="loadFailed"
+<DashboardView Date="date" Today="Today()" Summary="summary" Loading="loading" LoadFailed="loadFailed"
                OnPrevious="@(() => ShowAsync(date.AddDays(-1)))" OnNext="@(() => ShowAsync(date.AddDays(1)))" OnToday="@(() => ShowAsync(Today()))"
                UsualFoods="feed.Usual" UsualAddError="@feed.AddError" OnMealChanged="feed.LoadAsync" OnAddUsual="feed.AddAsync"
                OnAdd="OnAdd" OnScan="OnScan" OnEdit="OnEdit" OnRetry="LoadAsync" OnNavigate="OnNavigate" OnSettings="OpenSettingsAsync" />
@@ -30,16 +29,10 @@
     private bool opened;
     private bool disposed;
     private UsualFoodsFeed feed = null!;
-    private TimeOnly now;
-    private IDisposable? resumed;
 
     /// <summary>The day to open on the date strip, from the route's <c>date</c>. Null opens today. A change opens that day.</summary>
     [Parameter]
     public DateOnly? Date { get; set; }
-
-    /// <summary>A meal to show open on Today even after its window, from the route's <c>open</c>, such as the one a food was just added to.</summary>
-    [Parameter]
-    public Meal? OpenMeal { get; set; }
 
     /// <summary>Raised with the meal and day when a meal's + or the Add sheet's Search foods is tapped.</summary>
     [Parameter]
@@ -65,13 +58,11 @@
     {
         feed = new UsualFoodsFeed(History, Foods, Diary, Snackbar, Logger, StateHasChanged);
         Diary.Changed += OnDiaryChanged;
-        resumed = AppStart.Register(OnResumed);
     }
 
     public void Dispose()
     {
         disposed = true;
-        resumed?.Dispose();
         feed.Dispose();
         Diary.Changed -= OnDiaryChanged;
     }
@@ -94,18 +85,6 @@
 
     private Task OpenSettingsAsync() => OnSettings.InvokeAsync(date == Today() ? null : date);
 
-    private TimeOnly TimeNow() => TimeOnly.FromDateTime(Time.GetLocalNow().DateTime);
-
-    /// <summary>The app came back on screen: read the clock again so the meals fold or open for the new time. The day on screen stays.</summary>
-    private Task OnResumed() => InvokeAsync(() =>
-    {
-        if (!disposed)
-        {
-            now = TimeNow();
-            StateHasChanged();
-        }
-    });
-
     private Task ShowAsync(DateOnly day)
     {
         date = day;
@@ -119,7 +98,6 @@
     private async Task LoadAsync(bool blank)
     {
         var day = date;
-        now = TimeNow();
         if (blank)
         {
             loading = true;

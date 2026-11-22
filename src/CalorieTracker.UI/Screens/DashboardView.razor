@@ -58,23 +58,20 @@
                 @foreach (var meal in summary.Meals)
                 {
                     var id = $"meal-{meal.Meal.ToString().ToLowerInvariant()}";
-                    var state = StateOf(meal.Meal);
-                    var folded = IsFolded(meal.Meal, state);
-                    var foldable = state is MealWindowState.After or MealWindowState.During;
+                    var isFolded = folded.Contains(meal.Meal);
                     var count = meal.Entries.Count;
                     <section class="meal" data-testid="@($"{id}-section")">
                         <div class="meal-head">
                             <SectionHeader Title="@meal.Meal.ToString()"
-                                           Hint="@MealHint(meal, state, folded)"
-                                           Total="@MealTotal(meal, folded)"
-                                           Badge="@(state == MealWindowState.During ? "Now" : null)"
-                                           Expanded="!folded"
-                                           ExpandedChanged="@(foldable ? EventCallback.Factory.Create<bool>(this, (bool _) => Toggle(meal.Meal)) : default)"
+                                           Hint="@(isFolded ? FoldedSummary(meal) : null)"
+                                           Total="@MealTotal(meal, isFolded)"
+                                           Expanded="!isFolded"
+                                           ExpandedChanged="@(EventCallback.Factory.Create<bool>(this, (bool _) => Toggle(meal.Meal)))"
                                            ControlsId="@($"{id}-entries")"
                                            TestId="@id" />
                             <IconButton Style="IconButtonStyle.Filled" Icon="IconName.Plus" AriaLabel="@($"Add to {meal.Meal}")" TestId="@($"{id}-add")" OnClick="@(() => OnAdd.InvokeAsync(new MealAddRequest(meal.Meal, Date)))" />
                         </div>
-                        @if (!folded)
+                        @if (!isFolded)
                         {
                             <div id="@($"{id}-entries")">
                                 @if (count > 0)
@@ -86,7 +83,7 @@
                                         }
                                     </ul>
                                 }
-                                else if (state != MealWindowState.Before && (logged || state == MealWindowState.After))
+                                else
                                 {
                                     <div class="none"><Typography Variant="TextVariant.Muted" As="TextElement.P" TestId="@($"{id}-none")">Nothing logged</Typography></div>
                                 }
@@ -104,20 +101,18 @@
     private RenderFragment Notice => @<Snackbar />;
 
     private bool sheetOpen;
-    private readonly HashSet<Meal> opened = [];
-    private readonly HashSet<Meal> closed = [];
+
+    /// <summary>The meals the person folded on the day shown. Every meal starts open; nothing is stored, so another day or a new route opens them all again.</summary>
+    private readonly HashSet<Meal> folded = [];
     private DateOnly? shownDate;
-    private Meal? shownOpenMeal;
     private Meal? shownFoldedMeal;
 
     protected override void OnParametersSet()
     {
-        // Another day, or a new route, forgets what was opened or folded: only meals on today can be, and they return to their window's state on leaving Today.
         if (shownDate != Date)
         {
             shownDate = Date;
-            opened.Clear();
-            closed.Clear();
+            folded.Clear();
             shownFoldedMeal = null;
         }
 
@@ -125,65 +120,28 @@
         {
             if (shownFoldedMeal is { } previous)
             {
-                closed.Remove(previous);
+                folded.Remove(previous);
             }
 
             shownFoldedMeal = FoldedMeal;
-            if (FoldedMeal is { } folded)
+            if (FoldedMeal is { } meal)
             {
-                closed.Add(folded);
-                opened.Remove(folded);
-            }
-        }
-
-        if (OpenMeal != shownOpenMeal)
-        {
-            shownOpenMeal = OpenMeal;
-            opened.Clear();
-            if (OpenMeal is { } meal)
-            {
-                opened.Add(meal);
-                closed.Remove(meal);
+                folded.Add(meal);
             }
         }
     }
 
-    /// <summary>The meal's window against <see cref="Now"/>. Only today has windows, so any other day, and a screen with no time, reads every meal as open.</summary>
-    private MealWindowState StateOf(Meal meal) =>
-        Date == Today && Now is { } now ? MealWindows.StateFor(meal, now) : MealWindowState.AnyTime;
-
-    /// <summary>A meal past its window starts folded and the one in its window starts open; the person's taps flip that. Snacks and other days never fold.</summary>
-    private bool IsFolded(Meal meal, MealWindowState state) => state switch
-    {
-        MealWindowState.After => !opened.Contains(meal),
-        MealWindowState.During => closed.Contains(meal),
-        _ => false,
-    };
-
     private void Toggle(Meal meal)
     {
-        // Both sets change together, so the person's choice still holds once the meal's window ends.
-        if (IsFolded(meal, StateOf(meal)))
+        if (!folded.Remove(meal))
         {
-            opened.Add(meal);
-            closed.Remove(meal);
-        }
-        else
-        {
-            closed.Add(meal);
-            opened.Remove(meal);
+            folded.Add(meal);
         }
     }
 
     /// <summary>"3 items · 348 kcal", or "Nothing logged" for an empty meal.</summary>
     private static string FoldedSummary(MealSummary meal) =>
         meal.Entries.Count == 0 ? "Nothing logged" : $"{meal.Entries.Count} {(meal.Entries.Count == 1 ? "item" : "items")} · {Number(meal.Totals.Kcal)} kcal";
-
-    /// <summary>"from 17:00" before the meal's window, the folded line once it is folded, else null.</summary>
-    private static string? MealHint(MealSummary meal, MealWindowState state, bool folded) =>
-        state == MealWindowState.Before ? $"from {MealWindows.StartOf(meal.Meal).ToString("HH:mm", CultureInfo.InvariantCulture)}"
-        : folded ? FoldedSummary(meal)
-        : null;
 
     /// <summary>The meal's energy on its own once it has entries and is open, else null.</summary>
     private static string? MealTotal(MealSummary meal, bool folded) =>
@@ -201,8 +159,7 @@
             return false;
         }
 
-        opened.Add(request.Meal);
-        closed.Remove(request.Meal);
+        folded.Remove(request.Meal);
         return true;
     }
 
@@ -218,15 +175,7 @@
     [Parameter]
     public DateOnly Today { get; set; }
 
-    /// <summary>The time of day the meal windows are read against, on <see cref="Today"/> only. Null reads every meal as open.</summary>
-    [Parameter]
-    public TimeOnly? Now { get; set; }
-
-    /// <summary>A meal to show open even though its window has passed, such as the one a food was just added to. Applied when its value changes, and forgotten when <see cref="Date"/> changes.</summary>
-    [Parameter]
-    public Meal? OpenMeal { get; set; }
-
-    /// <summary>A meal in its window to show folded, as if the person had tapped its header; the stories use it. Applied when its value changes, and forgotten when <see cref="Date"/> changes.</summary>
+    /// <summary>A meal to show folded, as if the person had tapped its header; the stories use it. Applied when its value changes, and forgotten when <see cref="Date"/> changes.</summary>
     [Parameter]
     public Meal? FoldedMeal { get; set; }
 

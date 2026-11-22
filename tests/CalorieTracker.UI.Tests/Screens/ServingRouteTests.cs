@@ -87,16 +87,6 @@ public class ServingRouteTests
         Assert.That(ServingRoute.BackTarget(backTo), Is.EqualTo(expected));
 
     [Test]
-    public void AfterAddTarget_IsThatDayOnTheDashboardWithTheMealOpen()
-    {
-        Assert.Multiple(() =>
-        {
-            Assert.That(ServingRoute.AfterAddTarget(null, Meal.Lunch), Is.EqualTo("/?open=Lunch"));
-            Assert.That(ServingRoute.AfterAddTarget(new DateOnly(2031, 7, 4), Meal.Dinner), Is.EqualTo("/?date=2031-07-04&open=Dinner"));
-        });
-    }
-
-    [Test]
     public void TheAppsRoutePage_UsesTheTemplateAndReadsTheQuery()
     {
         var page = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Serving.razor");

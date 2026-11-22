@@ -23,7 +23,7 @@ public sealed class DashboardScreen(WebView web)
 
     public bool HasAddButton(string meal) => web.Exists($"meal-{Meal(meal)}-add");
 
-    /// <summary>Opens the meal when it is folded to one line, as a tap on its header does, so a scenario that reads its entries does not depend on the time of day. A meal that is not folded is left alone.</summary>
+    /// <summary>Opens the meal when a scenario folded it to one line, as a tap on its header does. An open meal is left alone.</summary>
     private void Expand(string meal)
     {
         if (Expanded(meal) == "false")
@@ -33,16 +33,14 @@ public sealed class DashboardScreen(WebView web)
         }
     }
 
-    /// <summary>The meal header's <c>aria-expanded</c>, or null when the header is not a button.</summary>
-    public string? Expanded(string meal) => web.Exists($"meal-{Meal(meal)}-toggle") ? web.Attribute($"meal-{Meal(meal)}-toggle", "aria-expanded") : null;
+    /// <summary>The meal header's <c>aria-expanded</c>: every meal's header is a fold button.</summary>
+    public string? Expanded(string meal) => web.Attribute($"meal-{Meal(meal)}-toggle", "aria-expanded");
 
     /// <summary>The folded line, such as "1 item · 125 kcal"; null when the meal is not folded.</summary>
     public string? FoldedLine(string meal) => Hint(meal) is { } hint && (hint.Contains(" item") || hint == "Nothing logged") ? hint : null;
 
-    /// <summary>The "from 11:00" text of a meal whose window has not opened; null otherwise.</summary>
-    public string? FromText(string meal) => Hint(meal) is { } hint && hint.StartsWith("from ", StringComparison.Ordinal) ? hint : null;
-
-    public bool HasNowChip(string meal) => web.Exists($"meal-{Meal(meal)}-badge");
+    /// <summary>Whether the meal header shows a chip (the kit's <c>SectionHeader</c> badge); Today shows none.</summary>
+    public bool HasBadge(string meal) => web.Exists($"meal-{Meal(meal)}-badge");
 
     /// <summary>Taps the meal's header, which opens a folded meal and folds an open one.</summary>
     public void ToggleMeal(string meal) => web.Tap($"meal-{Meal(meal)}-toggle");
@@ -61,7 +59,8 @@ public sealed class DashboardScreen(WebView web)
         return web.Exists($"meal-{Meal(meal)}-total") ? web.Text($"meal-{Meal(meal)}-total") : null;
     }
 
-    private string? Hint(string meal) => web.Exists($"meal-{Meal(meal)}-hint") ? web.Text($"meal-{Meal(meal)}-hint") : null;
+    /// <summary>The text beside the meal's name, such as its folded line; null when there is none.</summary>
+    public string? Hint(string meal) => web.Exists($"meal-{Meal(meal)}-hint") ? web.Text($"meal-{Meal(meal)}-hint") : null;
 
     /// <summary>The calories eaten on the day, as the card shows them.</summary>
     public string Eaten() => web.Text("dashboard-eaten");

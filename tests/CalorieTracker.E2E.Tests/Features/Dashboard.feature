@@ -1,6 +1,6 @@
 Feature: Dashboard
   Today (the DashboardPage in code) is the day diary: a date strip, a compact card with the day's calories and macros, and four meals each with a +. A meal's + adds a food to that meal. A fresh install has no target and nothing logged.
-  On today a meal is open during its time window (breakfast 05:00-11:00, lunch 11:00-15:00, dinner 17:00-21:00), shows only its header before it, and folds to one line after it; snacks and every other day are always open. The Debug app's clock is pinned with "the app clock reads" (src/CalorieTracker.App/Diagnostics/E2EClockSeam.cs), so these scenarios do not depend on the time the suite runs; the @today tag keeps them away from midnight. Steps that read a meal's entries open a folded meal first.
+  Every meal (Breakfast, Lunch, Dinner and Snacks) on every day starts open and folds to one line, or opens again, when its header is tapped; nothing depends on the time of day and there is no Now chip or start time. Fold state is not stored: leaving Today or changing day opens every meal. One scenario pins the Debug app's clock with "the app clock reads" (src/CalorieTracker.App/Diagnostics/E2EClockSeam.cs) at the time of the report that dinner and snacks would not fold; the @today tag keeps scenarios that log today away from midnight.
 
   Scenario: First run shows nothing logged and a + on each meal
     Given I am on the Dashboard
@@ -37,41 +37,47 @@ Feature: Dashboard
     And the Dashboard shows "Nothing logged today"
 
   @today
-  Scenario: At 09:00 breakfast is open and the later meals wait for their window
+  Scenario Outline: Every meal on Today folds and opens when its header is tapped
     Given I am on the Dashboard
-    And the app clock reads 09:00
-    Then Breakfast is open and marked Now
-    And Lunch shows "from 11:00" with a + and no entries
-    And Dinner shows "from 17:00" with a + and no entries
-    And Snacks is open
+    And I have added 100 g of the first food found by "oat" to <meal>
+    Then every meal is open
+    When I tap the <meal> header
+    Then <meal> is folded to one line with 1 item and its kcal
+    When I tap the <meal> header
+    Then <meal> is open with its entry shown
+
+    Examples:
+      | meal      |
+      | Breakfast |
+      | Lunch     |
+      | Dinner    |
+      | Snacks    |
 
   @today
-  Scenario: At 19:30 earlier meals are folded to one line, dinner is open and snacks are always open
+  Scenario: At 15:33 dinner and snacks fold like the other meals, with no Now chip or start time
     Given I am on the Dashboard
-    And the app clock reads 19:30
-    And I have added 100 g of the first food found by "oat" to Breakfast
-    And I have added 100 g of the first food found by "oat" to Lunch
-    When I leave Today and come back
-    Then Breakfast is folded to one line with 1 item and its kcal
-    And Lunch is folded to one line with 1 item and its kcal
-    And Dinner is open and marked Now
-    And Snacks is open
+    And the app clock reads 15:33
+    Then every meal is open
+    And no meal is marked Now or shows a start time
+    When I tap the Dinner header
+    And I tap the Snacks header
+    Then Dinner is folded to one line saying "Nothing logged"
+    And Snacks is folded to one line saying "Nothing logged"
 
   @today
-  Scenario: The Now meal folds when its header is tapped and is open again after leaving Today
+  Scenario: A folded meal is open again after leaving Today
     Given I am on the Dashboard
-    And the app clock reads 19:30
     And I have added 100 g of the first food found by "oat" to Dinner
     When I tap the Dinner header
     Then Dinner is folded to one line with 1 item and its kcal
-    And Dinner is still marked Now
     When I leave Today and come back
-    Then Dinner is open and marked Now
+    Then Dinner is open with its entry shown
 
   @today
   Scenario: After adding to a folded meal it is open with the new entry
     Given I am on the Dashboard
-    And the app clock reads 19:30
+    When I tap the Lunch header
+    Then Lunch is folded to one line saying "Nothing logged"
     When I tap + on Lunch
     And I search for "oat"
     And I open the first result
@@ -79,14 +85,17 @@ Feature: Dashboard
     Then I am on the Dashboard
     And Lunch is open with its entry shown
 
-  @today
-  Scenario Outline: On any other day every meal is open, with no Now chip or start time
+  Scenario Outline: On any other day every meal folds and opens on tap
     Given I am on the Dashboard
-    And the app clock reads 19:30
     When I tap the <day> day
     Then the date strip says "<label>"
     And the Dashboard shows "Nothing logged this day"
-    And no meal is marked Now, shows a start time or is folded
+    And every meal is open
+    And no meal is marked Now or shows a start time
+    When I tap the Dinner header
+    Then Dinner is folded to one line saying "Nothing logged"
+    When I tap the Dinner header
+    Then every meal is open
 
     Examples:
       | day      | label     |
