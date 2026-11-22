@@ -10,11 +10,15 @@ public partial class NoAppTokensTests
     internal static IReadOnlySet<string> Declared(string css) =>
         DesignTokens.Declares(CommentPattern().Replace(css, "")).ToHashSet(StringComparer.Ordinal);
 
-    /// <summary>Names of the custom properties declared in the inline <c>style="..."</c> or <c>style='...'</c> values of markup.</summary>
+    /// <summary>Names of the custom properties declared in the inline <c>style="..."</c>, <c>style='...'</c> or unquoted <c>style=...</c> values of markup, and "@" for a declaration built from a Razor expression, which cannot be checked.</summary>
     internal static IReadOnlySet<string> DeclaredInline(string markup) =>
         StylePattern().Matches(markup)
-            .SelectMany(match => DesignTokens.Declares((match.Groups["style"].Success ? match.Groups["style"].Value : match.Groups["single"].Value) + ";"))
+            .Select(match => match.Groups["style"].Success ? match.Groups["style"].Value : match.Groups["single"].Success ? match.Groups["single"].Value : match.Groups["bare"].Value)
+            .SelectMany(value => DesignTokens.Declares(value + ";").Concat(Computed(value) ? ["@"] : []))
             .ToHashSet(StringComparer.Ordinal);
+
+    private static bool Computed(string value) =>
+        value.Split(';').Any(declaration => declaration.Split(':', 2)[0].Contains('@', StringComparison.Ordinal));
 
     private static IReadOnlySet<string> DeclaredInApp() =>
         RepoFiles.Find("*.css", "src").SelectMany(file => Declared(File.ReadAllText(file))).ToHashSet(StringComparer.Ordinal)
@@ -37,7 +41,25 @@ public partial class NoAppTokensTests
             DeclaredInline("<span style=\"--x: var(--y)\"></span><div style=\"--fill: @Fill; --gap-x: var(--space-2)\" class=\"a\"></div><p style=\"margin: var(--z)\"></p>"),
             Is.EquivalentTo(new[] { "--x", "--fill", "--gap-x" }));
 
-    [GeneratedRegex("\\bstyle=(?:\"(?<style>[^\"]*)\"|'(?<single>[^']*)')")]
+    [Test]
+    public void DeclaredInline_FindsUnquotedStyleAttributes() =>
+        Assert.That(
+            DeclaredInline("<span style=--x:1></span><p style=margin:0></p>"),
+            Is.EquivalentTo(new[] { "--x" }));
+
+    [Test]
+    public void DeclaredInline_FlagsStylesBuiltFromRazorExpressions()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(DeclaredInline("<p style=\"@x\"></p>"), Is.EquivalentTo(new[] { "@" }));
+            Assert.That(DeclaredInline("<p style=@x></p>"), Is.EquivalentTo(new[] { "@" }));
+            Assert.That(DeclaredInline("<p style=\"a @x\"></p>"), Is.EquivalentTo(new[] { "@" }));
+            Assert.That(DeclaredInline("<p style=\"--fill: @Fill\"></p>"), Is.EquivalentTo(new[] { "--fill" }));
+        });
+    }
+
+    [GeneratedRegex("\\bstyle=(?:\"(?<style>[^\"]*)\"|'(?<single>[^']*)'|(?<bare>[^\\s>\"']+))")]
     private static partial Regex StylePattern();
 
     [Test]

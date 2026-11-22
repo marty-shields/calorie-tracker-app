@@ -81,15 +81,18 @@ public sealed class FoodSearchScreen(WebView web)
 
     public string FirstRowText(string group)
     {
-        web.WaitUntil(() => RowIds(group).Count > 0, $"the {group} group has no rows");
-        return web.FindAll($"[data-testid=\"food-group-{group}-list\"] [data-testid^=\"food-result-\"]").First().Text.Trim();
+        var text = "";
+        web.WaitUntil(() => RowTexts(group).FirstOrDefault() is { } first && (text = first) is not null, $"the {group} group has no rows");
+        return text;
     }
 
-    public void OpenFirstIn(string group)
-    {
-        web.WaitUntil(() => RowIds(group).Count > 0, $"the {group} group has no rows");
-        web.FindAll($"[data-testid=\"food-group-{group}-list\"] [data-testid^=\"food-result-\"]").First().Click();
-    }
+    public void OpenFirstIn(string group) =>
+        web.WaitUntil(() =>
+        {
+            var first = web.FindAll($"[data-testid=\"food-group-{group}-list\"] [data-testid^=\"food-result-\"]").FirstOrDefault();
+            first?.Click();
+            return first is not null;
+        }, $"the {group} group has no rows");
 
     /// <summary>The testid of every food row on the screen, in order.</summary>
     public IReadOnlyList<string> AllRowIds() =>

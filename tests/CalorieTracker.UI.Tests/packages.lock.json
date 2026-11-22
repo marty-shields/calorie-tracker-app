@@ -74,9 +74,9 @@
       },
       "Shields.UI.Testing": {
         "type": "Direct",
-        "requested": "[1.0.0-pr.19.35, )",
-        "resolved": "1.0.0-pr.19.35",
-        "contentHash": "Fum389cLhY+odtwcF0I8WeCvMyd3XdWyfoMfg42cT8MnEZDVlhs45nI1DMepRo94hN5sVhUI5tgKTlBdA/9zFw=="
+        "requested": "[1.0.0-pr.19.39, )",
+        "resolved": "1.0.0-pr.19.39",
+        "contentHash": "qvKMSXjyX8J3o9fwFBUNP8yiuwXMl/dj0bAi/aeVg+Tu5jxkYpV81BZB0R5+xyMyExfI+B3nUt8jyebUHfXX+Q=="
       },
       "AngleSharp": {
         "type": "Transitive",
@@ -450,7 +450,7 @@
         "dependencies": {
           "CalorieTracker.Core": "[1.0.0, )",
           "Microsoft.AspNetCore.Components.Web": "[11.0.0, )",
-          "Shields.UI": "[1.0.0-pr.19.35, )"
+          "Shields.UI": "[1.0.0-pr.19.39, )"
         }
       },
       "calorietracker.ui.stories": {
@@ -458,7 +458,7 @@
         "dependencies": {
           "BlazingStory": "[1.0.0-preview.97, )",
           "CalorieTracker.UI": "[1.0.0, )",
-          "Shields.UI.Stories": "[1.0.0-pr.19.35, )"
+          "Shields.UI.Stories": "[1.0.0-pr.19.39, )"
         }
       },
       "BlazingStory": {
@@ -522,21 +522,21 @@
       },
       "Shields.UI": {
         "type": "CentralTransitive",
-        "requested": "[1.0.0-pr.19.35, )",
-        "resolved": "1.0.0-pr.19.35",
-        "contentHash": "1013x9kPaEy/PjtfeALnsK+1rC0vcHvB/iuxJjDnZKHXHQAX0UPNpCuL0k5FMqnU6oNXC40EHbJd8cFa7vNK3A==",
+        "requested": "[1.0.0-pr.19.39, )",
+        "resolved": "1.0.0-pr.19.39",
+        "contentHash": "e3Fg33uNWEuGXH4ZllgKKYHoG7FuMNVURUq7XEyT1YK2VEweW4EH8sgR/d3jWe2oTbjaFEBalV5JNEnjHKA88w==",
         "dependencies": {
           "Microsoft.AspNetCore.Components.Web": "11.0.0"
         }
       },
       "Shields.UI.Stories": {
         "type": "CentralTransitive",
-        "requested": "[1.0.0-pr.19.35, )",
-        "resolved": "1.0.0-pr.19.35",
-        "contentHash": "HdfK5gZ0bynp6dZvJr5iwlyy53WJE14hRCilOqX17z2XQ4iJwFBgRCCwx0gA/348krAvBzYdWYUqKqYwPaQz5g==",
+        "requested": "[1.0.0-pr.19.39, )",
+        "resolved": "1.0.0-pr.19.39",
+        "contentHash": "GlhcAn5yrQkXt+MnBEYBL0xXbatCouDfZwholZy9dDqSiAjNER/8gLplA9vH4Lym5tn525gR/3l7/x0WTEYy0g==",
         "dependencies": {
           "BlazingStory": "1.0.0-preview.97",
-          "Shields.UI": "1.0.0-pr.19.35"
+          "Shields.UI": "1.0.0-pr.19.39"
         }
       },
       "sqlite-net-pcl": {
