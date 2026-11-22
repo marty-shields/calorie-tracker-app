@@ -6,6 +6,7 @@ namespace CalorieTracker.UI.Tests.DesignSystem;
 public partial class StatusMessageGutterTests
 {
     private const string GapToken = "--snackbar-gap-bottom";
+    private const string InlineToken = "--snackbar-gap-inline";
 
     private static string Body(string file, string className)
     {
@@ -26,8 +27,9 @@ public partial class StatusMessageGutterTests
     public void ServingStatusError_HasTheSnackbarMargins()
     {
         Assert.That(KitCss.Tokens, Does.Contain(GapToken), "the kit's Snackbar gap token");
+        Assert.That(KitCss.Tokens, Does.Contain(InlineToken), "the kit's Snackbar inline gap token");
 
-        Assert.That(Margin("Screens/ServingView.razor.css", "status-error"), Is.EqualTo($"0 var(--space-4) var({GapToken})"), "the bottom margin is the kit's Snackbar gap token, not a literal copy of its value");
+        Assert.That(Margin("Screens/ServingView.razor.css", "status-error"), Is.EqualTo($"0 var({InlineToken}) var({GapToken})"), "the margins are the kit's Snackbar gap tokens, not literal copies of their values");
     }
 
     [GeneratedRegex(@"(?:^|[;{\s])margin:\s*(?<value>[^;]+);")]

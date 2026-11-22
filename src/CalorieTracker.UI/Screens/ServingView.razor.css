@@ -11,7 +11,7 @@
 }
 
 .status-error {
-    margin: 0 var(--space-4) var(--snackbar-gap-bottom);
+    margin: 0 var(--snackbar-gap-inline) var(--snackbar-gap-bottom);
 }
 
 .centre {
