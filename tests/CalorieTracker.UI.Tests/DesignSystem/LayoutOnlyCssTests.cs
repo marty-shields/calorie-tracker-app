@@ -87,6 +87,9 @@ public partial class LayoutOnlyCssTests
             Assert.That(InlineViolations("<p style=@x></p>"), Is.EqualTo(new[] { "@" }));
             Assert.That(InlineViolations("<p style=\"a @x\"></p>"), Is.EqualTo(new[] { "@" }));
             Assert.That(InlineViolations("<STYLE>.x{color:red}</STYLE>"), Is.EqualTo(new[] { "<style>" }));
+            Assert.That(InlineViolations("<p STYLE=\"color:red\"></p>"), Is.EqualTo(new[] { "color" }));
+            Assert.That(InlineViolations("<p style = \"color:red\"></p>"), Is.EqualTo(new[] { "color" }));
+            Assert.That(InlineViolations("<p data-style=compact></p><p data-style=\"color:red\"></p>"), Is.Empty);
         });
     }
 
@@ -97,7 +100,7 @@ public partial class LayoutOnlyCssTests
     [GeneratedRegex("(?<selector>[^{}]+)\\{(?<body>[^{}]*)\\}")]
     private static partial Regex RulePattern();
 
-    [GeneratedRegex("\\bstyle=(?:\"(?<style>[^\"]*)\"|'(?<single>[^']*)'|(?<bare>[^\\s>\"']+))")]
+    [GeneratedRegex("(?<=\\s)style\\s*=\\s*(?:\"(?<style>[^\"]*)\"|'(?<single>[^']*)'|(?<bare>[^\\s>\"']+))", RegexOptions.IgnoreCase)]
     private static partial Regex StylePattern();
 
     [GeneratedRegex("<style\\b", RegexOptions.IgnoreCase)]

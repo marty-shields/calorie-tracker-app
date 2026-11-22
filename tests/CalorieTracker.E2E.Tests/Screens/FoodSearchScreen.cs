@@ -1,3 +1,5 @@
+using OpenQA.Selenium;
+
 namespace CalorieTracker.E2E.Tests.Screens;
 
 /// <summary>Food search: the search box, the barcode button and the results.</summary>
@@ -73,26 +75,32 @@ public sealed class FoodSearchScreen(WebView web)
 
     /// <summary>The testids of the food rows of one group, in order.</summary>
     public IReadOnlyList<string> RowIds(string group) =>
-        web.FindAll($"[data-testid=\"food-group-{group}-list\"] [data-testid^=\"food-result-\"]").Select(row => row.GetDomAttribute("data-testid")!).ToList();
+        Rows(group).Select(row => row.GetDomAttribute("data-testid")!).ToList();
 
     /// <summary>The text of each food row of one group, in order.</summary>
     public IReadOnlyList<string> RowTexts(string group) =>
-        web.FindAll($"[data-testid=\"food-group-{group}-list\"] [data-testid^=\"food-result-\"]").Select(row => row.Text.Trim()).ToList();
+        Rows(group).Select(row => row.Text.Trim()).ToList();
 
     public string FirstRowText(string group)
     {
         var text = "";
-        web.WaitUntil(() => RowTexts(group).FirstOrDefault() is { } first && (text = first) is not null, $"the {group} group has no rows");
+        web.WaitUntil(() =>
+        {
+            text = RowTexts(group).FirstOrDefault()!;
+            return text is not null;
+        }, $"the {group} group has no rows");
         return text;
     }
 
-    public void OpenFirstIn(string group) =>
-        web.WaitUntil(() =>
-        {
-            var first = web.FindAll($"[data-testid=\"food-group-{group}-list\"] [data-testid^=\"food-result-\"]").FirstOrDefault();
-            first?.Click();
-            return first is not null;
-        }, $"the {group} group has no rows");
+    /// <summary>Clicks the first row once it shows; the click itself runs outside the wait so its own error surfaces.</summary>
+    public void OpenFirstIn(string group)
+    {
+        web.WaitUntil(() => Rows(group).Count > 0, $"the {group} group has no rows");
+        Rows(group).First().Click();
+    }
+
+    private IReadOnlyCollection<IWebElement> Rows(string group) =>
+        web.FindAll($"[data-testid=\"food-group-{group}-list\"] [data-testid^=\"food-result-\"]");
 
     /// <summary>The testid of every food row on the screen, in order.</summary>
     public IReadOnlyList<string> AllRowIds() =>

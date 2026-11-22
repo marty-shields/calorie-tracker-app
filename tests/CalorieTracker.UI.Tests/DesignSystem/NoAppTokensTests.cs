@@ -56,10 +56,13 @@ public partial class NoAppTokensTests
             Assert.That(DeclaredInline("<p style=@x></p>"), Is.EquivalentTo(new[] { "@" }));
             Assert.That(DeclaredInline("<p style=\"a @x\"></p>"), Is.EquivalentTo(new[] { "@" }));
             Assert.That(DeclaredInline("<p style=\"--fill: @Fill\"></p>"), Is.EquivalentTo(new[] { "--fill" }));
+            Assert.That(DeclaredInline("<p STYLE=\"--x: 1\"></p>"), Is.EquivalentTo(new[] { "--x" }));
+            Assert.That(DeclaredInline("<p style = \"--x: 1\"></p>"), Is.EquivalentTo(new[] { "--x" }));
+            Assert.That(DeclaredInline("<p data-style=compact></p><p data-style=\"--x: 1\"></p>"), Is.Empty);
         });
     }
 
-    [GeneratedRegex("\\bstyle=(?:\"(?<style>[^\"]*)\"|'(?<single>[^']*)'|(?<bare>[^\\s>\"']+))")]
+    [GeneratedRegex("(?<=\\s)style\\s*=\\s*(?:\"(?<style>[^\"]*)\"|'(?<single>[^']*)'|(?<bare>[^\\s>\"']+))", RegexOptions.IgnoreCase)]
     private static partial Regex StylePattern();
 
     [Test]
