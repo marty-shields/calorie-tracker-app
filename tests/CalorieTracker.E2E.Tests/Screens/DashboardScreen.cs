@@ -17,7 +17,7 @@ public sealed class DashboardScreen(WebView web)
     /// <summary>Taps a meal's + and waits for search to open in add mode for it.</summary>
     public void AddTo(string meal)
     {
-        web.Tap($"meal-{Meal(meal)}-add");
+        web.TapUncovered($"meal-{Meal(meal)}-add");
         web.WaitUntil(() => web.Exists("screen-title") && web.Text("screen-title") == $"Add to {meal}", $"search for {meal} didn't show");
     }
 
@@ -43,7 +43,7 @@ public sealed class DashboardScreen(WebView web)
     public bool HasBadge(string meal) => web.Exists($"meal-{Meal(meal)}-badge");
 
     /// <summary>Taps the meal's header, which opens a folded meal and folds an open one.</summary>
-    public void ToggleMeal(string meal) => web.Tap($"meal-{Meal(meal)}-toggle");
+    public void ToggleMeal(string meal) => web.TapUncovered($"meal-{Meal(meal)}-toggle");
 
     /// <summary>The number of entries listed under a meal, opening it first when it is folded.</summary>
     public int OpenAndCountEntries(string meal)
