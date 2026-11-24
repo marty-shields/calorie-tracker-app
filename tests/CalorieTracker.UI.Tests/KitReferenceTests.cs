@@ -1,69 +1,56 @@
+using System.Text.Json;
 using System.Xml.Linq;
 
 namespace CalorieTracker.UI.Tests;
 
 /// <summary>
-/// CalorieTracker.UI takes the Shields.UI kit, the CalorieTracker.UI.Stories library the Shields.UI.Stories shell and these tests the
-/// Shields.UI.Testing design checks, from NuGet or from the kit's source with -p:UseKitSource=true. The project files are read to check the references.
+/// The Shields.UI kit, the Shields.UI.Stories shell and the Shields.UI.Testing design checks come from NuGet or from the kit's source
+/// with -p:UseKitSource=true. Directory.Build.props references them in each project that uses them, and is read to check the references.
 /// </summary>
 public class KitReferenceTests
 {
     private const string PackageCondition = "'$(UseKitSource)' != 'true'";
     private const string SourceCondition = "'$(UseKitSource)' == 'true'";
-    private const string StoriesProject = "CalorieTracker.UI.Stories";
 
-    [Test]
-    public void KitPackage_IsReferencedUnlessUsingKitSource()
+    [TestCase("Shields.UI")]
+    [TestCase("Shields.UI.Stories")]
+    [TestCase("Shields.UI.Testing")]
+    public void KitPackage_IsReferencedUnlessUsingKitSource(string package)
     {
-        var references = ItemGroupsWhen(PackageCondition).Elements("PackageReference");
+        var references = KitItemGroupsWhen(PackageCondition).Elements("PackageReference");
 
-        Assert.That(references.Select(r => (string?)r.Attribute("Include")), Is.EqualTo(new[] { "Shields.UI" }));
+        Assert.That(references.Select(r => (string?)r.Attribute("Include")), Does.Contain(package));
     }
 
-    [Test]
-    public void KitProject_IsReferencedWhenUsingKitSource()
+    [TestCase("Shields.UI", "src/Shields.UI/Shields.UI.csproj")]
+    [TestCase("Shields.UI.Stories", "src/Shields.UI.Stories/Shields.UI.Stories.csproj")]
+    [TestCase("Shields.UI.Testing", "src/Shields.UI.Testing/Shields.UI.Testing.csproj")]
+    public void KitProject_IsReferencedWhenUsingKitSource(string package, string project)
     {
-        var references = ItemGroupsWhen(SourceCondition).Elements("ProjectReference");
+        var references = KitItemGroupsWhen(SourceCondition).Elements("ProjectReference");
 
+        Assert.That(references.Select(r => (string?)r.Attribute("Include")), Does.Contain($"$(KitSourcePath)/{project}"));
         Assert.That(
-            references.Select(r => (string?)r.Attribute("Include")),
-            Is.EqualTo(new[] { "$(KitSourcePath)/src/Shields.UI/Shields.UI.csproj" }));
+            references.Count(r => ((string?)r.Attribute("Include"))!.EndsWith($"/{package}.csproj", StringComparison.Ordinal)),
+            Is.EqualTo(1));
     }
 
-    [Test]
-    public void StoriesShellPackage_IsReferencedUnlessUsingKitSource()
+    // Dependabot rewrites a lock file only where the package is a direct reference, so a transitive entry goes stale.
+    [TestCase("src", "CalorieTracker.App", "Shields.UI")]
+    [TestCase("src", "CalorieTracker.UI", "Shields.UI")]
+    [TestCase("src", "CalorieTracker.UI.Stories", "Shields.UI")]
+    [TestCase("src", "CalorieTracker.UI.Stories", "Shields.UI.Stories")]
+    [TestCase("src", "CalorieTracker.UI.Stories.Host", "Shields.UI")]
+    [TestCase("src", "CalorieTracker.UI.Stories.Host", "Shields.UI.Stories")]
+    [TestCase("tests", "CalorieTracker.UI.Tests", "Shields.UI")]
+    [TestCase("tests", "CalorieTracker.UI.Tests", "Shields.UI.Stories")]
+    [TestCase("tests", "CalorieTracker.UI.Tests", "Shields.UI.Testing")]
+    public void KitPackage_IsADirectEntryInEveryLockFileThatUsesIt(string folder, string project, string package)
     {
-        var references = ItemGroupsWhen(StoriesProject, PackageCondition).Elements("PackageReference");
+        var lockFile = JsonDocument.Parse(RepoFiles.Read(folder, project, "packages.lock.json"));
+        var entry = lockFile.RootElement.GetProperty("dependencies").EnumerateObject().First().Value.GetProperty(package);
 
-        Assert.That(references.Select(r => (string?)r.Attribute("Include")), Is.EqualTo(new[] { "Shields.UI.Stories" }));
-    }
-
-    [Test]
-    public void StoriesShellProject_IsReferencedWhenUsingKitSource()
-    {
-        var references = ItemGroupsWhen(StoriesProject, SourceCondition).Elements("ProjectReference");
-
-        Assert.That(
-            references.Select(r => (string?)r.Attribute("Include")),
-            Is.EqualTo(new[] { "$(KitSourcePath)/src/Shields.UI.Stories/Shields.UI.Stories.csproj" }));
-    }
-
-    [Test]
-    public void DesignChecksPackage_IsReferencedUnlessUsingKitSource()
-    {
-        var references = ItemGroupsWhen("tests", "CalorieTracker.UI.Tests", PackageCondition).Elements("PackageReference");
-
-        Assert.That(references.Select(r => (string?)r.Attribute("Include")), Is.EqualTo(new[] { "Shields.UI.Testing" }));
-    }
-
-    [Test]
-    public void DesignChecksProject_IsReferencedWhenUsingKitSource()
-    {
-        var references = ItemGroupsWhen("tests", "CalorieTracker.UI.Tests", SourceCondition).Elements("ProjectReference");
-
-        Assert.That(
-            references.Select(r => (string?)r.Attribute("Include")),
-            Is.EqualTo(new[] { "$(KitSourcePath)/src/Shields.UI.Testing/Shields.UI.Testing.csproj" }));
+        Assert.That(entry.GetProperty("type").GetString(), Is.EqualTo("Direct"));
     }
 
     [Test]
@@ -103,12 +90,8 @@ public class KitReferenceTests
     private static IEnumerable<XElement> BuildPropsGroups() =>
         XDocument.Parse(RepoFiles.Read("Directory.Build.props")).Root!.Elements("PropertyGroup");
 
-    private static IEnumerable<XElement> ItemGroupsWhen(string condition) => ItemGroupsWhen("CalorieTracker.UI", condition);
-
-    private static IEnumerable<XElement> ItemGroupsWhen(string project, string condition) => ItemGroupsWhen("src", project, condition);
-
-    private static IEnumerable<XElement> ItemGroupsWhen(string folder, string project, string condition) =>
-        XDocument.Parse(RepoFiles.Read(folder, project, $"{project}.csproj")).Root!
+    private static IEnumerable<XElement> KitItemGroupsWhen(string condition) =>
+        XDocument.Parse(RepoFiles.Read("Directory.Build.props")).Root!
             .Elements("ItemGroup")
             .Where(group => (string?)group.Attribute("Condition") == condition);
 }
