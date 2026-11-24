@@ -26,7 +26,7 @@ public partial class ReadmeDocsTests
         var table = RepoFiles.Read("docs", "dev-setup-build.md");
 
         Assert.That(shown, Does.Contain("food-search").And.Contain("serving"));
-        Assert.That(table, Does.Contain("| `food-search` | `screens-foodsearch--results` |").And.Contain("| `serving` | `screens-serving--servings` |"));
+        Assert.That(table, Does.Contain("| `food-search` | `calorie-tracker-screens-foodsearch--results` |").And.Contain("| `serving` | `calorie-tracker-screens-serving--servings` |"));
         Assert.That(Readme, Does.Contain("docs/images/readme/food-search-dark.png").And.Contain("docs/images/readme/serving-dark.png"));
     }
 

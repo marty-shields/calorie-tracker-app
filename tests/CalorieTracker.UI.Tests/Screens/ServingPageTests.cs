@@ -2,7 +2,6 @@ using CalorieTracker.Core;
 using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Foods;
-using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Logging;
 using CalorieTracker.UI.Screens;
 using CalorieTracker.UI.Stories.Stories.Screens;
@@ -12,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Time.Testing;
+using Shields.UI.Components.Feedback;
 using SQLite;
 using StoredServing = CalorieTracker.Core.Data.Serving;
 

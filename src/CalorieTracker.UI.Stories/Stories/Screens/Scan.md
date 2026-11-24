@@ -1,10 +1,12 @@
 ---
-$attribute: CustomPage("Screens/Scan/Overview")
+$attribute: CustomPage(StoryTitles.Prefix + "Screens/Scan/Overview")
 ---
 
 # Scan
 
 Scans a product's barcode and, when the product is found, goes straight to the Serving screen (no values screen in between). View: `ScanView`; page: `ScanPage`.
+
+`LoadFailed`, `EmptyState` and the spinner here are components of the `Shields.UI` kit, not this app's; their stories are under Components on the [combined stories site](https://marty-shields.github.io/app-ui-kit/).
 
 | Part | Content |
 |---|---|
@@ -17,6 +19,6 @@ Scans a product's barcode and, when the product is found, goes straight to the S
 
 The camera stays open until it sees a barcode of a valid length (8, 12 or 13 digits); other codes are ignored. That one barcode is normalised and looked up, and later detections are ignored: the scanner closes on the first accepted code, so no separate in-flight guard is needed. Not found, offline and rate limited all show the one not-found message, with no mention of the source or the reason. Cancelling the camera goes back as the back arrow does. The native camera screen mirrors the web view: a centred "Adding to Dinner · 18 Nov" pill at the top (the page passes the same text to the scanner, `ScanCaption`), the frame, the hint "Point the camera at a barcode", and in the bottom bar an outlined **Search by name instead** (`scan-native-search`) above **Cancel** (`scan-native-cancel`). Search by name instead closes the camera with the `SearchByName` status and the page goes where the web button goes (`ScanRoute.SearchTarget`): back to the search that opened Scan, typed text included, when Scan was opened from search, else `/foods?meal=&date=`; Cancel and Android back go back. The web chip is centred too. The native camera screen follows the app's chosen theme (System follows the phone): the page passes the saved choice to the scanner, which sets it as the app theme before opening the camera.
 
-States: [Opening camera](./?path=/story/screens-scan--opening-camera), [Closing camera](./?path=/story/screens-scan--closing-camera), [Looking up](./?path=/story/screens-scan--looking-up), [Adding to another day](./?path=/story/screens-scan--adding-to-another-day), [Not found](./?path=/story/screens-scan--not-found), [Camera unavailable](./?path=/story/screens-scan--camera-unavailable).
+States: [Opening camera](./?path=/story/calorie-tracker-screens-scan--opening-camera), [Closing camera](./?path=/story/calorie-tracker-screens-scan--closing-camera), [Looking up](./?path=/story/calorie-tracker-screens-scan--looking-up), [Adding to another day](./?path=/story/calorie-tracker-screens-scan--adding-to-another-day), [Not found](./?path=/story/calorie-tracker-screens-scan--not-found), [Camera unavailable](./?path=/story/calorie-tracker-screens-scan--camera-unavailable).
 
 `data-testid`: `scan-opening-camera`, `scan-closing-camera`, `scan-looking-up`, `scan-adding`, `scan-not-found` (the not-found box, with `scan-not-found-message` and `scan-not-found-hint`), `scan-camera-unavailable-error`, `scan-camera-unavailable-retry`, `scan-search`, `scan-again`, `back`.

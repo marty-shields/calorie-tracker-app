@@ -66,7 +66,7 @@ public sealed class FoodSearchGroupsSteps(FoodSearchScreen foods, ServingScreen 
     public void ThenTheCommonGroupShowsFiveAndAShowMoreRow()
     {
         more = foods.MoreCount("common");
-        Assert.That(foods.RowIds("common"), Has.Count.EqualTo(5));
+        web.Eventually(() => foods.RowIds("common").Count, Is.EqualTo(5));
         rowsBefore = 5;
     }
 

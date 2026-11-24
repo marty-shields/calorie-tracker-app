@@ -1,22 +1,14 @@
 @using System.Globalization
 @using CalorieTracker.Core.Data
 @using CalorieTracker.Core.Trends
-@using CalorieTracker.UI.Components.Charts
-@using CalorieTracker.UI.Components.Feedback
-@using CalorieTracker.UI.Components.Inputs
-@using CalorieTracker.UI.Components.Lists
-<AppScreen Title="Trends" Destination="NavDestination.Trends" OnNavigate="OnNavigate" OnAdd="OpenSheet" Status="Notice">
+<NavScreen Title="Trends" Destination="NavDestination.Trends" OnNavigate="OnNavigate" OnAdd="OpenSheet" Status="Notice">
     <Actions>
         <IconButton Icon="IconName.Settings" AriaLabel="Settings" TestId="settings" OnClick="OnSettings" />
     </Actions>
     <ChildContent>
         <div class="body">
             <SegmentedControl TValue="TrendsPeriod" Label="Period" Options="Periods" Value="Period" ValueChanged="OnPeriodChanged" TestId="trends-period" />
-            <div class="strip" data-testid="trends-strip">
-                <IconButton Icon="IconName.ChevronLeft" AriaLabel="@($"Previous {PeriodWord}")" TestId="trends-previous" OnClick="OnPrevious" />
-                <h2 class="label" data-wrap-ok aria-live="polite" data-testid="trends-label">@TrendsRoute.Label(Period, Start)</h2>
-                <IconButton Icon="IconName.Chevron" AriaLabel="@($"Next {PeriodWord}")" TestId="trends-next" Disabled="AtCurrentPeriod" OnClick="OnNext" />
-            </div>
+            <PeriodStepper Kind="Kind" Label="@TrendsRoute.Label(Period, Start)" CanGoPrevious="true" CanGoNext="!AtCurrentPeriod" OnPrevious="OnPrevious" OnNext="OnNext" TestId="trends" />
             @if (LoadFailed)
             {
                 <LoadFailed Message="Couldn't load your trends" TestId="trends-load-failed" OnRetry="OnRetry" />
@@ -46,7 +38,7 @@
         </div>
         <AddSheetHost Open="sheetOpen" Date="Today" OnClose="CloseSheet" Usual="UsualFoods" AddError="@UsualAddError" OnMealChanged="OnMealChanged" OnAddUsual="OnAddUsual" OnSearch="OnAdd" OnScan="OnScan" />
     </ChildContent>
-</AppScreen>
+</NavScreen>
 
 @code {
     private static readonly IReadOnlyList<RadioOption<TrendsPeriod>> Periods =
@@ -57,6 +49,11 @@
     ];
 
     private static readonly CultureInfo Culture = CultureInfo.InvariantCulture;
+
+    private const string NoDaysText = "No days logged yet";
+
+    /// <summary>The calendar's headings, Sunday first whatever the week's first day, so they do not depend on the device's language.</summary>
+    private static readonly IReadOnlyList<string> WeekdayLetters = ["S", "M", "T", "W", "T", "F", "S"];
 
     private RenderFragment Notice => @<Snackbar />;
 
@@ -94,11 +91,11 @@
     [Parameter]
     public EventCallback<TrendsPeriod> OnPeriodChanged { get; set; }
 
-    /// <summary>Raised by the strip's previous arrow.</summary>
+    /// <summary>Raised by the stepper's previous arrow.</summary>
     [Parameter]
     public EventCallback OnPrevious { get; set; }
 
-    /// <summary>Raised by the strip's next arrow, which is off while the current span shows.</summary>
+    /// <summary>Raised by the stepper's next arrow, which is off while the current span shows.</summary>
     [Parameter]
     public EventCallback OnNext { get; set; }
 
@@ -152,7 +149,12 @@
 
     private bool AtCurrentPeriod => TrendsRoute.IsCurrent(Period, Start, Today);
 
-    private string PeriodWord => Period.ToString().ToLowerInvariant();
+    private PeriodKind Kind => Period switch
+    {
+        TrendsPeriod.Week => PeriodKind.Week,
+        TrendsPeriod.Month => PeriodKind.Month,
+        _ => PeriodKind.Year,
+    };
 
     private static string Number(int value) => value.ToString("N0", Culture);
 
@@ -171,22 +173,22 @@
     {
         if (average is not { } kcal || target is not { } goal)
         {
-            return "kcal a day on average";
+            return "kcal a day";
         }
 
         var gap = kcal - goal;
-        return gap == 0 ? "kcal a day on average, on target" : $"kcal a day on average, {Number(Math.Abs(gap))} {(gap > 0 ? "over" : "under")} target";
+        return gap == 0 ? "kcal a day, on target" : $"kcal a day, {Number(Math.Abs(gap))} {(gap > 0 ? "over" : "under")} target";
     }
 
     private static string Plural(int count, string one, string many) => count == 1 ? one : many;
 
-    private IReadOnlyList<LegendItem> Legend(int? target, bool notLogged = false) =>
+    private IReadOnlyList<LegendItem> Legend(int? target, bool month = false) =>
     [
-        new(LegendKind.Under, "Under"),
-        new(LegendKind.OnTarget, "On target"),
-        new(LegendKind.Over, "Over"),
-        .. notLogged ? new[] { new LegendItem(LegendKind.NotLogged, "Not logged") } : [],
-        .. target is { } goal ? new[] { new LegendItem(LegendKind.TargetLine, $"Target {Number(goal)}, band ±10%") } : [],
+        new(LegendSwatch.Chip, "Under"),
+        new(month ? LegendSwatch.Check : LegendSwatch.Accent, "On target"),
+        new(LegendSwatch.Error, "Over"),
+        .. month ? new[] { new LegendItem(LegendSwatch.Outline, "Not logged") } : [],
+        .. target is { } goal ? new[] { new LegendItem(LegendSwatch.Line, $"Target {Number(goal)}"), new LegendItem(LegendSwatch.Band, "Band ±10%") } : [],
     ];
 
     private RenderFragment WeekBody(TrendsReport report) => @<text>
@@ -195,38 +197,35 @@
             var target = TargetOf(report);
         }
         <div class="tiles">
-            <StatTile TestId="trends-average" Figure="@(range.AverageKcal is { } avg ? Number(avg) : "–")" Caption="@AverageCaption(range.Enough.Average ? range.AverageKcal : null, target)" NotEnoughDays="!range.Enough.Average" />
-            <StatTile TestId="trends-on-target" Figure="@($"{range.OnTarget} of {report.Days.Count}")" Caption="days within 10% of target" NotEnoughDays="!range.Enough.Counts" />
+            <StatTile TestId="trends-average" Label="Average" Value="@(range.AverageKcal is { } avg ? Number(avg) : "–")" Caption="@AverageCaption(range.Enough.Average ? range.AverageKcal : null, target)" NotEnoughData="!range.Enough.Average" />
+            <StatTile TestId="trends-on-target" Label="On target" Value="@($"{range.OnTarget} of {report.Days.Count}")" Caption="days within 10% of target" NotEnoughData="!range.Enough.Counts" />
         </div>
-        <SummaryCard TestId="trends-days">
-            <h3 class="card-title" data-testid="trends-days-title">Calories by day</h3>
+        <Card Title="Calories by day" TestId="trends-days">
             <div class="card-body">
                 <ChartLegend Items="Legend(target)" TestId="trends-legend" />
-                <TrendBarChart Bars="DayBars(report)" Target="target" DateFormat="ddd d MMM" Label="Calories by day" TestId="trends-chart" OnSelect="OnSelectDay" />
+                <TrendBarChart Bars="DayBars(report)" Target="target" ShowOverMarker="false" DateFormat="ddd d MMM" Label="Calories by day" Unit="kcal" EmptyText="@NoDaysText" TestId="trends-chart" OnSelect="OnSelectDay" />
             </div>
-        </SummaryCard>
-        <SummaryCard TestId="trends-macros">
-            <h3 class="card-title" data-testid="trends-macros-title">Average macros</h3>
+        </Card>
+        <Card Title="Average macros" TestId="trends-macros">
             @if (range.Enough.Macros && range.AverageMacros is { } macros)
             {
-                <EnergyShareBar Protein="macros.ProteinG" Carbs="macros.CarbsG" Fat="macros.FatG" TestId="trends-share" />
+                <StackedBar Label="Average energy share" Segments="MacroSegments.Of(macros.ProteinG, macros.CarbsG, macros.FatG)" TestId="trends-share" />
             }
             else
             {
-                <p class="note" data-wrap-ok data-testid="trends-macros-note">Not enough days yet</p>
+                <Typography Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-macros-note" data-wrap-ok>Not enough data yet</Typography>
             }
-        </SummaryCard>
-        <SummaryCard TestId="trends-meals">
-            <h3 class="card-title" data-testid="trends-meals-title">Kcal by meal</h3>
+        </Card>
+        <Card Title="Kcal by meal" TestId="trends-meals">
             @if (range.Enough.ByMeal && range.AverageKcalByMeal is { } meals)
             {
                 <BarList Items="MealItems(meals)" Label="Average kcal by meal" TestId="trends-meal-list" />
             }
             else
             {
-                <p class="note" data-wrap-ok data-testid="trends-meals-note">Not enough days yet</p>
+                <Typography Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-meals-note" data-wrap-ok>Not enough data yet</Typography>
             }
-        </SummaryCard>
+        </Card>
     </text>;
 
     private RenderFragment MonthBody(TrendsReport report) => @<text>
@@ -237,39 +236,36 @@
             var streak = current ? range.Streak : LongestRun(report);
         }
         <div class="tiles">
-            <StatTile TestId="trends-average" Figure="@(range.AverageKcal is { } avg ? Number(avg) : "–")" Caption="kcal a day on average" NotEnoughDays="!range.Enough.Average" />
-            <StatTile TestId="trends-on-target" Figure="@($"{range.OnTarget} of {range.Under + range.OnTarget + range.Over}")" Caption="logged days within 10% of target" NotEnoughDays="!range.Enough.Counts" />
-            <StatTile TestId="trends-streak" Figure="@($"{streak} {Plural(streak, "day", "days")}")" Caption="@(current ? "logging streak" : "longest logging streak")" />
-            <StatTile TestId="trends-logged" Figure="@($"{range.DaysLogged} of {range.PastDays}")" Caption="past days logged" />
+            <StatTile TestId="trends-average" Label="Average" Value="@(range.AverageKcal is { } avg ? Number(avg) : "–")" Caption="kcal a day" NotEnoughData="!range.Enough.Average" />
+            <StatTile TestId="trends-on-target" Label="On target" Value="@($"{range.OnTarget} of {range.Under + range.OnTarget + range.Over}")" Caption="logged days within 10% of target" NotEnoughData="!range.Enough.Counts" />
+            <StatTile TestId="trends-streak" Label="@(current ? "Streak" : "Longest streak")" Value="@($"{streak} {Plural(streak, "day", "days")}")" Caption="logged in a row" />
+            <StatTile TestId="trends-logged" Label="Logged" Value="@($"{range.DaysLogged} of {range.PastDays}")" Caption="past days logged" />
         </div>
-        <SummaryCard TestId="trends-calendar-card">
-            <h3 class="card-title" data-testid="trends-calendar-card-title">Each day</h3>
+        <Card Title="Each day" TestId="trends-calendar-card">
             <div class="card-body">
-                <ChartLegend Items="Legend(target, notLogged: true)" TestId="trends-legend" />
-                <MonthCalendar Month="Start" Days="CalendarDays(report)" Target="target" Today="Today" TestId="trends-calendar" OnSelect="OnSelectDay" />
+                <ChartLegend Items="Legend(target, month: true)" TestId="trends-legend" />
+                <MonthCalendar Month="Start" Days="CalendarDays(report)" Target="target" ShowOverMarker="false" Today="Today" Unit="kcal" FirstDayOfWeek="DayOfWeek.Monday" DayNames="WeekdayLetters" TestId="trends-calendar" OnSelect="OnSelectDay" />
             </div>
-        </SummaryCard>
-        <SummaryCard TestId="trends-weeks">
-            <h3 class="card-title" data-testid="trends-weeks-title">Average a day, by week</h3>
+        </Card>
+        <Card Title="Average a day, by week" TestId="trends-weeks">
             <div class="card-body">
-                <TrendBarChart Bars="BucketBars(report)" Target="target" DateFormat="'Week of' d MMM" Label="Average a day, by week" TestId="trends-weeks-chart" OnSelect="OnSelectWeek" />
+                <TrendBarChart Bars="BucketBars(report)" Target="target" ShowOverMarker="false" DateFormat="'Week of' d MMM" Label="Average a day, by week" Unit="kcal" EmptyText="@NoDaysText" TestId="trends-weeks-chart" OnSelect="OnSelectWeek" />
                 @if (report.Buckets.Any(Thin))
                 {
-                    <p class="note" data-wrap-ok data-testid="trends-thin-note">Faded bars rest on fewer than @TrendsService.MinDays logged days.</p>
+                    <Typography Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-thin-note" data-wrap-ok>Faded bars rest on fewer than @TrendsService.MinDays logged days.</Typography>
                 }
             </div>
-        </SummaryCard>
-        <SummaryCard TestId="trends-top">
-            <h3 class="card-title" data-testid="trends-top-title">Top foods</h3>
+        </Card>
+        <Card Title="Top foods" TestId="trends-top">
             @if (range.Enough.TopFoods && range.TopFoods.Count > 0)
             {
                 <BarList Items="TopItems(range)" Label="Top foods by kcal" TestId="trends-top-list" />
             }
             else
             {
-                <p class="note" data-wrap-ok data-testid="trends-top-note">Not enough days yet</p>
+                <Typography Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-top-note" data-wrap-ok>Not enough data yet</Typography>
             }
-        </SummaryCard>
+        </Card>
     </text>;
 
     private RenderFragment YearBody(TrendsReport report) => @<text>
@@ -283,41 +279,39 @@
             var percent = range.PastDays == 0 ? 0 : (int)Math.Round(100.0 * range.DaysLogged / range.PastDays, MidpointRounding.AwayFromZero);
         }
         <div class="tiles">
-            <StatTile TestId="trends-average" Figure="@(range.AverageKcal is { } avg ? Number(avg) : "–")" Caption="kcal a day on average" NotEnoughDays="!range.Enough.Average" />
-            <StatTile TestId="trends-on-target" Figure="@($"{onTarget} of {judged.Count}")" Caption="months averaging within 10% of target" NotEnoughDays="judged.Count == 0" />
-            <StatTile TestId="trends-logged" Figure="@($"{percent}%")" Caption="@($"{range.DaysLogged} of {range.PastDays} days logged")" />
-            <StatTile TestId="trends-lowest" Figure="@(lowest is null ? "–" : lowest.Start.ToString("MMM", Culture))" Caption="@(lowest is null ? "lowest month" : $"lowest month, {Number(lowest.AverageKcal!.Value)} kcal a day")" NotEnoughDays="lowest is null" />
+            <StatTile TestId="trends-average" Label="Average" Value="@(range.AverageKcal is { } avg ? Number(avg) : "–")" Caption="kcal a day" NotEnoughData="!range.Enough.Average" />
+            <StatTile TestId="trends-on-target" Label="On target" Value="@($"{onTarget} of {judged.Count}")" Caption="months averaging within 10% of target" NotEnoughData="judged.Count == 0" />
+            <StatTile TestId="trends-logged" Label="Logged" Value="@($"{percent}%")" Caption="@($"{range.DaysLogged} of {range.PastDays} days")" />
+            <StatTile TestId="trends-lowest" Label="Lowest month" Value="@(lowest is null ? "–" : lowest.Start.ToString("MMM", Culture))" Caption="@(lowest is null ? null : $"{Number(lowest.AverageKcal!.Value)} kcal a day")" NotEnoughData="lowest is null" />
         </div>
-        <SummaryCard TestId="trends-months">
-            <h3 class="card-title" data-testid="trends-months-title">Average a day, by month</h3>
+        <Card Title="Average a day, by month" TestId="trends-months">
             <div class="card-body">
                 <ChartLegend Items="Legend(target)" TestId="trends-legend" />
-                <TrendBarChart Bars="BucketBars(report)" Target="target" DateFormat="MMMM yyyy" Label="Average a day, by month" TestId="trends-months-chart" OnSelect="OnSelectMonth" />
+                <TrendBarChart Bars="BucketBars(report)" Target="target" ShowOverMarker="false" DateFormat="MMMM yyyy" Label="Average a day, by month" Unit="kcal" EmptyText="@NoDaysText" TestId="trends-months-chart" OnSelect="OnSelectMonth" />
                 @if (report.Buckets.Any(Thin))
                 {
-                    <p class="note" data-wrap-ok data-testid="trends-thin-note">Faded bars rest on fewer than @TrendsService.MinDays logged days.</p>
+                    <Typography Variant="TextVariant.MutedSmall" As="TextElement.P" TestId="trends-thin-note" data-wrap-ok>Faded bars rest on fewer than @TrendsService.MinDays logged days.</Typography>
                 }
             </div>
-        </SummaryCard>
-        <SummaryCard TestId="trends-logged-card">
-            <h3 class="card-title" data-testid="trends-logged-card-title">Days logged per month</h3>
+        </Card>
+        <Card Title="Days logged per month" TestId="trends-logged-card">
             <BarList Items="LoggedItems(report)" Max="31" Label="Days logged per month" TestId="trends-logged-list" />
-        </SummaryCard>
+        </Card>
     </text>;
 
     private static bool Thin(TrendBucket bucket) => bucket.AverageKcal is not null && bucket.DaysLogged < TrendsService.MinDays;
 
-    private IReadOnlyList<TrendBar> DayBars(TrendsReport report) =>
-        report.Days.Select(d => new TrendBar(d.Date, d.Date.ToString("ddd", Culture), d.Date < Today && d.IsLogged ? d.Totals.Kcal : null, d.TargetKcal)).ToList();
+    private IReadOnlyList<TrendBarPoint> DayBars(TrendsReport report) =>
+        report.Days.Select(d => new TrendBarPoint(d.Date, d.Date.ToString("ddd", Culture), d.Date < Today && d.IsLogged ? d.Totals.Kcal : null, d.TargetKcal)).ToList();
 
     private IReadOnlyList<CalendarDay> CalendarDays(TrendsReport report) =>
         report.Days.Select(d => new CalendarDay(d.Date, d.Date < Today && d.IsLogged ? d.Totals.Kcal : null, d.TargetKcal)).ToList();
 
-    private IReadOnlyList<TrendBar> BucketBars(TrendsReport report)
+    private IReadOnlyList<TrendBarPoint> BucketBars(TrendsReport report)
     {
         var weeks = report.BucketKind == TrendBucketKind.Week;
         // A week is named and opened by its Monday, even when the range clips its first bucket to the 1st.
-        return report.Buckets.Select((b, index) => new TrendBar(
+        return report.Buckets.Select((b, index) => new TrendBarPoint(
             weeks ? TrendsRoute.Start(TrendsPeriod.Week, b.Start) : b.Start,
             weeks ? $"W{index + 1}" : b.Start.ToString("MMM", Culture),
             b.AverageKcal,

@@ -54,7 +54,7 @@ public class FoodSearchRouteTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(serving, Does.Contain("ServingRoute.AfterAddTarget(RouteDate.Parse(DateText), meal)"));
+            Assert.That(serving, Does.Contain("OnAdded=\"@(_ => Navigation.GoTo(DashboardRoute.Url(RouteDate.Parse(DateText))))\""));
             Assert.That(foods, Does.Contain("ServingRoute.Url(request.Food.Id, meal, date, backTo:"));
             Assert.That(foods, Does.Not.Contain("meal, date, returnTo"));
         });
@@ -100,24 +100,18 @@ public class FoodSearchRouteTests
         Assert.That(DashboardRoute.Url(new DateOnly(2031, 7, 4)), Is.EqualTo("/?date=2031-07-04"));
 
     [Test]
-    public void DashboardRoute_CanOpenAMealOnADayOrOnToday() =>
-        Assert.Multiple(() =>
-        {
-            Assert.That(DashboardRoute.Url(new DateOnly(2031, 7, 4), Meal.Lunch), Is.EqualTo("/?date=2031-07-04&open=Lunch"));
-            Assert.That(DashboardRoute.Url(null, Meal.Snacks), Is.EqualTo("/?open=Snacks"));
-            Assert.That(DashboardRoute.Url(null), Is.EqualTo("/"));
-        });
+    public void DashboardRoute_WithNoDay_IsToday() =>
+        Assert.That(DashboardRoute.Url(null), Is.EqualTo("/"));
 
     [Test]
-    public void TheHomePage_PassesTheOpenQueryToTheDashboard()
+    public void TheHomePage_TakesNoOpenQuery()
     {
         var home = RepoFiles.Read("src", "CalorieTracker.App", "Components", "Pages", "Home.razor");
 
         Assert.Multiple(() =>
         {
-            Assert.That(home, Does.Contain("[SupplyParameterFromQuery(Name = \"open\")]"));
-            Assert.That(home, Does.Contain("OpenMeal=\"openMeal\""));
-            Assert.That(home, Does.Contain("ServingRoute.ParseMeal(OpenText)"));
+            Assert.That(home, Does.Not.Contain("Name = \"open\""));
+            Assert.That(home, Does.Not.Contain("OpenMeal"));
         });
     }
 

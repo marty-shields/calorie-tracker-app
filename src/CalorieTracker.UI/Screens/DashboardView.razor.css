@@ -16,7 +16,7 @@
     gap: var(--space-4);
 }
 
-.card {
+.ring-row {
     display: flex;
     align-items: center;
     gap: var(--space-4);
@@ -30,19 +30,16 @@
     min-width: 0;
 }
 
-.figure {
-    margin: 0;
-    color: var(--color-text-muted);
-}
-
-.figure strong {
-    color: var(--color-text);
-    font-variant-numeric: tabular-nums;
-}
-
 .meal {
     display: flex;
     flex-direction: column;
+    gap: var(--space-2);
+}
+
+.meal-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
     gap: var(--space-2);
 }
 
@@ -53,7 +50,5 @@
 }
 
 .none {
-    margin: 0;
     padding: var(--space-2) var(--space-1);
-    color: var(--color-text-muted);
 }

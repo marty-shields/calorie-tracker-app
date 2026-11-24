@@ -4,14 +4,6 @@
     gap: var(--space-3);
 }
 
-.heading {
-    margin: 0;
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
-}
-
 .body {
     min-height: 100%;
     display: flex;
@@ -21,13 +13,5 @@
 
 .version {
     margin: auto 0 0;
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
     text-align: center;
-}
-
-.hint {
-    margin: 0;
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
 }

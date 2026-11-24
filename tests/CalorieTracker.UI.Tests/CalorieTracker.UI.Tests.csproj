@@ -6,6 +6,15 @@
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
   </ItemGroup>
 
+  <!-- The kit's test helpers (Shields.UI.Testing: KitCss, KitNames, DesignTokens) comes from NuGet; -p:UseKitSource=true builds against the kit's source at KitPath instead. -->
+  <ItemGroup Condition="'$(UseKitSource)' != 'true'">
+    <PackageReference Include="Shields.UI.Testing" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseKitSource)' == 'true'">
+    <ProjectReference Include="$(KitSourcePath)/src/Shields.UI.Testing/Shields.UI.Testing.csproj" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\CalorieTracker.UI\CalorieTracker.UI.csproj" />
     <ProjectReference Include="..\..\src\CalorieTracker.UI.Stories\CalorieTracker.UI.Stories.csproj" />

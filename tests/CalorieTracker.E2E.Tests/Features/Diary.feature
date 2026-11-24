@@ -1,5 +1,5 @@
 Feature: Diary
-  Tapping an entry on Today opens Serving in edit mode. Save changes the amount or moves the entry to another meal; the trash icon removes it, and Today offers Undo. Each scenario adds one entry first. A meal past its window is folded on Today, and the steps that read or tap its entries open it first.
+  Tapping an entry on Today opens Serving in edit mode. Save changes the amount or moves the entry to another meal; the trash icon removes it, and Today offers Undo. Each scenario adds one entry first. Every meal on Today starts open; the steps that read or tap a meal's entries open it first if a scenario folded it.
 
   Scenario: An entry opens Serving in edit mode with a named trash icon
     Given I have added 100 g of the first food found by "oat" to Lunch
@@ -55,13 +55,13 @@ Feature: Diary
     And Lunch lists no entries
 
   @today
-  Scenario: A folded meal opens on tap and shows its entries, and folds again after leaving Today
+  Scenario: A meal folds on tap, opens on tap, and is open again after leaving Today
     Given I am on the Dashboard
-    And the app clock reads 19:30
     And I have added 100 g of the first food found by "oat" to Lunch
-    When I leave Today and come back
+    When I tap the Lunch header
     Then Lunch is folded to one line with 1 item and its kcal
     When I tap the Lunch header
     Then Lunch is open with its entry shown
-    When I leave Today and come back
-    Then Lunch is folded to one line with 1 item and its kcal
+    When I tap the Lunch header
+    And I leave Today and come back
+    Then Lunch is open with its entry shown

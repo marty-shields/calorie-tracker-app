@@ -1,6 +1,6 @@
 using Android.Views;
-using CalorieTracker.UI.Theme;
 using Microsoft.AspNetCore.Components;
+using Shields.UI.Theme;
 using View = Android.Views.View;
 
 namespace CalorieTracker.App.Components;

@@ -212,7 +212,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
 
         var before = cut.FindAll("[data-testid^=food-online-]").Count;
         var heading = cut.Find("[data-testid=food-group-online]").TextContent;
-        var more = cut.Find("[data-testid=food-group-online-more]").TextContent;
+        var more = cut.Find("[data-testid=food-group-online-more]").TextContent.Trim();
         await cut.Find("[data-testid=food-group-online-more]").ClickAsync(new());
 
         Assert.Multiple(() =>
@@ -415,7 +415,7 @@ public class FoodSearchOnlinePageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(cut.FindAll("[data-testid^=food-online-5]"), Has.Count.EqualTo(5));
-            Assert.That(cut.Find("[data-testid=food-group-online-more]").TextContent, Is.EqualTo("Show 3 more"));
+            Assert.That(cut.Find("[data-testid=food-group-online-more]").TextContent.Trim(), Is.EqualTo("Show 3 more"));
         });
     }
 

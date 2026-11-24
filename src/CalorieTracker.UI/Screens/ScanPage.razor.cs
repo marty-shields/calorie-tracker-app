@@ -1,12 +1,11 @@
 using CalorieTracker.Core.Foods;
 using CalorieTracker.UI.Logging;
 using CalorieTracker.UI.Models.Scan;
-using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Scanning;
-using CalorieTracker.UI.Theme;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
+using Shields.UI.Theme;
 
 namespace CalorieTracker.UI.Screens;
 

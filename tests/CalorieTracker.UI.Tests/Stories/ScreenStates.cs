@@ -3,25 +3,26 @@ using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Foods;
 using CalorieTracker.Core.Summary;
 using CalorieTracker.Core.Trends;
-using CalorieTracker.UI.Components.Feedback;
 using CalorieTracker.UI.Models.Scan;
 using CalorieTracker.UI.Models.Search;
 using CalorieTracker.UI.Models.Serving;
-using CalorieTracker.UI.Models.Settings;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Screens;
+using CalorieTracker.UI.Stories;
 using CalorieTracker.UI.Stories.Stories.Screens;
 using Microsoft.Extensions.DependencyInjection;
+using Shields.UI.Components.Feedback;
+using Shields.UI.Theme;
 
 namespace CalorieTracker.UI.Tests.Stories;
 
 /// <summary>A screen state: its stories section and story name, and how to render it.</summary>
-/// <param name="Section">Stories title, e.g. "Screens/Settings".</param>
+/// <param name="Section">Stories title under the app's section, e.g. "Screens/Settings".</param>
 /// <param name="Name">Story name.</param>
 /// <param name="Render">Renders the state with every callback set and returns its elements.</param>
 public sealed record ScreenState(string Section, string Name, Func<BunitContext, IReadOnlyList<IElement>> Render)
 {
-    public override string ToString() => $"{Section}/{Name}";
+    public override string ToString() => $"{StoryTitles.Prefix}{Section}/{Name}";
 }
 
 /// <summary>Every screen state that has a story, in story order. Renders mirror the stories, with every callback set.</summary>
@@ -97,18 +98,14 @@ public static class ScreenStates
 
     public static IReadOnlyList<ScreenState> All { get; } =
     [
-        new("Screens/Startup", "Loading", c => c.Render<StartupView>().FindAll("*")),
-        new("Screens/Startup", "Load failed", c => c.Render<StartupView>(p => p.Add(x => x.Failed, true)).FindAll("*")),
 
         new("Screens/Dashboard", "First run", c => Dashboard(c, DashboardSamples.FirstRun)),
         new("Screens/Dashboard", "No target", c => Dashboard(c, DashboardSamples.NoTarget)),
-        new("Screens/Dashboard", "Today morning", c => Dashboard(c, DashboardSamples.EarlyDay, now: DashboardSamples.Morning)),
-        new("Screens/Dashboard", "Today midday", c => Dashboard(c, DashboardSamples.Loaded)),
-        new("Screens/Dashboard", "Today evening", c => Dashboard(c, DashboardSamples.FullDay, now: DashboardSamples.Evening)),
-        new("Screens/Dashboard", "Folded meal opened", c => Dashboard(c, DashboardSamples.FullDay, now: DashboardSamples.Evening, openMeal: Meal.Lunch)),
-        new("Screens/Dashboard", "Now meal folded", c => Dashboard(c, DashboardSamples.Loaded, foldedMeal: Meal.Lunch)),
-        new("Screens/Dashboard", "Past day", c => Dashboard(c, DashboardSamples.FullDay, DashboardSamples.Today.AddDays(-1), now: DashboardSamples.Evening)),
-        new("Screens/Dashboard", "Empty day", c => Dashboard(c, DashboardSamples.FirstRun, now: DashboardSamples.Evening)),
+        new("Screens/Dashboard", "Today", c => Dashboard(c, DashboardSamples.Loaded)),
+        new("Screens/Dashboard", "Full day", c => Dashboard(c, DashboardSamples.FullDay)),
+        new("Screens/Dashboard", "Meal folded", c => Dashboard(c, DashboardSamples.Loaded, foldedMeal: Meal.Lunch)),
+        new("Screens/Dashboard", "Past day", c => Dashboard(c, DashboardSamples.FullDay, DashboardSamples.Today.AddDays(-1))),
+        new("Screens/Dashboard", "Empty day", c => Dashboard(c, DashboardSamples.FirstRun)),
         new("Screens/Dashboard", "Over target", c => Dashboard(c, DashboardSamples.OverTarget)),
         new("Screens/Dashboard", "Loading", c => Dashboard(c, null, loading: true)),
         new("Screens/Dashboard", "Load failed", c => Dashboard(c, null, loadFailed: true)),
@@ -197,7 +194,6 @@ public static class ScreenStates
         new("Screens/Serving", "Load failed", c => Serving(c, null, loadFailed: true)),
         new("Screens/Serving", "Food not found", c => Serving(c, null)),
 
-        new("Screens/Error", "Error", c => c.Render<ErrorView>(p => p.Add(x => x.OnRestart, () => { })).FindAll("*")),
     ];
 
     private static IReadOnlyList<IElement> FoodSearch(BunitContext context, string query = "", IReadOnlyList<FoodGroup>? groups = null, bool loading = false, bool failed = false, Meal meal = Meal.Lunch, FoodGroupKind[]? expanded = null,
@@ -294,12 +290,10 @@ public static class ScreenStates
             .Add(x => x.OnBack, () => { }))
             .FindAll("*");
 
-    private static IReadOnlyList<IElement> Dashboard(BunitContext context, DaySummary? summary, DateOnly? date = null, bool loading = false, bool loadFailed = false, string? snackbar = null, TimeOnly? now = null, Meal? openMeal = null, Meal? foldedMeal = null) =>
+    private static IReadOnlyList<IElement> Dashboard(BunitContext context, DaySummary? summary, DateOnly? date = null, bool loading = false, bool loadFailed = false, string? snackbar = null, Meal? foldedMeal = null) =>
         Posted(context, snackbar, "Undo").Render<DashboardView>(p => p
             .Add(x => x.Date, date ?? DashboardSamples.Today)
             .Add(x => x.Today, DashboardSamples.Today)
-            .Add(x => x.Now, now ?? DashboardSamples.Midday)
-            .Add(x => x.OpenMeal, openMeal)
             .Add(x => x.FoldedMeal, foldedMeal)
             .Add(x => x.Summary, summary)
             .Add(x => x.Loading, loading)

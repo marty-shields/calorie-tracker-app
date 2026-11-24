@@ -3,12 +3,12 @@ using CalorieTracker.Core.Data;
 using CalorieTracker.Core.Diary;
 using CalorieTracker.Core.Summary;
 using CalorieTracker.Core.Targets;
-using CalorieTracker.UI.Lifecycle;
 using CalorieTracker.UI.Navigation;
 using CalorieTracker.UI.Screens;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
+using Shields.UI.Lifecycle;
 using SQLite;
 
 namespace CalorieTracker.UI.Tests.Screens;
@@ -94,7 +94,7 @@ public class DashboardPageTests : ComponentTestBase
         {
             Assert.That(Text(cut, "date-strip-label"), Does.StartWith("Today, 19 Jul"));
             Assert.That(Text(cut, "dashboard-empty-message"), Is.EqualTo("Nothing logged today"));
-            Assert.That(Text(cut, "dashboard-ring-label"), Is.EqualTo("kcal eaten"));
+            Assert.That(Text(cut, "dashboard-ring-caption"), Is.EqualTo("kcal eaten"));
             Assert.That(Text(cut, "dashboard-no-target"), Is.EqualTo("No target set"));
         });
     }
@@ -109,14 +109,14 @@ public class DashboardPageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(Text(cut, "meal-lunch-calories"), Is.EqualTo("125 kcal"));
+            Assert.That(Text(cut, "meal-lunch-total"), Is.EqualTo("125 kcal"));
             Assert.That(Text(cut, "dashboard-eaten"), Is.EqualTo("125"));
             Assert.That(Text(cut, "dashboard-ring-value"), Is.EqualTo("1,975"));
-            Assert.That(Text(cut, "dashboard-ring-label"), Is.EqualTo("kcal left"));
-            Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul .row"), Has.Count.EqualTo(1));
-            Assert.That(cut.FindAll("[data-testid=meal-breakfast] ~ ul .row"), Is.Empty);
+            Assert.That(Text(cut, "dashboard-ring-caption"), Is.EqualTo("kcal left"));
+            Assert.That(cut.FindAll("[data-testid=meal-lunch-section] ul .row"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll("[data-testid=meal-breakfast-section] ul .row"), Is.Empty);
             Assert.That(Exists(cut, "dashboard-empty"), Is.False);
-            Assert.That(Text(cut, "dashboard-share-protein"), Does.Contain("7.6 g"));
+            Assert.That(Text(cut, "dashboard-share-label-0"), Is.EqualTo("Protein 7.6 g"));
         });
     }
 
@@ -155,8 +155,8 @@ public class DashboardPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(Text(cut, "dashboard-eaten"), Is.EqualTo("125"));
-            Assert.That(Text(cut, "meal-lunch-calories"), Is.EqualTo("125 kcal"));
-            Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul .row"), Has.Count.EqualTo(1));
+            Assert.That(Text(cut, "meal-lunch-total"), Is.EqualTo("125 kcal"));
+            Assert.That(cut.FindAll("[data-testid=meal-lunch-section] ul .row"), Has.Count.EqualTo(1));
         });
     }
 
@@ -171,7 +171,7 @@ public class DashboardPageTests : ComponentTestBase
         Assert.Multiple(() =>
         {
             Assert.That(Text(cut, "dashboard-ring-value"), Is.EqualTo("16"));
-            Assert.That(Text(cut, "dashboard-ring-label"), Is.EqualTo("kcal over"));
+            Assert.That(Text(cut, "dashboard-ring-caption"), Is.EqualTo("kcal over"));
         });
     }
 
@@ -245,7 +245,7 @@ public class DashboardPageTests : ComponentTestBase
 
         await connection.ExecuteAsync("ALTER TABLE FoodAway RENAME TO Food");
         await cut.Find("[data-testid=dashboard-load-failed-retry]").ClickAsync();
-        cut.WaitForAssertion(() => Assert.That(Text(cut, "meal-lunch-calories"), Is.EqualTo("125 kcal")));
+        cut.WaitForAssertion(() => Assert.That(Text(cut, "meal-lunch-total"), Is.EqualTo("125 kcal")));
     }
 
     [Test]
@@ -301,139 +301,113 @@ public class DashboardPageTests : ComponentTestBase
 
     private FakeTimeProvider Clock => (FakeTimeProvider)Context.Services.GetRequiredService<TimeProvider>();
 
-    [Test]
-    public async Task OnToday_AMealPastItsWindowIsFoldedAndOpensOnTap()
+    private static readonly string[] Meals = ["breakfast", "lunch", "dinner", "snacks"];
+
+    private static string ExpandedOf(IRenderedComponent<DashboardPage> cut, string meal) => cut.Find($"[data-testid=meal-{meal}-toggle]").GetAttribute("aria-expanded")!;
+
+    [TestCase(9, 0)]
+    [TestCase(15, 33)]
+    [TestCase(19, 30)]
+    [TestCase(23, 0)]
+    public async Task AtAnyTimeOfDay_EveryMealOnTodayStartsOpen_AndFoldsAndOpensOnTap(int hour, int minute)
     {
+        Clock.AdjustTime(new DateTimeOffset(2031, 7, 19, hour, minute, 0, TimeSpan.Zero));
         await Log(Today, Meal.Breakfast, 30);
-
-        var cut = Render();
-
-        Assert.That(Text(cut, "meal-breakfast-summary"), Is.EqualTo("1 item · 125 kcal"));
-        Assert.That(Text(cut, "meal-lunch-now"), Is.EqualTo("Now"));
-        Assert.That(Text(cut, "meal-dinner-hint"), Is.EqualTo("from 17:00"));
-
-        await cut.Find("[data-testid=meal-breakfast-toggle]").ClickAsync();
-
-        Assert.That(cut.FindAll("[data-testid=meal-breakfast] ~ ul .row"), Has.Count.EqualTo(1));
-    }
-
-    [Test]
-    public async Task TheTimeDecidesWhichMealsAreOpen_ReadWhenTheDayLoads()
-    {
-        Clock.SetUtcNow(new DateTimeOffset(2031, 7, 19, 19, 30, 0, TimeSpan.Zero));
-        await Log(Today, Meal.Lunch, 30);
+        await Log(Today, Meal.Dinner, 30);
 
         var cut = Render();
 
         Assert.Multiple(() =>
         {
-            Assert.That(Text(cut, "meal-lunch-summary"), Is.EqualTo("1 item · 125 kcal"));
-            Assert.That(Text(cut, "meal-dinner-now"), Is.EqualTo("Now"));
+            Assert.That(Meals.Select(m => ExpandedOf(cut, m)), Is.All.EqualTo("true"));
+            Assert.That(cut.FindAll("[data-testid$=-badge]"), Is.Empty);
+            Assert.That(Text(cut, "meal-lunch-none"), Is.EqualTo("Nothing logged"));
         });
-    }
 
-    [Test]
-    public async Task WhenTheAppResumes_TheMealsReadTheClockAgain_AndTheDayStays()
-    {
-        await Log(Today, Meal.Lunch, 30);
-        var cut = Render();
-        Assert.That(Text(cut, "meal-lunch-now"), Is.EqualTo("Now"));
-
-        Clock.SetUtcNow(new DateTimeOffset(2031, 7, 19, 19, 30, 0, TimeSpan.Zero));
-        await Context.Services.GetRequiredService<IAppLifecycle>().NotifyStartedAsync();
-
-        cut.WaitForAssertion(() =>
-        {
-            Assert.That(Text(cut, "meal-lunch-summary"), Is.EqualTo("1 item · 125 kcal"));
-            Assert.That(Text(cut, "meal-dinner-now"), Is.EqualTo("Now"));
-            Assert.That(Text(cut, "date-strip-label"), Does.StartWith("Today, 19 Jul"));
-        });
-    }
-
-    [Test]
-    public async Task APageThatIsGone_NoLongerListensForResume()
-    {
-        var appStart = new CountingAppStart();
-        Context.Services.AddSingleton<IAppStart>(appStart);
-        var cut = Render();
-        Assert.That(appStart.Live, Is.EqualTo(1));
-
-        await Context.DisposeComponentsAsync();
-
-        Assert.That(appStart.Live, Is.Zero);
-    }
-
-    private sealed class CountingAppStart : IAppStart
-    {
-        public int Live { get; private set; }
-
-        public IDisposable Register(Func<Task> handler)
-        {
-            Live++;
-            return new Registration(this);
-        }
-
-        private sealed class Registration(CountingAppStart owner) : IDisposable
-        {
-            private bool disposed;
-
-            public void Dispose()
-            {
-                if (!disposed)
-                {
-                    disposed = true;
-                    owner.Live--;
-                }
-            }
-        }
-    }
-
-    [Test]
-    public async Task TheClockIsReadAgainWhenADayLoads_NotOnlyWhenThePageStarts()
-    {
-        await Log(Today, Meal.Lunch, 30);
-        var cut = Render();
-        Assert.That(Text(cut, "meal-lunch-now"), Is.EqualTo("Now"));
-
-        Clock.SetUtcNow(new DateTimeOffset(2031, 7, 19, 19, 30, 0, TimeSpan.Zero));
-        await cut.Find("[data-testid=date-strip-next]").ClickAsync();
-        cut.WaitForState(() => cut.FindAll("[data-testid=dashboard-loading]").Count == 0);
-        await cut.Find("[data-testid=date-strip-label]").ClickAsync();
-        cut.WaitForAssertion(() =>
-        {
-            Assert.That(Text(cut, "meal-lunch-summary"), Is.EqualTo("1 item · 125 kcal"));
-            Assert.That(Text(cut, "meal-dinner-now"), Is.EqualTo("Now"));
-        });
-    }
-
-    [Test]
-    public async Task TheOpenMealParameter_ShowsThatMealOpenAfterItsWindow()
-    {
-        Clock.SetUtcNow(new DateTimeOffset(2031, 7, 19, 19, 30, 0, TimeSpan.Zero));
-        await Log(Today, Meal.Lunch, 30);
-
-        var cut = Render(more: p => p.Add(x => x.OpenMeal, Meal.Lunch));
+        await cut.Find("[data-testid=meal-dinner-toggle]").ClickAsync();
+        await cut.Find("[data-testid=meal-snacks-toggle]").ClickAsync();
 
         Assert.Multiple(() =>
         {
-            Assert.That(cut.Find("[data-testid=meal-lunch-toggle]").GetAttribute("aria-expanded"), Is.EqualTo("true"));
-            Assert.That(cut.FindAll("[data-testid=meal-lunch] ~ ul .row"), Has.Count.EqualTo(1));
+            Assert.That(ExpandedOf(cut, "dinner"), Is.EqualTo("false"));
+            Assert.That(Text(cut, "meal-dinner-hint"), Is.EqualTo("1 item · 125 kcal"));
+            Assert.That(ExpandedOf(cut, "snacks"), Is.EqualTo("false"));
+            Assert.That(Text(cut, "meal-snacks-hint"), Is.EqualTo("Nothing logged"));
         });
+
+        await cut.Find("[data-testid=meal-dinner-toggle]").ClickAsync();
+
+        Assert.That(cut.FindAll("[data-testid=meal-dinner-section] ul .row"), Has.Count.EqualTo(1));
     }
 
     [Test]
-    public async Task AnotherDay_ShowsEveryMealOpen_WhateverTheTime()
+    public async Task AnotherDay_EveryMealStartsOpen_AndFoldsOnTap()
     {
-        Clock.SetUtcNow(new DateTimeOffset(2031, 7, 19, 19, 30, 0, TimeSpan.Zero));
         await Log(Today.AddDays(-1), Meal.Breakfast, 30);
 
         var cut = Render(Today.AddDays(-1));
 
-        Assert.Multiple(() =>
+        Assert.That(Meals.Select(m => ExpandedOf(cut, m)), Is.All.EqualTo("true"));
+
+        await cut.Find("[data-testid=meal-breakfast-toggle]").ClickAsync();
+
+        Assert.That(Text(cut, "meal-breakfast-hint"), Is.EqualTo("1 item · 125 kcal"));
+    }
+
+    [Test]
+    public async Task AFoldedMeal_IsOpenAgainAfterMovingToAnotherDayAndBack()
+    {
+        await Log(Today, Meal.Lunch, 30);
+        var cut = Render();
+        await cut.Find("[data-testid=meal-lunch-toggle]").ClickAsync();
+        Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("false"));
+
+        await cut.Find("[data-testid=date-strip-next]").ClickAsync();
+        cut.WaitForState(() => cut.FindAll("[data-testid=dashboard-loading]").Count == 0);
+        await cut.Find("[data-testid=date-strip-label]").ClickAsync();
+
+        cut.WaitForAssertion(() => Assert.That(ExpandedOf(cut, "lunch"), Is.EqualTo("true")));
+    }
+
+    [Test]
+    public async Task ComingBackToToday_StartsWithEveryMealOpen()
+    {
+        await Log(Today, Meal.Lunch, 30);
+        var cut = Render();
+        await cut.Find("[data-testid=meal-lunch-toggle]").ClickAsync();
+        await Context.DisposeComponentsAsync();
+
+        var again = Render();
+
+        Assert.That(Meals.Select(m => ExpandedOf(again, m)), Is.All.EqualTo("true"));
+    }
+
+    [Test]
+    public void ThePage_DoesNotListenForTheAppResuming()
+    {
+        var appStart = new CountingAppStart();
+        Context.Services.AddSingleton<IAppStart>(appStart);
+
+        Render();
+
+        Assert.That(appStart.Registered, Is.Zero, "nothing on Today depends on the time of day any more");
+    }
+
+    private sealed class CountingAppStart : IAppStart
+    {
+        public int Registered { get; private set; }
+
+        public IDisposable Register(Func<Task> handler)
         {
-            Assert.That(Exists(cut, "meal-breakfast-toggle"), Is.False);
-            Assert.That(Exists(cut, "meal-dinner-now"), Is.False);
-            Assert.That(cut.FindAll("[data-testid=meal-breakfast] ~ ul .row"), Has.Count.EqualTo(1));
-        });
+            Registered++;
+            return new Registration();
+        }
+
+        private sealed class Registration : IDisposable
+        {
+            public void Dispose()
+            {
+            }
+        }
     }
 }
