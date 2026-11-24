@@ -203,14 +203,34 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
         Assert.That(dashboard.FoldedLine(meal), Is.EqualTo("Nothing logged"), $"{meal}'s folded line");
     }
 
-    [Then(@"^every meal is open$")]
-    public void ThenEveryMealIsOpen()
+    [Then(@"^every meal is folded$")]
+    public void ThenEveryMealIsFolded()
     {
         journeys.WaitFor(Journeys.Screen.Dashboard);
         foreach (var meal in MealNames)
         {
-            web.Eventually(() => dashboard.Expanded(meal), Is.EqualTo("true"), $"{meal} is open");
+            web.Eventually(() => dashboard.Expanded(meal), Is.EqualTo("false"), $"{meal} is folded");
         }
+    }
+
+    /// <summary>The meals that start open on Today are the ones named (comma separated, Snacks included); every other meal starts folded.</summary>
+    [Then(@"^the meals open on the Dashboard are (.+)$")]
+    public void ThenTheMealsOpenAre(string named)
+    {
+        journeys.WaitFor(Journeys.Screen.Dashboard);
+        var open = named.Split(", ");
+        foreach (var meal in MealNames)
+        {
+            var expected = open.Contains(meal) ? "true" : "false";
+            web.Eventually(() => dashboard.Expanded(meal), Is.EqualTo(expected), $"{meal} is {(expected == "true" ? "open" : "folded")}");
+        }
+    }
+
+    [Then(@"^" + Meals + " is open$")]
+    public void ThenMealIsOpen(string meal)
+    {
+        web.Eventually(() => dashboard.Expanded(meal), Is.EqualTo("true"), $"{meal} is open");
+        Assert.That(dashboard.FoldedLine(meal), Is.Null, $"{meal} is no longer a single line");
     }
 
     [Then(@"^no meal is marked Now or shows a start time$")]

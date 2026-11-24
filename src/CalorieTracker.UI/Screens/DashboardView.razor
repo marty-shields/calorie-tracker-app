@@ -58,7 +58,7 @@
                 @foreach (var meal in summary.Meals)
                 {
                     var id = $"meal-{meal.Meal.ToString().ToLowerInvariant()}";
-                    var isFolded = folded.Contains(meal.Meal);
+                    var isFolded = IsFolded(meal.Meal);
                     var count = meal.Entries.Count;
                     <section class="meal" data-testid="@($"{id}-section")">
                         <div class="meal-head">
@@ -102,8 +102,8 @@
 
     private bool sheetOpen;
 
-    /// <summary>The meals the person folded on the day shown. Every meal starts open; nothing is stored, so another day or a new route opens them all again.</summary>
-    private readonly HashSet<Meal> folded = [];
+    /// <summary>The fold each meal was given on the day shown by a tap, a usual food's add or <see cref="FoldedMeal"/>; a meal not here keeps its default. Nothing is stored, so another day or a new route starts from the defaults again.</summary>
+    private readonly Dictionary<Meal, bool> foldOverrides = [];
     private DateOnly? shownDate;
     private Meal? shownFoldedMeal;
 
@@ -112,7 +112,7 @@
         if (shownDate != Date)
         {
             shownDate = Date;
-            folded.Clear();
+            foldOverrides.Clear();
             shownFoldedMeal = null;
         }
 
@@ -120,24 +120,22 @@
         {
             if (shownFoldedMeal is { } previous)
             {
-                folded.Remove(previous);
+                foldOverrides.Remove(previous);
             }
 
             shownFoldedMeal = FoldedMeal;
             if (FoldedMeal is { } meal)
             {
-                folded.Add(meal);
+                foldOverrides[meal] = true;
             }
         }
     }
 
-    private void Toggle(Meal meal)
-    {
-        if (!folded.Remove(meal))
-        {
-            folded.Add(meal);
-        }
-    }
+    /// <summary>A meal is folded unless the day is today and it is Snacks or the meal whose window holds the time now (<see cref="CurrentMeal"/>), unless a tap or an add says otherwise.</summary>
+    private bool IsFolded(Meal meal) =>
+        foldOverrides.TryGetValue(meal, out var folded) ? folded : !(Date == Today && (meal == Meal.Snacks || meal == CurrentMeal));
+
+    private void Toggle(Meal meal) => foldOverrides[meal] = !IsFolded(meal);
 
     /// <summary>"3 items · 348 kcal", or "Nothing logged" for an empty meal.</summary>
     private static string FoldedSummary(MealSummary meal) =>
@@ -159,7 +157,7 @@
             return false;
         }
 
-        folded.Remove(request.Meal);
+        foldOverrides[request.Meal] = false;
         return true;
     }
 
@@ -178,6 +176,10 @@
     /// <summary>A meal to show folded, as if the person had tapped its header; the stories use it. Applied when its value changes, and forgotten when <see cref="Date"/> changes.</summary>
     [Parameter]
     public Meal? FoldedMeal { get; set; }
+
+    /// <summary>The meal whose window holds the time now. On today it stays open by default, with Snacks; other days ignore it.</summary>
+    [Parameter]
+    public Meal? CurrentMeal { get; set; }
 
     /// <summary>The day's summary. The day is not shown until it is set, or <see cref="LoadFailed"/> is.</summary>
     [Parameter]

@@ -101,12 +101,16 @@ public class AddSheetTests : ComponentTestBase
     }
 
     [TestCase(8, 0, "breakfast")]
+    [TestCase(6, 0, "breakfast")]
+    [TestCase(10, 59, "breakfast")]
     [TestCase(12, 0, "lunch")]
+    [TestCase(14, 59, "lunch")]
     [TestCase(18, 0, "dinner")]
-    [TestCase(16, 0, "snacks")]
+    [TestCase(19, 59, "dinner")]
+    [TestCase(15, 0, "dinner")]
+    [TestCase(20, 0, "snacks")]
     [TestCase(22, 0, "snacks")]
-    [TestCase(4, 59, "snacks")]
-    [TestCase(5, 0, "breakfast")]
+    [TestCase(5, 59, "snacks")]
     public void Open_SelectsTheMealOfTheCurrentTime(int hour, int minute, string expected)
     {
         At(hour, minute);

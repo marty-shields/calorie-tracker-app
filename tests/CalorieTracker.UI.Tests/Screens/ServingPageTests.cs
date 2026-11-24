@@ -531,13 +531,11 @@ public class ServingPageTests : ComponentTestBase
     [TestCase(10, 59, "breakfast")]
     [TestCase(11, 0, "lunch")]
     [TestCase(14, 59, "lunch")]
-    [TestCase(15, 0, "snacks")]
-    [TestCase(16, 59, "snacks")]
-    [TestCase(17, 0, "dinner")]
-    [TestCase(20, 59, "dinner")]
-    [TestCase(21, 0, "snacks")]
-    [TestCase(4, 59, "snacks")]
-    [TestCase(5, 0, "breakfast")]
+    [TestCase(15, 0, "dinner")]
+    [TestCase(19, 59, "dinner")]
+    [TestCase(20, 0, "snacks")]
+    [TestCase(5, 59, "snacks")]
+    [TestCase(6, 0, "breakfast")]
     [TestCase(0, 0, "snacks")]
     public void SuggestedMeal_FollowsTheMealWindowsAtTheRegisteredTime(int hour, int minute, string meal)
     {
