@@ -15,13 +15,16 @@
 @inject ILogger<DashboardPage> Logger
 @inject TimeProvider Time
 
-<DashboardView Date="date" Today="Today()" CurrentMeal="MealWindows.MealFor(TimeOnly.FromDateTime(Time.GetLocalNow().DateTime))" Summary="summary" Loading="loading" LoadFailed="loadFailed"
+<DashboardView Date="date" Today="Today()" CurrentMeal="currentMeal" Summary="summary" Loading="loading" LoadFailed="loadFailed"
                OnPrevious="@(() => ShowAsync(date.AddDays(-1)))" OnNext="@(() => ShowAsync(date.AddDays(1)))" OnToday="@(() => ShowAsync(Today()))"
                UsualFoods="feed.Usual" UsualAddError="@feed.AddError" OnMealChanged="feed.LoadAsync" OnAddUsual="feed.AddAsync"
                OnAdd="OnAdd" OnScan="OnScan" OnEdit="OnEdit" OnRetry="LoadAsync" OnNavigate="OnNavigate" OnSettings="OpenSettingsAsync" />
 
 @code {
     private DateOnly date;
+
+    /// <summary>The meal of the time when the day was shown, so a window passing while Today is on screen doesn't refold the meals.</summary>
+    private Meal currentMeal;
     private DaySummary? summary;
     private bool loading = true;
     private bool loadFailed;
@@ -88,6 +91,7 @@
     private Task ShowAsync(DateOnly day)
     {
         date = day;
+        currentMeal = MealWindows.MealFor(TimeOnly.FromDateTime(Time.GetLocalNow().DateTime));
         return LoadAsync();
     }
 

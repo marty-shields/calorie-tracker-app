@@ -203,16 +203,6 @@ public sealed partial class DashboardSteps(WebView web, DashboardScreen dashboar
         Assert.That(dashboard.FoldedLine(meal), Is.EqualTo("Nothing logged"), $"{meal}'s folded line");
     }
 
-    [Then(@"^every meal is open$")]
-    public void ThenEveryMealIsOpen()
-    {
-        journeys.WaitFor(Journeys.Screen.Dashboard);
-        foreach (var meal in MealNames)
-        {
-            web.Eventually(() => dashboard.Expanded(meal), Is.EqualTo("true"), $"{meal} is open");
-        }
-    }
-
     [Then(@"^every meal is folded$")]
     public void ThenEveryMealIsFolded()
     {
