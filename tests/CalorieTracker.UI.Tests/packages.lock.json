@@ -72,6 +72,25 @@
           "Microsoft.Testing.Platform.MSBuild": "2.4.1"
         }
       },
+      "Shields.UI": {
+        "type": "Direct",
+        "requested": "[1.1.1, )",
+        "resolved": "1.1.1",
+        "contentHash": "kgHNSCwKvAE+tZvKVyJBorSCjeCDaOlxf3QXfZJD+VHiu83dzRO+IB15FQSNRYBsVuUfittMgd/s6a87KKzXAQ==",
+        "dependencies": {
+          "Microsoft.AspNetCore.Components.Web": "11.0.0"
+        }
+      },
+      "Shields.UI.Stories": {
+        "type": "Direct",
+        "requested": "[1.1.1, )",
+        "resolved": "1.1.1",
+        "contentHash": "DtYLwcus27mAvk60D5w7bkMD9jY49rHvV6HwhJX9435baYvZsfMg7T6s5fx5lLy4kKEUHN2KTD6g4EJy+svn5Q==",
+        "dependencies": {
+          "BlazingStory": "1.0.0-preview.97",
+          "Shields.UI": "1.1.1"
+        }
+      },
       "Shields.UI.Testing": {
         "type": "Direct",
         "requested": "[1.1.1, )",
@@ -458,6 +477,7 @@
         "dependencies": {
           "BlazingStory": "[1.0.0-preview.97, )",
           "CalorieTracker.UI": "[1.0.0, )",
+          "Shields.UI": "[1.1.1, )",
           "Shields.UI.Stories": "[1.1.1, )"
         }
       },
@@ -518,25 +538,6 @@
         "dependencies": {
           "Microsoft.Extensions.Diagnostics": "11.0.0",
           "Microsoft.Extensions.Logging": "11.0.0"
-        }
-      },
-      "Shields.UI": {
-        "type": "CentralTransitive",
-        "requested": "[1.1.1, )",
-        "resolved": "1.1.1",
-        "contentHash": "kgHNSCwKvAE+tZvKVyJBorSCjeCDaOlxf3QXfZJD+VHiu83dzRO+IB15FQSNRYBsVuUfittMgd/s6a87KKzXAQ==",
-        "dependencies": {
-          "Microsoft.AspNetCore.Components.Web": "11.0.0"
-        }
-      },
-      "Shields.UI.Stories": {
-        "type": "CentralTransitive",
-        "requested": "[1.1.1, )",
-        "resolved": "1.1.1",
-        "contentHash": "DtYLwcus27mAvk60D5w7bkMD9jY49rHvV6HwhJX9435baYvZsfMg7T6s5fx5lLy4kKEUHN2KTD6g4EJy+svn5Q==",
-        "dependencies": {
-          "BlazingStory": "1.0.0-preview.97",
-          "Shields.UI": "1.1.1"
         }
       },
       "sqlite-net-pcl": {

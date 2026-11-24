@@ -17,15 +17,6 @@
     </PackageReference>
   </ItemGroup>
 
-  <!-- The kit's stories shell (Shields.UI.Stories) comes from NuGet; -p:UseKitSource=true builds against the kit's source at KitPath instead. -->
-  <ItemGroup Condition="'$(UseKitSource)' != 'true'">
-    <PackageReference Include="Shields.UI.Stories" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(UseKitSource)' == 'true'">
-    <ProjectReference Include="$(KitSourcePath)/src/Shields.UI.Stories/Shields.UI.Stories.csproj" />
-  </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\CalorieTracker.UI\CalorieTracker.UI.csproj" />
   </ItemGroup>
