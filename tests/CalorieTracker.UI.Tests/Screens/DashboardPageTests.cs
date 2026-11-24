@@ -305,11 +305,11 @@ public class DashboardPageTests : ComponentTestBase
 
     private static string ExpandedOf(IRenderedComponent<DashboardPage> cut, string meal) => cut.Find($"[data-testid=meal-{meal}-toggle]").GetAttribute("aria-expanded")!;
 
-    [TestCase(9, 0)]
-    [TestCase(15, 33)]
-    [TestCase(19, 30)]
-    [TestCase(23, 0)]
-    public async Task AtAnyTimeOfDay_EveryMealOnTodayStartsOpen_AndFoldsAndOpensOnTap(int hour, int minute)
+    [TestCase(9, 0, "breakfast")]
+    [TestCase(12, 0, "lunch")]
+    [TestCase(15, 33, "dinner")]
+    [TestCase(23, 0, "")]
+    public async Task OnToday_TheCurrentMealAndSnacksStartOpen_AndFoldAndOpenOnTap(int hour, int minute, string current)
     {
         Clock.AdjustTime(new DateTimeOffset(2031, 7, 19, hour, minute, 0, TimeSpan.Zero));
         await Log(Today, Meal.Breakfast, 30);
@@ -319,44 +319,47 @@ public class DashboardPageTests : ComponentTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(Meals.Select(m => ExpandedOf(cut, m)), Is.All.EqualTo("true"));
-            Assert.That(cut.FindAll("[data-testid$=-badge]"), Is.Empty);
-            Assert.That(Text(cut, "meal-lunch-none"), Is.EqualTo("Nothing logged"));
+            foreach (var meal in Meals)
+            {
+                Assert.That(ExpandedOf(cut, meal), Is.EqualTo(meal == current || meal == "snacks" ? "true" : "false"), meal);
+            }
         });
 
-        await cut.Find("[data-testid=meal-dinner-toggle]").ClickAsync();
         await cut.Find("[data-testid=meal-snacks-toggle]").ClickAsync();
 
         Assert.Multiple(() =>
         {
-            Assert.That(ExpandedOf(cut, "dinner"), Is.EqualTo("false"));
-            Assert.That(Text(cut, "meal-dinner-hint"), Is.EqualTo("1 item · 125 kcal"));
             Assert.That(ExpandedOf(cut, "snacks"), Is.EqualTo("false"));
             Assert.That(Text(cut, "meal-snacks-hint"), Is.EqualTo("Nothing logged"));
         });
 
-        await cut.Find("[data-testid=meal-dinner-toggle]").ClickAsync();
+        await cut.Find("[data-testid=meal-snacks-toggle]").ClickAsync();
 
-        Assert.That(cut.FindAll("[data-testid=meal-dinner-section] ul .row"), Has.Count.EqualTo(1));
+        Assert.That(ExpandedOf(cut, "snacks"), Is.EqualTo("true"));
     }
 
     [Test]
-    public async Task AnotherDay_EveryMealStartsOpen_AndFoldsOnTap()
+    public async Task AnotherDay_EveryMealStartsFolded_AndOpensOnTap()
     {
         await Log(Today.AddDays(-1), Meal.Breakfast, 30);
 
         var cut = Render(Today.AddDays(-1));
 
-        Assert.That(Meals.Select(m => ExpandedOf(cut, m)), Is.All.EqualTo("true"));
+        Assert.That(Meals.Select(m => ExpandedOf(cut, m)), Is.All.EqualTo("false"));
 
         await cut.Find("[data-testid=meal-breakfast-toggle]").ClickAsync();
 
-        Assert.That(Text(cut, "meal-breakfast-hint"), Is.EqualTo("1 item · 125 kcal"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(ExpandedOf(cut, "breakfast"), Is.EqualTo("true"));
+            Assert.That(cut.FindAll("[data-testid=meal-breakfast-section] ul .row"), Has.Count.EqualTo(1));
+        });
     }
 
     [Test]
     public async Task AFoldedMeal_IsOpenAgainAfterMovingToAnotherDayAndBack()
     {
+        Clock.AdjustTime(new DateTimeOffset(2031, 7, 19, 12, 0, 0, TimeSpan.Zero));
         await Log(Today, Meal.Lunch, 30);
         var cut = Render();
         await cut.Find("[data-testid=meal-lunch-toggle]").ClickAsync();
@@ -370,16 +373,17 @@ public class DashboardPageTests : ComponentTestBase
     }
 
     [Test]
-    public async Task ComingBackToToday_StartsWithEveryMealOpen()
+    public async Task ComingBackToToday_StartsWithTheDefaultFoldAgain()
     {
         await Log(Today, Meal.Lunch, 30);
         var cut = Render();
+        var defaults = Meals.Select(m => ExpandedOf(cut, m)).ToArray();
         await cut.Find("[data-testid=meal-lunch-toggle]").ClickAsync();
         await Context.DisposeComponentsAsync();
 
         var again = Render();
 
-        Assert.That(Meals.Select(m => ExpandedOf(again, m)), Is.All.EqualTo("true"));
+        Assert.That(Meals.Select(m => ExpandedOf(again, m)).ToArray(), Is.EqualTo(defaults), "the fold is not kept");
     }
 
     [Test]

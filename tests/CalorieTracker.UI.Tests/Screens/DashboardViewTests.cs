@@ -21,6 +21,18 @@ public class DashboardViewTests : ComponentTestBase
             more?.Invoke(p);
         });
 
+    /// <summary>Renders the day and taps open every meal that starts folded, for tests about what the meals hold.</summary>
+    private IRenderedComponent<DashboardView> RenderOpen(Core.Summary.DaySummary? summary, Action<ComponentParameterCollectionBuilder<DashboardView>>? more = null, DateOnly? date = null)
+    {
+        var cut = Render(summary, more, date);
+        foreach (var meal in Meals.Where(m => ExpandedOf(cut, m) == "false"))
+        {
+            Tap(cut, meal);
+        }
+
+        return cut;
+    }
+
     private static string Text(IRenderedComponent<DashboardView> cut, string testId) => cut.Find($"[data-testid={testId}]").TextContent.Trim();
 
     private static bool Exists(IRenderedComponent<DashboardView> cut, string testId) => cut.FindAll($"[data-testid={testId}]").Count > 0;
@@ -36,7 +48,7 @@ public class DashboardViewTests : ComponentTestBase
     [Test]
     public void FirstRun_ShowsTheEmptyStateAndAPlusAndNothingLoggedOnEachMealButNoMacroBarOrTotals()
     {
-        var cut = Render(DashboardSamples.FirstRun);
+        var cut = RenderOpen(DashboardSamples.FirstRun);
 
         Assert.Multiple(() =>
         {
@@ -60,7 +72,7 @@ public class DashboardViewTests : ComponentTestBase
     [Test]
     public void Loaded_ShowsTotalsMacrosMealsAndEntries()
     {
-        var cut = Render(DashboardSamples.Loaded);
+        var cut = RenderOpen(DashboardSamples.Loaded);
 
         Assert.Multiple(() =>
         {
@@ -80,7 +92,7 @@ public class DashboardViewTests : ComponentTestBase
     [Test]
     public void AnEntryAddedByServings_ShowsTheServingAndTheFoodsLabel()
     {
-        var cut = Render(DashboardSamples.Loaded);
+        var cut = RenderOpen(DashboardSamples.Loaded);
 
         Assert.That(Text(cut, "entry-2"), Does.Contain("1 serving · ½ pizza (201.8 g)"));
     }
@@ -93,7 +105,7 @@ public class DashboardViewTests : ComponentTestBase
         var meals = Enum.GetValues<Meal>().Select(m => new Core.Summary.MealSummary(m, m == Meal.Breakfast ? entry.Nutrition : Core.Summary.Nutrition.Zero, m == Meal.Breakfast ? [entry] : [])).ToList();
         var day = DashboardSamples.Loaded with { Meals = meals };
 
-        var cut = Render(day);
+        var cut = RenderOpen(day);
 
         Assert.That(Text(cut, "entry-9"), Does.Contain(expected));
     }
@@ -107,7 +119,7 @@ public class DashboardViewTests : ComponentTestBase
         var entry = new Core.Summary.SummaryEntry(9, 9, name, brands.Split(',')[0], FoodUnit.Gram, 40, servings, new(149, 4.4, 24, 3.4), Brands: brands);
         var meals = Enum.GetValues<Meal>().Select(m => new Core.Summary.MealSummary(m, m == Meal.Breakfast ? entry.Nutrition : Core.Summary.Nutrition.Zero, m == Meal.Breakfast ? [entry] : [])).ToList();
 
-        var cut = Render(DashboardSamples.Loaded with { Meals = meals });
+        var cut = RenderOpen(DashboardSamples.Loaded with { Meals = meals });
 
         Assert.Multiple(() =>
         {
@@ -119,7 +131,7 @@ public class DashboardViewTests : ComponentTestBase
     [Test]
     public void Entries_AreTappableRows()
     {
-        var cut = Render(DashboardSamples.Loaded, p => p.Add(x => x.OnEdit, (EntryEditRequest _) => { }));
+        var cut = RenderOpen(DashboardSamples.Loaded, p => p.Add(x => x.OnEdit, (EntryEditRequest _) => { }));
 
         Assert.That(cut.FindAll("button[data-testid^=entry-]"), Has.Count.EqualTo(3));
     }
@@ -129,7 +141,7 @@ public class DashboardViewTests : ComponentTestBase
     public async Task TappingAnEntry_RaisesItWithItsMealAndTheDay(int entryId, int foodId, Meal meal)
     {
         EntryEditRequest? request = null;
-        var cut = Render(DashboardSamples.Loaded, p => p.Add(x => x.OnEdit, (EntryEditRequest r) => request = r), Today.AddDays(2));
+        var cut = RenderOpen(DashboardSamples.Loaded, p => p.Add(x => x.OnEdit, (EntryEditRequest r) => request = r), Today.AddDays(2));
 
         await cut.Find($"[data-testid=entry-{entryId}]").ClickAsync();
 
@@ -382,7 +394,7 @@ public class DashboardViewTests : ComponentTestBase
     [Test]
     public void TheOpenMealsToggle_ControlsTheEntriesItShows()
     {
-        var cut = Render(DashboardSamples.FullDay);
+        var cut = RenderOpen(DashboardSamples.FullDay);
 
         var toggle = cut.Find("[data-testid=meal-lunch-toggle]");
 
@@ -601,9 +613,9 @@ public class DashboardViewTests : ComponentTestBase
     [TestCase(0)]
     [TestCase(-1)]
     [TestCase(1)]
-    public void EveryMeal_OnAnyDay_IsAToggleThatStartsOpenWithItsEntries(int days)
+    public void EveryMeal_OnAnyDay_IsAToggleThatShowsItsEntriesWhenOpen(int days)
     {
-        var cut = Render(DashboardSamples.FullDay, date: Today.AddDays(days));
+        var cut = RenderOpen(DashboardSamples.FullDay, date: Today.AddDays(days));
 
         Assert.Multiple(() =>
         {
@@ -618,6 +630,41 @@ public class DashboardViewTests : ComponentTestBase
         });
     }
 
+    [TestCase(-1)]
+    [TestCase(1)]
+    public void OnAPastOrFutureDay_EveryMealStartsFolded_WithItsSummary(int days)
+    {
+        var cut = Render(DashboardSamples.FullDay, date: Today.AddDays(days));
+
+        Assert.Multiple(() =>
+        {
+            foreach (var meal in Meals)
+            {
+                Assert.That(ExpandedOf(cut, meal), Is.EqualTo("false"), meal);
+                Assert.That(cut.FindAll($"[data-testid=meal-{meal}-section] ul"), Is.Empty, meal);
+                Assert.That(Exists(cut, $"meal-{meal}-hint"), Is.True, meal);
+            }
+        });
+    }
+
+    [TestCase(Meal.Breakfast)]
+    [TestCase(Meal.Lunch)]
+    [TestCase(Meal.Dinner)]
+    [TestCase(null)]
+    public void OnToday_TheCurrentMealAndSnacksStartOpen_AndTheRestFold(Meal? current)
+    {
+        var cut = Render(DashboardSamples.FullDay, p => p.Add(x => x.CurrentMeal, current));
+
+        Assert.Multiple(() =>
+        {
+            foreach (var meal in Enum.GetValues<Meal>())
+            {
+                var open = meal == Meal.Snacks || meal == current;
+                Assert.That(ExpandedOf(cut, meal.ToString().ToLowerInvariant()), Is.EqualTo(open ? "true" : "false"), meal.ToString());
+            }
+        });
+    }
+
     [TestCase("breakfast", "1 item · 149 kcal", 0)]
     [TestCase("lunch", "1 item · 521 kcal", 0)]
     [TestCase("dinner", "1 item · 125 kcal", 0)]
@@ -626,7 +673,7 @@ public class DashboardViewTests : ComponentTestBase
     [TestCase("snacks", "1 item · 92 kcal", 1)]
     public void TappingAMeal_FoldsItToItsSummary_AndTappingAgainOpensIt(string meal, string summary, int days)
     {
-        var cut = Render(DashboardSamples.FullDay, date: Today.AddDays(days));
+        var cut = RenderOpen(DashboardSamples.FullDay, date: Today.AddDays(days));
 
         Tap(cut, meal);
 
@@ -653,7 +700,7 @@ public class DashboardViewTests : ComponentTestBase
     [Test]
     public void AFoldedMealWithSeveralEntries_SaysItems()
     {
-        var cut = Render(DashboardSamples.OverTarget);
+        var cut = RenderOpen(DashboardSamples.OverTarget);
 
         Tap(cut, "lunch");
 
@@ -663,7 +710,7 @@ public class DashboardViewTests : ComponentTestBase
     [Test]
     public void AnEmptyMeal_FoldsToNothingLogged_AndOpensToNothingLogged()
     {
-        var cut = Render(DashboardSamples.Loaded);
+        var cut = RenderOpen(DashboardSamples.Loaded);
 
         Tap(cut, "dinner");
 
@@ -684,8 +731,8 @@ public class DashboardViewTests : ComponentTestBase
     [TestCase(1)]
     public void AnOpenEmptyMeal_SaysNothingLogged_OnAnyDay_WithOrWithoutOtherEntries(int days)
     {
-        var withOthers = Render(DashboardSamples.Loaded, date: Today.AddDays(days));
-        var emptyDay = Render(DashboardSamples.FirstRun, date: Today.AddDays(days));
+        var withOthers = RenderOpen(DashboardSamples.Loaded, date: Today.AddDays(days));
+        var emptyDay = RenderOpen(DashboardSamples.FirstRun, date: Today.AddDays(days));
 
         Assert.Multiple(() =>
         {
@@ -725,7 +772,7 @@ public class DashboardViewTests : ComponentTestBase
     [Test]
     public void TheMealHeader_HasAnUpArrowWhenOpenAndADownArrowWhenFolded()
     {
-        var cut = Render(DashboardSamples.FullDay);
+        var cut = RenderOpen(DashboardSamples.FullDay);
         string PathOf(IconName name) => Context.Render<Icon>(p => p.Add(x => x.Name, name)).Find("path").GetAttribute("d")!;
         string Shown() => cut.Find("[data-testid=meal-dinner-toggle] svg path").GetAttribute("d")!;
 
@@ -737,7 +784,7 @@ public class DashboardViewTests : ComponentTestBase
     }
 
     [Test]
-    public void FoldedMeals_OpenAgainWhenTheDayChanges()
+    public void FoldedMeals_ResetToTheDefaultsWhenTheDayChanges()
     {
         var cut = Render(DashboardSamples.FullDay);
         Tap(cut, "lunch");
@@ -745,18 +792,18 @@ public class DashboardViewTests : ComponentTestBase
 
         cut.Render(p => p.Add(x => x.Date, Today.AddDays(-1)));
 
-        Assert.That(Meals.Select(m => ExpandedOf(cut, m)), Is.All.EqualTo("true"), "on the other day");
+        Assert.That(Meals.Select(m => ExpandedOf(cut, m)), Is.All.EqualTo("false"), "on the other day every meal starts folded");
 
         Tap(cut, "dinner");
         cut.Render(p => p.Add(x => x.Date, Today));
 
-        Assert.That(Meals.Select(m => ExpandedOf(cut, m)), Is.All.EqualTo("true"), "back on today");
+        Assert.That(Meals.Select(m => ExpandedOf(cut, m)), Is.EqualTo(new[] { "false", "false", "false", "true" }), "back on today only Snacks starts open");
     }
 
     [Test]
     public void FoldedMeal_ShowsThatMealFolded()
     {
-        var cut = Render(DashboardSamples.Loaded, p => p.Add(x => x.FoldedMeal, Meal.Lunch));
+        var cut = Render(DashboardSamples.Loaded, p => p.Add(x => x.FoldedMeal, Meal.Lunch).Add(x => x.CurrentMeal, Meal.Breakfast));
 
         Assert.Multiple(() =>
         {
@@ -769,9 +816,9 @@ public class DashboardViewTests : ComponentTestBase
     [Test]
     public void ANewFoldedMeal_ReleasesTheEarlierOne()
     {
-        var cut = Render(DashboardSamples.FullDay, p => p.Add(x => x.FoldedMeal, Meal.Lunch));
+        var cut = Render(DashboardSamples.FullDay, p => p.Add(x => x.FoldedMeal, Meal.Lunch).Add(x => x.CurrentMeal, Meal.Lunch));
 
-        cut.Render(p => p.Add(x => x.FoldedMeal, Meal.Dinner));
+        cut.Render(p => p.Add(x => x.FoldedMeal, Meal.Dinner).Add(x => x.CurrentMeal, Meal.Lunch));
 
         Assert.Multiple(() =>
         {
@@ -801,7 +848,7 @@ public class DashboardViewTests : ComponentTestBase
     public void ThePlusOnAFoldedMeal_RaisesOnAddForThatMeal_WithoutOpeningIt()
     {
         MealAddRequest? request = null;
-        var cut = Render(DashboardSamples.FullDay, p => p.Add(x => x.OnAdd, (MealAddRequest r) => request = r));
+        var cut = RenderOpen(DashboardSamples.FullDay, p => p.Add(x => x.OnAdd, (MealAddRequest r) => request = r));
         Tap(cut, "lunch");
 
         cut.Find("[data-testid=meal-lunch-add]").Click();
@@ -818,7 +865,7 @@ public class DashboardViewTests : ComponentTestBase
     {
         UseSheetModule();
         var asked = new List<UsualAddRequest>();
-        var cut = Render(DashboardSamples.FullDay, p => p
+        var cut = RenderOpen(DashboardSamples.FullDay, p => p
             .Add(x => x.UsualFoods, UsualRows)
             .Add(x => x.OnAddUsual, (request, _) =>
             {
@@ -847,7 +894,7 @@ public class DashboardViewTests : ComponentTestBase
     public void AFailedQuickAdd_LeavesAFoldedMealFolded()
     {
         UseSheetModule();
-        var cut = Render(DashboardSamples.FullDay, p => p
+        var cut = RenderOpen(DashboardSamples.FullDay, p => p
             .Add(x => x.UsualFoods, UsualRows)
             .Add(x => x.OnAddUsual, (_, _) => Task.FromResult(false)));
         Tap(cut, "lunch");

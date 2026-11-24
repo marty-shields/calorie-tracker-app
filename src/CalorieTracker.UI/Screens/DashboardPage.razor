@@ -15,7 +15,7 @@
 @inject ILogger<DashboardPage> Logger
 @inject TimeProvider Time
 
-<DashboardView Date="date" Today="Today()" Summary="summary" Loading="loading" LoadFailed="loadFailed"
+<DashboardView Date="date" Today="Today()" CurrentMeal="MealWindows.MealFor(TimeOnly.FromDateTime(Time.GetLocalNow().DateTime))" Summary="summary" Loading="loading" LoadFailed="loadFailed"
                OnPrevious="@(() => ShowAsync(date.AddDays(-1)))" OnNext="@(() => ShowAsync(date.AddDays(1)))" OnToday="@(() => ShowAsync(Today()))"
                UsualFoods="feed.Usual" UsualAddError="@feed.AddError" OnMealChanged="feed.LoadAsync" OnAddUsual="feed.AddAsync"
                OnAdd="OnAdd" OnScan="OnScan" OnEdit="OnEdit" OnRetry="LoadAsync" OnNavigate="OnNavigate" OnSettings="OpenSettingsAsync" />
