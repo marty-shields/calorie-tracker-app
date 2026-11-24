@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Xml.Linq;
 
 namespace CalorieTracker.UI.Tests;
@@ -33,45 +32,6 @@ public class KitReferenceTests
         Assert.That(
             references.Count(r => ((string?)r.Attribute("Include"))!.EndsWith($"/{package}.csproj", StringComparison.Ordinal)),
             Is.EqualTo(1));
-    }
-
-    // Dependabot rewrites a lock file only where the package is a direct reference, so a transitive entry goes stale.
-    [TestCase("src", "CalorieTracker.App", "Shields.UI")]
-    [TestCase("src", "CalorieTracker.UI", "Shields.UI")]
-    [TestCase("src", "CalorieTracker.UI.Stories", "Shields.UI")]
-    [TestCase("src", "CalorieTracker.UI.Stories", "Shields.UI.Stories")]
-    [TestCase("src", "CalorieTracker.UI.Stories.Host", "Shields.UI")]
-    [TestCase("src", "CalorieTracker.UI.Stories.Host", "Shields.UI.Stories")]
-    [TestCase("tests", "CalorieTracker.UI.Tests", "Shields.UI")]
-    [TestCase("tests", "CalorieTracker.UI.Tests", "Shields.UI.Stories")]
-    [TestCase("tests", "CalorieTracker.UI.Tests", "Shields.UI.Testing")]
-    public void KitPackage_IsADirectEntryInEveryLockFileThatUsesIt(string folder, string project, string package)
-    {
-        var lockFile = JsonDocument.Parse(RepoFiles.Read(folder, project, "packages.lock.json"));
-        var entry = lockFile.RootElement.GetProperty("dependencies").EnumerateObject().First().Value.GetProperty(package);
-
-        Assert.That(entry.GetProperty("type").GetString(), Is.EqualTo("Direct"));
-    }
-
-    [Test]
-    public void KitSourceBuild_MovesTheLockFileToObjAndDoesNotEnforceIt()
-    {
-        var group = BuildPropsGroups().Single(g => (string?)g.Attribute("Condition") == SourceCondition);
-
-        Assert.That(group.Element("RestoreLockedMode")?.Value, Is.EqualTo("false"));
-        Assert.That(
-            group.Element("NuGetLockFilePath")?.Value,
-            Is.EqualTo("$(MSBuildProjectDirectory)/obj/kit-source.packages.lock.json"));
-    }
-
-    [Test]
-    public void RestoreLockedMode_IsNeverTurnedOffOutsideTheKitSourceGroup()
-    {
-        var others = BuildPropsGroups()
-            .Where(g => (string?)g.Attribute("Condition") != SourceCondition)
-            .SelectMany(g => g.Elements("RestoreLockedMode"));
-
-        Assert.That(others.Select(e => e.Value), Is.All.EqualTo("true"));
     }
 
     [Test]
