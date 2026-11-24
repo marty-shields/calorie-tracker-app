@@ -4,7 +4,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <MauiVersion>11.0.10</MauiVersion>
-    <ShieldsUiVersion>1.1.0</ShieldsUiVersion>
+    <ShieldsUiVersion>1.1.1</ShieldsUiVersion>
   </PropertyGroup>
 
   <ItemGroup>
